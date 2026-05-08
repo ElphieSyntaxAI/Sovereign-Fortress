@@ -1,0 +1,55 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: author-ecosystem-db
+    environment:
+      POSTGRES_DB: author_ecosystem
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: author-ecosystem-server
+    depends_on:
+      - db
+    environment:
+      PORT: 3002
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: author_ecosystem
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: change_me_dev
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_EMBED_MODEL: ${GEMINI_EMBED_MODEL:-text-embedding-004}
+      GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-2.0-flash}
+      RAG_TOP_K: ${RAG_TOP_K:-8}
+    ports:
+      - "3002:3002"
+
+  db_init:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: author-ecosystem-db-init
+    depends_on:
+      - db
+    environment:
+      DB_RESET: "true"
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: author_ecosystem
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    command: ["node", "src/database/initDb.js"]
+    restart: "no"
+
+volumes:
+  db_data:
+

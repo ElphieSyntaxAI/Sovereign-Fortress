@@ -1,0 +1,73 @@
+let _clientPromise = null;
+
+async function getClient() {
+  if (!_clientPromise) {
+    _clientPromise = (async () => {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Missing GEMINI_API_KEY");
+      }
+
+      // @google/genai is ESM-first; dynamic import works in CommonJS.
+      const { GoogleGenAI } = await import("@google/genai");
+      return new GoogleGenAI({ apiKey });
+    })();
+  }
+  return _clientPromise;
+}
+
+function toFloatArray(value) {
+  if (!Array.isArray(value)) return null;
+  const out = new Array(value.length);
+  for (let i = 0; i < value.length; i++) {
+    const n = Number(value[i]);
+    out[i] = Number.isFinite(n) ? n : 0;
+  }
+  return out;
+}
+
+async function embedTexts(texts, { model }) {
+  const ai = await getClient();
+  const embeddingModel = model || process.env.GEMINI_EMBED_MODEL || "text-embedding-004";
+
+  const results = [];
+  for (const text of texts) {
+    const resp = await ai.models.embedContent({
+      model: embeddingModel,
+      contents: [{ role: "user", parts: [{ text: String(text || "") }] }],
+    });
+
+    const values =
+      resp?.embeddings?.[0]?.values ||
+      resp?.embedding?.values ||
+      resp?.embeddings?.values;
+
+    const vec = toFloatArray(values);
+    if (!vec) {
+      throw new Error("Gemini embedContent response missing embedding values");
+    }
+    results.push(vec);
+  }
+  return results;
+}
+
+async function generateBullets({ system, user, model }) {
+  const ai = await getClient();
+  const chatModel = model || process.env.GEMINI_CHAT_MODEL || "gemini-2.0-flash";
+
+  const resp = await ai.models.generateContent({
+    model: chatModel,
+    systemInstruction: system,
+    contents: [{ role: "user", parts: [{ text: user }] }],
+  });
+
+  const text = resp?.text;
+  if (!text) throw new Error("Gemini generateContent returned empty text");
+  return String(text);
+}
+
+module.exports = {
+  embedTexts,
+  generateBullets,
+};
+

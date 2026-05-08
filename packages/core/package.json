@@ -1,0 +1,35 @@
+{
+  "name": "@elphie-syntax/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./types/prime": {
+      "types": "./src/types/prime.ts",
+      "import": "./src/types/prime.ts",
+      "default": "./src/types/prime.ts"
+    },
+    "./lib/forensics/calibration": {
+      "types": "./src/lib/forensics/calibration.ts",
+      "import": "./src/lib/forensics/calibration.ts",
+      "default": "./src/lib/forensics/calibration.ts"
+    },
+    "./lib/forensics/calibration/pure": {
+      "types": "./src/lib/forensics/calibration-pure.ts",
+      "import": "./src/lib/forensics/calibration-pure.ts",
+      "default": "./src/lib/forensics/calibration-pure.ts"
+    }
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

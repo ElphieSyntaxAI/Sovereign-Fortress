@@ -1,0 +1,23 @@
+{
+  "name": "elphie-syntax-suite",
+  "scripts": {
+    "dev": "npm run dev -w msgf",
+    "dev:msgf": "npm run dev -w msgf",
+    "dev:dashboard": "npm run dev -w msgf-dashboard",
+    "check-brain-violation": "node tools/check-brain-violation.js",
+    "enforce-silo": "node tools/enforce-silo.js",
+    "prepare": "node tools/enforce-silo.js install"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/msgf-dashboard",
+    "apps/client-vortex/web",
+    "apps/client-vortex/server",
+    "apps/author-ecosystem/client",
+    "apps/author-ecosystem/server"
+  ],
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "stripe": "^22.1.1"
+  }
+}

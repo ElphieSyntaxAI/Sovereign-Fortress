@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "tenants": {
+    "tenant_author": {
+      "label": "Author ecosystem",
+      "WHITELISTED_PATHS": [
+        "apps/author-ecosystem/**",
+        "packages/ui/**",
+        "packages/msgf/**",
+        "tools/**"
+      ]
+    },
+    "tenant_education": {
+      "label": "Syntax Educates",
+      "WHITELISTED_PATHS": [
+        "apps/syntax-educates/**",
+        "packages/ui/**",
+        "packages/msgf/config/**",
+        "tools/**"
+      ]
+    },
+    "tenant_gated": {
+      "label": "Gated AI (MSGF)",
+      "WHITELISTED_PATHS": [
+        "apps/msgf-dashboard/**",
+        "packages/msgf/**",
+        "packages/ui/**",
+        "tools/**"
+      ]
+    },
+    "vortex": {
+      "label": "Vortex Client",
+      "WHITELISTED_PATHS": [
+        "apps/client-vortex/**",
+        "packages/shared-ui/**",
+        "packages/ui/**",
+        "tools/**"
+      ]
+    }
+  }
+}

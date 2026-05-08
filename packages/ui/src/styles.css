@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* Scan this package so utilities used in components are generated when this CSS is bundled. */
+@source "./**/*.{ts,tsx}";
+
+/* Lore Librarian — semantic answer typography (paired with structural borders in the component). */
+.librarian-canon-authenticated {
+  color: rgb(52 211 153);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.librarian-inference-scientific {
+  color: rgb(125 211 252);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.015em;
+}

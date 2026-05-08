@@ -1,0 +1,49 @@
+### Test User Registration
+POST http://localhost:3002/api/auth/register
+Content-Type: application/json
+
+{
+    "username": "authortester1",
+    "email": "test1@launch.com",
+    "password": "MySecurePassword123"
+}
+### Expected Response
+HTTP/1.1 201 Created
+
+### login user
+POST http://localhost:3002/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "authortester1",
+    "email": "test1@launch.com",
+    "password": "MySecurePassword123"
+}
+### Expected Response
+HTTP/1.1 200 Login successful
+
+### 2. TEST AUTHENTICATION (verifyToken middleware)
+GET http://localhost:3002/api/test/public-content
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzI4MzU3YjktZGUzYy00MWNiLTk5NTktOTQ2Y2M3ZGY2MTUzIiwidGllcl9pZCI6MSwiaWF0IjoxNzYzMjQxNTcxLCJleHAiOjE3NjM4NDYzNzF9.fdMMalXWc_LkQoYmO4sRDUcBurn7dgUBHuNGkItU0m8
+
+### 3. TEST AUTHORIZATION (checkTierAccess(2) middleware)
+GET http://localhost:3002/api/test/author-dashboard
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzI4MzU3YjktZGUzYy00MWNiLTk5NTktOTQ2Y2M3ZGY2MTUzIiwidGllcl9pZCI6MSwiaWF0IjoxNzYzMjQxNTcxLCJleHAiOjE3NjM4NDYzNzF9.fdMMalXWc_LkQoYmO4sRDUcBurn7dgUBHuNGkItU0m8
+
+### 4. TEST HAL LEDGER (Human Authorship Ledger)
+POST http://localhost:3002/api/hal/session
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzI4MzU3YjktZGUzYy00MWNiLTk5NTktOTQ2Y2M3ZGY2MTUzIiwidGllcl9pZCI6MSwiaWF0IjoxNzY3MjUxNzk3LCJleHAiOjE3Njc4NTY1OTd9.3M6E8GutDTF9dsEyuZvzvCD99pugUNV0cGATvnEgYyk
+
+{
+  "content_hash": "ledger_test_001",
+  "session_start": "2025-12-27T18:00:00Z",
+  "session_end": "2025-12-27T18:05:00Z",
+  "typing_stats": {
+    "pastes": 0,
+    "backspaces": 12,
+    "rhythm_data": [100, 150, 120, 110, 400],
+    "words_added": 150
+  },
+  "text_sample": "This is a verified human session being recorded into the immutable ledger."
+}

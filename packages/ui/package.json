@@ -1,0 +1,40 @@
+{
+  "name": "@elphie-syntax/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.53.0",
+    "zod": "^3.23.0"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss": "^4.1.4"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.2",
+    "typescript": "^5.7.0",
+    "zod": "^3.24.1"
+  }
+}

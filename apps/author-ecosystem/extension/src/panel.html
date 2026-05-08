@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Author Ecosystem</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 0;
+        padding: 12px;
+        width: 320px;
+      }
+      h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        margin: 10px 0 4px;
+      }
+      input,
+      textarea,
+      select,
+      button {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      textarea {
+        min-height: 70px;
+        resize: vertical;
+      }
+      button {
+        margin-top: 10px;
+        padding: 10px;
+        border: 0;
+        border-radius: 8px;
+        background: #2c3e50;
+        color: white;
+        cursor: pointer;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row > * {
+        flex: 1;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 11px;
+        background: #f6f7f8;
+        padding: 8px;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>HAL + Lore Librarian</h3>
+
+    <label>API base URL</label>
+    <input id="apiBase" placeholder="http://localhost:3002" />
+
+    <label>JWT (paste from Author Ecosystem login)</label>
+    <textarea id="jwt" placeholder="eyJhbGciOi..." spellcheck="false"></textarea>
+
+    <div class="row">
+      <button id="saveAuth">Save</button>
+      <button id="loadProjects">Load Projects</button>
+    </div>
+
+    <label>Project</label>
+    <select id="projectSelect"></select>
+
+    <button id="pushSession">Push HAL Session</button>
+
+    <label>Librarian question (author mode)</label>
+    <textarea id="question" placeholder="Ask about continuity, canon, or scientific inference..."></textarea>
+    <button id="askLibrarian">Ask Librarian</button>
+
+    <label>Output</label>
+    <pre id="output"></pre>
+
+    <script src="panel.js"></script>
+  </body>
+</html>
+

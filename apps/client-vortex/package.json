@@ -1,0 +1,5 @@
+{
+  "name": "client-vortex",
+  "private": true,
+  "workspaces": ["server", "web"]
+}

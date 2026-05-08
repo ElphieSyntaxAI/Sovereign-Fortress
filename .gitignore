@@ -1,0 +1,14 @@
+.env*
+.env.local
+.env.*.local
+*.json
+!package.json
+!packages/msgf/config/tenant-manifest.json
+node_modules/
+dist/
+.next/
+**/.next/
+
+# Supabase CLI local cache (machine-specific; not for version control)
+supabase/.temp/
+packages/msgf/supabase/.temp/

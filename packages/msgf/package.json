@@ -1,0 +1,50 @@
+{
+  "name": "msgf",
+  "private": true,
+  "scripts": {
+    "predev": "node msgf-init.js",
+    "prebuild": "node msgf-init.js",
+    "prestart": "node msgf-init.js",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:lom-disagreement": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env tests/test-lom-disagreement.ts",
+    "verify:db-schema": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/verify-supabase-schema.mjs",
+    "probe:author-ecosystem": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/probe-author-ecosystem.mjs",
+    "test:jira": "node scripts/test-jira.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@elphie-syntax/core": "file:../core",
+    "@elphie-syntax/ui": "file:../ui",
+    "@google-cloud/aiplatform": "^6.7.0",
+    "@google-cloud/vertexai": "^1.12.0",
+    "@google/generative-ai": "^0.24.1",
+    "@hookform/resolvers": "^3.9.1",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.105.1",
+    "@tailwindcss/postcss": "^4.1.4",
+    "aws-jwt-verify": "^5.1.1",
+    "dotenv": "^16.6.1",
+    "next": "^15.1.0",
+    "node-fetch": "^3.3.2",
+    "openai": "^6.35.0",
+    "postcss": "^8.4.49",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.2",
+    "redis": "^5.12.1",
+    "stripe": "^22.1.1",
+    "tailwindcss": "^4.1.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "pg": "^8.13.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0"
+  }
+}
