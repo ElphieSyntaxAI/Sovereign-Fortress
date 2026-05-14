@@ -5,6 +5,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { P4_HAL_LEDGER } from "./database/canonicalIdentifiers.js";
 import {
   LibrarianChat,
   matchesCanonPrefix,
@@ -110,7 +111,7 @@ WITH hal_daily AS (
         ELSE NULL::double precision
       END
     ) AS mean_hal_score_snap
-  FROM public.p4_hal_ledger h
+  FROM public.${P4_HAL_LEDGER} h
   WHERE h.raw_sample ? 'manuscriptId'
     AND (h.raw_sample->>'manuscriptId') ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   GROUP BY h.tenant_id, (h.raw_sample->>'manuscriptId')::uuid, ((h.created_at AT TIME ZONE 'UTC')::date)

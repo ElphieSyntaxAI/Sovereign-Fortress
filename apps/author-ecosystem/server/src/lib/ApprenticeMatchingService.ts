@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { P4_HAL_LEDGER } from "./database/canonicalIdentifiers.js";
 import { AuthorTelemetryService } from "./AuthorTelemetryService.js";
 import type { GrowthReportSessionDelta } from "./AuthorTelemetryService.js";
 import { GuildTierService } from "./GuildTierService.js";
@@ -206,7 +207,7 @@ export class ApprenticeMatchingService {
     tenantId: string
   ): Promise<boolean> {
     const { data, error } = await this.supabase
-      .from("p4_hal_ledger")
+      .from(P4_HAL_LEDGER)
       .select("id, raw_sample")
       .eq("author_user_id", authorUserId)
       .eq("tenant_id", tenantId)

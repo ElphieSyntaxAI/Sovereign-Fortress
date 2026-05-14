@@ -1,7 +1,7 @@
 "use client";
 
 import type { HTMLAttributes } from "react";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { cn } from "../lib/cn";
@@ -30,6 +30,16 @@ export type ChapterHealth = {
   lore_breach_count: number;
 };
 
+export type EditorSuggestion = {
+  id: string;
+  anchor_start: number;
+  anchor_end: number;
+  original_text: string;
+  replacement_text: string;
+  created_at: string;
+  ledger_id?: string;
+};
+
 export type EditorForensicViewProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
   supabase: SupabaseClient;
   manuscriptId: string;
@@ -41,10 +51,28 @@ export type EditorForensicViewProps = Omit<HTMLAttributes<HTMLDivElement>, "chil
    */
   helperId?: string;
   forensicGateApiUrl?: string;
+  /**
+   * RBAC: `EDITOR` forces a read-only primary stream and enables the **suggestion layer** (POEE posts).
+   * Other roles may edit only when `onBodyTextChange` is provided.
+   */
+  userRole?: string;
+  /** Optional Bearer for BFF `POST .../editor-ledger/poee`. */
+  getAccessToken?: () => string | null | Promise<string | null>;
+  /** When provided and user is not locked as editor, manuscript body becomes editable (author lane). */
+  onBodyTextChange?: (nextBodyText: string) => void;
+  /** Called after a POEE row is persisted (local suggestion already appended). */
+  onSuggestionRecorded?: (s: EditorSuggestion) => void;
 };
 
 function asRecord(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
+}
+
+function authHeaders(accessToken: string | null | undefined): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const t = typeof accessToken === "string" ? accessToken.trim() : "";
+  if (t) headers.Authorization = `Bearer ${t}`;
+  return headers;
 }
 
 function p90ms(samples: number[]): number {
@@ -121,6 +149,10 @@ export function EditorForensicView({
   bodyText,
   helperId,
   forensicGateApiUrl,
+  userRole = "AUTHOR",
+  getAccessToken,
+  onBodyTextChange,
+  onSuggestionRecorded,
   className,
   ...rest
 }: EditorForensicViewProps) {
@@ -129,6 +161,20 @@ export function EditorForensicView({
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const halFillId = `halLatencyFill-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+
+  const textRef = useRef<HTMLTextAreaElement | null>(null);
+  const [selection, setSelection] = useState<{ start: number; end: number; text: string }>({
+    start: 0,
+    end: 0,
+    text: "",
+  });
+  const [replacementDraft, setReplacementDraft] = useState("");
+  const [suggestions, setSuggestions] = useState<EditorSuggestion[]>([]);
+  const [poeeErr, setPoeeErr] = useState<string | null>(null);
+  const [poeePosting, setPoeePosting] = useState(false);
+
+  const isEditor = (userRole ?? "AUTHOR").toUpperCase() === "EDITOR";
+  const readOnlyPrimary = isEditor || !onBodyTextChange;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -313,6 +359,76 @@ export function EditorForensicView({
     );
   }, [halPoints, halFillId]);
 
+  const captureSelection = useCallback(() => {
+    const el = textRef.current;
+    if (!el || !isEditor) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const text = bodyText.slice(start, end);
+    setSelection({ start, end, text });
+  }, [isEditor, bodyText]);
+
+  const recordSuggestion = useCallback(async () => {
+    if (!isEditor) return;
+    const { start, end, text: original_text } = selection;
+    if (end <= start || !original_text) {
+      setPoeeErr("Highlight text in the manuscript stream first.");
+      return;
+    }
+    setPoeeErr(null);
+    setPoeePosting(true);
+    const id =
+      typeof globalThis !== "undefined" &&
+      "crypto" in globalThis &&
+      typeof globalThis.crypto?.randomUUID === "function"
+        ? globalThis.crypto.randomUUID()
+        : `sug_${Date.now()}`;
+    try {
+      const token = getAccessToken ? await getAccessToken() : null;
+      const mid = manuscriptId.trim();
+      const path = `/api/manuscripts/${encodeURIComponent(mid)}/editor-ledger/poee`;
+      const url =
+        typeof window !== "undefined" && window.location?.origin
+          ? `${window.location.origin}${path}`
+          : path;
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders(token ?? undefined),
+        body: JSON.stringify({
+          suggestion: {
+            id,
+            anchor_start: start,
+            anchor_end: end,
+            original_text,
+            replacement_text: replacementDraft,
+          },
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!res.ok) {
+        throw new Error(typeof json.error === "string" ? json.error : res.statusText);
+      }
+      const created = new Date().toISOString();
+      const sug: EditorSuggestion = {
+        id,
+        anchor_start: start,
+        anchor_end: end,
+        original_text,
+        replacement_text: replacementDraft,
+        created_at: created,
+        ledger_id: typeof json.ledger_id === "string" ? json.ledger_id : undefined,
+      };
+      setSuggestions((prev) => [sug, ...prev]);
+      setReplacementDraft("");
+      onSuggestionRecorded?.(sug);
+    } catch (e) {
+      setPoeeErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPoeePosting(false);
+    }
+  }, [isEditor, selection, replacementDraft, manuscriptId, getAccessToken, onSuggestionRecorded]);
+
   return (
     <div className={cn("grid gap-4 lg:grid-cols-[minmax(0,1fr)_min(320px,34%)]", className)} {...rest}>
       <div className="space-y-3">
@@ -360,9 +476,88 @@ export function EditorForensicView({
             </p>
             {overlaySvg}
           </div>
-          <pre className="max-h-[min(70vh,720px)] overflow-auto whitespace-pre-wrap p-4 text-sm leading-relaxed text-zinc-200">
-            {bodyText}
-          </pre>
+          {isEditor ? (
+            <p className="border-b border-emerald-900/25 bg-emerald-950/15 px-3 py-2 text-[11px] leading-relaxed text-emerald-100/90">
+              <span className="font-semibold text-emerald-50">Editor lane:</span> primary text stream is{" "}
+              <span className="font-mono text-emerald-200">readOnly</span>. Use the suggestion layer to propose edits
+              — each suggestion posts a <span className="font-mono text-emerald-200">POEE</span> row to{" "}
+              <span className="font-mono text-emerald-200">p4_editor_ledger</span> (no direct body mutation).
+            </p>
+          ) : null}
+          <textarea
+            ref={textRef}
+            readOnly={readOnlyPrimary}
+            value={bodyText}
+            onChange={readOnlyPrimary ? undefined : (e) => onBodyTextChange?.(e.target.value)}
+            onMouseUp={isEditor ? captureSelection : undefined}
+            onSelect={isEditor ? captureSelection : undefined}
+            onKeyUp={isEditor ? captureSelection : undefined}
+            spellCheck={false}
+            className={cn(
+              "max-h-[min(70vh,720px)] min-h-[240px] w-full resize-y whitespace-pre-wrap border-0 bg-transparent p-4 font-mono text-sm leading-relaxed text-zinc-200",
+              "focus:outline-none focus:ring-2 focus:ring-emerald-600/35 focus:ring-inset",
+              readOnlyPrimary && "cursor-text"
+            )}
+            aria-readonly={readOnlyPrimary || undefined}
+            aria-label={isEditor ? "Manuscript text (read-only for editors)" : "Manuscript text"}
+          />
+          {isEditor ? (
+            <div className="space-y-3 border-t border-sky-900/45 bg-sky-950/25 px-3 py-3">
+              <h4 className="text-[10px] font-semibold uppercase tracking-wide text-sky-300/90">Suggestion layer</h4>
+              <p className="text-[11px] text-sky-100/75">
+                Selection: {selection.end > selection.start ? `${selection.start}–${selection.end}` : "—"} (
+                {selection.text ? `${selection.text.length} chars` : "none"})
+              </p>
+              <label className="block space-y-1">
+                <span className="text-[10px] uppercase tracking-wide text-sky-400/90">Replacement text</span>
+                <textarea
+                  value={replacementDraft}
+                  onChange={(e) => setReplacementDraft(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-md border border-sky-800/60 bg-zinc-950/80 px-2 py-1.5 text-xs text-sky-50 placeholder:text-sky-700/80"
+                  placeholder="Type the proposed replacement for the highlighted span…"
+                />
+              </label>
+              {poeeErr ? (
+                <p className="text-xs text-rose-400" role="alert">
+                  {poeeErr}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={poeePosting || selection.end <= selection.start}
+                  onClick={() => void recordSuggestion()}
+                  className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {poeePosting ? "Recording POEE…" : "Record suggestion + POEE"}
+                </button>
+                <span className="text-[10px] text-sky-300/70">POST /api/manuscripts/…/editor-ledger/poee</span>
+              </div>
+              {suggestions.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Recorded suggestions</p>
+                  <ul className="max-h-48 space-y-2 overflow-y-auto">
+                    {suggestions.map((s) => (
+                      <li
+                        key={s.id}
+                        className="rounded-md border border-zinc-700/80 bg-zinc-900/60 px-2 py-2 text-[11px] leading-relaxed text-zinc-200"
+                      >
+                        <span className="font-mono text-[10px] text-zinc-500">
+                          {s.anchor_start}:{s.anchor_end}
+                        </span>
+                        <div className="mt-1">
+                          <del className="text-rose-200/90 decoration-rose-400/90">{s.original_text || "∅"}</del>
+                          <span className="mx-1 text-zinc-600">→</span>
+                          <ins className="bg-amber-400/25 text-amber-50 no-underline">{s.replacement_text || "∅"}</ins>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 

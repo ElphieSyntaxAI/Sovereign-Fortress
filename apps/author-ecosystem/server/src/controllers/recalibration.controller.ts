@@ -19,6 +19,12 @@ import {
   stylometricFromContentDelta,
   varianceSample,
 } from "../lib/halMetrics.js";
+import {
+  P4_FORENSIC_PROFILES,
+  P4_HAL_LEDGER,
+  P4_HAL_LEDGER_ROLLING_AVG_5,
+  P4_RECALIBRATION_LOGS,
+} from "../lib/database/canonicalIdentifiers.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 /** Allowed structured reasons for audit / UI. */
@@ -142,7 +148,7 @@ recalibrationController.post("/api/forensics/recalibrate", async (req: Request, 
     const supabase = getSupabaseAdmin();
 
     const { data: rollingRow, error: rollingError } = await supabase
-      .from("p4_hal_ledger_rolling_avg_5")
+      .from(P4_HAL_LEDGER_ROLLING_AVG_5)
       .select(
         "tenant_id,sample_sessions,avg_ttr,avg_avg_sentence_length_words,avg_punctuation_frequency,avg_function_word_weight,avg_sentence_length_std_dev"
       )
@@ -256,7 +262,7 @@ recalibrationController.post("/api/forensics/recalibrate", async (req: Request, 
     });
 
     const { error: forensicUpdateError } = await supabase
-      .from("p4_forensic_profiles")
+      .from(P4_FORENSIC_PROFILES)
       .update({
         recalibration_event: true,
         recalibration_reason: recalibrationReasonFull,
@@ -277,7 +283,7 @@ recalibrationController.post("/api/forensics/recalibrate", async (req: Request, 
     };
 
     const { data: halRow, error: halError } = await supabase
-      .from("p4_hal_ledger")
+      .from(P4_HAL_LEDGER)
       .insert({
         tenant_id: tenantId,
         author_user_id: authorUserId,
@@ -303,7 +309,7 @@ recalibrationController.post("/api/forensics/recalibrate", async (req: Request, 
 
     const halLedgerId = halRow.id as string;
 
-    const { error: logError } = await supabase.from("p4_recalibration_logs").insert({
+    const { error: logError } = await supabase.from(P4_RECALIBRATION_LOGS).insert({
       tenant_id: tenantId,
       hal_ledger_id: halLedgerId,
       recalibration_reason: reason,

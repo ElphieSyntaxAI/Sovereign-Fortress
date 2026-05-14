@@ -1,11 +1,11 @@
-const db = require("../config/dbConfig");
+const db = require("../lib/databaseUrlPool.cjs");
 
 const tenantResolver = async (req, res, next) => {
   const host = req.headers.host;
   try {
     //ASYNC DATABASE LOOKUP
     const result = await db.query(
-      "SELECT schema_name FROM tenants WHERE domain_name = $1",
+      "SELECT schema_name FROM msgf_legacy_tenants WHERE domain_name = $1",
       [host]
     );
 

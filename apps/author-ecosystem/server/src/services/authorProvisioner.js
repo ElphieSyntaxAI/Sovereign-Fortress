@@ -23,12 +23,12 @@ async function provisionAuthor({ client, cfg }) {
   const personaConfig = cfg.persona_config || {};
 
   // Pick default author tier (Tier 2).
-  const tierRes = await client.query("SELECT tier_id FROM tiers WHERE name = $1", [
+  const tierRes = await client.query("SELECT tier_id FROM msgf_legacy_tiers WHERE name = $1", [
     "Tier 2: Core Author",
   ]);
   const tierId = tierRes.rows[0]?.tier_id;
   if (!tierId) {
-    const err = new Error("Missing tier 'Tier 2: Core Author' in tiers table. Run db:init first.");
+    const err = new Error("Missing tier 'Tier 2: Core Author' in msgf_legacy_tiers. Apply MSGF migration 20260516900000.");
     err.status = 500;
     throw err;
   }
@@ -36,7 +36,7 @@ async function provisionAuthor({ client, cfg }) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   const userRes = await client.query(
-    `INSERT INTO users (username, email, tier_id, password_hash, user_role, preferred_theme)
+    `INSERT INTO msgf_legacy_users (username, email, tier_id, password_hash, user_role, preferred_theme)
      VALUES ($1, $2, $3, $4, 'author', $5)
      RETURNING user_id`,
     [username, email, tierId, passwordHash, preferredTheme]
@@ -44,20 +44,20 @@ async function provisionAuthor({ client, cfg }) {
   const userId = userRes.rows[0].user_id;
 
   await client.query(
-    `INSERT INTO custom_domains (author_user_id, domain_name, is_verified)
+    `INSERT INTO msgf_legacy_custom_domains (author_user_id, domain_name, is_verified)
      VALUES ($1, $2, FALSE)`,
     [userId, domainName]
   );
 
   await client.query(
-    `INSERT INTO tenants (domain_name, author_name, schema_name)
+    `INSERT INTO msgf_legacy_tenants (domain_name, author_name, schema_name)
      VALUES ($1, $2, $3)
      ON CONFLICT (domain_name) DO NOTHING`,
     [domainName, displayName, schemaName]
   );
 
   await client.query(
-    `INSERT INTO author_profiles (author_user_id, domain_name, display_name, theme_config, persona_config)
+    `INSERT INTO msgf_legacy_author_profiles (author_user_id, domain_name, display_name, theme_config, persona_config)
      VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)`,
     [userId, domainName, displayName, JSON.stringify(themeConfig), JSON.stringify(personaConfig)]
   );

@@ -9,6 +9,14 @@ dist/
 .next/
 **/.next/
 
+# TypeScript incremental caches and local ingest logs (do not commit)
+*.tsbuildinfo
+ingest-log.txt
+
+# Nested npm lockfiles — only the root package-lock.json should exist for npm workspaces
+apps/**/package-lock.json
+packages/**/package-lock.json
+
 # Supabase CLI local cache (machine-specific; not for version control)
 supabase/.temp/
 packages/msgf/supabase/.temp/

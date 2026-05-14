@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("../config/dbConfig");
+const db = require("../lib/databaseUrlPool.cjs");
 const { verifyToken } = require("../middleware/verifyTokens");
 
 const router = express.Router();
@@ -11,7 +11,7 @@ router.get("/", verifyToken, async (req, res, next) => {
     const rows = (
       await db.query(
         `SELECT project_id, title, description, status, is_public, target_word_count, created_at
-           FROM projects
+           FROM msgf_legacy_projects
           WHERE author_user_id = $1
           ORDER BY created_at DESC`,
         [authorUserId]
@@ -33,7 +33,7 @@ router.post("/", verifyToken, async (req, res, next) => {
 
     const row = (
       await db.query(
-        `INSERT INTO projects (author_user_id, title, description, target_word_count, is_public)
+        `INSERT INTO msgf_legacy_projects (author_user_id, title, description, target_word_count, is_public)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING project_id, title, description, status, is_public, target_word_count, created_at`,
         [authorUserId, title, description, target_word_count, Boolean(is_public)]

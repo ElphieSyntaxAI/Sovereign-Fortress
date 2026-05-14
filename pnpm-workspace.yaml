@@ -1,0 +1,9 @@
+# Optional: use pnpm at the repo root after removing nested package-lock.json files.
+# Keep in sync with root package.json "workspaces" array.
+packages:
+  - "packages/*"
+  - "apps/msgf-dashboard"
+  - "apps/client-vortex/web"
+  - "apps/client-vortex/server"
+  - "apps/author-ecosystem/client"
+  - "apps/author-ecosystem/server"

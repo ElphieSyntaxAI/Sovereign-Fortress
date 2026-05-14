@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { P4_HAL_LEDGER } from "./database/canonicalIdentifiers.js";
 import { HelperProofService } from "./HelperProofService.js";
 import type { P4ManuscriptRow } from "./RevisionLockService.js";
 
@@ -73,7 +74,7 @@ async function halStatsForManuscript(
   last_at: string | null;
 }> {
   const { data, error } = await supabase
-    .from("p4_hal_ledger")
+    .from(P4_HAL_LEDGER)
     .select("raw_sample, stylometric_snapshot, created_at")
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })

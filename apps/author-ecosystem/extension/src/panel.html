@@ -1,89 +1,96 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Author Ecosystem</title>
-    <style>
-      body {
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-        margin: 0;
-        padding: 12px;
-        width: 320px;
-      }
-      h3 {
-        margin: 0 0 10px;
-        font-size: 14px;
-      }
-      label {
-        display: block;
-        font-size: 12px;
-        margin: 10px 0 4px;
-      }
-      input,
-      textarea,
-      select,
-      button {
-        width: 100%;
-        box-sizing: border-box;
-      }
-      textarea {
-        min-height: 70px;
-        resize: vertical;
-      }
-      button {
-        margin-top: 10px;
-        padding: 10px;
-        border: 0;
-        border-radius: 8px;
-        background: #2c3e50;
-        color: white;
-        cursor: pointer;
-      }
-      .row {
-        display: flex;
-        gap: 8px;
-      }
-      .row > * {
-        flex: 1;
-      }
-      pre {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        font-size: 11px;
-        background: #f6f7f8;
-        padding: 8px;
-        border-radius: 8px;
-      }
-    </style>
+    <link rel="stylesheet" href="panel.css" />
   </head>
-  <body>
-    <h3>HAL + Lore Librarian</h3>
+  <body class="side-panel-context panel-root">
+    <header class="panel-header">
+      <h1 class="panel-title">Librarian &amp; HAL</h1>
+      <p class="panel-subtitle">Side panel — toolbar icon or ✎ in Docs</p>
+    </header>
 
-    <label>API base URL</label>
-    <input id="apiBase" placeholder="http://localhost:3002" />
+    <section class="panel-section" aria-label="BFF session">
+      <span class="field-label">Session</span>
+      <div id="authStatus" class="field-hint session-line" role="status"></div>
+      <div id="manuscriptHud" class="field-hint manuscript-hud" role="status"></div>
+      <button type="button" id="syncSession" class="btn btn-ghost btn-block">Sync session (cookie + manuscript)</button>
+    </section>
 
-    <label>JWT (paste from Author Ecosystem login)</label>
-    <textarea id="jwt" placeholder="eyJhbGciOi..." spellcheck="false"></textarea>
+    <section class="panel-section panel-section--settings" aria-label="Connection">
+      <label class="field-label" for="apiBase">API (BFF)</label>
+      <input id="apiBase" class="field-input" type="url" autocomplete="off" placeholder="http://localhost:3002" />
 
-    <div class="row">
-      <button id="saveAuth">Save</button>
-      <button id="loadProjects">Load Projects</button>
-    </div>
+      <label class="field-label" for="jwt">Bearer token</label>
+      <textarea id="jwt" class="field-input field-input--jwt" spellcheck="false" placeholder="Paste JWT…"></textarea>
 
-    <label>Project</label>
-    <select id="projectSelect"></select>
+      <div class="btn-row">
+        <button type="button" id="saveAuth" class="btn btn-ghost">Save</button>
+        <button type="button" id="loadProjects" class="btn btn-ghost">Projects</button>
+      </div>
 
-    <button id="pushSession">Push HAL Session</button>
+      <label class="field-label" for="projectSelect">Project</label>
+      <select id="projectSelect" class="field-input"></select>
+    </section>
 
-    <label>Librarian question (author mode)</label>
-    <textarea id="question" placeholder="Ask about continuity, canon, or scientific inference..."></textarea>
-    <button id="askLibrarian">Ask Librarian</button>
+    <section class="panel-section" aria-label="HUD options for Librarian">
+      <label class="field-label" for="hudMaxPlotOrder">Plot order ceiling (1–9)</label>
+      <select id="hudMaxPlotOrder" class="field-input" aria-describedby="hudPlotHint">
+        <option value="1">1 — Hook</option>
+        <option value="2">2 — Inciting incident</option>
+        <option value="3">3 — Internal pivot</option>
+        <option value="4">4 — Point of no return</option>
+        <option value="5">5 — Midpoint</option>
+        <option value="6">6 — Deep-dive / aha</option>
+        <option value="7">7 — Climax</option>
+        <option value="8">8 — Twist</option>
+        <option value="9">9 — Resolution</option>
+      </select>
+      <p id="hudPlotHint" class="field-hint">Sent as <code>hud_state.max_plot_point_order</code> with Librarian requests.</p>
 
-    <label>Output</label>
-    <pre id="output"></pre>
+      <label class="field-label" for="hudMaxSpoiler">Spoiler ceiling</label>
+      <select id="hudMaxSpoiler" class="field-input">
+        <option value="none">none</option>
+        <option value="low">low</option>
+        <option value="medium" selected>medium</option>
+        <option value="high">high</option>
+      </select>
+
+      <label class="field-label" for="scientificCrossCheck">Science cross-check</label>
+      <select id="scientificCrossCheck" class="field-input">
+        <option value="off">Off — [CANON] only</option>
+        <option value="auto" selected>Auto</option>
+        <option value="force">Force — [REAL-WORLD]</option>
+      </select>
+    </section>
+
+    <section class="panel-section panel-section--hal" aria-label="HAL session">
+      <button type="button" id="pushSession" class="btn btn-secondary btn-block">Push HAL session</button>
+    </section>
+
+    <section class="panel-section panel-section--chat" aria-label="Librarian chat">
+      <label class="field-label" for="librarianQuestion">Question</label>
+      <textarea
+        id="librarianQuestion"
+        class="field-input field-input--question"
+        rows="4"
+        placeholder="Canon, continuity, or science check…"
+      ></textarea>
+      <button type="button" id="askLibrarian" class="btn btn-primary btn-block">Ask Librarian</button>
+
+      <span class="field-label field-label--output">Reply</span>
+      <div id="output" class="output-panel" role="log" aria-live="polite"></div>
+    </section>
+
+    <footer class="panel-footer">
+      <button type="button" id="endSessionWrapUp" class="btn btn-wrap-up btn-block">
+        End session &amp; wrap-up
+      </button>
+      <p class="footer-hint">Final HAL ledger → opens wrap-up with <code>project_id</code> + <code>session_id</code>.</p>
+    </footer>
 
     <script src="panel.js"></script>
   </body>
 </html>
-

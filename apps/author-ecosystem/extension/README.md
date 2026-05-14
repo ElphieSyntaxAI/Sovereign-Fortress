@@ -11,3 +11,10 @@ Goals:
 
 This is a scaffold; wiring OAuth + Docs API text extraction comes next.
 
+### Load as an unpacked extension (Chrome)
+
+1. Open `chrome://extensions` → enable **Developer mode**.
+2. **Load unpacked** → choose this folder (`apps/author-ecosystem/extension`).
+3. Open a Google Doc; use the **toolbar icon** or the **✎** FAB (bottom-left) to open the side panel.
+
+Requires Chrome with **Side Panel** support. The manifest includes the `sidePanel` permission (required for `side_panel.default_path` and `chrome.sidePanel.open`).

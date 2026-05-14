@@ -1,0 +1,60 @@
+# Prancer pillars (MSGF) — static migration + secret hygiene on every PR.
+# Live Postgres parity: workflow_dispatch with "Run DB verify" + repo secret SUPABASE_DATABASE_URL.
+
+name: Security — Prancer pillars (MSGF)
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      run_db_verify:
+        description: "Run verify:db-schema (needs repo secret SUPABASE_DATABASE_URL)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: security-prancer-pillars-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-pillars:
+    name: Static (migrations RLS hint + embedded keys)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run MSGF security primer
+        run: node packages/msgf/scripts/security-primer-pillars.mjs
+
+  verify-supabase-schema:
+    name: Postgres schema parity (optional)
+    runs-on: ubuntu-latest
+    needs: static-pillars
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_db_verify == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install workspaces (for msgf devDependency pg)
+        run: npm install
+
+      - name: verify:db-schema
+        run: npm run verify:supabase-schema
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          POSTGRES_URL: ${{ secrets.SUPABASE_DATABASE_URL }}

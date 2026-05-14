@@ -5,7 +5,7 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const tenantResolver = require("./src/middleware/tenantResolver");
 
-const db = require("./src/config/dbConfig"); // Correct path assuming src/config/dbConfig.js
+const db = require("./src/lib/databaseUrlPool.cjs"); // Supabase Postgres via DATABASE_URL
 require("dotenv").config(); // Load environment variables first
 
 const app = express(); // Initialize the app object
@@ -32,10 +32,10 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // --- END: Security and Global Middleware ---
-const halRoutes = require("./src/routes/halRoutes");
-app.use("/api/hal", halRoutes);
 const ragRoutes = require("./src/routes/ragRoutes");
 app.use("/api/rag", ragRoutes);
+const loreGitRoutes = require("./src/routes/loreGitRoutes");
+app.use("/api/lore-git", loreGitRoutes);
 const adminRoutes = require("./src/routes/adminRoutes");
 app.use("/api/admin", adminRoutes);
 const projectRoutes = require("./src/routes/projectRoutes");

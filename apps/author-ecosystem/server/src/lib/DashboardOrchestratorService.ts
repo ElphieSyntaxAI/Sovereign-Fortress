@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { P4_HAL_LEDGER } from "./database/canonicalIdentifiers.js";
 import {
   calculateCraftGrowth,
   craftSessionFromStylometricSnapshot,
@@ -36,6 +37,8 @@ export type DashboardChunkPreview = {
   chunk_index: number;
   word_count: number;
   excerpt: string;
+  /** Plot/outline chunk metadata — used for arc ceiling in planning clients. */
+  plot_point_order?: number | null;
 };
 
 export type PlanningDashboardData = {
@@ -208,6 +211,35 @@ function isOutlinePlot(meta: Record<string, unknown>, manuscriptId: string): boo
   if (meta["outline"] === true || meta["is_outline"] === true) return true;
   if (String(meta["manuscript_id"] ?? "") === manuscriptId) return true;
   return false;
+}
+
+/** Aligns with RAG / HUD plot_point_order ladder (1–9+). */
+const PLOT_POINT_ORDER_BY_NAME: Record<string, number> = {
+  hook: 1,
+  inciting_incident: 2,
+  internal_pivot: 3,
+  point_of_no_return: 4,
+  midpoint: 5,
+  deepdive_aha: 6,
+  climax: 7,
+  twist: 8,
+  resolution: 9,
+  parallel_arc: 10,
+  not_applicable: 0,
+};
+
+function resolvedPlotPointOrderFromRow(r: Record<string, unknown>): number | null {
+  const meta = asRecord(r["metadata"]);
+  const direct = meta["plot_point_order"];
+  if (direct != null && Number.isFinite(Number(direct))) {
+    return Math.floor(Number(direct));
+  }
+  const pp = meta["plot_point"];
+  if (pp != null && typeof pp === "string") {
+    const mapped = PLOT_POINT_ORDER_BY_NAME[String(pp).toLowerCase()];
+    if (mapped !== undefined) return mapped;
+  }
+  return null;
 }
 
 function mean(nums: number[]): number | null {
@@ -444,6 +476,11 @@ export class DashboardOrchestratorService {
       excerpt: excerpt(String(r["content"] ?? "")),
     });
 
+    const toPlotPreview = (r: Record<string, unknown>): DashboardChunkPreview => ({
+      ...toPreview(r),
+      plot_point_order: resolvedPlotPointOrderFromRow(r),
+    });
+
     const outlineRows =
       (plot ?? []).filter((r) => {
         const meta = asRecord((r as Record<string, unknown>)["metadata"]);
@@ -453,8 +490,8 @@ export class DashboardOrchestratorService {
     const bible = (lore ?? []).map((r) => toPreview(r as Record<string, unknown>));
     const outline =
       outlineRows.length > 0
-        ? outlineRows.map((r) => toPreview(r as Record<string, unknown>))
-        : (plot ?? []).map((r) => toPreview(r as Record<string, unknown>));
+        ? outlineRows.map((r) => toPlotPreview(r as Record<string, unknown>))
+        : (plot ?? []).map((r) => toPlotPreview(r as Record<string, unknown>));
 
     return {
       manuscript_outline: ms.outline?.trim() ? ms.outline : null,
@@ -478,7 +515,7 @@ export class DashboardOrchestratorService {
 
     if (!revisionLockActive) {
       const { data: halRows, error } = await this.supabase
-        .from("p4_hal_ledger")
+        .from(P4_HAL_LEDGER)
         .select("id, created_at, raw_sample, stylometric_snapshot, tenant_id")
         .eq("tenant_id", ms.tenant_id)
         .order("created_at", { ascending: false })
@@ -683,7 +720,7 @@ export class DashboardOrchestratorService {
     authorId: string
   ): Promise<{ trajectory: CraftTrajectoryPoint[]; pairwise: CraftGrowthResult[] }> {
     const { data: rows, error } = await this.supabase
-      .from("p4_hal_ledger")
+      .from(P4_HAL_LEDGER)
       .select("id, created_at, stylometric_snapshot")
       .eq("author_user_id", authorId)
       .order("created_at", { ascending: false })
@@ -722,7 +759,7 @@ export class DashboardOrchestratorService {
 
     let telemetry_author_id: string | null = null;
     const { data: halAuthors, error } = await this.supabase
-      .from("p4_hal_ledger")
+      .from(P4_HAL_LEDGER)
       .select("author_user_id, raw_sample")
       .eq("tenant_id", tenantId)
       .not("author_user_id", "is", null)

@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { scheduleLibrarianLogicRevisionAuditOnCooldown } from "./RevisionAuditService.js";
 import { createOpenAIEmbedder, type EmbedBatchFn } from "./narrative/IngestionService.js";
 
 export type RevisionStatus =
@@ -11,7 +12,8 @@ export type RevisionStatus =
   | "LOCKED"
   | "AUDITING"
   | "READY_FOR_EDITOR"
-  | "AUDITING_COMPLETE";
+  | "AUDITING_COMPLETE"
+  | "COOLDOWN_LOCKED";
 export type LockTier = "4w" | "6w" | "8w";
 
 export type PublishingIntent = "TRADITIONAL" | "SELF" | "UNDECIDED";
@@ -54,7 +56,11 @@ export type NarrativeMatchRow = {
   cosine_similarity: number;
 };
 
-export type RevisionFindingType = "CANON_MANUSCRIPT_GAP" | "HIGH_DYNAMIC_TENSION" | "AUDIT_SUMMARY";
+export type RevisionFindingType =
+  | "CANON_MANUSCRIPT_GAP"
+  | "HIGH_DYNAMIC_TENSION"
+  | "AUDIT_SUMMARY"
+  | "CRITIC_SUMMARY";
 
 const LOCK_TIER_MS: Record<LockTier, number> = {
   "4w": 4 * 7 * 24 * 60 * 60 * 1000,
@@ -175,6 +181,7 @@ export async function triggerRevisionAudit(
       finding_type: RevisionFindingType;
       severity: "info" | "warn" | "critical";
       details: Record<string, unknown>;
+      report_json: Record<string, unknown>;
       chunk_ids: string[];
       cosine_similarity: number | null;
     }> = [];
@@ -193,6 +200,7 @@ export async function triggerRevisionAudit(
             chunk_index: hit.chunk_index,
             excerpt: hit.content.slice(0, 800),
           },
+          report_json: {},
           chunk_ids: [hit.id],
           cosine_similarity: hit.cosine_similarity,
         });
@@ -218,6 +226,7 @@ export async function triggerRevisionAudit(
               dynamic_excerpt: topDynamic.content.slice(0, 600),
               jaccard: Math.round(jac * 1000) / 1000,
             },
+            report_json: {},
             chunk_ids: [lore.id, topDynamic.id],
             cosine_similarity: Math.min(lore.cosine_similarity, topDynamic.cosine_similarity),
           });
@@ -252,6 +261,7 @@ export async function triggerRevisionAudit(
         gapFindings,
         tensionFindings,
       },
+      report_json: { continuity_score: auditScore },
       chunk_ids: [],
       cosine_similarity: auditScore,
     });
@@ -318,7 +328,18 @@ export class RevisionLockService {
       .select("*")
       .single();
     if (error) throw new Error(`applyRevisionLock: ${error.message}`);
-    return data as P4ManuscriptRow;
+    const row = data as P4ManuscriptRow;
+    const ragUser = String(row.owner_id ?? row.tenant_id ?? "").trim();
+    if (row.lock_expires_at && ragUser) {
+      scheduleLibrarianLogicRevisionAuditOnCooldown({
+        supabase: this.supabase,
+        manuscriptId,
+        tenantId: row.tenant_id,
+        userIdForLegacyRag: ragUser,
+        lockedUntilSession: row.lock_expires_at,
+      });
+    }
+    return row;
   }
 
   /** Clear lock metadata when the author is allowed to draft again (does not delete audit reports). */

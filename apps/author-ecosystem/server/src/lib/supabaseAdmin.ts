@@ -1,9 +1,13 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
+
 let cached: SupabaseClient | null = null;
 
 /** Service-role client for server-side inserts (never expose key to browsers). */
 export function getSupabaseAdmin(): SupabaseClient {
+  loadMonorepoRootEnv();
+
   if (cached) return cached;
 
   const url =

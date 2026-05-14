@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("../config/dbConfig");
+const db = require("../lib/databaseUrlPool.cjs");
 const { verifyToken } = require("../middleware/verifyTokens");
 const { provisionAuthor } = require("../services/authorProvisioner");
 
@@ -11,7 +11,7 @@ async function requireAdmin(req, res, next) {
       return res.status(401).json({ message: "Access denied. No user context." });
     }
 
-    const result = await db.query("SELECT user_role FROM users WHERE user_id = $1", [
+    const result = await db.query("SELECT user_role FROM msgf_legacy_users WHERE user_id = $1", [
       req.user.user_id,
     ]);
     const role = result.rows[0]?.user_role;

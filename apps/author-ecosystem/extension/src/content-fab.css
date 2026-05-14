@@ -1,0 +1,69 @@
+/**
+ * Floating FAB for Google Docs — kept bottom-LEFT so it stays clear of
+ * ProWritingAid and similar assistants that usually anchor bottom-right.
+ */
+#elphie-ae-fab-host {
+  position: fixed;
+  z-index: 2147483000;
+  bottom: 20px;
+  left: 20px;
+  right: auto;
+  top: auto;
+  pointer-events: none;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+#elphie-ae-fab {
+  pointer-events: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(145deg, #1a3a52 0%, #2c3e50 100%);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#elphie-ae-fab:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+#elphie-ae-fab:focus-visible {
+  outline: 2px solid #4aa3df;
+  outline-offset: 2px;
+}
+
+#elphie-ae-fab:active {
+  transform: scale(0.96);
+}
+
+/* Idle “sentinel” — soft breathing glow after 3s without typing */
+#elphie-ae-fab.sentinel-pulse {
+  animation: elphie-sentinel-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes elphie-sentinel-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 2px 10px rgba(0, 0, 0, 0.18),
+      0 0 0 0 rgba(74, 163, 223, 0.45);
+  }
+  50% {
+    opacity: 0.86;
+    box-shadow:
+      0 2px 16px rgba(0, 0, 0, 0.14),
+      0 0 0 12px rgba(74, 163, 223, 0);
+  }
+}

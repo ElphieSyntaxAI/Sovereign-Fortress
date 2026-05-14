@@ -7,20 +7,35 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { AuthorSovereigntyService } from "./AuthorSovereigntyService.js";
 import type { HumanAuthorshipCertificate } from "./AuthorSovereigntyService.js";
 
-export type EditorRequestGate = {
-  allowed: boolean;
+/** Minimum `p4_manuscripts.revision_count` before editor hub unlocks (inclusive). */
+export const MIN_MANUSCRIPT_REVISION_COUNT_FOR_EDITOR = 2;
+
+/** Minimum `report_json.continuity_score` on the **latest** `p4_revision_reports` row (inclusive, [0,1]). */
+export const MIN_LATEST_REVISION_REPORT_CONTINUITY_SCORE = 0.78;
+
+/** Shown when the editor-request control is disabled (matches server gate). */
+export const EDITOR_HUB_QUALITY_REQUIREMENTS_TOOLTIP =
+  "Editor hub unlock requires: (1) p4_manuscripts.revision_count >= 2, and (2) the latest p4_revision_reports row must have report_json.continuity_score >= 0.78.";
+
+export type ManuscriptQualityVerification = {
+  /** True only when `revision_count >= 2` and latest `p4_revision_reports.report_json.continuity_score >= 0.78`. */
+  verified: boolean;
   revision_count: number;
   revision_status: string;
-  /** Mean HAL score across recent `p4_hal_ledger` rows tied to this manuscript (`raw_sample.manuscriptId`). */
-  hal_average_score: number;
-  /** Stored manuscript audit score (informational; gate uses `hal_average_score`). */
   manuscript_audit_score: number;
+  /** From the latest `p4_revision_reports` row by `created_at` (desc). */
+  continuity_score: number | null;
   checks: {
     revisions_ok: boolean;
-    auditing_complete: boolean;
-    hal_human_effort_ok: boolean;
+    continuity_verified: boolean;
   };
+  author_progress: string;
   reason: string;
+};
+
+export type EditorRequestGate = ManuscriptQualityVerification & {
+  /** Same as {@link ManuscriptQualityVerification.verified}. */
+  allowed: boolean;
 };
 
 export type EditorPendingAssignmentView = {
@@ -76,52 +91,123 @@ export class EditorRequestDeniedError extends Error {
   }
 }
 
-const MIN_REVISIONS = 2;
-const REQUIRED_REVISION_STATUS = "AUDITING_COMPLETE";
-const HAL_AVERAGE_MIN = 0.85;
-
 function asRecord(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
 }
 
-function halScoreFromLedgerRow(row: Record<string, unknown>): number | null {
-  const raw = asRecord(row["raw_sample"]);
-  const snap = asRecord(row["stylometric_snapshot"]);
-  const fromRaw = raw["hal_score"];
-  if (typeof fromRaw === "number" && Number.isFinite(fromRaw)) return fromRaw;
-  const fromSnap = snap["hal_score_final"];
-  if (typeof fromSnap === "number" && Number.isFinite(fromSnap)) return fromSnap;
-  return null;
+function clamp01(n: number): number {
+  return Math.min(1, Math.max(0, n));
+}
+
+function continuityFromReportJson(reportJson: unknown): number | null {
+  if (!reportJson || typeof reportJson !== "object") return null;
+  const cs = (reportJson as Record<string, unknown>)["continuity_score"];
+  if (typeof cs !== "number" || !Number.isFinite(cs)) return null;
+  return clamp01(cs);
+}
+
+function formatAuthorProgress(revisionCount: number, continuity01: number | null): string {
+  const thr = Math.round(MIN_LATEST_REVISION_REPORT_CONTINUITY_SCORE * 100);
+  const cont =
+    continuity01 != null && Number.isFinite(continuity01) ? `${Math.round(continuity01 * 100)}%` : "—";
+  return `Continuity score (latest report): ${cont} / ${thr}% | Revision passes: ${revisionCount} / ${MIN_MANUSCRIPT_REVISION_COUNT_FOR_EDITOR}`;
 }
 
 /**
- * Mean HAL score for ledger rows whose `raw_sample.manuscriptId` matches this manuscript.
+ * Editor-hub manuscript quality gate: `revision_count >= 2` and latest `p4_revision_reports`
+ * has `report_json.continuity_score >= {@link MIN_LATEST_REVISION_REPORT_CONTINUITY_SCORE}`.
  */
-async function computeHalAverageScoreForManuscript(
+export async function evaluateManuscriptQualityForEditorHub(
   supabase: SupabaseClient,
-  tenantId: string,
-  manuscriptId: string,
-  sampleLimit = 48
-): Promise<number> {
-  const { data, error } = await supabase
-    .from("p4_hal_ledger")
-    .select("raw_sample, stylometric_snapshot")
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false })
-    .limit(sampleLimit);
+  manuscriptId: string
+): Promise<ManuscriptQualityVerification> {
+  const { data: ms, error } = await supabase
+    .from("p4_manuscripts")
+    .select("revision_count, revision_status, audit_score")
+    .eq("id", manuscriptId)
+    .maybeSingle();
 
-  if (error) throw new Error(`HAL average: ${error.message}`);
-
-  const scores: number[] = [];
-  for (const row of data ?? []) {
-    const raw = asRecord((row as Record<string, unknown>)["raw_sample"]);
-    if (String(raw["manuscriptId"] ?? "") !== manuscriptId) continue;
-    const s = halScoreFromLedgerRow(row as Record<string, unknown>);
-    if (s != null) scores.push(s);
+  if (error) {
+    throw new Error(`evaluateManuscriptQualityForEditorHub: ${error.message}`);
+  }
+  if (!ms) {
+    return {
+      verified: false,
+      revision_count: 0,
+      revision_status: "",
+      manuscript_audit_score: 0,
+      continuity_score: null,
+      checks: { revisions_ok: false, continuity_verified: false },
+      author_progress: formatAuthorProgress(0, null),
+      reason: "Manuscript not found.",
+    };
   }
 
-  if (scores.length === 0) return 0;
-  return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10_000) / 10_000;
+  const row = ms as Record<string, unknown>;
+  const revision_count = Number(row["revision_count"] ?? 0);
+  const revision_status = String(row["revision_status"] ?? "");
+  const manuscript_audit_score = Number(row["audit_score"] ?? 0);
+
+  const { data: latest, error: lrErr } = await supabase
+    .from("p4_revision_reports")
+    .select("report_json")
+    .eq("manuscript_id", manuscriptId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lrErr) {
+    throw new Error(`p4_revision_reports latest: ${lrErr.message}`);
+  }
+
+  const continuity_score = continuityFromReportJson(
+    latest ? (latest as { report_json?: unknown }).report_json : null
+  );
+
+  const revisions_ok = revision_count >= MIN_MANUSCRIPT_REVISION_COUNT_FOR_EDITOR;
+  const continuity_verified =
+    continuity_score != null && continuity_score >= MIN_LATEST_REVISION_REPORT_CONTINUITY_SCORE;
+  const verified = revisions_ok && continuity_verified;
+
+  const author_progress = formatAuthorProgress(revision_count, continuity_score);
+
+  const parts: string[] = [];
+  if (!revisions_ok) {
+    parts.push(
+      `Need p4_manuscripts.revision_count >= ${MIN_MANUSCRIPT_REVISION_COUNT_FOR_EDITOR} (currently ${revision_count}).`
+    );
+  }
+  if (!continuity_verified) {
+    parts.push(
+      `Latest p4_revision_reports row must have report_json.continuity_score >= ${MIN_LATEST_REVISION_REPORT_CONTINUITY_SCORE} (latest: ${
+        continuity_score == null ? "missing" : continuity_score.toFixed(3)
+      }).`
+    );
+  }
+
+  const reason = verified
+    ? "Manuscript quality verified for editor hub."
+    : `${author_progress}. ${parts.join(" ")}`.trim();
+
+  return {
+    verified,
+    revision_count,
+    revision_status,
+    manuscript_audit_score,
+    continuity_score,
+    checks: { revisions_ok, continuity_verified },
+    author_progress,
+    reason,
+  };
+}
+
+/** Returns true only when {@link evaluateManuscriptQualityForEditorHub} reports `verified`. */
+export async function isManuscriptQualityVerified(
+  supabase: SupabaseClient,
+  manuscriptId: string
+): Promise<boolean> {
+  const r = await evaluateManuscriptQualityForEditorHub(supabase, manuscriptId);
+  return r.verified;
 }
 
 function certificatePreviewFromFull(cert: HumanAuthorshipCertificate): EditorPendingAssignmentView["human_ledger_certificate_preview"] {
@@ -150,72 +236,12 @@ export class EditorRequestService {
   constructor(private readonly supabase: SupabaseClient) {}
 
   /**
-   * Gatekeeper: allow "Request Editor" only when **all** hold:
-   * - `revision_count >= 2`
-   * - `revision_status === 'AUDITING_COMPLETE'`
-   * - mean HAL score for this manuscript (ledger rows with matching `raw_sample.manuscriptId`) **> 0.85**
+   * Gatekeeper: editor assignment only when {@link isManuscriptQualityVerified} is satisfied
+   * (revision count + latest revision report continuity score).
    */
   async evaluateEditorRequest(manuscriptId: string): Promise<EditorRequestGate> {
-    const { data, error } = await this.supabase
-      .from("p4_manuscripts")
-      .select("tenant_id, revision_count, revision_status, audit_score")
-      .eq("id", manuscriptId)
-      .maybeSingle();
-
-    if (error) throw new Error(`evaluateEditorRequest: ${error.message}`);
-    if (!data) {
-      return {
-        allowed: false,
-        revision_count: 0,
-        revision_status: "",
-        hal_average_score: 0,
-        manuscript_audit_score: 0,
-        checks: {
-          revisions_ok: false,
-          auditing_complete: false,
-          hal_human_effort_ok: false,
-        },
-        reason: "Manuscript not found.",
-      };
-    }
-
-    const row = data as Record<string, unknown>;
-    const tenantId = String(row["tenant_id"] ?? "");
-    const revision_count = Number(row["revision_count"] ?? 0);
-    const revision_status = String(row["revision_status"] ?? "");
-    const manuscript_audit_score = Number(row["audit_score"] ?? 0);
-
-    const hal_average_score = await computeHalAverageScoreForManuscript(
-      this.supabase,
-      tenantId,
-      manuscriptId
-    );
-
-    const revisions_ok = revision_count >= MIN_REVISIONS;
-    const auditing_complete = revision_status === REQUIRED_REVISION_STATUS;
-    const hal_human_effort_ok = hal_average_score > HAL_AVERAGE_MIN;
-    const allowed = revisions_ok && auditing_complete && hal_human_effort_ok;
-
-    const parts: string[] = [];
-    if (!revisions_ok) parts.push(`revision_count must be >= ${MIN_REVISIONS} (got ${revision_count}).`);
-    if (!auditing_complete) parts.push(`revision_status must be ${REQUIRED_REVISION_STATUS} (got ${revision_status || "unknown"}).`);
-    if (!hal_human_effort_ok) {
-      parts.push(`HAL average score must be > ${HAL_AVERAGE_MIN} (got ${hal_average_score}).`);
-    }
-
-    const reason = allowed
-      ? "All gatekeeper checks passed — editor assignment may be requested."
-      : parts.join(" ");
-
-    return {
-      allowed,
-      revision_count,
-      revision_status,
-      hal_average_score,
-      manuscript_audit_score,
-      checks: { revisions_ok, auditing_complete, hal_human_effort_ok },
-      reason,
-    };
+    const q = await evaluateManuscriptQualityForEditorHub(this.supabase, manuscriptId);
+    return { ...q, allowed: q.verified };
   }
 
   async assertMayRequestEditor(manuscriptId: string): Promise<EditorRequestGate> {
@@ -316,7 +342,7 @@ export class EditorRequestService {
       manuscript_body_hidden: true,
       visibility_notice:
         "Manuscript text is withheld until the author accepts the editor match. Use audit findings, " +
-        "HAL certificate preview, and queue excerpts for triage only.",
+        "human-ledger certificate preview, and queue excerpts for triage only.",
       revision_metrics: { lore_breaches, complexity_signals },
       audit_queue_results,
       revision_audit_findings,

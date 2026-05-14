@@ -7,6 +7,8 @@ import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { P4_HAL_LEDGER } from "./database/canonicalIdentifiers.js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export type LegalContractParty = "author" | "helper";
@@ -173,7 +175,7 @@ export class ContractAutomationService {
     const mid = manuscriptId.trim();
 
     const { data: halRows, error: hErr } = await this.supabase
-      .from("p4_hal_ledger")
+      .from(P4_HAL_LEDGER)
       .select("id, created_at, keystroke_latency_ms, raw_sample")
       .order("created_at", { ascending: true })
       .limit(220);

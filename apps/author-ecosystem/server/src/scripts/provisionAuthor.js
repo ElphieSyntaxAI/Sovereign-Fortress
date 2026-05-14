@@ -4,25 +4,15 @@ const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
 
 function buildPoolConfig() {
-  if (process.env.DATABASE_URL) {
-    return {
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined,
-    };
+  const connectionString =
+    (process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim()) ||
+    (process.env.SUPABASE_DATABASE_URL && String(process.env.SUPABASE_DATABASE_URL).trim()) ||
+    "";
+  if (!connectionString) {
+    throw new Error("Set DATABASE_URL or SUPABASE_DATABASE_URL (Supabase Postgres). Local DB_* config was removed.");
   }
-
-  const required = ["DB_HOST", "DB_PORT", "DB_DATABASE", "DB_USER", "DB_PASSWORD"];
-  const missing = required.filter((k) => !process.env[k]);
-  if (missing.length) {
-    throw new Error(`Missing DB env vars: ${missing.join(", ")} (or set DATABASE_URL)`);
-  }
-
   return {
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT),
-    database: process.env.DB_DATABASE,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+    connectionString,
     ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined,
   };
 }
@@ -67,18 +57,18 @@ async function main() {
 
       // Pick default author tier (Tier 2) if present, otherwise fall back to Tier 1.
       const tierRes = await client.query(
-        "SELECT tier_id FROM tiers WHERE name = $1",
+        "SELECT tier_id FROM msgf_legacy_tiers WHERE name = $1",
         ["Tier 2: Core Author"]
       );
       const tierId = tierRes.rows[0]?.tier_id;
       if (!tierId) {
-        throw new Error("Missing tier 'Tier 2: Core Author' in tiers table. Run db:init first.");
+        throw new Error("Missing tier 'Tier 2: Core Author' in msgf_legacy_tiers. Apply MSGF migration 20260516900000.");
       }
 
       const passwordHash = await bcrypt.hash(password, 10);
 
       const userRes = await client.query(
-        `INSERT INTO users (username, email, tier_id, password_hash, user_role, preferred_theme)
+        `INSERT INTO msgf_legacy_users (username, email, tier_id, password_hash, user_role, preferred_theme)
          VALUES ($1, $2, $3, $4, 'author', $5)
          RETURNING user_id`,
         [username, email, tierId, passwordHash, preferredTheme]
@@ -86,21 +76,21 @@ async function main() {
       const userId = userRes.rows[0].user_id;
 
       await client.query(
-        `INSERT INTO custom_domains (author_user_id, domain_name, is_verified)
+        `INSERT INTO msgf_legacy_custom_domains (author_user_id, domain_name, is_verified)
          VALUES ($1, $2, FALSE)`,
         [userId, domainName]
       );
 
       // Used by tenantResolver lookup (domain -> schema)
       await client.query(
-        `INSERT INTO tenants (domain_name, author_name, schema_name)
+        `INSERT INTO msgf_legacy_tenants (domain_name, author_name, schema_name)
          VALUES ($1, $2, $3)
          ON CONFLICT (domain_name) DO NOTHING`,
         [domainName, displayName, schemaName]
       );
 
       await client.query(
-        `INSERT INTO author_profiles (author_user_id, domain_name, display_name, theme_config, persona_config)
+        `INSERT INTO msgf_legacy_author_profiles (author_user_id, domain_name, display_name, theme_config, persona_config)
          VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)`,
         [userId, domainName, displayName, JSON.stringify(themeConfig), JSON.stringify(personaConfig)]
       );

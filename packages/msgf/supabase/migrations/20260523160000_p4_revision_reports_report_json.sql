@@ -1,0 +1,18 @@
+-- Editor hub quality gate: `report_json.continuity_score` on `p4_revision_reports` (latest row SSOT).
+
+ALTER TABLE public.p4_revision_reports
+  ADD COLUMN IF NOT EXISTS report_json JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.p4_revision_reports.report_json IS
+  'Structured payload for gates (e.g. continuity_score). Finding-specific details remain in `details`.';
+
+-- Backfill continuity on historical AUDIT_SUMMARY rows (details.auditScore was the prior SSOT).
+UPDATE public.p4_revision_reports r
+SET report_json =
+  COALESCE(r.report_json, '{}'::jsonb)
+  || jsonb_build_object('continuity_score', (NULLIF(trim(r.details ->> 'auditScore'), ''))::double precision)
+WHERE r.finding_type = 'AUDIT_SUMMARY'
+  AND (r.details ? 'auditScore')
+  AND (r.details ->> 'auditScore') IS NOT NULL
+  AND trim(r.details ->> 'auditScore') <> ''
+  AND NOT (COALESCE(r.report_json, '{}'::jsonb) ? 'continuity_score');

@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
+import { P4_HAL_LEDGER } from "./database/canonicalIdentifiers.js";
 import type { LinguisticSessionProfile } from "./forensics/linguistics.js";
 import { LibrarianChat, type LibrarianAskResult, type LibrarianLanguage } from "./narrative/LibrarianChat.js";
 import { latencyP90Ms } from "./halMetrics.js";
@@ -387,7 +388,7 @@ export class AuthorSovereigntyService {
   ): Promise<P4HalLedgerCertificateRow[]> {
     const limit = Math.min(Math.max(options?.limit ?? 50, 1), 200);
     const { data, error } = await this.supabase
-      .from("p4_hal_ledger")
+      .from(P4_HAL_LEDGER)
       .select(
         "id, tenant_id, author_user_id, session_id, keystroke_latency_ms, manual_word_count, stylometric_snapshot, raw_sample, created_at"
       )

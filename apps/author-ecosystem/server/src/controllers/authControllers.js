@@ -1,4 +1,4 @@
-const db = require("../config/dbConfig");
+const db = require("../lib/databaseUrlPool.cjs");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -18,7 +18,7 @@ const registerUser = async (req, res) => {
   try {
     // Fetch the default tier_id ---
     const tierResult = await db.query(
-      "SELECT tier_id FROM tiers WHERE name = $1",
+      "SELECT tier_id FROM msgf_legacy_tiers WHERE name = $1",
       [defaultTierName]
     );
 
@@ -37,7 +37,7 @@ const registerUser = async (req, res) => {
 
     // Insert User  ---
     const insertQuery = `
-            INSERT INTO users (username, email, password_hash, tier_id, preferred_theme) 
+            INSERT INTO msgf_legacy_users (username, email, password_hash, tier_id, preferred_theme) 
             VALUES ($1, $2, $3, $4, $5) 
             RETURNING user_id, username, email, tier_id, preferred_theme 
         `;
@@ -98,7 +98,7 @@ const loginUser = async (req, res) => {
   try {
     // Find the user by email
     const userResult = await db.query(
-      "SELECT user_id, password_hash, username, email, tier_id, preferred_theme FROM users WHERE email = $1",
+      "SELECT user_id, password_hash, username, email, tier_id, preferred_theme FROM msgf_legacy_users WHERE email = $1",
       [email]
     );
 

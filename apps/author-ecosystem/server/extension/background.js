@@ -10,7 +10,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         content_hash: "sha256_placeholder_hash",
         session_start: new Date(Date.now() - 30000).toISOString(),
         session_end: new Date().toISOString(),
-        // Matches the destructuring in your halRoutes.js
+        // Matches legacy Express JWT shape (see verifyTokens.js)
         typing_stats: {
           pastes: message.data.pasteCount,
           backspaces: 0,

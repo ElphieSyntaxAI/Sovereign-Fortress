@@ -18,6 +18,9 @@ import {
   varianceSample,
   assertUuid,
 } from "../lib/halMetrics.js";
+import { P4_HAL_LEDGER, P4_HAL_LEDGER_ROLLING_AVG_5 } from "../lib/database/canonicalIdentifiers.js";
+import { assertBffManuscriptTenantSession } from "../middleware/author-gate.js";
+import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 type HalSessionBody = {
@@ -108,9 +111,9 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
 
     const supabase = getSupabaseAdmin();
 
-    // Rolling linguistic baseline (post-recalibration window); replaces legacy v_p4_hal_ledger_rolling_avg_5.
+    // Rolling linguistic baseline (post-recalibration window); canonical view `p4_hal_ledger_rolling_avg_5`.
     const { data: rollingRow, error: rollingError } = await supabase
-      .from("p4_hal_ledger_rolling_avg_5")
+      .from(P4_HAL_LEDGER_ROLLING_AVG_5)
       .select(
         "tenant_id,sample_sessions,avg_ttr,avg_avg_sentence_length_words,avg_punctuation_frequency,avg_function_word_weight,avg_sentence_length_std_dev"
       )
@@ -226,7 +229,7 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
     };
 
     const { data, error } = await supabase
-      .from("p4_hal_ledger")
+      .from(P4_HAL_LEDGER)
       .insert({
         tenant_id: tenantId,
         author_user_id: authorUserId,
@@ -268,6 +271,110 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
       return res.status(400).json({ error: e.message });
     }
     console.error("[hal/session]", e);
+    return res.status(500).json({
+      error: e instanceof Error ? e.message : "Internal error",
+    });
+  }
+});
+
+const LOGIC_OUTCOMES = new Set(["LOGIC_WARNING", "AUDIT_PASSED", "CONFLICT_RESOLVED"]);
+
+/** Persist Plot Sandbox narrative logic audit outcome on `p4_hal_ledger` (human oversight proof). */
+halController.post("/api/hal/narrative-logic-proof", async (req: Request, res: Response) => {
+  try {
+    const user = readBearerUser(req, res);
+    if (!user) return;
+
+    const body = req.body as Record<string, unknown>;
+    const tenantId = assertUuid(String(body.tenant_id ?? ""), "tenant_id");
+    const manuscriptId = assertUuid(String(body.manuscript_id ?? ""), "manuscript_id");
+    const scene_card_id = String(body.scene_card_id ?? "").trim() || randomUUID();
+    const scene_index = Number(body.scene_index);
+    if (!Number.isFinite(scene_index) || scene_index < 0) {
+      return res.status(400).json({ error: "scene_index must be a non-negative number" });
+    }
+
+    let outcome = String(body.outcome ?? "AUDIT_PASSED").trim().toUpperCase().replace(/\s+/g, "_");
+    if (!LOGIC_OUTCOMES.has(outcome)) outcome = "AUDIT_PASSED";
+
+    const logic_warning = body.logic_warning != null ? String(body.logic_warning).trim() : null;
+    const librarian_reply = String(body.librarian_reply ?? "").trim();
+    const environment = String(body.environment ?? "");
+    const cast = String(body.cast ?? "");
+    const logic_hooks = String(body.logic_hooks ?? "");
+    const scene_label = body.scene_label != null ? String(body.scene_label) : null;
+
+    const narrative_logic_explanation =
+      outcome === "LOGIC_WARNING"
+        ? (logic_warning || librarian_reply).slice(0, 2000)
+        : (librarian_reply || logic_warning || "").slice(0, 2000);
+
+    const supabase = getSupabaseAdmin();
+    const sess = await assertBffManuscriptTenantSession(supabase, { manuscriptId, tenantId });
+    if (!sess.ok) {
+      const status = /not found/i.test(sess.reason) ? 404 : 403;
+      return res.status(status).json({ error: sess.reason });
+    }
+
+    let author_user_id: string | null = null;
+    try {
+      author_user_id = assertUuid(user.userId, "author_user_id");
+    } catch {
+      author_user_id = null;
+    }
+
+    const sessionId = randomUUID();
+    const raw_sample = {
+      manuscriptId,
+      narrative_logic_proof: true,
+      narrative_logic_outcome: outcome,
+      narrative_logic_explanation,
+      scene_card_id,
+      scene_index,
+      scene_label,
+      environment,
+      cast,
+      logic_hooks,
+      logic_warning: logic_warning || null,
+      librarian_reply: librarian_reply.slice(0, 4000),
+    };
+
+    const stylometric_snapshot = {
+      narrative_logic_proof: true,
+      narrative_logic_outcome: outcome,
+    };
+
+    const { data: inserted, error: insErr } = await supabase
+      .from(P4_HAL_LEDGER)
+      .insert({
+        tenant_id: tenantId,
+        author_user_id,
+        session_id: sessionId,
+        keystroke_latency_ms: [],
+        manual_word_count: 0,
+        ai_assisted_word_count: 0,
+        stylometric_snapshot,
+        raw_sample,
+      })
+      .select("id, created_at")
+      .single();
+
+    if (insErr) {
+      console.error("[hal/narrative-logic-proof] insert", insErr.message);
+      return res.status(500).json({ error: insErr.message });
+    }
+
+    return res.status(201).json({
+      ok: true,
+      hal_ledger_id: inserted.id,
+      created_at: inserted.created_at,
+      narrative_logic_outcome: outcome,
+    });
+  } catch (e) {
+    if (e instanceof HalValidationError) {
+      return res.status(400).json({ error: e.message });
+    }
+    console.error("[hal/narrative-logic-proof]", e);
     return res.status(500).json({
       error: e instanceof Error ? e.message : "Internal error",
     });

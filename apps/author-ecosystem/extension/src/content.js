@@ -6,6 +6,32 @@ let pasteCount = 0;
 let lastKeyTime = performance.now();
 const keyDownTimes = new Map();
 
+/** Debounced idle detector: FAB shows .sentinel-pulse after 3s without typing. */
+let inactivityTimer = null;
+const INACTIVITY_MS = 3000;
+
+const FAB_HOST_ID = "elphie-ae-fab-host";
+const FAB_ID = "elphie-ae-fab";
+
+function getFabButton() {
+  return document.getElementById(FAB_ID);
+}
+
+function bumpInactivityWatcher() {
+  if (inactivityTimer != null) {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = null;
+  }
+  const fab = getFabButton();
+  if (fab) fab.classList.remove("sentinel-pulse");
+
+  inactivityTimer = setTimeout(() => {
+    inactivityTimer = null;
+    const el = getFabButton();
+    if (el) el.classList.add("sentinel-pulse");
+  }, INACTIVITY_MS);
+}
+
 function push(entry) {
   keystrokes.push(entry);
   // Cap buffer to avoid memory growth / slowdown.
@@ -29,6 +55,7 @@ document.addEventListener(
       isBackspace: e.key === "Backspace",
       isSystemEvent: false,
     });
+    bumpInactivityWatcher();
   },
   { capture: true }
 );
@@ -49,6 +76,7 @@ document.addEventListener(
       }
       keyDownTimes.delete(e.key);
     }
+    bumpInactivityWatcher();
   },
   { capture: true }
 );
@@ -69,6 +97,7 @@ document.addEventListener(
       wordsPasted: words,
       isSystemEvent: true,
     });
+    bumpInactivityWatcher();
   },
   { capture: true }
 );
@@ -83,5 +112,44 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       text_sample: "",
     });
   }
+  return undefined;
 });
 
+function mountAuthorEcosystemFab() {
+  if (document.getElementById(FAB_HOST_ID)) return;
+
+  const host = document.createElement("div");
+  host.id = FAB_HOST_ID;
+  host.setAttribute("data-elphie-extension", "author-ecosystem");
+
+  const btn = document.createElement("button");
+  btn.id = FAB_ID;
+  btn.type = "button";
+  btn.title = "Open Author Ecosystem (HAL + Librarian)";
+  btn.setAttribute("aria-label", "Open Author Ecosystem side panel");
+  btn.textContent = "✎";
+
+  btn.addEventListener(
+    "click",
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const fab = getFabButton();
+      if (fab) fab.classList.remove("sentinel-pulse");
+      bumpInactivityWatcher();
+      chrome.runtime.sendMessage({ type: "OPEN_SIDE_PANEL" }, () => {
+        void chrome.runtime.lastError;
+        chrome.runtime.sendMessage({ type: "FOCUS_CHAT" }, () => {
+          void chrome.runtime.lastError;
+        });
+      });
+    },
+    true
+  );
+
+  host.appendChild(btn);
+  document.documentElement.appendChild(host);
+  bumpInactivityWatcher();
+}
+
+mountAuthorEcosystemFab();

@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { P4_HAL_LEDGER } from "./database/canonicalIdentifiers.js";
 import { craftSessionFromStylometricSnapshot } from "./AuthorSovereigntyService.js";
 
 /** One HAL session row reduced to Growth Report metrics. */
@@ -337,7 +338,7 @@ export class AuthorTelemetryService {
   ): Promise<LinguisticSessionSnapshot[]> {
     const limit = Math.min(Math.max(sessionCount, 1), 100);
     const { data, error } = await this.supabase
-      .from("p4_hal_ledger")
+      .from(P4_HAL_LEDGER)
       .select("id, session_id, created_at, stylometric_snapshot, raw_sample")
       .eq("author_user_id", authorId)
       .order("created_at", { ascending: false })

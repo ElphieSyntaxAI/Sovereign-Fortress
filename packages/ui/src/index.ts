@@ -60,6 +60,7 @@ export {
   EditorForensicView,
   type ChapterHealth,
   type EditorForensicViewProps,
+  type EditorSuggestion,
   type HalLatencyPoint,
   type LoreBreachMarker,
 } from "./components/EditorForensicView";

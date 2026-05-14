@@ -4,9 +4,14 @@
     "dev": "npm run dev -w msgf",
     "dev:msgf": "npm run dev -w msgf",
     "dev:dashboard": "npm run dev -w msgf-dashboard",
+    "clean:artifacts": "node tools/clean-artifacts.js",
+    "consolidate:locks": "node tools/remove-nested-package-locks.js && npm install",
+    "consolidate:locks:pnpm": "node tools/remove-nested-package-locks.js && npx --yes pnpm@9 import && node -e \"try{require('fs').unlinkSync(require('path').join(process.cwd(),'package-lock.json'));}catch(_){}\" && npx --yes pnpm@9 install",
     "check-brain-violation": "node tools/check-brain-violation.js",
     "enforce-silo": "node tools/enforce-silo.js",
-    "prepare": "node tools/enforce-silo.js install"
+    "prepare": "node tools/enforce-silo.js install",
+    "security:prancer-pillars": "node packages/msgf/scripts/security-primer-pillars.mjs",
+    "verify:supabase-schema": "npm run verify:db-schema -w msgf"
   },
   "workspaces": [
     "packages/*",
