@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 
-import { bffCredentials } from "../lib/bffFetch";
+import { getPreferredBffBearer } from "../lib/authAccessToken";
+import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
 import { useNarrative } from "../context/NarrativeContext";
 export type ManuscriptRow = {
   id: string;
@@ -25,7 +26,11 @@ export function ManuscriptSelector() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/manuscripts", { ...bffCredentials });
+      const token = await getPreferredBffBearer();
+      const res = await fetch("/api/manuscripts", {
+        ...bffCredentials,
+        headers: { ...bffAuthHeaders(token) },
+      });
       if (res.status === 401 || res.status === 403) {
         setError("Session expired — sign in again.");
         setRows([]);
@@ -70,9 +75,11 @@ export function ManuscriptSelector() {
       revision_cooldown_until: row.revision_cooldown_until,
     });
     try {
+      const token = await getPreferredBffBearer();
       await fetch(`/api/manuscripts/${encodeURIComponent(row.id)}/touch`, {
         method: "POST",
         ...bffCredentials,
+        headers: { ...bffAuthHeaders(token) },
       });
     } catch {
       /* non-fatal: active-manuscript ordering best-effort */

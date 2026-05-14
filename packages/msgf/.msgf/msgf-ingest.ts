@@ -7,6 +7,10 @@ import * as dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const monorepoRoot = join(__dirname, '..', '..', '..');
+dotenv.config({ path: join(monorepoRoot, '.env') });
+dotenv.config({ path: join(monorepoRoot, '.env.local'), override: true });
+dotenv.config({ path: join(__dirname, '..', '.env') });
 dotenv.config({ path: join(__dirname, '..', '.env.local'), override: true });
 
 // --- Logging System ---

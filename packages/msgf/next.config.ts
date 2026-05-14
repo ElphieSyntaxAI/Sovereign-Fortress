@@ -1,4 +1,15 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import dotenv from "dotenv";
 import type { NextConfig } from "next";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const monorepoRoot = path.join(__dirname, "..", "..");
+dotenv.config({ path: path.join(monorepoRoot, ".env") });
+dotenv.config({ path: path.join(monorepoRoot, ".env.local"), override: true });
+dotenv.config({ path: path.join(__dirname, ".env") });
+dotenv.config({ path: path.join(__dirname, ".env.local"), override: true });
 
 const nextConfig: NextConfig = {
   experimental: {

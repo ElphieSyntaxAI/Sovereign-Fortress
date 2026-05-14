@@ -2,6 +2,11 @@
   "name": "msgf",
   "private": true,
   "exports": {
+    "./lib/msgf-auth-cookies": {
+      "types": "./lib/msgf-auth-cookies.ts",
+      "import": "./lib/msgf-auth-cookies.ts",
+      "default": "./lib/msgf-auth-cookies.ts"
+    },
     "./universal/p1-hal-standard": {
       "types": "./src/lib/universal/p1HalStandard.ts",
       "import": "./src/lib/universal/p1HalStandard.ts",
@@ -16,10 +21,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:lom-disagreement": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env tests/test-lom-disagreement.ts",
-    "verify:db-schema": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/verify-supabase-schema.mjs",
+    "test:lom-disagreement": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local tests/test-lom-disagreement.ts",
+    "verify:db-schema": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-supabase-schema.mjs",
     "security:prancer-pillars": "node scripts/security-primer-pillars.mjs",
-    "probe:author-ecosystem": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/probe-author-ecosystem.mjs",
+    "probe:author-ecosystem": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-author-ecosystem.mjs",
     "test:jira": "node scripts/test-jira.js"
   },
   "dependencies": {

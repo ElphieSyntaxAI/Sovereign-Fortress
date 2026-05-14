@@ -1,6 +1,10 @@
 /**
- * Shared cookie domain for Supabase auth across elphiesyntax.com subdomains.
- * Set MSGF_AUTH_COOKIE_DOMAIN in .env to override (`host` = omit domain for localhost-only cookies).
+ * Shared cookie domain for Supabase auth across elphiesyntax.com subdomains (and the author BFF).
+ * Loaded from the monorepo root `.env` / `.env.local` (see `packages/msgf/next.config.ts` and BFF
+ * `loadMonorepoRootEnv`): `MSGF_AUTH_COOKIE_DOMAIN`, `MSGF_AUTH_COOKIE_SECURE`.
+ *
+ * For local dev (`localhost:3000` Next + `localhost:3002` BFF), leave unset or set to `host` so
+ * cookies are host-only for `localhost` and the browser sends them on every localhost port.
  */
 export function msgfAuthCookieDomain(): string | undefined {
   const fromEnv = process.env.MSGF_AUTH_COOKIE_DOMAIN?.trim();

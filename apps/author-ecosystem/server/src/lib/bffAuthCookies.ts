@@ -1,6 +1,12 @@
 import type { Request } from "express";
 
-/** HttpOnly cookie carrying the same JWT the legacy stack signs (`JWT_SECRET`). */
+import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
+import { withBffSupabaseCookieOptions } from "./bffSupabaseCookieOptions.js";
+
+/**
+ * HttpOnly cookie mirroring the Supabase **access token** after BFF login (optional compatibility
+ * for `readBearerUser` + `SUPABASE_JWT_SECRET`). Supabase SSR chunk cookies remain canonical for `@supabase/ssr`.
+ */
 export const BFF_AUTH_COOKIE_NAME = "author_bff_jwt";
 
 export function parseCookieHeader(cookieHeader: string | undefined): Record<string, string> {
@@ -21,35 +27,78 @@ export function parseCookieHeader(cookieHeader: string | undefined): Record<stri
   return out;
 }
 
-/** JWT from httpOnly cookie first, then `Authorization: Bearer` (CLI / extension / migration). */
+/**
+ * JWT / access token for the BFF: `Authorization: Bearer` first (Supabase access token or CLI),
+ * then httpOnly `author_bff_jwt` (legacy bridge cookie). Bearer wins so a Supabase session is not
+ * overridden by a stale legacy cookie.
+ */
 export function getJwtFromRequest(req: Request): string | null {
-  const cookies = parseCookieHeader(req.headers.cookie);
-  const fromCookie = cookies[BFF_AUTH_COOKIE_NAME]?.trim();
-  if (fromCookie) return fromCookie;
-
   const auth = req.headers.authorization;
   if (auth?.startsWith("Bearer ")) {
     const t = auth.slice(7).trim();
-    return t || null;
+    if (t) return t;
   }
-  return null;
+
+  const cookies = parseCookieHeader(req.headers.cookie);
+  const fromCookie = cookies[BFF_AUTH_COOKIE_NAME]?.trim();
+  return fromCookie || null;
 }
 
+/**
+ * `author_bff_jwt` uses the same **domain / path / sameSite / secure** defaults as Supabase SSR
+ * cookies (`withBffSupabaseCookieOptions` → root `MSGF_AUTH_COOKIE_DOMAIN`, `MSGF_AUTH_COOKIE_SECURE`)
+ * so a session minted on the BFF (e.g. `localhost:3002`) is visible to Next (`localhost:3000`) when
+ * the host is shared (`localhost` cookies are not port-scoped in the cookie domain).
+ *
+ * Optional: `BFF_COOKIE_SAMESITE` (`lax` | `strict` | `none`). `none` forces `secure: true`.
+ */
 export function bffCookieBaseOptions(): {
   httpOnly: boolean;
   sameSite: "lax" | "strict" | "none";
   secure: boolean;
   path: string;
   maxAge: number;
+  domain?: string;
 } {
+  loadMonorepoRootEnv();
   const sameSiteRaw = (process.env.BFF_COOKIE_SAMESITE ?? "lax").toLowerCase().trim();
   const sameSite: "lax" | "strict" | "none" =
     sameSiteRaw === "none" || sameSiteRaw === "strict" ? (sameSiteRaw as "none" | "strict") : "lax";
-  const secure =
-    process.env.BFF_COOKIE_SECURE === "true" ||
-    process.env.NODE_ENV === "production" ||
-    sameSite === "none";
   const days = Number(process.env.BFF_AUTH_COOKIE_MAX_DAYS ?? "7");
   const maxAge = Math.max(1, Number.isFinite(days) ? days : 7) * 24 * 60 * 60 * 1000;
-  return { httpOnly: true, sameSite, secure, path: "/", maxAge };
+  const secure =
+    sameSite === "none" ||
+    process.env.MSGF_AUTH_COOKIE_SECURE === "1" ||
+    process.env.NODE_ENV === "production";
+
+  const merged = withBffSupabaseCookieOptions({
+    httpOnly: true,
+    sameSite,
+    secure,
+    path: "/",
+    maxAge,
+  }) as {
+    httpOnly?: boolean;
+    sameSite: "lax" | "strict" | "none";
+    secure: boolean;
+    path: string;
+    domain?: string;
+  };
+
+  const out: {
+    httpOnly: boolean;
+    sameSite: "lax" | "strict" | "none";
+    secure: boolean;
+    path: string;
+    maxAge: number;
+    domain?: string;
+  } = {
+    httpOnly: true,
+    sameSite: merged.sameSite,
+    secure: merged.secure,
+    path: merged.path,
+    maxAge,
+  };
+  if (merged.domain) out.domain = merged.domain;
+  return out;
 }

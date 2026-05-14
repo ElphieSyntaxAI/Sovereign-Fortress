@@ -24,7 +24,7 @@ import {
 import {
   assertServiceAccountPresent,
   getGcpProjectId,
-  getVertexGenerativeModel,
+  getVertexGenerativeModelForId,
   SERVICE_ACCOUNT_PATH,
 } from "@/packages/core/src/msgf-vertex";
 import { preFlightCheck } from "@/packages/core/src/msgf-shadow";
@@ -34,6 +34,7 @@ import {
   setActiveSlice,
 } from "@/packages/core/src/msgf-hot-layer";
 import { applyPulseCorsHeaders, pulseCorsPreflightResponse } from "@/lib/msgf-cors";
+import { resolveCreditGuardGeminiModelId } from "@/lib/creditGuard";
 
 type PulseRequestBody = {
   keystrokes: KeystrokeEvent[];
@@ -46,7 +47,6 @@ type PulseRequestBody = {
 type ConsensusVote = "HUMAN" | "NON_HUMAN" | "INCONCLUSIVE";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
-const GEMINI_MODEL_ID = process.env.MSGF_VERTEX_MODEL || "gemini-2.5-flash";
 const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-4.6-sonnet";
 
 function buildPrompt(chunk: KeystrokeChunk, beatsContext: string) {
@@ -103,9 +103,13 @@ async function runPublisherModel(
   return parseVote(text);
 }
 
-async function runConsensusForChunk(chunk: KeystrokeChunk, beatsContext: string) {
+async function runConsensusForChunk(
+  chunk: KeystrokeChunk,
+  beatsContext: string,
+  geminiModelId: string
+) {
   const projectId = getGcpProjectId();
-  const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${GEMINI_MODEL_ID}`;
+  const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${geminiModelId}`;
   const claudePath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
   const prompt = buildPrompt(chunk, beatsContext);
 
@@ -219,9 +223,10 @@ async function buildDeltaAbstraction(params: {
   pulseText: string;
   consensus: Array<{ gemini: { verdict: ConsensusVote }; claude: { verdict: ConsensusVote } }>;
   halScore: number;
+  geminiModelId: string;
 }): Promise<string> {
-  const { pulseText, consensus, halScore } = params;
-  const model = getVertexGenerativeModel();
+  const { pulseText, consensus, halScore, geminiModelId } = params;
+  const model = getVertexGenerativeModelForId(geminiModelId);
   const prompt = `Summarize the following writing change into a privacy-safe engineering delta.
 
 Requirements:
@@ -263,6 +268,7 @@ export async function POST(req: NextRequest) {
   try {
     // Mirrors msgf-init gate behavior before doing any AI work.
     assertServiceAccountPresent();
+    const geminiModelId = resolveCreditGuardGeminiModelId(req);
 
     const cookieStore = await cookies();
     const supabase = createSupabaseServerClient(cookieStore);
@@ -476,7 +482,7 @@ export async function POST(req: NextRequest) {
     // 6) Consensus check per chunk: Gemini 2.5 Flash + Claude 4.6 Sonnet via Vertex
     const chunkForConsensus = chunkKeystrokeStream(keystrokes);
     const consensus = await Promise.all(
-      chunkForConsensus.map((c) => runConsensusForChunk(c, beatsContext))
+      chunkForConsensus.map((c) => runConsensusForChunk(c, beatsContext, geminiModelId))
     );
 
     const allHumanConfirmed = consensus.every(
@@ -571,6 +577,7 @@ export async function POST(req: NextRequest) {
         pulseText,
         consensus,
         halScore,
+        geminiModelId,
       }));
     const canPersist = !requiresTieBreaker || humanTieBreakerResolved;
     if (canPersist) {

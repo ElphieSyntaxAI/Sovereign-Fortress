@@ -7,13 +7,14 @@ import {
   determineCategory,
   sweepAndIngest,
 } from "@/lib/msgf-ingest";
-import { getVertexGenerativeModel } from "@/packages/core/src/msgf-vertex";
+import { getVertexGenerativeModelForId } from "@/packages/core/src/msgf-vertex";
 import {
   isTenantApiKeyConfigured,
   resolveTenantIdFromApiKey,
 } from "@/lib/api-key-tenant";
 import { assertPathsAllowedForTenant } from "@/lib/tenant-silo";
 import { logIdentityViolation } from "@/lib/identity-violation-log";
+import { resolveCreditGuardGeminiModelId } from "@/lib/creditGuard";
 
 type IngestFile = { path: string; content: string };
 
@@ -46,8 +47,12 @@ function buildLineageMap(files: IngestFile[]) {
   }));
 }
 
-async function summarizeForAudit(files: IngestFile[], lineageMap: ReturnType<typeof buildLineageMap>) {
-  const model = getVertexGenerativeModel();
+async function summarizeForAudit(
+  req: NextRequest,
+  files: IngestFile[],
+  lineageMap: ReturnType<typeof buildLineageMap>
+) {
+  const model = getVertexGenerativeModelForId(resolveCreditGuardGeminiModelId(req));
   const joined = files
     .map((f) => `## ${f.path}\n${f.content}`)
     .join("\n\n")
@@ -150,7 +155,7 @@ export async function POST(req: NextRequest) {
     const ingestAudit = await sweepAndIngest(files);
 
     // AI audit synthesis
-    const aiAudit = await summarizeForAudit(files, lineageMap);
+    const aiAudit = await summarizeForAudit(req, files, lineageMap);
 
     const finalAuditDoc = [
       "# pre_ingestion_audit.md",

@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import {
   DashboardRouter,
   type DashboardMode,
@@ -13,7 +13,9 @@ import { EditorRequestButton } from "./EditorRequestButton";
 import { IngestDiscoveryDashboard } from "./IngestDiscoveryDashboard";
 import { LibrarianInterviewChat } from "./LibrarianInterviewChat";
 import { PlotSandboxPanel } from "./PlotSandboxPanel";
+import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { getSupabaseBrowserClient } from "../lib/supabaseBrowser";
 
 export type PlanningCommandCenterProps = {
   manuscriptId: string;
@@ -21,8 +23,8 @@ export type PlanningCommandCenterProps = {
   /** Optional: use an existing browser Supabase client instead of env-based creation. */
   supabase?: SupabaseClient | null;
   /**
-   * Optional Bearer override (e.g. automation). Default auth is the BFF **httpOnly** `author_bff_jwt` cookie
-   * after `POST /api/auth/login` through this origin (Vite proxies `/api` to the BFF).
+   * Optional Bearer override (e.g. automation). Default: Supabase session access token when configured,
+   * else the BFF httpOnly `author_bff_jwt` cookie (legacy bridge).
    */
   getAccessToken?: () => string | null | Promise<string | null>;
 };
@@ -261,14 +263,11 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
   const supabase = useMemo(() => {
     if (props.supabase !== undefined && props.supabase !== null) return props.supabase;
     if (props.supabase === null) return null;
-    if (envUrl && envKey) return createClient(envUrl, envKey);
+    if (envUrl && envKey) return getSupabaseBrowserClient();
     return null;
   }, [props.supabase, envUrl, envKey]);
 
-  const defaultGetToken = useCallback(() => {
-    if (typeof window === "undefined") return null;
-    return null;
-  }, []);
+  const defaultGetToken = useCallback(() => getPreferredBffBearer(), []);
 
   const getToken = props.getAccessToken ?? defaultGetToken;
 

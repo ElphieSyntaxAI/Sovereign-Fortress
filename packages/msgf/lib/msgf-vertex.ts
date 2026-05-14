@@ -28,9 +28,8 @@ export function getGcpProjectId(): string {
 }
 
 let vertexAI: VertexAI | null = null;
-let generativeModel: ReturnType<VertexAI['getGenerativeModel']> | null = null;
 
-export function getVertexGenerativeModel() {
+function getVertexAI(): VertexAI {
   assertServiceAccountPresent();
   if (!vertexAI) {
     const location = process.env.GCP_LOCATION || 'us-central1';
@@ -41,9 +40,14 @@ export function getVertexGenerativeModel() {
         keyFile: SERVICE_ACCOUNT_PATH,
       },
     });
-    generativeModel = vertexAI.getGenerativeModel({
-      model: process.env.MSGF_VERTEX_MODEL || DEFAULT_GEMINI_MODEL,
-    });
   }
-  return generativeModel!;
+  return vertexAI;
+}
+
+export function getVertexGenerativeModelForId(modelId: string) {
+  return getVertexAI().getGenerativeModel({ model: modelId });
+}
+
+export function getVertexGenerativeModel() {
+  return getVertexGenerativeModelForId(process.env.MSGF_VERTEX_MODEL || DEFAULT_GEMINI_MODEL);
 }

@@ -26,6 +26,16 @@ function DashboardInner() {
   }, [selection]);
 
   const logout = async () => {
+    try {
+      const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+      if (url?.trim() && key?.trim()) {
+        const { getSupabaseBrowserClient } = await import("../lib/supabaseBrowser");
+        await getSupabaseBrowserClient().auth.signOut();
+      }
+    } catch {
+      // non-blocking
+    }
     await fetch("/api/auth/logout", { method: "POST", ...bffCredentials });
     window.location.assign("/");
   };

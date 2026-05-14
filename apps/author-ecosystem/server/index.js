@@ -1,8 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const app = require("./server");
-/** Default 3003 so `tsx src/main.ts` (PORT 3002) can proxy RAG/Lore-Git here without collision. */
-const PORT = process.env.LEGACY_EXPRESS_PORT || process.env.PORT || 3003;
+/** Listen on `LEGACY_EXPRESS_PORT` (default **3003**). Do not fall back to `PORT` — that is reserved for the TS BFF (default 3002). */
+const rawPort = (process.env.LEGACY_EXPRESS_PORT ?? "3003").trim();
+const PORT = Number(rawPort) || 3003;
 // Only listen if this file is executed directly (the main entry point)
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClipboardEvent, MouseEvent } from "react";
 
+import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
 
 export const EDITOR_SOVEREIGN_COPY_BLOCK_MESSAGE =
@@ -85,7 +86,7 @@ export function useEditorSecurity(options: UseEditorSecurityOptions): {
     let cancelled = false;
     (async () => {
       try {
-        const token = getAccessToken ? await getAccessToken() : null;
+        const token = getAccessToken ? await getAccessToken() : await getPreferredBffBearer();
         const res = await fetch(meUrl(), {
           ...bffCredentials,
           headers: { ...bffAuthHeaders(token) },
@@ -119,7 +120,7 @@ export function useEditorSecurity(options: UseEditorSecurityOptions): {
       if (now - lastFlagPostRef.current < flagCooldownMs || postingRef.current) return;
       postingRef.current = true;
       try {
-        const token = getAccessToken ? await getAccessToken() : null;
+        const token = getAccessToken ? await getAccessToken() : await getPreferredBffBearer();
         const res = await fetch(securityFlagUrl(mid), {
           method: "POST",
           ...bffCredentials,

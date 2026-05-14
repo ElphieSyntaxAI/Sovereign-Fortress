@@ -36,7 +36,10 @@ export default async function Page() {
         <StatusRow {...stripe} />
       </div>
 
-      <p className="text-sm text-zinc-400">
+      <p className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-zinc-400">
+        <Link href="/todos" className="text-zinc-200 underline-offset-4 hover:underline">
+          Todos (Supabase SSR demo)
+        </Link>
         <Link href="/audit-log" className="text-zinc-200 underline-offset-4 hover:underline">
           Audit log (RLS test)
         </Link>

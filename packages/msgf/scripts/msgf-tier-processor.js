@@ -8,8 +8,11 @@
  */
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env.local") });
+const monorepoRoot = path.join(__dirname, "..", "..", "..");
+require("dotenv").config({ path: path.join(monorepoRoot, ".env") });
+require("dotenv").config({ path: path.join(monorepoRoot, ".env.local"), override: true });
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+require("dotenv").config({ path: path.join(__dirname, "..", ".env.local"), override: true });
 
 const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;

@@ -5,8 +5,15 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const tenantResolver = require("./src/middleware/tenantResolver");
 
+const path = require("path");
+const dotenv = require("dotenv");
+/** Same root `.env` as the TS BFF (`loadMonorepoRootEnv`) so `JWT_SECRET` matches `jwt.verify` on :3002. */
+const monorepoRoot = path.join(__dirname, "..", "..", "..");
+dotenv.config({ path: path.join(monorepoRoot, ".env") });
+dotenv.config({ path: path.join(monorepoRoot, ".env.local"), override: true });
+dotenv.config({ path: path.join(__dirname, ".env") });
+
 const db = require("./src/lib/databaseUrlPool.cjs"); // Supabase Postgres via DATABASE_URL
-require("dotenv").config(); // Load environment variables first
 
 const app = express(); // Initialize the app object
 
