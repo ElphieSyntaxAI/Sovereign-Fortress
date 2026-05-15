@@ -15,6 +15,26 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${ROOT}"
 
+# Windows Git Bash: gcloud execs `python` — set CLOUDSDK_PYTHON if unset (see setup-cloud.sh).
+if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
+  if command -v python >/dev/null 2>&1; then
+    CLOUDSDK_PYTHON="$(command -v python)"
+    export CLOUDSDK_PYTHON
+  elif command -v python3 >/dev/null 2>&1; then
+    CLOUDSDK_PYTHON="$(command -v python3)"
+    export CLOUDSDK_PYTHON
+  elif command -v py >/dev/null 2>&1; then
+    CLOUDSDK_PYTHON="$(command -v py)"
+    export CLOUDSDK_PYTHON
+  elif [[ -x "/c/Windows/py.exe" ]]; then
+    export CLOUDSDK_PYTHON="/c/Windows/py.exe"
+  fi
+fi
+if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
+  echo "deploy.sh: gcloud needs Python. Set CLOUDSDK_PYTHON or install Python on PATH." >&2
+  exit 1
+fi
+
 PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
 if [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "(unset)" ]]; then
   echo "deploy.sh: set PROJECT_ID or run: gcloud config set project YOUR_PROJECT_ID" >&2

@@ -46,16 +46,47 @@ VPC_CONNECTOR_RANGE="${VPC_CONNECTOR_RANGE:-10.8.0.0/28}"
 # Override with "all-traffic" only if you intend to steer all egress via VPC (usually needs Cloud NAT).
 CLOUD_RUN_VPC_EGRESS="${CLOUD_RUN_VPC_EGRESS:-private-ranges-only}"
 
-# Secret Manager resource ids (same defaults as cloudbuild.yaml — optional if unset).
-SECRET_OPENAI="${SECRET_OPENAI:-msgf-openai-api-key}"
-SECRET_STRIPE_SECRET="${SECRET_STRIPE_SECRET:-msgf-stripe-secret-key}"
-SECRET_STRIPE_WEBHOOK="${SECRET_STRIPE_WEBHOOK:-msgf-stripe-webhook-secret}"
+# Secret Manager resource ids (short names) for Cloud Run --set-secrets.
+SECRET_GEMINI_KEY_RESOURCE="${SECRET_GEMINI_KEY_RESOURCE:-gemini-key}"
+SECRET_ANTHROPIC_KEY_RESOURCE="${SECRET_ANTHROPIC_KEY_RESOURCE:-anthropic-key}"
 
 # =============================================================================
 # Repo root
 # =============================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
+
+# -----------------------------------------------------------------------------
+# Windows Git Bash / MSYS: the bundled gcloud script does `exec python ...`.
+# If only python3 or the Windows "py" launcher is on PATH, gcloud fails with:
+#   exec: python: not found
+# Fix: point CLOUDSDK_PYTHON at a real interpreter (override anytime: export CLOUDSDK_PYTHON=...).
+# -----------------------------------------------------------------------------
+if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
+  if command -v python >/dev/null 2>&1; then
+    CLOUDSDK_PYTHON="$(command -v python)"
+    export CLOUDSDK_PYTHON
+  elif command -v python3 >/dev/null 2>&1; then
+    CLOUDSDK_PYTHON="$(command -v python3)"
+    export CLOUDSDK_PYTHON
+  elif command -v py >/dev/null 2>&1; then
+    CLOUDSDK_PYTHON="$(command -v py)"
+    export CLOUDSDK_PYTHON
+  elif [[ -x "/c/Windows/py.exe" ]]; then
+    export CLOUDSDK_PYTHON="/c/Windows/py.exe"
+  fi
+fi
+if [[ -n "${CLOUDSDK_PYTHON:-}" ]]; then
+  echo "Using Python for Google Cloud CLI: ${CLOUDSDK_PYTHON}"
+fi
+if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
+  echo "gcloud requires Python, but none was found for CLOUDSDK_PYTHON." >&2
+  echo "Install Python (https://www.python.org/downloads/) and enable 'Add python.exe to PATH'," >&2
+  echo "or set explicitly before re-running, e.g. in Git Bash:" >&2
+  echo "  export CLOUDSDK_PYTHON=/c/Path/To/python.exe" >&2
+  echo "Alternatively run this script from PowerShell:  bash ./setup-cloud.sh" >&2
+  exit 1
+fi
 
 echo ""
 echo "=== MSGF — Cloud Build + Cloud Run deploy ==="
@@ -82,6 +113,16 @@ gcloud projects describe "${GCP_PROJECT_ID}" --quiet >/dev/null
 
 echo "Setting active gcloud project..."
 gcloud config set project "${GCP_PROJECT_ID}" --quiet
+
+# --- Runtime SA: Secret Manager (bootstrap before infra APIs) ---------------
+echo ""
+echo "Ensuring default Compute Engine SA can access Secret Manager secrets..."
+PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT_ID}" --format='value(projectNumber)')"
+RUNTIME_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
+  --member="serviceAccount:${RUNTIME_SA}" \
+  --role="roles/secretmanager.secretAccessor" \
+  --quiet 2>/dev/null || true
 
 # --- APIs --------------------------------------------------------------------
 echo ""
@@ -143,8 +184,7 @@ else
     --quiet
 fi
 
-# Cloud Build SA → push images
-PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT_ID}" --format='value(projectNumber)')"
+# Cloud Build SA → push images (PROJECT_NUMBER resolved above)
 CLOUD_BUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
 gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
   --member="serviceAccount:${CLOUD_BUILD_SA}" \
@@ -251,10 +291,10 @@ if [[ -n "${ENV_STRING}" ]]; then
   UPDATE_ENV_FLAGS=(--update-env-vars="${ENV_STRING}")
 fi
 
-# --- Secrets (optional but typical for MSGF) ----------------------------------
+# --- Secrets (MASTER_* env vars ← Secret Manager; strict comma syntax, no spaces) ---
 SECRET_FLAGS=()
 MISSING=0
-for s in "${SECRET_OPENAI}" "${SECRET_STRIPE_SECRET}" "${SECRET_STRIPE_WEBHOOK}"; do
+for s in "${SECRET_GEMINI_KEY_RESOURCE}" "${SECRET_ANTHROPIC_KEY_RESOURCE}"; do
   if gcloud secrets describe "${s}" --project="${GCP_PROJECT_ID}" --quiet 2>/dev/null; then
     :
   else
@@ -265,7 +305,7 @@ done
 
 if [[ "${MISSING}" -eq 0 ]]; then
   SECRET_FLAGS=(
-    --set-secrets="OPENAI_API_KEY=${SECRET_OPENAI}:latest,STRIPE_SECRET_KEY=${SECRET_STRIPE_SECRET}:latest,STRIPE_WEBHOOK_SECRET=${SECRET_STRIPE_WEBHOOK}:latest"
+    --set-secrets="MASTER_GEMINI_KEY=${SECRET_GEMINI_KEY_RESOURCE}:latest,MASTER_ANTHROPIC_KEY=${SECRET_ANTHROPIC_KEY_RESOURCE}:latest"
   )
 fi
 

@@ -23,8 +23,13 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Native bindings during npm ci may invoke node-gyp / C++ toolchains; discarded after this stage.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    python3 \
+    make \
+    g++ \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
@@ -49,8 +54,13 @@ ENV NODE_ENV=production
 # Next/msgf `prebuild` expects service-account.json locally; omit baking secrets into the image.
 ENV MSGF_DOCKER_BUILD_SKIP_SA=1
 
+# Same toolchain as deps — compile phase must not fail on optional native modules.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    python3 \
+    make \
+    g++ \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -84,6 +94,7 @@ LABEL org.opencontainers.image.version="${APP_IMAGE_VERSION}"
 LABEL org.opencontainers.image.revision="${GIT_REVISION}"
 LABEL org.opencontainers.image.vendor="Elphie Syntax LLC"
 
+# Slim runtime: only CA bundle — no python/make/g++ from build stages.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \
   && rm -rf /var/lib/apt/lists/*
