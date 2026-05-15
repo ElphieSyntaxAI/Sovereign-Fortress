@@ -87,6 +87,11 @@ import type { PulseLicenseContext } from "@/lib/services/pulse-license";
 import { assessLogicDrift, shouldEscalateToGlobalBrain } from "@/lib/services/logic-drift";
 import { processLocalGateway } from "@/lib/services/local-state-gateway";
 import {
+  isDualModelLocalGatewayEnabled,
+  runTenantDualModelConsensusGateway,
+  type DualModelGatewaySnapshot,
+} from "@/lib/services/dual-model-consensus-gateway";
+import {
   ensureTenantPillarBaseline,
   isTenantPillarBaselineSet,
 } from "@/lib/services/pillar-baseline";
@@ -109,6 +114,7 @@ import {
   vaultCoreWriteForTenant,
   type GlobalPromotionStatus,
   type LogicDelta,
+  type PersistLogicDeltaGateResult,
 } from "@/lib/services/global-approval-gate";
 import { saveLogicDeltaToLocalCache } from "@/lib/services/local-state-cache";
 import {
@@ -117,10 +123,16 @@ import {
   buildPulseRemediationSummaryLocal,
   stripPublicBeat,
 } from "@/lib/services/pulse-public-response";
+import {
+  MAX_RECURSION_DEPTH,
+  isCostRunawayError,
+  runWithLlmTimeoutSimple,
+} from "@/lib/services/cost-runaway-guard";
+import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 
-const LOM_MAX_ATTEMPTS = 3;
+const LOM_MAX_ATTEMPTS = MAX_RECURSION_DEPTH;
 /** HITL / LOM recursion ceiling — exceeding throws {@link ERR_RECURSION_LIMIT}. */
-export const PULSE_RECURSION_MAX_RETRY = 3;
+export const PULSE_RECURSION_MAX_RETRY = MAX_RECURSION_DEPTH;
 
 /** At this retry count, CONVERGE emits a Halt-State Summary for the Human Tie-Breaker. */
 export const PULSE_HALT_STATE_RETRY = 3;
@@ -164,6 +176,8 @@ export type PulseEngineInput = {
   tenantId: string;
   /** Human actor UUID for biometrics, state_beats, incidents. */
   entityId: string;
+  /** Correlate logs + Hall/Vault metadata with IDE Pulse (generated in HTTP route if omitted). */
+  traceId?: string;
   rawBody: unknown;
   forceLomMismatch: boolean;
   lomHarnessEnabled: boolean;
@@ -262,6 +276,7 @@ export type PersistVaultDeltaInput = {
   legalVersion: string;
   halScore: number;
   bugIndex?: GenealogicalBugIndex;
+  narrativeExtra?: Record<string, unknown>;
 };
 
 export type PersistHallRejectionInput = {
@@ -284,6 +299,8 @@ export class PulseEngine {
    * V3.2 full pipeline: SHARD/DEFEND → CONVERGE (dual-model + HAL) → PERSIST (Vault/Hall + beats).
    */
   async runFullPipeline(input: PulseFullPipelineInput): Promise<PulseFullPipelineResult> {
+    const pulseTraceId = input.traceId?.trim() || randomUUID();
+
     const pledge = await this.assertPledgeAndBaseline(
       input.supabase,
       input.tenantId,
@@ -292,16 +309,18 @@ export class PulseEngine {
     if (!pledge.ok) {
       return {
         kind: "baseline_required",
-        public: pledge.body,
+        public: { ...pledge.body, trace_id: pulseTraceId },
         forensic: {
           kind: "pulse_baseline_required",
           tenant_id: input.tenantId,
           entity_id: input.entityId,
+          trace_id: pulseTraceId,
           captured_at: new Date().toISOString(),
         },
       };
     }
 
+    try {
     let isPillarBaselineSet = await isTenantPillarBaselineSet(
       input.adminSupabase,
       input.tenantId
@@ -336,6 +355,21 @@ export class PulseEngine {
       defended.humanTieBreakerResolved || Boolean(defended.approvedDelta?.trim());
 
     if (!shouldEscalateToGlobalBrain(logicDrift, { forceGlobal })) {
+      let dualModelGateway: DualModelGatewaySnapshot | undefined;
+      if (isDualModelLocalGatewayEnabled()) {
+        dualModelGateway = await runTenantDualModelConsensusGateway({
+          adminSupabase: input.adminSupabase,
+          tenantId: input.tenantId,
+          pulseText: defended.pulseText,
+          keystrokes: defended.keystrokes,
+          beatsContext: defended.beatsContext,
+          p2FlowDirective: defended.p2FlowDirective,
+          vaultCrossRefContext: defended.vaultCrossRefContext,
+          defendConstraints: defended.defendConstraints,
+          geminiModelId: input.geminiModelId,
+        });
+      }
+
       const local = await processLocalGateway({
         supabase: input.supabase,
         tenantId: input.tenantId,
@@ -346,6 +380,8 @@ export class PulseEngine {
         logicDrift,
         isPillarBaselineSet: defended.isPillarBaselineSet,
         defendPreflightTier: defended.preflight.tier,
+        pulseTraceId,
+        dualModelGateway,
       });
 
       await setActiveSlice({
@@ -369,6 +405,7 @@ export class PulseEngine {
 
       const publicBody: Record<string, unknown> = {
         ok: true,
+        trace_id: pulseTraceId,
         data: glass,
         routing: "local_gateway",
         logic_drift_score: logicDrift.score,
@@ -396,10 +433,18 @@ export class PulseEngine {
         vault_p2_contradicts_roadmap: defended.vaultP2Prioritized.contradicts.length,
         p2_roadmap_version: defended.p2Roadmap.version,
         momentum_increased: false,
+        ...(dualModelGateway
+          ? {
+              dual_model_tenant_agreement_score: dualModelGateway.tenant_agreement_score,
+              dual_model_sovereign_escalated: dualModelGateway.sovereign_escalated,
+              dual_model_sovereign_agreement_score: dualModelGateway.sovereign_agreement_score,
+            }
+          : {}),
       };
 
       const forensic: Record<string, unknown> = {
         kind: "pulse_local_gateway",
+        trace_id: pulseTraceId,
         captured_at: new Date().toISOString(),
         tenant_id: input.tenantId,
         entity_id: input.entityId,
@@ -418,6 +463,7 @@ export class PulseEngine {
         global_mitigations: defended.globalMitigations,
         hot_layer_hit: defended.hotLayerHit,
         lineage_redis_hit: defended.lineageRedisHit,
+        dual_model_gateway: dualModelGateway ?? null,
       };
 
       return {
@@ -439,6 +485,7 @@ export class PulseEngine {
     const persisted = await this.persist({
       adminSupabase: input.adminSupabase,
       converged,
+      pulseTraceId,
     });
 
     const remediationSummary = buildPulseRemediationSummaryGlobal({
@@ -461,6 +508,7 @@ export class PulseEngine {
 
     const publicBody: Record<string, unknown> = {
       ok: true,
+      trace_id: pulseTraceId,
       data: glass,
       routing: "global_brain_converge",
       logic_drift_score: logicDrift.score,
@@ -494,6 +542,7 @@ export class PulseEngine {
 
     const forensic: Record<string, unknown> = {
       kind: "pulse_global_converge",
+      trace_id: pulseTraceId,
       captured_at: new Date().toISOString(),
       tenant_id: input.tenantId,
       entity_id: input.entityId,
@@ -534,6 +583,24 @@ export class PulseEngine {
       public: publicBody,
       forensic,
     };
+    } catch (e: unknown) {
+      if (isCostRunawayError(e)) {
+        await recordCostRunawayDeadLetterSafe({
+          adminSupabase: input.adminSupabase,
+          tenantId: input.tenantId,
+          entityId: input.entityId,
+          traceId: pulseTraceId,
+          operation: "pulse.run_full_pipeline",
+          error: e,
+        });
+        throw new PulseHttpError(503, {
+          error: "MSGF cost-runaway guard tripped (timeout or AI recursion cap).",
+          code: "COST_RUNAWAY_GUARD",
+          trace_id: pulseTraceId,
+        });
+      }
+      throw e;
+    }
   }
 
   async runThroughDefend(
@@ -847,6 +914,7 @@ export class PulseEngine {
   async persist(params: {
     adminSupabase: SupabaseClient;
     converged: PulseConvergeContext;
+    pulseTraceId: string;
   }): Promise<PulsePersistResult> {
     const c = params.converged;
     const consensusFailed = !c.allHumanConfirmed;
@@ -870,6 +938,7 @@ export class PulseEngine {
         legalVersion: c.legalVersion,
         halScore: c.halScore,
         bugIndex: PULSE_BUG_INDEX.vaultConsensusOk,
+        narrativeExtra: { pulse_trace_id: params.pulseTraceId },
       });
       vaultNarrativeLogId = vaultResult.narrativeLogId;
       ledger = "vault";
@@ -902,14 +971,17 @@ export class PulseEngine {
           : lomDisagreement
             ? "PULSE_HALL_LOM_DISAGREE"
             : "PULSE_HALL_HITL",
-        narrativeExtra: buildArbitrateNarrativeExtra({
-          keystrokesPlainText: c.pulseText,
-          geminiVerdict: c.geminiVerdict,
-          claudeVerdict: c.claudeVerdict,
-          modelsDisagree: c.modelsDisagree,
-          allHumanConfirmed: c.allHumanConfirmed,
-          haltStateSummary: c.haltStateSummary,
-        }),
+        narrativeExtra: {
+          ...buildArbitrateNarrativeExtra({
+            keystrokesPlainText: c.pulseText,
+            geminiVerdict: c.geminiVerdict,
+            claudeVerdict: c.claudeVerdict,
+            modelsDisagree: c.modelsDisagree,
+            allHumanConfirmed: c.allHumanConfirmed,
+            haltStateSummary: c.haltStateSummary,
+          }),
+          pulse_trace_id: params.pulseTraceId,
+        },
         hitlStrategyContext: isHitlTiebreakerBugIndex(bugIndex)
           ? {
               geminiModelId: c.geminiModelId,
@@ -1037,6 +1109,7 @@ export class PulseEngine {
           legalVersion: input.legalVersion,
           halScore: input.halScore,
           actionType: "PULSE_VAULT_CONVERGE",
+          narrativeExtra: input.narrativeExtra,
         }),
     });
 
@@ -1269,17 +1342,27 @@ export class PulseEngine {
     | { ok: true; legalVersion: string }
     | { ok: false; body: Record<string, unknown> }
   > {
-    let pledgeQuery = supabase
+    /** Narrow PostgREST generic depth from `state_beats` filtering (TS2589). */
+    type EqQuery = { eq: (column: string, value: string) => EqQuery };
+
+    let pledgeQuery: EqQuery = supabase
       .from("state_beats")
       .select("id, legal_version")
       .eq("legal_version", CURRENT_LEGAL_VERSION)
       .order("created_at", { ascending: false })
-      .limit(1);
+      .limit(1) as unknown as EqQuery;
 
     pledgeQuery = applyStateBeatsEntityFilter(pledgeQuery, entityId);
     pledgeQuery = applyStateBeatsTenantFilter(pledgeQuery, tenantId);
 
-    const { data: signedBeat, error: signedBeatError } = await pledgeQuery.maybeSingle();
+    const { data: signedBeat, error: signedBeatError } = await (
+      pledgeQuery as unknown as {
+        maybeSingle: () => Promise<{
+          data: { id: string; legal_version: string } | null;
+          error: { message: string } | null;
+        }>;
+      }
+    ).maybeSingle();
 
     if (signedBeatError) {
       throw new PulseHttpError(500, { error: "Unable to verify pledge status." });
@@ -1678,10 +1761,14 @@ Source text (for intent inference only, do not quote):
 ${params.pulseText.slice(0, 1200)}
 `;
 
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 520 },
-    });
+    const result = await runWithLlmTimeoutSimple(
+      `pulse.generate_halt_state.${params.geminiModelId}`,
+      () =>
+        model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 520 },
+        })
+    );
 
     const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (text) return text;
@@ -1758,11 +1845,13 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
       apiEndpoint: `${VERTEX_LOCATION}-aiplatform.googleapis.com`,
     });
 
-    const [resp] = await client.generateContent({
-      model: modelPath,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
-    });
+    const [resp] = await runWithLlmTimeoutSimple("pulse.consensus.publisher_vertex", () =>
+      client.generateContent({
+        model: modelPath,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
+      })
+    );
 
     const text = resp?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     return this.parseVote(text);
@@ -1847,10 +1936,14 @@ ${pulseText.slice(0, 1800)}
 `;
 
     const maxTokens = momentumRetryCount >= PULSE_HALT_STATE_RETRY ? 160 : 220;
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
-    });
+    const result = await runWithLlmTimeoutSimple(
+      `pulse.delta_abstraction.${geminiModelId}`,
+      () =>
+        model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
+        })
+    );
 
     const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!text) {
@@ -1902,12 +1995,7 @@ ${pulseText.slice(0, 1800)}
     pulseText: string;
     preflight: ShadowPreflightResult;
   }): Promise<never> {
-    let attempts = 0;
-    let agreed = false;
-    while (attempts < LOM_MAX_ATTEMPTS && !agreed) {
-      attempts += 1;
-      agreed = false;
-    }
+    const attempts = LOM_MAX_ATTEMPTS;
 
     const p6 = pillarGateMeta("P6");
     const hallContent = params.pulseText.slice(0, 400) || "lom_recursion_reject";

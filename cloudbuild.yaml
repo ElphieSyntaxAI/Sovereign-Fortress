@@ -1,0 +1,102 @@
+# cloudbuild.yaml — MSGF Core: build image → Artifact Registry → Cloud Run
+#
+# Submit manually:
+#   gcloud builds submit --config=cloudbuild.yaml --project=YOUR_PROJECT_ID .
+#
+# Or connect this repo to a Cloud Build trigger (push to main / tags).
+#
+# -----------------------------------------------------------------------------
+# Prerequisites
+# -----------------------------------------------------------------------------
+# 1) APIs: Cloud Build, Cloud Run, Artifact Registry, Secret Manager
+#
+# 2) Artifact Registry (Docker), e.g.:
+#    gcloud artifacts repositories create ${_AR_REPOSITORY} \
+#      --repository-format=docker --location=${_REGION} --project=${PROJECT_ID}
+#
+# 3) Secrets (create once; names must match _SECRET_* substitutions or change them):
+#    printf '%s' "sk-..." | gcloud secrets create msgf-openai-api-key --data-file=-
+#    printf '%s' "sk_live_..." | gcloud secrets create msgf-stripe-secret-key --data-file=-
+#    printf '%s' "whsec_..." | gcloud secrets create msgf-stripe-webhook-secret --data-file=-
+#
+# 4) Cloud Build service account (default: PROJECT_NUMBER@cloudbuild.gserviceaccount.com)
+#    needs at least:
+#    - roles/artifactregistry.writer (push images)
+#    - roles/run.admin (deploy Cloud Run)
+#    - roles/iam.serviceAccountUser on the Cloud Run *runtime* service account
+#    - roles/secretmanager.secretAccessor on EACH secret referenced in --set-secrets
+#      (required so deploy can attach secrets to the service)
+#
+# 5) Non-secret config (Supabase URL, etc.): add flags to the deploy step, e.g.
+#    --set-env-vars=FOO=bar  (never put API keys there)
+#    MSGF also supports ANTHROPIC_API_KEY for narrative flows — add another Secret + entry
+#    to --set-secrets if you use Anthropic in production.
+#
+# Cloud Run contract: https://cloud.google.com/run/docs/container-contract
+#
+substitutions:
+  _REGION: us-central1
+  _AR_REPOSITORY: msgf
+  _IMAGE_NAME: msgf-core
+  _SERVICE_NAME: msgf-core
+  # Requests per instance. Raise for I/O-heavy MSGF traffic (max 1000). Tune with load tests.
+  _CLOUD_RUN_CONCURRENCY: "160"
+  _CLOUD_RUN_MIN_INSTANCES: "0"
+  _CLOUD_RUN_MAX_INSTANCES: "100"
+  _CLOUD_RUN_CPU: "2"
+  _CLOUD_RUN_MEMORY: "2Gi"
+  # Secret Manager *resource* names (short id in same project). Values are injected at runtime only.
+  _SECRET_OPENAI: msgf-openai-api-key
+  _SECRET_STRIPE_SECRET: msgf-stripe-secret-key
+  _SECRET_STRIPE_WEBHOOK: msgf-stripe-webhook-secret
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 2400s
+
+steps:
+  - id: build-msgf-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - packages/msgf/Dockerfile
+      - -t
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}"
+      - -t
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest"
+      - --build-arg
+      - GIT_REVISION=${COMMIT_SHA}
+      - --build-arg
+      - MSGF_IMAGE_VERSION=${SHORT_SHA}
+      - .
+
+  - id: deploy-cloud-run
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --project=${PROJECT_ID}
+      - --region=${_REGION}
+      - --platform=managed
+      - >-
+        --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}
+      - --port=8080
+      - --cpu=${_CLOUD_RUN_CPU}
+      - --memory=${_CLOUD_RUN_MEMORY}
+      - --concurrency=${_CLOUD_RUN_CONCURRENCY}
+      - --min-instances=${_CLOUD_RUN_MIN_INSTANCES}
+      - --max-instances=${_CLOUD_RUN_MAX_INSTANCES}
+      # Keeps CPU available for concurrent in-flight work (billed accordingly).
+      - --no-cpu-throttling
+      # Runtime secrets only — values never appear in this file or in plain env vars in the console.
+      - >-
+        --set-secrets=OPENAI_API_KEY=${_SECRET_OPENAI}:latest,STRIPE_SECRET_KEY=${_SECRET_STRIPE_SECRET}:latest,STRIPE_WEBHOOK_SECRET=${_SECRET_STRIPE_WEBHOOK}:latest
+
+# Pushes both tags to Artifact Registry after a successful build.
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}"
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest"

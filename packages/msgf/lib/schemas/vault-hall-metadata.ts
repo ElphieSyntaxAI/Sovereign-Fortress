@@ -162,6 +162,12 @@ export const PULSE_BUG_INDEX = {
     level_1_1_branch: "1.1_PERSIST",
     level_1_1_1_instance: "1.1.1_GLOBAL_PROMOTION_VAULT",
   }),
+  /** LLM abort, timeout, or recursion-depth cap — operational dead letter (no silent retry). */
+  hallCostRunawayDeadLetter: buildGenealogicalBugIndex({
+    level_1_category: "1.0_PULSE",
+    level_1_1_branch: "1.1_OPS",
+    level_1_1_1_instance: "1.1.1_COST_RUNAWAY_DEAD_LETTER",
+  }),
 } as const;
 
 export function buildVaultHallMetadata(input: {

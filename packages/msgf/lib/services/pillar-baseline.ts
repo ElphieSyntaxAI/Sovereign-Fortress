@@ -131,11 +131,11 @@ export async function fetchTenantBaselinePillarRows(
 
 
 
-  let query = fromPillarVectors(supabase, tid)
+  type FilterEq = { eq: (column: string, value: string) => FilterEq };
 
+  let query: FilterEq = fromPillarVectors(supabase, tid)
     .select("metadata")
-
-    .eq("metadata->>is_baseline", "true");
+    .eq("metadata->>is_baseline", "true") as unknown as FilterEq;
 
 
 
@@ -143,7 +143,10 @@ export async function fetchTenantBaselinePillarRows(
 
 
 
-  const { data, error } = await query;
+  const { data, error } = await (query as unknown as Promise<{
+    data: unknown;
+    error: { message: string } | null;
+  }>);
 
 
 

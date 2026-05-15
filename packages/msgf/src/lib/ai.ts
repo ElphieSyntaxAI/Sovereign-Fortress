@@ -12,6 +12,7 @@
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { msgfLogger } from "./logger";
+import { runWithLlmTimeout } from "@/lib/services/cost-runaway-guard";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -22,11 +23,16 @@ export async function askNarrativeAI(tenantId: string, actorId: string, prompt: 
   await msgfLogger.info(tenantId, "AI_REQUEST_STARTED", actorId, { prompt_preview: prompt.slice(0, 50) });
 
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 1024,
-      messages: [{ role: "user", content: prompt }],
-    });
+    const message = await runWithLlmTimeout("narrative_ai.anthropic", async (signal) =>
+      anthropic.messages.create(
+        {
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }],
+        },
+        { signal }
+      )
+    );
 
     const responseText = message.content[0].type === "text" ? message.content[0].text : "";
 
@@ -36,7 +42,7 @@ export async function askNarrativeAI(tenantId: string, actorId: string, prompt: 
     return responseText;
   } catch (error: any) {
     // 3. Log the failure as a Warning or Violation
-    await msgfLogger.log("Warning", tenantId, "AI_REQUEST_FAILED", actorId, { error: error.message });
+    await msgfLogger.warning(tenantId, "AI_REQUEST_FAILED", actorId, { error: error.message });
     throw error;
   }
 }

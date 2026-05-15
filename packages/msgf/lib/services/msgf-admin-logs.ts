@@ -87,15 +87,24 @@ async function fetchPillarContentFallback(
 ): Promise<string | null> {
   if (!tenantId || !bugIndex) return null;
 
-  let query = fromPillarVectors(admin, tenantId)
+  type FilterEq = { eq: (column: string, value: string) => FilterEq };
+
+  let query: FilterEq = fromPillarVectors(admin, tenantId)
     .select("content, metadata")
     .eq("metadata->>instance_slug", bugIndex.level_1_1_1_instance)
     .order("metadata->>persisted_at", { ascending: false })
-    .limit(1);
+    .limit(1) as unknown as FilterEq;
 
   query = applyPillarVectorsTenantFilter(query, tenantId);
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await (
+    query as unknown as {
+      maybeSingle: () => Promise<{
+        data: { content?: unknown } | null;
+        error: { message: string } | null;
+      }>;
+    }
+  ).maybeSingle();
 
   if (error || !data?.content) return null;
   return typeof data.content === "string" ? data.content : null;

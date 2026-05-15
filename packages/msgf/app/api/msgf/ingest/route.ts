@@ -10,6 +10,7 @@
  *
  * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
  */
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile } from "fs/promises";
 import path from "path";
@@ -30,6 +31,14 @@ import {
 import { assertPathsAllowedForTenant } from "@/lib/tenant-silo";
 import { logIdentityViolation } from "@/lib/identity-violation-log";
 import { resolveCreditGuardGeminiModelId } from "@/lib/creditGuard";
+import {
+  endTenantCreditReservation,
+  shouldReserveForIngestWithFiles,
+  startTenantCreditReservation,
+  type CreditReservationStart,
+} from "@/lib/credit-reservation";
+import { isCostRunawayError, runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
+import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 
 type IngestFile = { path: string; content: string };
 
@@ -91,14 +100,17 @@ Codebase content:
 ${joined}
 `;
 
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
-  });
+  const result = await runWithLlmTimeoutSimple("ingest.pre_audit_summary", () =>
+    model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+    })
+  );
   return result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 }
 
 export async function POST(req: NextRequest) {
+  const ingestRequestId = randomUUID();
   try {
     const body = (await req.json()) as IngestBody;
     const files = Array.isArray(body?.files) ? body.files : [];
@@ -176,86 +188,125 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
     const pillarBootstrap = await bootstrapTenantBrain(admin, tenantId);
 
-    const lineageMap = buildLineageMap(files);
-    let ingestAudit = "- [SKIP] No files provided — pillar bootstrap only.\n";
-    let ingestedCount = 0;
-    let skippedBaseline = true;
+    const idempotencyKey =
+      req.headers.get("Idempotency-Key")?.trim() ||
+      req.headers.get("x-msgf-idempotency-key")?.trim() ||
+      ingestRequestId;
 
-    const ingestFiles: IngestFile[] = normalizedPaths.map((path, i) => ({
-      path,
-      content: files[i]?.content ?? "",
-    }));
-    const projectOrigin = deriveProjectOrigin(ingestFiles, body.project_origin);
+    let creditStart: CreditReservationStart = { enabled: false };
+    if (shouldReserveForIngestWithFiles(normalizedPaths.length)) {
+      creditStart = await startTenantCreditReservation(admin, tenantId, idempotencyKey);
+      if (creditStart.enabled && creditStart.insufficient) {
+        return NextResponse.json({ error: "INSUFFICIENT_FUNDS" }, { status: 402 });
+      }
+    }
 
-    if (normalizedPaths.length > 0) {
-      const sweep = await sweepAndIngest({
-        files: ingestFiles,
-        tenantId,
-        supabase: admin,
-        projectOrigin,
+    try {
+      const lineageMap = buildLineageMap(files);
+      let ingestAudit = "- [SKIP] No files provided — pillar bootstrap only.\n";
+      let ingestedCount = 0;
+      let skippedBaseline = true;
+
+      const ingestFiles: IngestFile[] = normalizedPaths.map((path, i) => ({
+        path,
+        content: files[i]?.content ?? "",
+      }));
+      const projectOrigin = deriveProjectOrigin(ingestFiles, body.project_origin);
+
+      if (normalizedPaths.length > 0) {
+        const sweep = await sweepAndIngest({
+          files: ingestFiles,
+          tenantId,
+          supabase: admin,
+          projectOrigin,
+        });
+        ingestAudit = sweep.auditLog;
+        ingestedCount = sweep.ingested;
+        skippedBaseline = sweep.skippedBaseline;
+      }
+
+      const readiness = await computeBrainReadiness(admin, tenantId);
+
+      if (normalizedPaths.length > 0) {
+        const aiAudit = await summarizeForAudit(req, files, lineageMap);
+        const finalAuditDoc = [
+          "# pre_ingestion_audit.md",
+          "",
+          "## Lineage Map",
+          "```json",
+          JSON.stringify(lineageMap, null, 2),
+          "```",
+          "",
+          "## SWEEP Ingestion Log",
+          ingestAudit,
+          "",
+          "## Gemini 2.5 Flash Audit Summary",
+          aiAudit || "_No summary generated._",
+          "",
+          "## Brain Readiness",
+          JSON.stringify(
+            {
+              readiness_score: readiness.readiness_score,
+              brain_fully_initialized: readiness.brain_fully_initialized,
+            },
+            null,
+            2
+          ),
+          "",
+        ].join("\n");
+
+        await writeFile(path.join(process.cwd(), "pre_ingestion_audit.md"), finalAuditDoc, "utf8");
+      }
+
+      const message =
+        normalizedPaths.length > 0
+          ? "SWEEP complete. pre_ingestion_audit.md saved to project root."
+          : "Pillar bootstrap complete (no files ingested).";
+
+      const response = NextResponse.json({
+        ok: true,
+        message,
+        tenant_id: tenantId,
+        project_origin: projectOrigin,
+        lineage_map: lineageMap,
+        readiness_score: readiness.readiness_score,
+        brain_fully_initialized: readiness.brain_fully_initialized,
+        is_pillar_baseline_set: readiness.is_pillar_baseline_set,
+        pillars_present: readiness.pillars_present,
+        pillars_required: readiness.pillars_required,
+        missing_pillars: readiness.missing_pillars,
+        baseline_training_required: readiness.baseline_training_required,
+        baseline_training_remaining: readiness.baseline_training_remaining,
+        pledge_signed: readiness.pledge_signed,
+        skipped_baseline_creation: skippedBaseline,
+        ingested_count: ingestedCount,
+        pillars_created: pillarBootstrap.pillars_created,
       });
-      ingestAudit = sweep.auditLog;
-      ingestedCount = sweep.ingested;
-      skippedBaseline = sweep.skippedBaseline;
-    }
 
-    const readiness = await computeBrainReadiness(admin, tenantId);
-
-    if (normalizedPaths.length > 0) {
-      const aiAudit = await summarizeForAudit(req, files, lineageMap);
-      const finalAuditDoc = [
-        "# pre_ingestion_audit.md",
-        "",
-        "## Lineage Map",
-        "```json",
-        JSON.stringify(lineageMap, null, 2),
-        "```",
-        "",
-        "## SWEEP Ingestion Log",
-        ingestAudit,
-        "",
-        "## Gemini 2.5 Flash Audit Summary",
-        aiAudit || "_No summary generated._",
-        "",
-        "## Brain Readiness",
-        JSON.stringify(
+      await endTenantCreditReservation(admin, creditStart, response.status);
+      return response;
+    } catch (inner: unknown) {
+      await endTenantCreditReservation(admin, creditStart, 500);
+      if (isCostRunawayError(inner)) {
+        await recordCostRunawayDeadLetterSafe({
+          adminSupabase: admin,
+          tenantId,
+          entityId: tenantId,
+          traceId: ingestRequestId,
+          operation: "ingest.summarize_for_audit",
+          error: inner,
+        });
+        return NextResponse.json(
           {
-            readiness_score: readiness.readiness_score,
-            brain_fully_initialized: readiness.brain_fully_initialized,
+            error: "INGEST_LLM_GUARD",
+            detail:
+              inner instanceof Error ? inner.message : "LLM request aborted or recursion cap exceeded.",
           },
-          null,
-          2
-        ),
-        "",
-      ].join("\n");
-
-      await writeFile(path.join(process.cwd(), "pre_ingestion_audit.md"), finalAuditDoc, "utf8");
+          { status: 503 }
+        );
+      }
+      throw inner;
     }
-
-    const message =
-      normalizedPaths.length > 0
-        ? "SWEEP complete. pre_ingestion_audit.md saved to project root."
-        : "Pillar bootstrap complete (no files ingested).";
-
-    return NextResponse.json({
-      ok: true,
-      message,
-      tenant_id: tenantId,
-      project_origin: projectOrigin,
-      lineage_map: lineageMap,
-      readiness_score: readiness.readiness_score,
-      brain_fully_initialized: readiness.brain_fully_initialized,
-      is_pillar_baseline_set: readiness.is_pillar_baseline_set,
-      pillars_present: readiness.pillars_present,
-      pillars_required: readiness.pillars_required,
-      missing_pillars: readiness.missing_pillars,
-      baseline_training_required: readiness.baseline_training_required,
-      baseline_training_remaining: readiness.baseline_training_remaining,
-      pledge_signed: readiness.pledge_signed,
-      skipped_baseline_creation: skippedBaseline,
-      ingested_count: ingestedCount,
-      pillars_created: pillarBootstrap.pillars_created,
-    });
   } catch (err: any) {
     console.error("MSGF ingest route error", err);
     return NextResponse.json(

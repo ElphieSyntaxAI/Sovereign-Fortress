@@ -25,6 +25,11 @@ import {
   type PrioritizedVaultLineage,
 } from "@/lib/services/p2-flow-roadmap";
 import type { SentinelDriftAssessment } from "@/lib/services/LogicDriftService";
+import {
+  executeAiWave,
+  isCostRunawayError,
+  runWithLlmTimeoutSimple,
+} from "@/lib/services/cost-runaway-guard";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
 const GEMINI_MODEL_ID = process.env.MSGF_VERTEX_MODEL || "gemini-2.5-flash";
@@ -79,11 +84,13 @@ async function runPublisherModel(
     apiEndpoint: `${VERTEX_LOCATION}-aiplatform.googleapis.com`,
   });
 
-  const [resp] = await client.generateContent({
-    model: modelPath,
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 280 },
-  });
+  const [resp] = await runWithLlmTimeoutSimple(`emergency_lom.publisher.${modelPath.slice(-32)}`, () =>
+    client.generateContent({
+      model: modelPath,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 280 },
+    })
+  );
 
   const text = resp?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
   return parseLomVerdict(text);
@@ -149,11 +156,16 @@ export async function runEmergencyLomSession(params: {
   let claude: EmergencyLomModelResult;
 
   try {
-    [gemini, claude] = await Promise.all([
-      runPublisherModel(geminiPath, prompt),
-      runPublisherModel(claudePath, prompt),
-    ]);
+    [gemini, claude] = await executeAiWave("emergency_lom.dual_publishers", () =>
+      Promise.all([
+        runPublisherModel(geminiPath, prompt),
+        runPublisherModel(claudePath, prompt),
+      ])
+    );
   } catch (e) {
+    if (isCostRunawayError(e)) {
+      throw e;
+    }
     const msg = e instanceof Error ? e.message : "Emergency LOM model call failed.";
     console.warn("[emergency-lom-session]", msg);
     gemini = { verdict: "INCONCLUSIVE", reason: msg };

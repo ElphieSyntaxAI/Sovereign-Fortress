@@ -120,6 +120,10 @@ function parseDefendTier(raw: Record<string, unknown>): "GREEN" | "YELLOW" | "RE
   return null;
 }
 
+function coerceGlassDefendTier(value: string | null): "GREEN" | "YELLOW" | "RED" | null {
+  return value === "GREEN" || value === "YELLOW" || value === "RED" ? value : null;
+}
+
 function snapshotFromPulseBody(
   raw: Record<string, unknown>,
   bufferedEventCount: number
@@ -157,9 +161,10 @@ function snapshotFromPulseBody(
     glass?.pillarStatus && typeof glass.pillarStatus === "object"
       ? (glass.pillarStatus as Record<string, unknown>)
       : null;
-  const tierFromGlass =
+  const tierFromGlassRaw =
     typeof pillar?.preflightTier === "string" ? pillar.preflightTier : null;
-  const defendTier = tierFromGlass ?? parseDefendTier(raw);
+  const defendTier =
+    coerceGlassDefendTier(tierFromGlassRaw) ?? parseDefendTier(raw);
 
   const humanTbFromGlass =
     typeof pillar?.humanTiebreakerRequired === "boolean"

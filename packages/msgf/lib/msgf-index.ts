@@ -120,17 +120,23 @@ async function lexicalFallbackScan(
   matchCount: number,
   tenantId: string
 ): Promise<PillarVectorRow[]> {
-  let query = fromPillarVectors(supabase, tenantId)
+  /** Avoid TS2589 from deep PostgREST filter generics on `pillar_vectors`. */
+  type FilterEq = { eq: (column: string, value: string) => FilterEq };
+
+  let query: FilterEq = fromPillarVectors(supabase, tenantId)
     .select("content, metadata")
     .eq("metadata->>pillar", "P6")
     .eq("metadata->>index_type", "genealogical_bug_index")
     .eq("metadata->>instance", "1.1.1")
     .eq("metadata->>ledger", "vault")
-    .limit(Math.max(20, matchCount * 3));
+    .limit(Math.max(20, matchCount * 3)) as unknown as FilterEq;
 
   query = applyPillarVectorsTenantFilter(query, tenantId);
 
-  const { data, error } = await query;
+  const { data, error } = await (query as unknown as Promise<{
+    data: PillarVectorRow[] | null;
+    error: { message: string } | null;
+  }>);
 
   if (error) throw error;
 

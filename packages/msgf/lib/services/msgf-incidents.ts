@@ -47,6 +47,8 @@ import {
 import { enrichIncidentScopeWithCompany, listUserIdsForCompany } from "@/lib/msgf-operator-access";
 import { withMsgfMetadataScope } from "@/lib/services/msgf-metadata-scope";
 import { applyMsgfIncidentsTenantFilter } from "@/lib/services/tenant-query-scope";
+import { isCostRunawayError } from "@/lib/services/cost-runaway-guard";
+import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 
 /**
  * `msgf_incidents` has no `metadata` JSONB column (see `20260528120000_msgf_incidents.sql`).
@@ -166,21 +168,36 @@ export async function insertMsgfArbitrateIncident(params: {
 
 
 
-  let strategies = params.strategies ?? null;
-
-  if (!strategies && isHitlTiebreakerBugIndex(bugIndex) && params.hitlStrategyContext) {
-
-    strategies = await generateHitlStrategies(params.hitlStrategyContext);
-
-  }
-
-
-
   const scope = await enrichIncidentScopeWithCompany(
     params.adminSupabase,
     params.userId,
     params.scope
   );
+
+
+
+  let strategies = params.strategies ?? null;
+
+  if (!strategies && isHitlTiebreakerBugIndex(bugIndex) && params.hitlStrategyContext) {
+
+    try {
+      strategies = await generateHitlStrategies(params.hitlStrategyContext);
+    } catch (e) {
+      if (isCostRunawayError(e)) {
+        await recordCostRunawayDeadLetterSafe({
+          adminSupabase: params.adminSupabase,
+          tenantId: scope?.tenantId ?? params.scope?.tenantId ?? "",
+          entityId: params.userId,
+          operation: "msgf_incidents.generate_hitl_strategies",
+          error: e,
+        });
+        strategies = null;
+      } else {
+        throw e;
+      }
+    }
+
+  }
 
 
 

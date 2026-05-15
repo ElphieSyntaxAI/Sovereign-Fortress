@@ -31,6 +31,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { StateLedgerP4, type KeystrokeEvent, type StateBeatRow } from "@/lib/P4";
 
 import type { LogicDriftAssessment } from "@/lib/services/logic-drift";
+import type { DualModelGatewaySnapshot } from "@/lib/services/dual-model-consensus-gateway";
+import { DUAL_MODEL_GATEWAY_AGREEMENT_THRESHOLD } from "@/lib/services/dual-model-consensus-gateway";
 
 
 
@@ -57,6 +59,12 @@ export type LocalGatewayInput = {
   isPillarBaselineSet: boolean;
 
   defendPreflightTier: string;
+
+  /** Mirrors HTTP Pulse `trace_id` for local `state_beats` rows. */
+  pulseTraceId?: string;
+
+  /** Populated when MSGF_DUAL_MODEL_LOCAL_GATEWAY_ENABLED runs tenant BYOK dual validators + optional SovereignAuditor. */
+  dualModelGateway?: DualModelGatewaySnapshot;
 
 };
 
@@ -125,6 +133,19 @@ export async function processLocalGateway(
       defend_preflight_tier: input.defendPreflightTier,
 
       routing: "local_gateway",
+
+      ...(input.pulseTraceId ? { pulse_trace_id: input.pulseTraceId } : {}),
+
+      ...(input.dualModelGateway
+        ? {
+            dual_model_gateway: {
+              tenant_agreement_score: input.dualModelGateway.tenant_agreement_score,
+              sovereign_escalated: input.dualModelGateway.sovereign_escalated,
+              sovereign_agreement_score: input.dualModelGateway.sovereign_agreement_score,
+              agreement_threshold: DUAL_MODEL_GATEWAY_AGREEMENT_THRESHOLD,
+            },
+          }
+        : {}),
 
     },
 

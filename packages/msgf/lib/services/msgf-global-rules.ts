@@ -109,17 +109,26 @@ async function loadTenantRulesPayload(
   const tid = resolveTenantIdForQuery(tenantId);
   const siloKey = rulesSiloKeyOverride ?? rulesSiloKeyForScope(scope, null);
 
-  let query = adminSupabase
+  type FilterEq = { eq: (column: string, value: string) => FilterEq };
+
+  let query: FilterEq = adminSupabase
     .from("msgf_rules")
     .select("payload")
     .eq("rule_namespace", ruleNamespace)
     .eq("rule_key", ruleKey)
     .eq("rule_scope", scope)
-    .eq("rules_silo_key", siloKey);
+    .eq("rules_silo_key", siloKey) as unknown as FilterEq;
 
   query = applyMsgfRulesTenantFilter(query, tid);
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await (
+    query as unknown as {
+      maybeSingle: () => Promise<{
+        data: { payload?: unknown } | null;
+        error: { message: string } | null;
+      }>;
+    }
+  ).maybeSingle();
   if (error || !data?.payload) return null;
   return data.payload;
 }

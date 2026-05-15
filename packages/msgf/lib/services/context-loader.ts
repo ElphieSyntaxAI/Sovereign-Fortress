@@ -150,14 +150,19 @@ export async function listVaultLawBookExcerpts(
       ? LAW_BOOK_GLOBAL_VAULT
       : LAW_BOOK_TENANT_VAULT;
 
-  let query = fromPillarVectors(supabase, tid)
+  type FilterEq = { eq: (column: string, value: string) => FilterEq };
+
+  let query: FilterEq = fromPillarVectors(supabase, tid)
     .select("id, content, metadata")
     .eq("metadata->>ledger", "vault")
     .order("id", { ascending: false })
-    .limit(limit);
+    .limit(limit) as unknown as FilterEq;
 
   query = applyPillarVectorsTenantFilter(query, tid);
-  const { data, error } = await query;
+  const { data, error } = await (query as unknown as Promise<{
+    data: VaultLineageRow[] | null;
+    error: { message: string } | null;
+  }>);
   if (error) {
     throw new Error(`listVaultLawBookExcerpts: ${error.message}`);
   }

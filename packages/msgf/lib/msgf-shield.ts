@@ -19,6 +19,7 @@ import {
   filterPillarRowsByTenant,
   resolveTenantIdForQuery,
 } from '@/lib/services/tenant-query-scope';
+import { runWithLlmTimeoutSimple } from '@/lib/services/cost-runaway-guard';
 
 const model = getVertexGenerativeModel();
 
@@ -52,11 +53,14 @@ export class MSGFShield {
 
     // 2. Fetch Compliance Guardrails (P1 & P6) for this tenant silo only
     const tid = resolveTenantIdForQuery(tenantId);
-    let pillarQuery = fromPillarVectors(supabase, tid)
+    type FilterEq = { eq: (column: string, value: string) => FilterEq };
+    let pillarQuery: FilterEq = fromPillarVectors(supabase, tid)
       .select('content, metadata')
-      .in('metadata->>pillar', ['P1', 'P6']);
+      .in('metadata->>pillar', ['P1', 'P6']) as unknown as FilterEq;
     pillarQuery = applyPillarVectorsTenantFilter(pillarQuery, tid);
-    const { data: pillars } = await pillarQuery;
+    const { data: pillars } = await (pillarQuery as unknown as Promise<{
+      data: { content: string; metadata: Record<string, unknown> | null }[] | null;
+    }>);
 
     const complianceContext = filterPillarRowsByTenant(pillars ?? [], tid)
       .map((p) => p.content)
@@ -72,7 +76,9 @@ export class MSGFShield {
       `}]}],
     };
 
-    const result = await model.generateContent(prompt);
+    const result = await runWithLlmTimeoutSimple('msgf_shield.triage', () =>
+      model.generateContent(prompt)
+    );
     // 1. Get the first candidate safely
 const candidate = result.response.candidates?.[0];
 

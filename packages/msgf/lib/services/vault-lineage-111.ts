@@ -87,7 +87,9 @@ export async function fetchVaultLineage111(
 
   for (const pattern of patterns) {
 
-    let query = fromPillarVectors(supabase, tid)
+    type FilterEq = { eq: (column: string, value: string) => FilterEq };
+
+    let query: FilterEq = fromPillarVectors(supabase, tid)
 
       .select("id, content, metadata")
 
@@ -101,7 +103,7 @@ export async function fetchVaultLineage111(
 
       .order("id", { ascending: false })
 
-      .limit(50);
+      .limit(50) as unknown as FilterEq;
 
 
 
@@ -109,7 +111,10 @@ export async function fetchVaultLineage111(
 
 
 
-    const { data, error } = await query;
+    const { data, error } = await (query as unknown as Promise<{
+      data: VaultLineageRow[] | null;
+      error: { message: string } | null;
+    }>);
 
 
 

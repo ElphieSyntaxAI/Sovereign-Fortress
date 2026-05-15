@@ -1,0 +1,19 @@
+# Monorepo — MSGF & other workspace Docker builds
+**/node_modules
+**/.next
+**/dist
+.git
+.github
+
+# Local env and secrets must not enter the image
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Docs and caches (optional size wins)
+**/*.md
+!README.md
+
+**/.turbo
+**/coverage
+**/.nyc_output

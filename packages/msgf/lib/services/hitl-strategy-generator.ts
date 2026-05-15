@@ -21,6 +21,10 @@ import {
   type HitlIncidentStrategies,
 } from "@/lib/schemas/hitl-strategies";
 import {
+  isCostRunawayError,
+  runWithLlmTimeoutSimple,
+} from "@/lib/services/cost-runaway-guard";
+import {
   buildP2RoadmapDirective,
   DEFAULT_P2_ROADMAP,
   type P2FlowStep,
@@ -188,14 +192,16 @@ Return ONLY JSON:
 }`;
 
   try {
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.25,
-        maxOutputTokens: 1400,
-        responseMimeType: "application/json",
-      },
-    });
+    const result = await runWithLlmTimeoutSimple("hitl.strategy.generator", () =>
+      model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.25,
+          maxOutputTokens: 1400,
+          responseMimeType: "application/json",
+        },
+      })
+    );
 
     const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!text) return null;
@@ -233,6 +239,9 @@ Return ONLY JSON:
 
     return bundle;
   } catch (e) {
+    if (isCostRunawayError(e)) {
+      throw e;
+    }
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[hitl-strategy-generator]", msg);
     return null;

@@ -1,0 +1,39 @@
+# cloudbuild.msgf-image.yaml — MSGF Docker image only (build + push to Artifact Registry).
+# Used by deploy.sh so Cloud Run deploy runs locally with explicit flags.
+#
+# Submit:
+#   gcloud builds submit --config=cloudbuild.msgf-image.yaml \
+#     --substitutions=_IMAGE_TAG=abc1234,_GIT_REVISION=fullsha .
+
+substitutions:
+  _REGION: us-central1
+  _AR_REPOSITORY: msgf
+  _IMAGE_NAME: msgf-core
+  _IMAGE_TAG: manual
+  _GIT_REVISION: ""
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 2400s
+
+steps:
+  - id: build-msgf-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - packages/msgf/Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_IMAGE_TAG}
+      - -t
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest
+      - --build-arg
+      - GIT_REVISION=${_GIT_REVISION}
+      - --build-arg
+      - MSGF_IMAGE_VERSION=${_IMAGE_TAG}
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_IMAGE_TAG}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest

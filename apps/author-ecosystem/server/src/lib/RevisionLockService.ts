@@ -21,6 +21,8 @@ export type PublishingIntent = "TRADITIONAL" | "SELF" | "UNDECIDED";
 export type P4ManuscriptRow = {
   id: string;
   tenant_id: string;
+  /** Legacy / alternate owner key for RAG scheduling (optional). */
+  owner_id?: string | null;
   title: string | null;
   body_text: string | null;
   /** Planning: high-level outline / beat text (see migration `p4_manuscripts.outline`). */

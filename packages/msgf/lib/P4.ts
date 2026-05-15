@@ -12,6 +12,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getVertexGenerativeModel } from './msgf-vertex';
+import { runWithLlmTimeoutSimple } from '@/lib/services/cost-runaway-guard';
 
 /** Raw keystroke from the frontend (send only what you need; avoid secrets). */
 export interface KeystrokeEvent {
@@ -196,13 +197,15 @@ Decide if the typing/editing flow is logically consistent with continuing the sa
 Reply with only valid JSON (no markdown):
 {"consistent":true,"confidence":0.92,"rationale":"short reason"}`;
 
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 256,
-    },
-  });
+  const result = await runWithLlmTimeoutSimple('p4.verify_chunk_flow', () =>
+    model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 256,
+      },
+    })
+  );
 
   const text =
     result.response.candidates?.[0]?.content?.parts?.[0]?.text ?? '';

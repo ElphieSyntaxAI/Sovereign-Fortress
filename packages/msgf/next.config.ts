@@ -24,6 +24,10 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 dotenv.config({ path: path.join(__dirname, ".env.local"), override: true });
 
 const nextConfig: NextConfig = {
+  /** Minimal server trace for container / Cloud Run (see `packages/msgf/Dockerfile`). */
+  output: "standalone",
+  /** Include workspace siblings (e.g. `@elphie-syntax/core`) in file tracing. */
+  outputFileTracingRoot: monorepoRoot,
   experimental: {
     // Allow importing `DashboardOrchestratorService` from `apps/author-ecosystem/server`.
     externalDir: true,

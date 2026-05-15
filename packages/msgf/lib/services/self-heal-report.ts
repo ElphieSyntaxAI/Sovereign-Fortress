@@ -23,7 +23,12 @@ import {
 } from "@/lib/schemas/diagnostic-snapshot";
 import { PULSE_BUG_INDEX } from "@/lib/schemas/vault-hall-metadata";
 import { buildNarrativeLogMetadata } from "@/lib/schemas/vault-hall-metadata";
-import { runEmergencyLomSession } from "@/lib/services/emergency-lom-session";
+import {
+  runEmergencyLomSession,
+  type EmergencyLomSessionResult,
+} from "@/lib/services/emergency-lom-session";
+import { isCostRunawayError } from "@/lib/services/cost-runaway-guard";
+import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 import { logicDriftService } from "@/lib/services/LogicDriftService";
 import { applyLocalSessionDelta } from "@/lib/services/local-session-delta";
 import { loadP2Roadmap } from "@/lib/services/p2-flow-roadmap";
@@ -171,11 +176,40 @@ export async function persistSelfHealReport(params: {
   });
 
   const p2Roadmap = await loadP2Roadmap(params.adminSupabase, tenantId);
-  const emergencyLom = await runEmergencyLomSession({
-    snapshot,
-    drift,
-    p2Roadmap,
-  });
+
+  let emergencyLom: EmergencyLomSessionResult;
+  try {
+    emergencyLom = await runEmergencyLomSession({
+      snapshot,
+      drift,
+      p2Roadmap,
+    });
+  } catch (e) {
+    if (isCostRunawayError(e)) {
+      await recordCostRunawayDeadLetterSafe({
+        adminSupabase: params.adminSupabase,
+        tenantId,
+        entityId: params.entityId,
+        operation: "self_heal.emergency_lom",
+        error: e,
+      });
+      emergencyLom = {
+        gemini: {
+          verdict: "INCONCLUSIVE",
+          reason: "Emergency LOM aborted by cost-runaway guard (timeout or recursion cap).",
+        },
+        claude: {
+          verdict: "INCONCLUSIVE",
+          reason: "Emergency LOM aborted by cost-runaway guard (timeout or recursion cap).",
+        },
+        modelsAgree: true,
+        roadmapConflictDetected: false,
+        lomRecursionPath: "emergency_sentinel",
+      };
+    } else {
+      throw e;
+    }
+  }
 
   const sentinelStrategies = remediationEngine.getModularStrategiesForIncident(SENTINEL_INSTANCE);
   const lomLocalStrategies = remediationEngine.getLocalStrategiesForIncident(LOM_REC_INSTANCE);

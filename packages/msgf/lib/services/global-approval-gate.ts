@@ -72,6 +72,13 @@ export type GlobalWriteGateResult =
       reason: string;
     };
 
+/** Result shape from {@link PulseEngine.persistLogicDeltaWithGate}. */
+export type PersistLogicDeltaGateResult = {
+  promotion_status: GlobalPromotionStatus;
+  local_cache_id?: string;
+  vaultNarrativeLogId?: string;
+};
+
 export function isVaultCoreTenant(tenantId: string): boolean {
   return tenantId.trim() === MSGF_VAULT_CORE_TENANT_ID;
 }

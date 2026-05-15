@@ -141,13 +141,13 @@ async function fetchUsageTokens(userKey: string): Promise<bigint> {
   const { data, error } = await admin.from("usage_monitor").select("tokens_cumulative").eq("user_id", userKey).maybeSingle();
   if (error) {
     console.warn("[creditGuard] usage_monitor read failed:", error.message);
-    return 0n;
+    return BigInt(0);
   }
   const n = (data as { tokens_cumulative?: string | number } | null)?.tokens_cumulative ?? 0;
   try {
     return BigInt(typeof n === "string" ? n : Math.floor(Number(n)));
   } catch {
-    return 0n;
+    return BigInt(0);
   }
 }
 

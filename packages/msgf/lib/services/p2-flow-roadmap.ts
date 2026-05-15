@@ -225,15 +225,24 @@ export async function loadP2RoadmapFromRules(
 
   const tid = resolveTenantIdForQuery(tenantId);
 
-  let query = supabase
+  type FilterEq = { eq: (column: string, value: string) => FilterEq };
+
+  let query: FilterEq = supabase
     .from("msgf_rules")
     .select("payload")
     .eq("rule_namespace", "p2")
     .eq("rule_key", "flow_sequence_1_0")
     .eq("rule_scope", RULE_SCOPE_GLOBAL)
-    .eq("rules_silo_key", "G");
+    .eq("rules_silo_key", "G") as unknown as FilterEq;
   query = applyMsgfRulesTenantFilter(query, tid);
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await (
+    query as unknown as {
+      maybeSingle: () => Promise<{
+        data: { payload?: unknown } | null;
+        error: { message: string } | null;
+      }>;
+    }
+  ).maybeSingle();
 
   if (error || !data?.payload || typeof data.payload !== "object") {
     return DEFAULT_P2_ROADMAP;

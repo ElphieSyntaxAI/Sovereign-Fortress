@@ -5,6 +5,8 @@
   "sideEffects": false,
   "files": [
     "dist",
+    "index.ts",
+    "instrumentation.ts",
     "app",
     "lib",
     "ui",
@@ -106,6 +108,7 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@elphie-syntax/core": "file:../core",
     "@google-cloud/aiplatform": "^6.7.0",
+    "@google-cloud/kms": "^5.5.0",
     "@google-cloud/vertexai": "^1.12.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.1",
