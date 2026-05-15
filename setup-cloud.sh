@@ -1,344 +1,317 @@
 #!/usr/bin/env bash
-#
-# setup-cloud.sh — First-time Google Cloud setup + build + deploy for MSGF (Cloud Run).
-#
-# Before you run this:
-#   1. Install Google Cloud CLI: https://cloud.google.com/sdk/docs/install
-#   2. Run:  gcloud auth login
-#   3. Create a GCP project in https://console.cloud.google.com/ (note the Project ID)
-#   4. Enable billing on that project (Cloud Run & Cloud Build need it)
-#   5. Your Google account needs permission on that project (e.g. “Owner” or “Editor”,
-#      or a custom role with Cloud Run Admin, Cloud Build Editor, Secret Manager Admin,
-#      Artifact Registry Admin — exact roles depend on your org).
-#   6. From this repo root:  chmod +x setup-cloud.sh && ./setup-cloud.sh
-#
-# What this script does (high level):
-#   • Asks for your Project ID and region
-#   • Turns on the Google APIs you need (Cloud Run, Artifact Registry, Secret Manager, Cloud Build)
-#   • Creates a Docker “bucket” (Artifact Registry repository) for your images
-#   • Helps you create secrets (OpenAI / Stripe) — never pasted into this file
-#   • Builds your Dockerfile in the cloud (saves your laptop CPU)
-#   • Deploys the image to Cloud Run
-#   • Calls GET /health on your new URL to verify the service responds
-#
+set -e
+set -u
+set -o pipefail
 
-set -euo pipefail
-# set -e  → exit immediately if any command fails (so you don’t deploy half-broken state).
-# set -u  → error if you use an undefined variable (catches typos).
-# set -o pipefail → if a command in a pipeline fails, the whole pipeline counts as failed.
-
-# ---------------------------------------------------------------------------
-# Resolve repo root (directory where this script lives). We build from here
-# because the Dockerfile expects the whole monorepo context.
-# ---------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}"
-
-echo ""
-echo "=== MSGF — Google Cloud first-time setup ==="
-echo ""
-
-# ---------------------------------------------------------------------------
-# Ask for PROJECT_ID. This is the short id (e.g. my-company-prod), not the
-# long project name. You see it in the GCP console project picker.
-# ---------------------------------------------------------------------------
-read -r -p "Enter your GCP PROJECT_ID (e.g. my-msgf-prod): " PROJECT_ID
-# read -r        → read raw input (don’t treat backslashes specially).
-# -p "..."       → prompt text before the cursor.
-
-# Trim accidental spaces; empty input is not allowed.
-PROJECT_ID="${PROJECT_ID//[[:space:]]/}"
-if [[ -z "${PROJECT_ID}" ]]; then
-  echo "Error: PROJECT_ID cannot be empty." >&2
+if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
+  echo "setup-cloud.sh requires Bash 4+ (associative arrays for runtime env merging)." >&2
   exit 1
 fi
 
-# ---------------------------------------------------------------------------
-# Verify the project exists and you have access. Exits non‑zero if wrong id
-# or no permission (teaches you early if auth is wrong).
-# ---------------------------------------------------------------------------
-echo ""
-echo "Checking that project '${PROJECT_ID}' exists and is reachable..."
-gcloud projects describe "${PROJECT_ID}" --quiet
-# gcloud projects describe → metadata API call; fails if project id is invalid.
+# =============================================================================
+# Configuration — override any variable by exporting before ./setup-cloud.sh
+# =============================================================================
+GCP_PROJECT_ID="${GCP_PROJECT_ID:-}"
+GCP_REGION="${GCP_REGION:-us-central1}"
+IMAGE_NAME="${IMAGE_NAME:-msgf-api}"
 
-# ---------------------------------------------------------------------------
-# Make all following gcloud commands default to this project (less repetition).
-# This updates your local gcloud config (~/.config/gcloud), not the cloud.
-# ---------------------------------------------------------------------------
-echo "Setting active gcloud project to ${PROJECT_ID}..."
-gcloud config set project "${PROJECT_ID}" --quiet
+# Artifact Registry Docker repo id (not the image name).
+GCP_ARTIFACT_REPOSITORY="${GCP_ARTIFACT_REPOSITORY:-msgf}"
 
-# ---------------------------------------------------------------------------
-# REGION: where your Artifact Registry repo and Cloud Run service live.
-# us-central1 is a common default; you can choose europe-west1, etc.
-# ---------------------------------------------------------------------------
-read -r -p "Region for Artifact Registry + Cloud Run [press Enter for us-central1]: " REGION
-REGION="${REGION:-us-central1}"
-# ${REGION:-us-central1} → if REGION is empty, use the default after :-
+# Cloud Run service id (defaults to IMAGE_NAME).
+CLOUD_RUN_SERVICE="${CLOUD_RUN_SERVICE:-${IMAGE_NAME}}"
 
-# These names match deploy.sh / cloudbuild so everything stays consistent.
-AR_REPOSITORY="${AR_REPOSITORY:-msgf}"
-IMAGE_NAME="${IMAGE_NAME:-msgf-core}"
-SERVICE_NAME="${SERVICE_NAME:-msgf-core}"
+# Optional: comma-free KEY=VALUE lines (and comments) merged into Cloud Run env.
+CLOUDRUN_ENV_FILE="${CLOUDRUN_ENV_FILE:-.env.cloudrun}"
 
+# Dockerfile path relative to repo root.
+DOCKERFILE_PATH="${DOCKERFILE_PATH:-Dockerfile}"
+
+# Image tag (defaults to short git SHA or timestamp).
+IMAGE_TAG="${IMAGE_TAG:-}"
+
+# Cloud Run sizing (override as needed).
+CLOUD_RUN_CPU="${CLOUD_RUN_CPU:-2}"
+CLOUD_RUN_MEMORY="${CLOUD_RUN_MEMORY:-2Gi}"
+CLOUD_RUN_CONCURRENCY="${CLOUD_RUN_CONCURRENCY:-80}"
+CLOUD_RUN_MIN_INSTANCES="${CLOUD_RUN_MIN_INSTANCES:-0}"
+CLOUD_RUN_MAX_INSTANCES="${CLOUD_RUN_MAX_INSTANCES:-100}"
+
+# Serverless VPC Access — Cloud Run reaches private DB / Redis via this connector.
+# Range must be /28 (or larger), unused, and must not overlap VPC subnets.
+VPC_NETWORK="${VPC_NETWORK:-default}"
+VPC_CONNECTOR_NAME="${VPC_CONNECTOR_NAME:-msgf-connector}"
+VPC_CONNECTOR_RANGE="${VPC_CONNECTOR_RANGE:-10.8.0.0/28}"
+# Route RFC1918 / Google private destinations through the VPC; public APIs stay on default path.
+# Override with "all-traffic" only if you intend to steer all egress via VPC (usually needs Cloud NAT).
+CLOUD_RUN_VPC_EGRESS="${CLOUD_RUN_VPC_EGRESS:-private-ranges-only}"
+
+# Secret Manager resource ids (same defaults as cloudbuild.yaml — optional if unset).
 SECRET_OPENAI="${SECRET_OPENAI:-msgf-openai-api-key}"
 SECRET_STRIPE_SECRET="${SECRET_STRIPE_SECRET:-msgf-stripe-secret-key}"
 SECRET_STRIPE_WEBHOOK="${SECRET_STRIPE_WEBHOOK:-msgf-stripe-webhook-secret}"
 
-CLOUD_RUN_CPU="${CLOUD_RUN_CPU:-2}"
-CLOUD_RUN_MEMORY="${CLOUD_RUN_MEMORY:-2Gi}"
-CLOUD_RUN_MIN_INSTANCES="${CLOUD_RUN_MIN_INSTANCES:-0}"
-CLOUD_RUN_MAX_INSTANCES="${CLOUD_RUN_MAX_INSTANCES:-100}"
+# =============================================================================
+# Repo root
+# =============================================================================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
 
-# ---------------------------------------------------------------------------
-# Enable required Google Cloud APIs.
-# “services enable” is idempotent: safe to run again; already-on APIs stay on.
-# - run.googleapis.com          → Cloud Run (hosts your container as an HTTPS URL).
-# - artifactregistry.googleapis.com → stores Docker images (like a private Docker Hub).
-# - secretmanager.googleapis.com    → stores API keys; Cloud Run injects them at runtime.
-# - cloudbuild.googleapis.com       → builds your image in Google’s datacenters.
-# - iam.googleapis.com              → IAM; useful when other tools manage service accounts.
-# ---------------------------------------------------------------------------
 echo ""
-echo "Enabling required Google APIs (may take a minute the first time)..."
+echo "=== MSGF — Cloud Build + Cloud Run deploy ==="
+echo ""
+
+# --- Project -----------------------------------------------------------------
+if [[ -z "${GCP_PROJECT_ID// }" ]]; then
+  read -r -p "Enter GCP_PROJECT_ID: " GCP_PROJECT_ID
+  GCP_PROJECT_ID="${GCP_PROJECT_ID//[[:space:]]/}"
+fi
+if [[ -z "${GCP_PROJECT_ID}" ]]; then
+  echo "Error: GCP_PROJECT_ID is required." >&2
+  exit 1
+fi
+
+# --- Auth --------------------------------------------------------------------
+if ! gcloud auth print-access-token >/dev/null 2>&1; then
+  echo "gcloud: no valid credentials; launching browser login..."
+  gcloud auth login
+fi
+
+echo "Using project: ${GCP_PROJECT_ID}"
+gcloud projects describe "${GCP_PROJECT_ID}" --quiet >/dev/null
+
+echo "Setting active gcloud project..."
+gcloud config set project "${GCP_PROJECT_ID}" --quiet
+
+# --- APIs --------------------------------------------------------------------
+echo ""
+echo "Enabling required APIs..."
 gcloud services enable \
   run.googleapis.com \
   artifactregistry.googleapis.com \
   secretmanager.googleapis.com \
   cloudbuild.googleapis.com \
   iam.googleapis.com \
-  --project="${PROJECT_ID}" \
+  vpcaccess.googleapis.com \
+  compute.googleapis.com \
+  --project="${GCP_PROJECT_ID}" \
   --quiet
 
-# ---------------------------------------------------------------------------
-# Artifact Registry: create a *repository* (a folder for Docker images).
-# We skip creation if it already exists (so the script is re-runnable).
-#describe → non‑zero exit if missing; we ignore that with || true and branch.
-# ---------------------------------------------------------------------------
+# --- VPC network + Serverless VPC Access connector ----------------------------
 echo ""
-echo "Ensuring Artifact Registry repository '${AR_REPOSITORY}' (${REGION}) exists..."
-if gcloud artifacts repositories describe "${AR_REPOSITORY}" \
-  --location="${REGION}" \
-  --project="${PROJECT_ID}" \
-  --quiet 2>/dev/null
+if ! gcloud compute networks describe "${VPC_NETWORK}" \
+  --project="${GCP_PROJECT_ID}" \
+  --quiet >/dev/null 2>&1
 then
-  echo "Repository already exists — skipping create."
-else
-  echo "Creating repository (format=docker)..."
-  gcloud artifacts repositories create "${AR_REPOSITORY}" \
-    --repository-format=docker \
-    --location="${REGION}" \
-    --project="${PROJECT_ID}" \
-    --description="MSGF Docker images" \
-    --quiet
-fi
-
-# ---------------------------------------------------------------------------
-# Cloud Build’s robot account must push images to Artifact Registry.
-# PROJECT_NUMBER is a numeric id; the Cloud Build SA email is built from it.
-# We grant roles/artifactregistry.writer so `gcloud builds submit` can push.
-# add-iam-policy-binding is additive; re-running may add duplicate bindings
-# in some setups — usually harmless; org policy may restrict this.
-# ---------------------------------------------------------------------------
-echo ""
-echo "Granting Cloud Build service account permission to push to Artifact Registry..."
-PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
-# projectNumber → stable numeric id used in default service account emails.
-CLOUD_BUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
-
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-  --member="serviceAccount:${CLOUD_BUILD_SA}" \
-  --role="roles/artifactregistry.writer" \
-  --quiet 2>/dev/null || {
-    echo "Note: Could not add artifactregistry.writer (you may lack iam.policyBinding, or it’s already set)."
-}
-
-# ---------------------------------------------------------------------------
-# Secret Manager: your app expects three secrets (see deploy.sh).
-# If a secret is missing, we optionally create it from a hidden terminal line.
-# Values never appear in this script file — only piped to gcloud.
-# ---------------------------------------------------------------------------
-echo ""
-echo "=== Secret Manager ==="
-echo "Cloud Run will mount these as environment variables (no keys in git)."
-echo ""
-
-ensure_secret() {
-  local id="$1"
-  local human="$2"
-  if gcloud secrets describe "${id}" --project="${PROJECT_ID}" --quiet 2>/dev/null; then
-    echo "Secret '${id}' already exists."
-    return 0
-  fi
-  echo "Secret '${id}' (${human}) does not exist yet."
-  read -r -p "Create it now? [y/N]: " yn
-  if [[ "${yn:-}" =~ ^[Yy]$ ]]; then
-    # -s = hide typing (password-style). Important for API keys.
-    read -r -s -p "Paste the secret value (input hidden), then Enter: " secret_val
-    echo ""
-    if [[ -z "${secret_val}" ]]; then
-      echo "Skipped empty value — create '${id}' later in console or with gcloud."
-      return 0
-    fi
-    # secrets create --data-file=- reads the value from stdin (not from argv).
-    printf '%s' "${secret_val}" | gcloud secrets create "${id}" \
-      --data-file=- \
-      --project="${PROJECT_ID}" \
-      --replication-policy=automatic \
-      --quiet
-    echo "Created secret '${id}'."
-  else
-    echo "Skipped. Before deploy works you must create '${id}' (Secret Manager)."
-  fi
-}
-
-ensure_secret "${SECRET_OPENAI}" "OpenAI API key → env OPENAI_API_KEY"
-ensure_secret "${SECRET_STRIPE_SECRET}" "Stripe secret key → env STRIPE_SECRET_KEY"
-ensure_secret "${SECRET_STRIPE_WEBHOOK}" "Stripe webhook secret → env STRIPE_WEBHOOK_SECRET"
-
-# ---------------------------------------------------------------------------
-# The MSGF /health route checks Supabase (vector table). Without these env vars
-# the service may run but return {status:\"unhealthy\"}. Optional prompts.
-# Production best practice is Secret Manager for the service role key too;
-# this teaches the minimal path; you can move the key to a secret later.
-# ---------------------------------------------------------------------------
-echo ""
-echo "=== Supabase (needed for GET /health to return healthy) ==="
-read -r -p "NEXT_PUBLIC_SUPABASE_URL [empty to skip — fix later in Cloud Run console]: " SUPA_URL
-SUPA_URL="${SUPA_URL//[[:space:]]/}"
-read -r -s -p "SUPABASE_SERVICE_ROLE_KEY [empty to skip]: " SUPA_KEY
-echo ""
-
-UPDATE_ENV_FLAGS=()
-if [[ -n "${SUPA_URL}" && -n "${SUPA_KEY}" ]]; then
-  # update-env-vars merges into existing configuration on the Cloud Run service.
-  UPDATE_ENV_FLAGS=(--update-env-vars="NEXT_PUBLIC_SUPABASE_URL=${SUPA_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPA_KEY}")
-elif [[ -n "${SUPA_URL}" || -n "${SUPA_KEY}" ]]; then
-  echo "Warning: set BOTH URL and service role key for health checks; skipping partial env."
-fi
-
-# ---------------------------------------------------------------------------
-# Build the Docker image in Cloud Build (uploads source tarball, runs Dockerfile).
-# IMAGE_TAG identifies this build; we use git short SHA or a timestamp fallback.
-# ---------------------------------------------------------------------------
-IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || echo "setup-$(date +%s)")"
-GIT_REVISION="$(git rev-parse HEAD 2>/dev/null || echo "unknown")"
-IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
-
-echo ""
-echo "=== Cloud Build: building and pushing image ==="
-echo "Image: ${IMAGE_URI}"
-gcloud builds submit "${SCRIPT_DIR}" \
-  --project="${PROJECT_ID}" \
-  --config="${SCRIPT_DIR}/cloudbuild.msgf-image.yaml" \
-  --substitutions="_REGION=${REGION},_AR_REPOSITORY=${AR_REPOSITORY},_IMAGE_NAME=${IMAGE_NAME},_IMAGE_TAG=${IMAGE_TAG},_GIT_REVISION=${GIT_REVISION}"
-
-# ---------------------------------------------------------------------------
-# Deploy to Cloud Run: creates or updates the service with this image.
-# --platform=managed      → fully serverless Cloud Run (no Kubernetes to manage).
-# --port=8080             → matches our Dockerfile / Cloud Run default convention.
-# --allow-unauthenticated → anyone on the internet can call the URL (good for /health demos;
-#                            tighten later with IAM for production APIs).
-# --set-secrets           → maps Secret Manager names → environment variables inside the container.
-# ---------------------------------------------------------------------------
-echo ""
-echo "=== Cloud Run: deploy ==="
-
-MISSING_SECRET=0
-for s in "${SECRET_OPENAI}" "${SECRET_STRIPE_SECRET}" "${SECRET_STRIPE_WEBHOOK}"; do
-  if ! gcloud secrets describe "${s}" --project="${PROJECT_ID}" --quiet 2>/dev/null; then
-    echo "Error: Secret '${s}' is missing — create it in Secret Manager or re-run the secret step." >&2
-    MISSING_SECRET=1
-  fi
-done
-if [[ "${MISSING_SECRET}" -ne 0 ]]; then
-  echo "Aborting deploy because required secrets are missing." >&2
+  echo "Error: VPC network '${VPC_NETWORK}' not found in ${GCP_PROJECT_ID}." >&2
+  echo "Create it or set VPC_NETWORK to your VPC name." >&2
   exit 1
 fi
 
-if [[ ${#UPDATE_ENV_FLAGS[@]} -gt 0 ]]; then
-  gcloud run deploy "${SERVICE_NAME}" \
-    --project="${PROJECT_ID}" \
-    --region="${REGION}" \
-    --platform=managed \
-    --image="${IMAGE_URI}" \
-    --port=8080 \
-    --cpu="${CLOUD_RUN_CPU}" \
-    --memory="${CLOUD_RUN_MEMORY}" \
-    --concurrency=80 \
-    --min-instances="${CLOUD_RUN_MIN_INSTANCES}" \
-    --max-instances="${CLOUD_RUN_MAX_INSTANCES}" \
-    --no-cpu-throttling \
-    --allow-unauthenticated \
-    --set-secrets="OPENAI_API_KEY=${SECRET_OPENAI}:latest,STRIPE_SECRET_KEY=${SECRET_STRIPE_SECRET}:latest,STRIPE_WEBHOOK_SECRET=${SECRET_STRIPE_WEBHOOK}:latest" \
-    "${UPDATE_ENV_FLAGS[@]}"
+echo "Ensuring Serverless VPC Access connector '${VPC_CONNECTOR_NAME}' (${GCP_REGION}, ${VPC_CONNECTOR_RANGE})..."
+if gcloud compute networks vpc-access connectors describe "${VPC_CONNECTOR_NAME}" \
+  --region="${GCP_REGION}" \
+  --project="${GCP_PROJECT_ID}" \
+  --quiet >/dev/null 2>&1
+then
+  echo "Connector already exists."
 else
-  gcloud run deploy "${SERVICE_NAME}" \
-    --project="${PROJECT_ID}" \
-    --region="${REGION}" \
-    --platform=managed \
-    --image="${IMAGE_URI}" \
-    --port=8080 \
-    --cpu="${CLOUD_RUN_CPU}" \
-    --memory="${CLOUD_RUN_MEMORY}" \
-    --concurrency=80 \
-    --min-instances="${CLOUD_RUN_MIN_INSTANCES}" \
-    --max-instances="${CLOUD_RUN_MAX_INSTANCES}" \
-    --no-cpu-throttling \
-    --allow-unauthenticated \
-    --set-secrets="OPENAI_API_KEY=${SECRET_OPENAI}:latest,STRIPE_SECRET_KEY=${SECRET_STRIPE_SECRET}:latest,STRIPE_WEBHOOK_SECRET=${SECRET_STRIPE_WEBHOOK}:latest"
+  gcloud compute networks vpc-access connectors create "${VPC_CONNECTOR_NAME}" \
+    --project="${GCP_PROJECT_ID}" \
+    --region="${GCP_REGION}" \
+    --network="${VPC_NETWORK}" \
+    --range="${VPC_CONNECTOR_RANGE}" \
+    --quiet
+  echo "Connector created."
 fi
 
-# ---------------------------------------------------------------------------
-# Fetch the HTTPS URL Google assigned to this revision.
-# status.url is the public endpoint (unless you later restrict IAM).
-# ---------------------------------------------------------------------------
+# --- Artifact Registry -------------------------------------------------------
+echo ""
+echo "Ensuring Artifact Registry repo '${GCP_ARTIFACT_REPOSITORY}' (${GCP_REGION})..."
+if gcloud artifacts repositories describe "${GCP_ARTIFACT_REPOSITORY}" \
+  --location="${GCP_REGION}" \
+  --project="${GCP_PROJECT_ID}" \
+  --quiet 2>/dev/null
+then
+  echo "Repository exists."
+else
+  gcloud artifacts repositories create "${GCP_ARTIFACT_REPOSITORY}" \
+    --repository-format=docker \
+    --location="${GCP_REGION}" \
+    --project="${GCP_PROJECT_ID}" \
+    --description="MSGF container images" \
+    --quiet
+fi
+
+# Cloud Build SA → push images
+PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT_ID}" --format='value(projectNumber)')"
+CLOUD_BUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
+gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
+  --member="serviceAccount:${CLOUD_BUILD_SA}" \
+  --role="roles/artifactregistry.writer" \
+  --quiet 2>/dev/null || true
+
+# Default Cloud Run runtime SA (unless you set a custom service account on the service).
+RUNTIME_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
+  --member="serviceAccount:${RUNTIME_SA}" \
+  --role="roles/vpcaccess.user" \
+  --quiet 2>/dev/null || true
+
+# --- Image URI ---------------------------------------------------------------
+if [[ -z "${IMAGE_TAG// }" ]]; then
+  IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || echo "manual-$(date +%s)')"
+fi
+IMAGE_URI="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+# --- Build (Cloud Build: submit context + tag → Artifact Registry) ------------
+echo ""
+echo "Building and pushing: ${IMAGE_URI}"
+echo "Context: ${SCRIPT_DIR}  Dockerfile: ${DOCKERFILE_PATH}"
+
+run_cloud_build_default_dockerfile() {
+  gcloud builds submit "${SCRIPT_DIR}" \
+    --project="${GCP_PROJECT_ID}" \
+    --tag="${IMAGE_URI}"
+}
+
+run_cloud_build_custom_dockerfile() {
+  local cb_tmp
+  cb_tmp="$(mktemp "${TMPDIR:-/tmp}/msgf-cloudbuild.XXXXXX")"
+  trap "rm -f '${cb_tmp}'" EXIT
+  cat >"${cb_tmp}" <<EOF
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - ${DOCKERFILE_PATH}
+      - -t
+      - ${IMAGE_URI}
+      - .
+images:
+  - ${IMAGE_URI}
+EOF
+  gcloud builds submit "${SCRIPT_DIR}" \
+    --project="${GCP_PROJECT_ID}" \
+    --config="${cb_tmp}"
+  trap - EXIT
+  rm -f "${cb_tmp}"
+}
+
+if [[ "${DOCKERFILE_PATH}" == "Dockerfile" ]]; then
+  run_cloud_build_default_dockerfile
+else
+  echo "Using non-default Dockerfile via generated Cloud Build config."
+  run_cloud_build_custom_dockerfile
+fi
+
+# --- Runtime env: defaults + optional file + allowlisted shell exports ---------
+declare -A RUN_ENV=()
+RUN_ENV[NODE_ENV]="production"
+RUN_ENV[NEXT_TELEMETRY_DISABLED]="1"
+
+if [[ -f "${CLOUDRUN_ENV_FILE}" ]]; then
+  echo "Loading extra env from ${CLOUDRUN_ENV_FILE}"
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line="${line//$'\r'/}"
+    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// }" ]] && continue
+    if [[ "${line}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+      k="${line%%=*}"
+      v="${line#*=}"
+      RUN_ENV["${k}"]="${v}"
+    fi
+  done <"${CLOUDRUN_ENV_FILE}"
+fi
+
+# Non-secret vars taken from the invoking shell when exported (use Secret Manager for keys).
+ALLOWLIST_EXPORT_KEYS=(
+  NODE_ENV
+  NEXT_TELEMETRY_DISABLED
+  HOSTNAME
+  GCP_LOCATION
+  LOG_LEVEL
+)
+for key in "${ALLOWLIST_EXPORT_KEYS[@]}"; do
+  eval "v=\${${key}-}"
+  if [[ -n "${v}" ]]; then
+    RUN_ENV["${key}"]="${v}"
+  fi
+done
+
+UPDATE_ENV_FLAGS=()
+ENV_STRING=""
+sep=""
+for k in "${!RUN_ENV[@]}"; do
+  ENV_STRING+="${sep}${k}=${RUN_ENV[$k]}"
+  sep=","
+done
+if [[ -n "${ENV_STRING}" ]]; then
+  UPDATE_ENV_FLAGS=(--update-env-vars="${ENV_STRING}")
+fi
+
+# --- Secrets (optional but typical for MSGF) ----------------------------------
+SECRET_FLAGS=()
+MISSING=0
+for s in "${SECRET_OPENAI}" "${SECRET_STRIPE_SECRET}" "${SECRET_STRIPE_WEBHOOK}"; do
+  if gcloud secrets describe "${s}" --project="${GCP_PROJECT_ID}" --quiet 2>/dev/null; then
+    :
+  else
+    echo "Warning: Secret '${s}' not found — deploy may fail if your app requires it." >&2
+    MISSING=1
+  fi
+done
+
+if [[ "${MISSING}" -eq 0 ]]; then
+  SECRET_FLAGS=(
+    --set-secrets="OPENAI_API_KEY=${SECRET_OPENAI}:latest,STRIPE_SECRET_KEY=${SECRET_STRIPE_SECRET}:latest,STRIPE_WEBHOOK_SECRET=${SECRET_STRIPE_WEBHOOK}:latest"
+  )
+fi
+
+# --- Deploy ------------------------------------------------------------------
+echo ""
+echo "Deploying Cloud Run service: ${CLOUD_RUN_SERVICE}"
+
+DEPLOY_CMD=(
+  gcloud run deploy "${CLOUD_RUN_SERVICE}"
+  --project="${GCP_PROJECT_ID}"
+  --region="${GCP_REGION}"
+  --platform=managed
+  --image="${IMAGE_URI}"
+  --port=8080
+  --cpu="${CLOUD_RUN_CPU}"
+  --memory="${CLOUD_RUN_MEMORY}"
+  --concurrency="${CLOUD_RUN_CONCURRENCY}"
+  --min-instances="${CLOUD_RUN_MIN_INSTANCES}"
+  --max-instances="${CLOUD_RUN_MAX_INSTANCES}"
+  --no-cpu-throttling
+  --allow-unauthenticated
+  --vpc-connector="${VPC_CONNECTOR_NAME}"
+  --vpc-egress="${CLOUD_RUN_VPC_EGRESS}"
+)
+
+if [[ "${#UPDATE_ENV_FLAGS[@]}" -gt 0 ]]; then
+  DEPLOY_CMD+=("${UPDATE_ENV_FLAGS[@]}")
+fi
+if [[ "${#SECRET_FLAGS[@]}" -gt 0 ]]; then
+  DEPLOY_CMD+=("${SECRET_FLAGS[@]}")
+fi
+
+"${DEPLOY_CMD[@]}"
+
 SERVICE_URL="$(
-  gcloud run services describe "${SERVICE_NAME}" \
-    --project="${PROJECT_ID}" \
-    --region="${REGION}" \
+  gcloud run services describe "${CLOUD_RUN_SERVICE}" \
+    --project="${GCP_PROJECT_ID}" \
+    --region="${GCP_REGION}" \
     --format='value(status.url)'
 )"
 
 echo ""
-echo "=== Health check: GET /health ==="
+echo "=== Done ==="
 echo "Service URL: ${SERVICE_URL}"
-
-# Temporary file for the JSON body (-o file) so we can print it and still capture the HTTP code (-w).
-HEALTH_BODY_FILE="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/msgf-health-$$.json")"
-cleanup_health_tmp() { rm -f "${HEALTH_BODY_FILE}" 2>/dev/null || true; }
-trap cleanup_health_tmp EXIT
-
-# curl flags:
-#   -sS  → silent but show errors if connection fails
-#   -f   → HTTP 4xx/5xx makes curl exit non‑zero (so the script fails visibly)
-#   -m 30→ timeout 30 seconds (cold start can be slow the first time)
-echo "Requesting ${SERVICE_URL}/health ..."
-set +e
-HTTP_CODE="$(curl -sS -o "${HEALTH_BODY_FILE}" -w '%{http_code}' -m 90 "${SERVICE_URL}/health")"
-CURL_EXIT=$?
-set -e
-
-if [[ "${CURL_EXIT}" -ne 0 ]]; then
-  echo "curl failed (exit ${CURL_EXIT}). Check network, URL, or Cloud Run logs." >&2
-  exit 1
-fi
-
-echo "HTTP status: ${HTTP_CODE}"
-cat "${HEALTH_BODY_FILE}"
 echo ""
-
-if [[ "${HTTP_CODE}" != "200" ]]; then
-  echo ""
-  echo "The Brain responded but /health did not return 200."
-  echo "Common fix: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the service"
-  echo "(Console → Cloud Run → your service → Edit & deploy → Variables & secrets)."
-  exit 1
-fi
-
-echo ""
-echo "=== Success ==="
-echo "Your MSGF service is live at: ${SERVICE_URL}"
-echo "Tip: run ./deploy.sh later for quicker rebuilds (same project/repo defaults)."
+echo "Tip: set GCP_PROJECT_ID / GCP_REGION / IMAGE_NAME at the top or export before running."
+echo "     VPC: VPC_NETWORK=${VPC_NETWORK} VPC_CONNECTOR_NAME=${VPC_CONNECTOR_NAME} VPC_CONNECTOR_RANGE=${VPC_CONNECTOR_RANGE}"
+echo "     Optional env file: ${CLOUDRUN_ENV_FILE} (KEY=VALUE lines)."
 echo ""

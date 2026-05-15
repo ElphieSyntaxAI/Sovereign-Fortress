@@ -17,3 +17,28 @@
 **/.turbo
 **/coverage
 **/.nyc_output
+
+# Tests / QA — keep IP and attack surface out of build context
+**/tests
+**/test
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.spec.ts
+**/*.spec.tsx
+**/vitest.config.*
+**/playwright.config.*
+**/cypress
+**/jest.config.*
+
+# IDE / agent scaffolding (not needed to compile MSGF)
+**/.cursor
+**/.cursorrules
+**/.agents
+
+# Large local artifacts & generated audits
+**/pre_ingestion_audit.md
+**/tsconfig.tsbuildinfo
+**/service-account.json
+**/gcp-key.json

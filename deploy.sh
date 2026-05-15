@@ -7,6 +7,7 @@
 #   REGION=europe-west1 AR_REPOSITORY=msgf-docker SERVICE_NAME=msgf-core ./deploy.sh
 #
 # Prerequisites: gcloud CLI, Docker-style Artifact Registry repo, secrets in Secret Manager,
+# Serverless VPC Access connector in REGION (see ./setup-cloud.sh),
 # IAM for your user: Cloud Build Editor/submit, Run Admin, Artifact Registry writer (or equivalent).
 
 set -euo pipefail
@@ -24,6 +25,10 @@ REGION="${REGION:-us-central1}"
 AR_REPOSITORY="${AR_REPOSITORY:-msgf}"
 IMAGE_NAME="${IMAGE_NAME:-msgf-core}"
 SERVICE_NAME="${SERVICE_NAME:-msgf-core}"
+
+# Serverless VPC Access (connector must exist in REGION — run ./setup-cloud.sh once or create manually).
+VPC_CONNECTOR="${VPC_CONNECTOR:-msgf-connector}"
+CLOUD_RUN_VPC_EGRESS="${CLOUD_RUN_VPC_EGRESS:-private-ranges-only}"
 
 # Secret Manager resource IDs (same defaults as cloudbuild.yaml)
 SECRET_OPENAI="${SECRET_OPENAI:-msgf-openai-api-key}"
@@ -47,7 +52,7 @@ gcloud builds submit "${ROOT}" \
   --config="${ROOT}/cloudbuild.msgf-image.yaml" \
   --substitutions="_REGION=${REGION},_AR_REPOSITORY=${AR_REPOSITORY},_IMAGE_NAME=${IMAGE_NAME},_IMAGE_TAG=${IMAGE_TAG},_GIT_REVISION=${GIT_REVISION}"
 
-echo "==> Cloud Run deploy: ${SERVICE_NAME} (concurrency=80, secrets from Secret Manager)"
+echo "==> Cloud Run deploy: ${SERVICE_NAME} (concurrency=80, secrets from Secret Manager, VPC=${VPC_CONNECTOR})"
 gcloud run deploy "${SERVICE_NAME}" \
   --project="${PROJECT_ID}" \
   --region="${REGION}" \
@@ -60,6 +65,8 @@ gcloud run deploy "${SERVICE_NAME}" \
   --min-instances="${CLOUD_RUN_MIN_INSTANCES}" \
   --max-instances="${CLOUD_RUN_MAX_INSTANCES}" \
   --no-cpu-throttling \
+  --vpc-connector="${VPC_CONNECTOR}" \
+  --vpc-egress="${CLOUD_RUN_VPC_EGRESS}" \
   --set-secrets="OPENAI_API_KEY=${SECRET_OPENAI}:latest,STRIPE_SECRET_KEY=${SECRET_STRIPE_SECRET}:latest,STRIPE_WEBHOOK_SECRET=${SECRET_STRIPE_WEBHOOK}:latest"
 
 echo "==> Done. Service URL:"

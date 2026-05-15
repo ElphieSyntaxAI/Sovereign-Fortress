@@ -23,7 +23,7 @@ steps:
     args:
       - build
       - -f
-      - packages/msgf/Dockerfile
+      - Dockerfile
       - -t
       - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:${_IMAGE_TAG}
       - -t
@@ -31,7 +31,7 @@ steps:
       - --build-arg
       - GIT_REVISION=${_GIT_REVISION}
       - --build-arg
-      - MSGF_IMAGE_VERSION=${_IMAGE_TAG}
+      - APP_IMAGE_VERSION=${_IMAGE_TAG}
       - .
 
 images:

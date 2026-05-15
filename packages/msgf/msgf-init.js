@@ -45,6 +45,15 @@ module.exports = {
 };
 
 if (require.main === module) {
+  if (
+    process.env.MSGF_DOCKER_BUILD_SKIP_SA === "1" ||
+    process.env.MSGF_DOCKER_BUILD_SKIP_SA === "true"
+  ) {
+    console.log(
+      "MSGF init: skipping service-account.json check (MSGF_DOCKER_BUILD_SKIP_SA). Inject GCP credentials at container runtime."
+    );
+    process.exit(0);
+  }
   try {
     assertServiceAccountPresent();
     console.log(

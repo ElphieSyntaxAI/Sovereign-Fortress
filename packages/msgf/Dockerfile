@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1
+# Legacy path — prefer the **repository root** `Dockerfile` for Cloud Build and local builds.
+#
 # MSGF Core — Next.js standalone image for Google Cloud Run
 #
 # Build from the monorepo root (required for npm workspaces + @elphie-syntax/core):

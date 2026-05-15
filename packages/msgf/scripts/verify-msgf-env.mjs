@@ -45,9 +45,10 @@ const REQUIRED_ENV = [
     hint: "Required for admin scripts and LOM DB assertions",
   },
   {
-    keys: ["REDIS_URL"],
+    keys: ["REDIS_HOST", "REDIS_URL"],
     label: "Redis (V3.2 hot layer)",
-    hint: "e.g. redis://127.0.0.1:6379 or Upstash URL",
+    hint:
+      "REDIS_HOST (+ optional REDIS_PORT, REDIS_PASSWORD) for Memorystore/Docker DNS; or REDIS_URL e.g. redis://127.0.0.1:6379 / Upstash / rediss://",
   },
   {
     keys: ["STRIPE_SECRET_KEY"],

@@ -8,26 +8,34 @@
 # -----------------------------------------------------------------------------
 # Prerequisites
 # -----------------------------------------------------------------------------
-# 1) APIs: Cloud Build, Cloud Run, Artifact Registry, Secret Manager
+# 1) APIs: Cloud Build, Cloud Run, Artifact Registry, Secret Manager, Serverless VPC Access, Compute
 #
 # 2) Artifact Registry (Docker), e.g.:
 #    gcloud artifacts repositories create ${_AR_REPOSITORY} \
 #      --repository-format=docker --location=${_REGION} --project=${PROJECT_ID}
 #
-# 3) Secrets (create once; names must match _SECRET_* substitutions or change them):
+# 3) Serverless VPC Access connector (same region as Cloud Run), e.g.:
+#      ./setup-cloud.sh   # creates msgf-connector on network default (10.8.0.0/28) when missing
+#    Or manually:
+#      gcloud compute networks vpc-access connectors create ${_VPC_CONNECTOR} \
+#        --project=${PROJECT_ID} --region=${_REGION} --network=${_VPC_NETWORK} --range=${_VPC_CONNECTOR_RANGE}
+#
+# 4) Secrets (create once; names must match _SECRET_* substitutions or change them):
 #    printf '%s' "sk-..." | gcloud secrets create msgf-openai-api-key --data-file=-
 #    printf '%s' "sk_live_..." | gcloud secrets create msgf-stripe-secret-key --data-file=-
 #    printf '%s' "whsec_..." | gcloud secrets create msgf-stripe-webhook-secret --data-file=-
 #
-# 4) Cloud Build service account (default: PROJECT_NUMBER@cloudbuild.gserviceaccount.com)
+# 5) Cloud Build service account (default: PROJECT_NUMBER@cloudbuild.gserviceaccount.com)
 #    needs at least:
 #    - roles/artifactregistry.writer (push images)
 #    - roles/run.admin (deploy Cloud Run)
 #    - roles/iam.serviceAccountUser on the Cloud Run *runtime* service account
 #    - roles/secretmanager.secretAccessor on EACH secret referenced in --set-secrets
 #      (required so deploy can attach secrets to the service)
+#    - roles/vpcaccess.user on the Cloud Run runtime service account
+#      (default: PROJECT_NUMBER-compute@developer.gserviceaccount.com when using --vpc-connector)
 #
-# 5) Non-secret config (Supabase URL, etc.): add flags to the deploy step, e.g.
+# 6) Non-secret config (Supabase URL, etc.): add flags to the deploy step, e.g.
 #    --set-env-vars=FOO=bar  (never put API keys there)
 #    MSGF also supports ANTHROPIC_API_KEY for narrative flows — add another Secret + entry
 #    to --set-secrets if you use Anthropic in production.
@@ -49,6 +57,10 @@ substitutions:
   _SECRET_OPENAI: msgf-openai-api-key
   _SECRET_STRIPE_SECRET: msgf-stripe-secret-key
   _SECRET_STRIPE_WEBHOOK: msgf-stripe-webhook-secret
+  _VPC_NETWORK: default
+  _VPC_CONNECTOR: msgf-connector
+  _VPC_CONNECTOR_RANGE: 10.8.0.0/28
+  _VPC_EGRESS: private-ranges-only
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -61,7 +73,7 @@ steps:
     args:
       - build
       - -f
-      - packages/msgf/Dockerfile
+      - Dockerfile
       - -t
       - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_IMAGE_NAME}:${SHORT_SHA}"
       - -t
@@ -69,7 +81,7 @@ steps:
       - --build-arg
       - GIT_REVISION=${COMMIT_SHA}
       - --build-arg
-      - MSGF_IMAGE_VERSION=${SHORT_SHA}
+      - APP_IMAGE_VERSION=${SHORT_SHA}
       - .
 
   - id: deploy-cloud-run
@@ -92,6 +104,9 @@ steps:
       - --max-instances=${_CLOUD_RUN_MAX_INSTANCES}
       # Keeps CPU available for concurrent in-flight work (billed accordingly).
       - --no-cpu-throttling
+      # Private DB / Redis: RFC1918 egress via Serverless VPC Access (create connector before deploy).
+      - --vpc-connector=${_VPC_CONNECTOR}
+      - --vpc-egress=${_VPC_EGRESS}
       # Runtime secrets only — values never appear in this file or in plain env vars in the console.
       - >-
         --set-secrets=OPENAI_API_KEY=${_SECRET_OPENAI}:latest,STRIPE_SECRET_KEY=${_SECRET_STRIPE_SECRET}:latest,STRIPE_WEBHOOK_SECRET=${_SECRET_STRIPE_WEBHOOK}:latest
