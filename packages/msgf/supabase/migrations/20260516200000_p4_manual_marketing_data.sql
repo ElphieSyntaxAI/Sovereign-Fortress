@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+-- =============================================================================
 -- Phase 2 bridge: manual KDP / social metrics (author-entered) for correlation with HAL writing effort.
 
 CREATE TABLE IF NOT EXISTS public.p4_manual_marketing_data (

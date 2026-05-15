@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
+/**
  * Sentinel UUID for narrative logs when the upstream system only has a non-UUID label
  * (e.g. Stripe metadata missing `tenant_id`). Keep in sync with migration
  * `20260510120000_align_p4_narrative_logs_tenant_uuid.sql`.

@@ -1,71 +1,52 @@
-import { createClient, type RedisClientType } from "redis";
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
 import type { StateBeatRow } from "@/lib/P4";
+import { msgfRedisKey, redisGet, redisSet } from "@/lib/redis";
 
 const ACTIVE_SLICE_TTL_SECONDS = Number(process.env.MSGF_ACTIVE_SLICE_TTL_SEC || 180);
 
 type ActiveSlicePayload = {
-  authorId: string;
+  entityId: string;
   beatsContext: string;
   previousRetryCount: number;
   previousBeats: StateBeatRow[];
   cachedAt: string;
 };
 
-let redisClient: RedisClientType | null = null;
-let redisConnectPromise: Promise<void> | null = null;
-
-function getRedisKey(authorId: string): string {
-  return `msgf:p4:active-slice:${authorId}`;
+function activeSliceKey(entityId: string): string {
+  return msgfRedisKey("p4", "active-slice", entityId);
 }
 
-async function getRedis(): Promise<RedisClientType | null> {
-  const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) return null;
-
-  if (!redisClient) {
-    redisClient = createClient({ url: redisUrl });
-    redisClient.on("error", () => {
-      // Fail open: hot layer is an accelerator, not a hard dependency.
-    });
-  }
-
-  if (!redisClient.isOpen) {
-    if (!redisConnectPromise) {
-      redisConnectPromise = redisClient
-        .connect()
-        .then(() => undefined)
-        .finally(() => {
-          redisConnectPromise = null;
-        });
-    }
-    await redisConnectPromise;
-  }
-
-  return redisClient;
-}
-
-export async function getActiveSlice(authorId: string): Promise<ActiveSlicePayload | null> {
-  const redis = await getRedis();
-  if (!redis) return null;
-
-  const raw = await redis.get(getRedisKey(authorId));
+export async function getActiveSlice(entityId: string): Promise<ActiveSlicePayload | null> {
+  const raw = await redisGet(activeSliceKey(entityId));
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as ActiveSlicePayload;
+    const parsed = JSON.parse(raw) as ActiveSlicePayload & { authorId?: string };
+    if (!parsed.entityId && parsed.authorId) {
+      return { ...parsed, entityId: parsed.authorId };
+    }
+    return parsed;
   } catch {
     return null;
   }
 }
 
 export async function setActiveSlice(params: {
-  authorId: string;
+  entityId: string;
   previousBeats: StateBeatRow[];
   previousRetryCount: number;
 }): Promise<void> {
-  const redis = await getRedis();
-  if (!redis) return;
-
   const beatsContext = params.previousBeats.length
     ? params.previousBeats
         .map((b) => `[${b.sequence_index}] ${b.beat_text}`)
@@ -73,17 +54,14 @@ export async function setActiveSlice(params: {
     : "(no prior beats)";
 
   const payload: ActiveSlicePayload = {
-    authorId: params.authorId,
+    entityId: params.entityId,
     beatsContext,
     previousRetryCount: params.previousRetryCount,
     previousBeats: params.previousBeats,
     cachedAt: new Date().toISOString(),
   };
 
-  await redis.set(getRedisKey(params.authorId), JSON.stringify(payload), {
-    EX: ACTIVE_SLICE_TTL_SECONDS,
-  });
+  await redisSet(activeSliceKey(params.entityId), JSON.stringify(payload), ACTIVE_SLICE_TTL_SECONDS);
 }
 
 export const HOT_LAYER_ACTIVE_SLICE_TTL_SECONDS = ACTIVE_SLICE_TTL_SECONDS;
-

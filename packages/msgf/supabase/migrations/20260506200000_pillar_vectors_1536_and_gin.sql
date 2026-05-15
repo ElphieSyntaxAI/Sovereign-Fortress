@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+-- =============================================================================
 -- Cold layer: pillar_vectors with OpenAI/Gemini text-embedding-3 / ada-class 1536 dims (not 768).
 
 create extension if not exists vector;

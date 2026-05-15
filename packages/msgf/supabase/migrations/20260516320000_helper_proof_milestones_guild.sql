@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+-- =============================================================================
 -- Helper proof: three milestone artifacts per manuscript (project) + author "verified human flow" + guild tier counter.
 
 DO $$ BEGIN

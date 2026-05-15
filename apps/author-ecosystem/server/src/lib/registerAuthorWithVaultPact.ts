@@ -5,6 +5,11 @@ import { join } from "node:path";
 import bcrypt from "bcrypt";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { bootstrapTenantBrain, MSGF } from "msgf/onboarding";
+
+const AUTHOR_MSGF_TENANT_ID =
+  process.env.MSGF_AUTHOR_TENANT_ID?.trim() || "author_ecosystem";
+
 import { getMonorepoRootDir, loadMonorepoRootEnv } from "./database/loadRootEnv.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
 
@@ -50,6 +55,9 @@ async function readVaultPactMarkdown(): Promise<string> {
  * Registers an author with Supabase Auth, then runs **one Postgres transaction** (RPC) for:
  * `public.profiles`, `public.legal_attestations` (exact Vault phrase + SHA-256 of pact markdown),
  * and `public.msgf_legacy_users`.
+ *
+ * On success, calls {@link MSGF.createPledgeBeat} and {@link MSGF.ensureAuthorPulseProfile} so
+ * PulseEngine pledge checks and entitlement middleware allow the first Pulse.
  *
  * **Auth is not inside the SQL transaction.** If the RPC fails (including attestation / CHECK
  * failures), the new auth user is **deleted** so unsigned rows never remain.
@@ -137,6 +145,20 @@ export async function registerAuthorWithVaultPact(
     if (rpcData && typeof rpcData === "object" && (rpcData as { ok?: boolean }).ok !== true) {
       throw new Error("register_author_with_vault_pact did not return ok");
     }
+
+    await MSGF.ensureMsgfPulseProfile({
+      entityId: userId,
+      tierId: Number(tierId),
+      username,
+      preferredTheme: "Pleasure",
+    });
+
+    await MSGF.createPledgeBeat(userId, {
+      tenantId: AUTHOR_MSGF_TENANT_ID,
+      beatText: `No-AI-Training Pledge accepted with Vault Pact (${VAULT_PACT_SIGNATURE_PHRASE}).`,
+    });
+
+    await bootstrapTenantBrain(admin, AUTHOR_MSGF_TENANT_ID, userId);
   } catch (e) {
     const { error: delErr } = await admin.auth.admin.deleteUser(userId);
     if (delErr) {

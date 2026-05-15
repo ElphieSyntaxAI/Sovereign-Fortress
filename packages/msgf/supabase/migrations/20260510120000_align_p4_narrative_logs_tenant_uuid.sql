@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+-- =============================================================================
 -- Align p4_narrative_logs.tenant_id from TEXT to UUID.
 -- Non-UUID labels (e.g. system-test, unknown-tenant) are mapped to a sentinel UUID before cast.
 -- Sentinel: 00000000-0000-4000-8000-000000000001 (see src/lib/tenant-ids.ts)

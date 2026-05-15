@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
+import { registerEditorStateProvider } from "../lib/editorSnapshotRegistry";
+import { pushKeystrokeEvent } from "../lib/keystrokeRingBuffer";
+
 const HALTracker = () => {
   // --- 1. STATE & REFS ---
   const [text, setText] = useState("");
@@ -13,6 +16,12 @@ const HALTracker = () => {
   useEffect(() => {
     lastKeyTime.current = performance.now();
   }, []);
+
+  useEffect(() => {
+    return registerEditorStateProvider(() => ({
+      editor_text_excerpt: text.slice(0, 12000),
+    }));
+  }, [text]);
 
   // --- 3. EVENT HANDLERS ---
 
@@ -37,6 +46,7 @@ const HALTracker = () => {
     };
 
     setKeystrokes((prev) => [...prev, newEntry]);
+    pushKeystrokeEvent(newEntry);
     lastKeyTime.current = now;
   };
 
@@ -80,6 +90,7 @@ const HALTracker = () => {
     };
 
     setKeystrokes((prev) => [...prev, pasteEntry]);
+    pushKeystrokeEvent(pasteEntry);
   };
 
   // --- 4. API ACTIONS ---
@@ -111,6 +122,10 @@ const HALTracker = () => {
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>HAL Authorship Tracker</h2>
+      <p style={styles.hint}>
+        Live pillar stoplights and logic-drift charts update in the Planning command center above. Keystrokes you
+        type here feed the same glass-box diagnostic used by Report issue.
+      </p>
 
       <textarea
         rows="10"
@@ -179,6 +194,12 @@ const styles = {
     fontFamily: "'Inter', sans-serif",
   },
   title: { fontSize: "1.2rem", color: "#2d3436", marginBottom: "20px" },
+  hint: {
+    fontSize: "13px",
+    color: "#636e72",
+    marginBottom: "16px",
+    lineHeight: 1.5,
+  },
   textArea: {
     width: "100%",
     padding: "15px",

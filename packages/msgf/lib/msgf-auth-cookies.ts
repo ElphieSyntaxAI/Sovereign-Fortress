@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
+/**
  * Shared cookie domain for Supabase auth across elphiesyntax.com subdomains (and the author BFF).
  * Loaded from the monorepo root `.env` / `.env.local` (see `packages/msgf/next.config.ts` and BFF
  * `loadMonorepoRootEnv`): `MSGF_AUTH_COOKIE_DOMAIN`, `MSGF_AUTH_COOKIE_SECURE`.

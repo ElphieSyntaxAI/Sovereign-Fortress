@@ -1,8 +1,30 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+import { fromPillarVectors } from "@/lib/msgf-pillar-table";
+import { isDevTestTenant } from "@/lib/msgf-tenant-governance";
+import {
+  applyPillarVectorsTenantFilter,
+  filterPillarRowsByTenant,
+  resolveTenantIdForQuery,
+} from "@/lib/services/tenant-query-scope";
+
 export interface LogicLineageRequest {
   queryText: string;
+  /** Required — Vault lineage scan is limited to this tenant silo. */
+  tenantId: string;
   /**
    * Optional precomputed embedding for pgvector search.
    * If omitted, this module attempts to create one via text-embedding-004.
@@ -73,14 +95,14 @@ async function embedQuery(text: string): Promise<number[] | null> {
 async function vectorScan(
   supabase: SupabaseClient,
   embedding: number[],
-  matchCount: number
+  matchCount: number,
+  tenantId: string
 ): Promise<PillarVectorRow[]> {
-  // Requires a SQL RPC function in Supabase, e.g.:
-  // match_pillar_vectors(query_embedding vector, match_count int, filter jsonb)
   const { data, error } = await supabase.rpc("match_pillar_vectors", {
     query_embedding: embedding,
     match_count: matchCount,
     filter: {
+      tenant_id: tenantId,
       pillar: "P6",
       index_type: "genealogical_bug_index",
       instance: "1.1.1",
@@ -89,16 +111,16 @@ async function vectorScan(
   });
 
   if (error) throw error;
-  return (data ?? []) as PillarVectorRow[];
+  return filterPillarRowsByTenant((data ?? []) as PillarVectorRow[], tenantId);
 }
 
 async function lexicalFallbackScan(
   supabase: SupabaseClient,
   queryText: string,
-  matchCount: number
+  matchCount: number,
+  tenantId: string
 ): Promise<PillarVectorRow[]> {
-  const { data, error } = await supabase
-    .from("pillar_vectors")
+  let query = fromPillarVectors(supabase, tenantId)
     .select("content, metadata")
     .eq("metadata->>pillar", "P6")
     .eq("metadata->>index_type", "genealogical_bug_index")
@@ -106,9 +128,13 @@ async function lexicalFallbackScan(
     .eq("metadata->>ledger", "vault")
     .limit(Math.max(20, matchCount * 3));
 
+  query = applyPillarVectorsTenantFilter(query, tenantId);
+
+  const { data, error } = await query;
+
   if (error) throw error;
 
-  return ((data ?? []) as PillarVectorRow[])
+  return filterPillarRowsByTenant((data ?? []) as PillarVectorRow[], tenantId)
     .map((row) => ({
       ...row,
       similarity: lexicalScore(queryText, row.content || ""),
@@ -125,6 +151,7 @@ export async function getLogicLineage(
   supabase: SupabaseClient,
   request: LogicLineageRequest
 ): Promise<LogicLineageResult> {
+  const tenantId = resolveTenantIdForQuery(request.tenantId);
   const queryText = request.queryText?.trim() ?? "";
   const matchCount = request.matchCount ?? 5;
   if (!queryText) {
@@ -138,15 +165,15 @@ export async function getLogicLineage(
   const embedding = request.queryEmbedding ?? (await embedQuery(queryText));
   let rows: PillarVectorRow[] = [];
 
-  if (embedding?.length) {
+  if (embedding?.length && !isDevTestTenant(tenantId)) {
     try {
-      rows = await vectorScan(supabase, embedding, matchCount);
+      rows = await vectorScan(supabase, embedding, matchCount, tenantId);
     } catch {
       // Fallback to lexical if pgvector RPC is not present yet.
-      rows = await lexicalFallbackScan(supabase, queryText, matchCount);
+      rows = await lexicalFallbackScan(supabase, queryText, matchCount, tenantId);
     }
   } else {
-    rows = await lexicalFallbackScan(supabase, queryText, matchCount);
+    rows = await lexicalFallbackScan(supabase, queryText, matchCount, tenantId);
   }
 
   const candidates = rows.map(mapRowToScan);

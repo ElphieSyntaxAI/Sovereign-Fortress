@@ -6,7 +6,9 @@
 
 **Product SSOT (vision, lexicon, phased roadmap, tiers, MSGF states):** [`docs/AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) — update that file when marketing or scope-of-record changes; keep this tracker aligned when implementation status shifts.
 
-**Last reviewed:** 2026-05-13
+**MSGF platform SSOT (1.0 release, V3 master spec, three production domains):** [`docs/MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md)
+
+**Last reviewed:** 2026-05-15
 
 ---
 
@@ -90,6 +92,8 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 
 | Date | Change |
 |------|--------|
+| 2026-05-15 | **MSGF V3.2-ULTRA:** `docs/references/MSGF_v3_2_masterdoc.pdf` + roadmap §2.0–2.6 (hot/cold, Vault/Hall, SWEEP→PERSIST acceptance). |
+| 2026-05-15 | **MSGF 1.0 SSOT:** Added `docs/MSGF_V1_ROADMAP.md` (V3 master spec → 1.0 plan) and `docs/MONOREPO_PRODUCTS.md` (three domains: elphiesyntax.com, elphiesgatedai.elphiesyntax.com, syntaxeducation.elphiesyntax.com). |
 | 2026-05-13 | **Author Ecosystem SSOT:** Added `docs/AUTHOR_ECOSYSTEM_ROADMAP.md` (vision, lexicon, phases 1–3, five tiers + publisher key levels, MSGF `STATE_*` targets); linked from this tracker and Vision summary. |
 | 2026-05-13 | **Prancer pillars (MSGF):** `.github/workflows/security-prancer-pillars.yml` runs static migration + embedded-key scan on PR/push; `npm run security:prancer-pillars` at repo root; optional `workflow_dispatch` + `run_db_verify` + `SUPABASE_DATABASE_URL` for `verify:supabase-schema`. |
 | 2026-05-13 | **BFF security:** CORS whitelist + credentials; `author_bff_jwt` → **httpOnly** cookie via `/api/auth` bridge; `/api/rag` + `/api/lore-git` proxied to legacy **internal** loopback only. **Data plane purge:** removed local `schema.sql` / `dbConfig.js` / `initDb`; legacy stack uses `DATABASE_URL` + `msgf_legacy_*` + **`msgf_rules`** (RAG allowlists); `supabase db push` applied `20260516900000_*`. Removed duplicate legacy `halRoutes` (HAL lives on TS BFF). |

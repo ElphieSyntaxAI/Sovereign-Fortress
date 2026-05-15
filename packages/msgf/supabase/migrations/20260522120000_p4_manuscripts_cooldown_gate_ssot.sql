@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+-- =============================================================================
 -- Cooldown gate track for manuscripts (SSOT: docs/AUTHOR_ECOSYSTEM_ROADMAP.md, alias docs/AUTHOR_ROADMAP.md).
 -- NOTE: `p4_manuscripts.revision_status` already exists (p4_revision_status: DRAFTING, LOCKED, COOLDOWN_LOCKED, …).
 -- This migration adds a *parallel* gate: `cooldown_revision_status` (ACTIVE | LOCKED | AUDIT_COMPLETE),

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { CoolDownLock, type CoolDownManuscriptState } from "../components/CoolDownLock";
 import { ManuscriptSelector } from "../components/ManuscriptSelector";
 import { PlanningCommandCenter } from "../components/PlanningCommandCenter";
+import { AuthorSentinelBugButton } from "../components/AuthorSentinelBugButton";
 import HALTracker from "../components/HALTracker.jsx";
 import { NarrativeProvider, useNarrative } from "../context/NarrativeContext";
 import { bffCredentials } from "../lib/bffFetch";
@@ -106,6 +107,8 @@ function DashboardInner() {
           <p className="text-sm text-zinc-500">Select a manuscript above to load the Planning Command Center.</p>
         )}
       </div>
+
+      <AuthorSentinelBugButton />
     </div>
   );
 }

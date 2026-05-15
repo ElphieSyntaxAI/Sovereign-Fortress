@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
+/**
  * Publisher share links: hashed tokens, verify flow, author notifications via `p4_author_signal`.
  *
  * Uses `DashboardOrchestratorService` from the author-ecosystem server tree (`experimental.externalDir` + webpack `.js`→`.ts` alias).

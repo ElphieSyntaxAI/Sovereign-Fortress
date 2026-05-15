@@ -15,6 +15,7 @@
     "./styles.css": "./src/styles.css"
   },
   "peerDependencies": {
+    "msgf": "*",
     "@supabase/supabase-js": "^2.49.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -28,6 +29,7 @@
     "tailwindcss": "^4.1.4"
   },
   "devDependencies": {
+    "msgf": "file:../msgf",
     "@supabase/supabase-js": "^2.49.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

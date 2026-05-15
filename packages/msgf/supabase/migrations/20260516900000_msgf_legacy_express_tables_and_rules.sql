@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+-- =============================================================================
 -- Legacy Express stack (port 3003): RAG + HUD + local-auth tables live on Supabase Postgres.
 -- Rules for RAG validation / HUD limits are canonical in `public.msgf_rules` (namespace `rag`).
 -- Connect the legacy app with DATABASE_URL (direct Postgres); Docker-era DB_* + schema.sql were removed.

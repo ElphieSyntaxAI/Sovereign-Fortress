@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@elphie-syntax/ui": "file:../../../packages/ui",
+    "msgf": "file:../../../packages/msgf",
     "@hookform/resolvers": "^3.9.1",
     "@supabase/supabase-js": "^2.49.1",
     "axios": "^1.7.9",

@@ -1,5 +1,18 @@
 export { PillarBadge, type PillarBadgeProps } from "./components/PillarBadge";
 export {
+  PillarStatusGrid,
+  type PillarStatusGridProps,
+} from "./components/PillarStatusGrid";
+export {
+  formatPredictiveTooltip,
+  mapPillarStatusToStoplightTone,
+  PILLAR_ORDER,
+  type PillarHealthReport,
+  type PillarHealthEntry,
+  type PillarStoplightStatus,
+  type LogicDriftTrendReport,
+} from "./lib/pillarHealth";
+export {
   ConsensusView,
   type ConsensusModelPanel,
   type ConsensusViewProps,
@@ -12,6 +25,17 @@ export {
 export { cn } from "./lib/cn";
 export { pillarFromLineageLabel, type PillarId } from "./lib/lineage";
 export { BugReporter, type BugReporterProps } from "./components/BugReporter";
+export {
+  MsgfSentinel,
+  DEFAULT_MSGF_SENTINEL_TENANT,
+  type MsgfSentinelProps,
+  type MsgfSentinelTenantConfig,
+  type MsgfSentinelReportSuccess,
+  type DiagnosticSnapshotPayload,
+  SentinelBugButton,
+  type SentinelBugButtonProps,
+  type SentinelReportSuccess,
+} from "./components/MsgfSentinel";
 export {
   UniversalCalibrationUI,
   type UniversalCalibrationRole,

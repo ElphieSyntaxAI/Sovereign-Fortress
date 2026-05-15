@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+-- =============================================================================
 -- Rolling 5-session linguistic baseline per tenant (for HAL drift / match factor).
 -- Expects stylometric_snapshot.linguistic_profile.* populated by author-ecosystem HAL ingest.
 -- Bootstrap definition (last five rows, no recalibration window). After

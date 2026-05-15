@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+-- =============================================================================
 -- Unified Author Ecosystem + Syntax-Educates (schools) scaffold
 -- Hybrid multi-tenant: authors in public (RLS + tenant_id UUID); schools in per-school schemas.
 -- Outline / World Bible docs were not in-repo; layer names follow the 5-layer RAG stack you described.

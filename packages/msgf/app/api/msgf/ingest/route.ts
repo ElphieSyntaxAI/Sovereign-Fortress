@@ -1,12 +1,27 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile } from "fs/promises";
 import path from "path";
 
+import { determineBranch, determineCategory } from "@/lib/services/IngestService";
+import { sweepAndIngest } from "@/lib/msgf-ingest";
+import { deriveProjectOrigin } from "@/lib/services/tenant-ingest-metadata";
 import {
-  determineBranch,
-  determineCategory,
-  sweepAndIngest,
-} from "@/lib/msgf-ingest";
+  bootstrapTenantBrain,
+  computeBrainReadiness,
+} from "@/lib/services/brain-readiness";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { getVertexGenerativeModelForId } from "@/packages/core/src/msgf-vertex";
 import {
   isTenantApiKeyConfigured,
@@ -20,6 +35,8 @@ type IngestFile = { path: string; content: string };
 
 type IngestBody = {
   tenant_id?: string;
+  /** Repo / monorepo tag for dashboard log filters (e.g. `apps/author-ecosystem`). */
+  project_origin?: string;
   files?: IngestFile[];
 };
 
@@ -84,14 +101,7 @@ ${joined}
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as IngestBody;
-    const files = body?.files ?? [];
-
-    if (!Array.isArray(files) || files.length === 0) {
-      return NextResponse.json(
-        { error: "Expected files: Array<{ path, content }>." },
-        { status: 400 }
-      );
-    }
+    const files = Array.isArray(body?.files) ? body.files : [];
 
     const normalizedPaths: string[] = [];
     for (const f of files) {
@@ -103,6 +113,18 @@ export async function POST(req: NextRequest) {
         );
       }
       normalizedPaths.push(np);
+    }
+
+    const tenantId =
+      body.tenant_id?.trim() ||
+      process.env.MSGF_INGEST_DEFAULT_AUTHOR_ID ||
+      "00000000-0000-4000-8000-000000000001";
+
+    if (!body.tenant_id?.trim() && isTenantApiKeyConfigured()) {
+      return NextResponse.json(
+        { error: "tenant_id is required when MSGF_TENANT_API_KEYS is set." },
+        { status: 400 }
+      );
     }
 
     if (isTenantApiKeyConfigured()) {
@@ -131,8 +153,9 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
-      const silo = assertPathsAllowedForTenant(resolved, normalizedPaths);
-      if (!silo.ok) {
+      if (normalizedPaths.length > 0) {
+        const silo = assertPathsAllowedForTenant(resolved, normalizedPaths);
+        if (!silo.ok) {
         await logIdentityViolation({
           source: "ingest_api",
           reason: "path_silo_violation",
@@ -146,39 +169,92 @@ export async function POST(req: NextRequest) {
           },
           { status: 403 }
         );
+        }
       }
     }
 
+    const admin = createAdminClient();
+    const pillarBootstrap = await bootstrapTenantBrain(admin, tenantId);
+
     const lineageMap = buildLineageMap(files);
+    let ingestAudit = "- [SKIP] No files provided — pillar bootstrap only.\n";
+    let ingestedCount = 0;
+    let skippedBaseline = true;
 
-    // SWEEP: map into P6 Cold Layer.
-    const ingestAudit = await sweepAndIngest(files);
+    const ingestFiles: IngestFile[] = normalizedPaths.map((path, i) => ({
+      path,
+      content: files[i]?.content ?? "",
+    }));
+    const projectOrigin = deriveProjectOrigin(ingestFiles, body.project_origin);
 
-    // AI audit synthesis
-    const aiAudit = await summarizeForAudit(req, files, lineageMap);
+    if (normalizedPaths.length > 0) {
+      const sweep = await sweepAndIngest({
+        files: ingestFiles,
+        tenantId,
+        supabase: admin,
+        projectOrigin,
+      });
+      ingestAudit = sweep.auditLog;
+      ingestedCount = sweep.ingested;
+      skippedBaseline = sweep.skippedBaseline;
+    }
 
-    const finalAuditDoc = [
-      "# pre_ingestion_audit.md",
-      "",
-      "## Lineage Map",
-      "```json",
-      JSON.stringify(lineageMap, null, 2),
-      "```",
-      "",
-      "## SWEEP Ingestion Log",
-      ingestAudit,
-      "",
-      "## Gemini 2.5 Flash Audit Summary",
-      aiAudit || "_No summary generated._",
-      "",
-    ].join("\n");
+    const readiness = await computeBrainReadiness(admin, tenantId);
 
-    await writeFile(path.join(process.cwd(), "pre_ingestion_audit.md"), finalAuditDoc, "utf8");
+    if (normalizedPaths.length > 0) {
+      const aiAudit = await summarizeForAudit(req, files, lineageMap);
+      const finalAuditDoc = [
+        "# pre_ingestion_audit.md",
+        "",
+        "## Lineage Map",
+        "```json",
+        JSON.stringify(lineageMap, null, 2),
+        "```",
+        "",
+        "## SWEEP Ingestion Log",
+        ingestAudit,
+        "",
+        "## Gemini 2.5 Flash Audit Summary",
+        aiAudit || "_No summary generated._",
+        "",
+        "## Brain Readiness",
+        JSON.stringify(
+          {
+            readiness_score: readiness.readiness_score,
+            brain_fully_initialized: readiness.brain_fully_initialized,
+          },
+          null,
+          2
+        ),
+        "",
+      ].join("\n");
+
+      await writeFile(path.join(process.cwd(), "pre_ingestion_audit.md"), finalAuditDoc, "utf8");
+    }
+
+    const message =
+      normalizedPaths.length > 0
+        ? "SWEEP complete. pre_ingestion_audit.md saved to project root."
+        : "Pillar bootstrap complete (no files ingested).";
 
     return NextResponse.json({
       ok: true,
-      message: "SWEEP complete. pre_ingestion_audit.md saved to project root.",
+      message,
+      tenant_id: tenantId,
+      project_origin: projectOrigin,
       lineage_map: lineageMap,
+      readiness_score: readiness.readiness_score,
+      brain_fully_initialized: readiness.brain_fully_initialized,
+      is_pillar_baseline_set: readiness.is_pillar_baseline_set,
+      pillars_present: readiness.pillars_present,
+      pillars_required: readiness.pillars_required,
+      missing_pillars: readiness.missing_pillars,
+      baseline_training_required: readiness.baseline_training_required,
+      baseline_training_remaining: readiness.baseline_training_remaining,
+      pledge_signed: readiness.pledge_signed,
+      skipped_baseline_creation: skippedBaseline,
+      ingested_count: ingestedCount,
+      pillars_created: pillarBootstrap.pillars_created,
     });
   } catch (err: any) {
     console.error("MSGF ingest route error", err);

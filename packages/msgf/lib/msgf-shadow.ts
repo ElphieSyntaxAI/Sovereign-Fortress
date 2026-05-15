@@ -1,5 +1,23 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { KeystrokeEvent } from "@/lib/P4";
+import { fromPillarVectors } from "@/lib/msgf-pillar-table";
+import { normalizeTenantId } from "@/lib/services/msgf-metadata-scope";
+import {
+  filterPillarRowsByTenant,
+  resolveTenantIdForQuery,
+} from "@/lib/services/tenant-query-scope";
 
 export type ShadowTier = "GREEN" | "YELLOW" | "RED";
 
@@ -57,16 +75,23 @@ function bestMatch(pulseText: string, rows: LedgerRow[]): LedgerRow | null {
   return best;
 }
 
+export type ShadowPreflightOptions = {
+  /** Required — Hall / Vault candidates are limited to this tenant silo. */
+  tenantId: string;
+};
+
 /**
- * Shadow Mode preflight:
- * 1) Cross-ref Vault for most relevant 1.1.1 instance
- * 2) Simultaneously check Hall of Hallucinations for rejected logic patterns
+ * Shadow Mode preflight (tenant-scoped):
+ * 1) Cross-ref Vault for relevant 1.1.1 instances (this tenant only)
+ * 2) Check Hall of Hallucinations for rejected patterns (this tenant only)
  * 3) Immediate RED tier if Hall match is strong
  */
 export async function preFlightCheck(
   supabase: SupabaseClient,
-  pulse: ShadowPulse
+  pulse: ShadowPulse,
+  options: ShadowPreflightOptions
 ): Promise<ShadowPreflightResult> {
+  const tenantId = resolveTenantIdForQuery(options.tenantId);
   const pulseText = normalize(pulse.text);
   if (!pulseText) {
     return {
@@ -79,19 +104,20 @@ export async function preFlightCheck(
   }
 
   const seed = tokenize(pulseText).slice(0, 8).join(" ");
+  const tid = normalizeTenantId(tenantId);
 
-  const vaultQuery = supabase
-    .from("pillar_vectors")
+  const vaultQuery = fromPillarVectors(supabase, tenantId)
     .select("id, content, metadata")
+    .eq("metadata->>tenant_id", tid)
     .eq("metadata->>pillar", "P6")
     .eq("metadata->>ledger", "vault")
     .eq("metadata->>instance", "1.1.1")
     .ilike("content", `%${seed}%`)
     .limit(30);
 
-  const hallQuery = supabase
-    .from("pillar_vectors")
+  const hallQuery = fromPillarVectors(supabase, tenantId)
     .select("id, content, metadata")
+    .eq("metadata->>tenant_id", tid)
     .eq("metadata->>pillar", "P6")
     .eq("metadata->>ledger", "hall")
     .ilike("content", `%${seed}%`)
@@ -103,8 +129,14 @@ export async function preFlightCheck(
   if (vaultError) throw vaultError;
   if (hallError) throw hallError;
 
-  const vaultCandidates = (vaultRows ?? []) as LedgerRow[];
-  const hallCandidates = (hallRows ?? []) as LedgerRow[];
+  const vaultCandidates = filterPillarRowsByTenant(
+    (vaultRows ?? []) as LedgerRow[],
+    tenantId
+  );
+  const hallCandidates = filterPillarRowsByTenant(
+    (hallRows ?? []) as LedgerRow[],
+    tenantId
+  );
 
   const vaultMatch = bestMatch(pulseText, vaultCandidates);
   const hallMatch = bestMatch(pulseText, hallCandidates);
@@ -114,7 +146,8 @@ export async function preFlightCheck(
     return {
       tier: "RED",
       blocked: true,
-      reason: "RED Tier violation: proposed logic matches Hall of Hallucinations.",
+      reason:
+        "RED Tier violation: proposed logic matches this tenant's Hall of Hallucinations.",
       vaultMatch,
       hallMatch,
     };
@@ -123,9 +156,8 @@ export async function preFlightCheck(
   return {
     tier: "GREEN",
     blocked: false,
-    reason: "Preflight clear: no Hall match breach detected.",
+    reason: "Preflight clear: no Hall match breach detected for this tenant.",
     vaultMatch,
     hallMatch,
   };
 }
-

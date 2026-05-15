@@ -1,3 +1,15 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getVertexGenerativeModel } from './msgf-vertex';
 
@@ -30,7 +42,9 @@ export interface KeystrokeChunk {
 
 export interface StateBeatRow {
   id: string;
+  /** DB column — human entity UUID (`entityId` in API). */
   author_id: string;
+  tenant_id?: string | null;
   beat_text: string;
   /** Which Terms & Conditions version the user agreed to when this Pulse was recorded. */
   legal_version: string;
@@ -208,20 +222,29 @@ Reply with only valid JSON (no markdown):
  * Use a server-side Supabase client (user session or service role, per your RLS).
  */
 export class StateLedgerP4 {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly tenantId?: string
+  ) {}
 
   async fetchPreviousBeats(
-    authorId: string,
+    entityId: string,
     limit = 32
   ): Promise<StateBeatRow[]> {
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from('state_beats')
       .select(
-        'id, author_id, beat_text, legal_version, sequence_index, label, metadata, created_at'
+        'id, author_id, tenant_id, beat_text, legal_version, sequence_index, label, metadata, created_at'
       )
-      .eq('author_id', authorId)
+      .eq('author_id', entityId.trim())
       .order('sequence_index', { ascending: true })
       .limit(limit);
+
+    if (this.tenantId) {
+      query = query.eq('tenant_id', this.tenantId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return (data ?? []) as StateBeatRow[];
@@ -231,12 +254,12 @@ export class StateLedgerP4 {
    * Chunk the stream, then verify each chunk against beats already in the ledger.
    */
   async verifyKeystrokeStream(
-    authorId: string,
+    entityId: string,
     events: KeystrokeEvent[],
     chunkOptions?: ChunkOptions
   ): Promise<{ chunks: KeystrokeChunk[]; results: FlowVerifyResult[] }> {
     const chunks = chunkKeystrokeStream(events, chunkOptions);
-    const beats = await this.fetchPreviousBeats(authorId);
+    const beats = await this.fetchPreviousBeats(entityId);
     const results: FlowVerifyResult[] = [];
 
     for (const chunk of chunks) {
@@ -250,7 +273,7 @@ export class StateLedgerP4 {
    * Persist a new beat after you accept a chunk (e.g. summary from the model or editor milestone).
    */
   async appendBeat(
-    authorId: string,
+    entityId: string,
     beatText: string,
     options: {
       label?: string;
@@ -259,30 +282,41 @@ export class StateLedgerP4 {
       legalVersion: string;
     }
   ): Promise<StateBeatRow> {
-    const { data: maxRow, error: maxErr } = await this.supabase
+    let maxQuery = this.supabase
       .from('state_beats')
       .select('sequence_index')
-      .eq('author_id', authorId)
+      .eq('author_id', entityId.trim())
       .order('sequence_index', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (this.tenantId) {
+      maxQuery = maxQuery.eq('tenant_id', this.tenantId);
+    }
+
+    const { data: maxRow, error: maxErr } = await maxQuery.maybeSingle();
 
     if (maxErr) throw maxErr;
 
     const nextSeq = (maxRow?.sequence_index ?? -1) + 1;
 
+    const metadata = {
+      ...(options?.metadata ?? {}),
+      ...(this.tenantId ? { tenant_id: this.tenantId } : {}),
+    };
+
     const { data, error } = await this.supabase
       .from('state_beats')
       .insert({
-        author_id: authorId,
+        author_id: entityId,
+        tenant_id: this.tenantId ?? null,
         beat_text: beatText,
         legal_version: options.legalVersion,
         sequence_index: nextSeq,
         label: options?.label ?? null,
-        metadata: options?.metadata ?? {},
+        metadata,
       })
       .select(
-        'id, author_id, beat_text, legal_version, sequence_index, label, metadata, created_at'
+        'id, author_id, tenant_id, beat_text, legal_version, sequence_index, label, metadata, created_at'
       )
       .single();
 

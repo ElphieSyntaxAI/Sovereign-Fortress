@@ -1,0 +1,17 @@
+services:
+  redis:
+    image: redis:alpine
+    container_name: msgf-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - msgf_redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  msgf_redis_data:

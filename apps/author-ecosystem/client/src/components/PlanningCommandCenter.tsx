@@ -4,17 +4,19 @@ import {
   type DashboardMode,
   type DashboardViewPayload,
 } from "@elphie-syntax/ui";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   PlanningSessionProvider,
   usePlanningSession,
 } from "../planning/PlanningSessionContext";
+import { BrainPillarHealth } from "./BrainPillarHealth";
 import { EditorRequestButton } from "./EditorRequestButton";
 import { IngestDiscoveryDashboard } from "./IngestDiscoveryDashboard";
 import { LibrarianInterviewChat } from "./LibrarianInterviewChat";
 import { PlotSandboxPanel } from "./PlotSandboxPanel";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { registerEditorStateProvider } from "../lib/editorSnapshotRegistry";
 import { getSupabaseBrowserClient } from "../lib/supabaseBrowser";
 
 export type PlanningCommandCenterProps = {
@@ -255,6 +257,20 @@ function WikiArchitectPanel(props: {
   );
 }
 
+function PlanningEditorSnapshotBridge() {
+  const { interviewTurns, plotBeats, wikiNotes } = usePlanningSession();
+
+  useEffect(() => {
+    return registerEditorStateProvider(() => ({
+      wiki_notes_excerpt: wikiNotes.slice(0, 4000),
+      plot_beats_count: plotBeats.length,
+      interview_turns_count: interviewTurns.length,
+    }));
+  }, [wikiNotes, plotBeats.length, interviewTurns.length]);
+
+  return null;
+}
+
 function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
   const [tab, setTab] = useState<TabId>("wiki");
 
@@ -344,6 +360,19 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
           />
         </div>
       </div>
+      <PlanningEditorSnapshotBridge />
+
+      <div className="rounded-xl border border-emerald-900/35 bg-zinc-950/40 p-4">
+        <h3 className="text-sm font-semibold text-zinc-100">Tenant observability</h3>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Your logic drift trajectory and six-pillar stoplights refresh automatically. Sentinel reports attach the
+          same editor excerpt and keystrokes you see in the glass box below.
+        </p>
+        <div className="mt-3">
+          <BrainPillarHealth pollIntervalMs={20_000} lookbackHours={168} />
+        </div>
+      </div>
+
       <SharedSessionDigest />
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Planning modes">
         {TABS.map((t) => (

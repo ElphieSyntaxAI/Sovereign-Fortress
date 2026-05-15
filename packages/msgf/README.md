@@ -1,0 +1,218 @@
+# MSGF — Modular State-Gate Framework
+
+**Production:** https://elphiesgatedai.elphiesyntax.com
+
+MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **standalone gated-AI platform** for third-party software. It runs as its own Next.js app (`packages/msgf`); Author Ecosystem integrates later via HTTP contracts only.
+
+## Documentation
+
+| Doc | Purpose |
+| :--- | :--- |
+| [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) | **1.0 vision & release plan** (MSGF V3.2-ULTRA) |
+| [`docs/MONOREPO_PRODUCTS.md`](../../docs/MONOREPO_PRODUCTS.md) | Three web apps & domains |
+| [`pre_ingestion_audit.md`](./pre_ingestion_audit.md) | Day-zero audit (SWEEP) & CONVERGE backlog |
+| [`docs/PILLAR_PROGRESS.md`](../../docs/PILLAR_PROGRESS.md) | Pillar/AUTH implementation tracker |
+
+**External spec:** [`docs/references/MSGF_v3_2_masterdoc.pdf`](../../docs/references/MSGF_v3_2_masterdoc.pdf)
+
+---
+
+## Phase 0 — Environment setup
+
+### 1. Configure env
+
+At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.local` and fill the **MSGF** block (and shared Supabase keys).
+
+| Variable | Purpose |
+| :--- | :--- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Admin client (pledge seed, LOM DB check) |
+| `REDIS_URL` | V3.2 hot layer (e.g. `redis://127.0.0.1:6379`) |
+| `STRIPE_SECRET_KEY` | Stripe API (test mode in dev) |
+| `STRIPE_WEBHOOK_SECRET` | `POST /api/webhooks/stripe` signature |
+| `MSGF_ENABLE_LOM_TEST` | `1` or `true` before LOM integration test |
+| `MSGF_INGEST_API_KEY` | Ingest route tenant key (when key-gated) |
+
+### 2. Vertex AI credentials
+
+Place your GCP service account JSON at:
+
+`packages/msgf/service-account.json`
+
+(`predev` / `prebuild` run `msgf-init.js`, which requires this file.) Alternatively set `GOOGLE_APPLICATION_CREDENTIALS` to the key file path.
+
+### 3. Verify Phase 0 env
+
+From repo root:
+
+```bash
+npm run verify:msgf-env -w msgf
+```
+
+Exits non-zero if any required variable is missing or `service-account.json` is invalid.
+
+### 4. Database schema (cold layer)
+
+Apply Supabase migrations under `supabase/migrations/`, then optionally:
+
+```bash
+npm run verify:db-schema -w msgf
+```
+
+Requires `DATABASE_URL` or `SUPABASE_DATABASE_URL` (Postgres connection string).
+
+---
+
+## Phase 0 — Smoke test
+
+**Goal:** Prove MSGF alone — no Author BFF — can authenticate, pledge, establish a Pulse baseline, and pass the LOM recursion harness.
+
+**Prerequisites:** Steps 1–4 above; Redis running if hot-layer code paths expect it.
+
+### Step A — Start MSGF
+
+```bash
+npm run dev -w msgf
+```
+
+Default: http://127.0.0.1:3000
+
+### Step B — Create test user
+
+In [Supabase Dashboard](https://supabase.com/dashboard) → **Authentication** → **Users** → **Add user**, or use the Auth API:
+
+- Email: e.g. `msgf-smoke@yourdomain.test`
+- Password: strong test password
+- Confirm email if required by project settings
+
+Note the user **UUID** (`auth.users.id`).
+
+### Step C — Pledge (`state_beats`)
+
+Pulse requires a `state_beats` row for the current legal version (`2026.05.05-UTAH-SAFE` — see `lib/msgf-legal.ts`).
+
+**SQL Editor** (service role) — replace `YOUR_USER_UUID`:
+
+```sql
+insert into public.state_beats (
+  author_id,
+  beat_text,
+  legal_version,
+  sequence_index,
+  label,
+  metadata
+) values (
+  'YOUR_USER_UUID',
+  'No-AI-Training Pledge accepted (Phase 0 smoke test).',
+  '2026.05.05-UTAH-SAFE',
+  1,
+  'pledge',
+  '{"source":"phase0_smoke_test"}'::jsonb
+);
+```
+
+Without this row, `POST /api/msgf/pulse` returns **403** (“Please sign the No-AI-Training Pledge…”).
+
+### Step D — Sign in and capture session cookie
+
+1. Open the MSGF app (or use Supabase Auth sign-in against your project).
+2. Sign in as the test user.
+3. Copy the browser **Cookie** header for requests to `localhost:3000` (must include Supabase `sb-*-auth-token`).
+
+Store for later:
+
+```bash
+# In .env.local (repo root) — example name used by LOM test
+MSGF_PULSE_COOKIE="sb-...-auth-token=..."
+```
+
+### Step E — Pulse baseline
+
+Send keystrokes until baseline is satisfied. First call may return **202** with `baseline_required: true` and a training prompt.
+
+```bash
+curl -sS -X POST "http://127.0.0.1:3000/api/msgf/pulse" \
+  -H "Content-Type: application/json" \
+  -H "Cookie: $MSGF_PULSE_COOKIE" \
+  -d '{
+    "keystrokes": [
+      {"ts": 1, "key": "I", "type": "keydown"},
+      {"ts": 2, "key": " ", "type": "keydown"},
+      {"ts": 3, "key": "l", "type": "keydown"},
+      {"ts": 4, "key": "o", "type": "keydown"},
+      {"ts": 5, "key": "v", "type": "keydown"},
+      {"ts": 6, "key": "e", "type": "keydown"},
+      {"ts": 7, "key": " ", "type": "keydown"},
+      {"ts": 8, "key": "b", "type": "keydown"},
+      {"ts": 9, "key": "o", "type": "keydown"},
+      {"ts": 10, "key": "o", "type": "keydown"},
+      {"ts": 11, "key": "k", "type": "keydown"},
+      {"ts": 12, "key": "s", "type": "keydown"}
+    ]
+  }'
+```
+
+Repeat with additional natural typing until responses are **200** with `ok: true` (biometric profile + consensus path), not **202** baseline prompts.
+
+### Step F — LOM disagreement test
+
+Enable the harness in `.env.local`:
+
+```env
+MSGF_ENABLE_LOM_TEST=1
+```
+
+Restart `npm run dev -w msgf`, then:
+
+```bash
+npm run test:lom-disagreement -w msgf
+```
+
+**Pass criteria:**
+
+- HTTP **403** with `err: "ERR_RECURSION_LIMIT"` and `lom_attempts: 3`
+- Matching **rejected** row in `p4_state_ledger` for the test user
+
+### Phase 0 exit checklist
+
+| Check | Command / signal |
+| :--- | :--- |
+| Env | `npm run verify:msgf-env -w msgf` |
+| Schema | `npm run verify:db-schema -w msgf` (optional) |
+| Dev server | `npm run dev -w msgf` |
+| Pledge + Pulse | Steps B–E (no 403 pledge / baseline cleared) |
+| LOM | `npm run test:lom-disagreement -w msgf` |
+
+When all pass, Phase 0 is complete — proceed to Phase 1 (SHARD/DEFEND) in [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) before Author Ecosystem integration.
+
+---
+
+## Scripts
+
+| Script | Purpose |
+| :--- | :--- |
+| `npm run verify:msgf-env -w msgf` | **Phase 0** — env + `service-account.json` |
+| `npm run verify:db-schema -w msgf` | Postgres schema vs migrations |
+| `npm run dev -w msgf` | Next dev server |
+| `npm run build -w msgf` | Production build |
+| `npm run test:lom-disagreement -w msgf` | LOM / recursion harness |
+| `npm run probe:author-ecosystem -w msgf` | Cross-stack smoke (post–integration) |
+| `npm run security:prancer-pillars -w msgf` | Static security scan |
+
+---
+
+## Layout
+
+- `app/` — Next.js routes (`/api/msgf/pulse`, ingest, Stripe webhook, …)
+- `lib/services/PulseEngine.ts` — V3.2 pipeline: `gate` → `crossRef` → `defend`; Vault/Hall persist
+- `lib/schemas/vault-hall-metadata.ts` — Zod `bug_index` (1.0 / 1.1 / 1.1.1) + Vault/Hall metadata
+- `lib/services/constraint-ledger.ts` — differential persist → `pillar_vectors` + `p4_narrative_logs`
+- `lib/redis-client.ts` — ioredis client from `REDIS_URL` (exported via `msgf/connector`)
+- `lib/redis.ts` — Hot-layer key helpers + re-exports
+- `lib/services/vault-lineage-p2-cache.ts` — `msgf:lineage:{authorId}:{documentId}` (300s TTL)
+- `lib/msgf-hot-layer.ts` — P4 active slices (uses `lib/redis.ts`)
+- `lib/` — Shadow, consensus, credit guard, ingest
+- `scripts/verify-msgf-env.mjs` — Phase 0 env verifier
+- `supabase/migrations/` — Shared database
+- `service-account.json` — Vertex credentials (gitignored; not committed)
+- `apps/web/` — Future public marketing/checkout (M2)

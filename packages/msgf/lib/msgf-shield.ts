@@ -1,6 +1,24 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
 import { createClient } from '@supabase/supabase-js';
 import { CognitoJwtVerifier } from "aws-jwt-verify"; // AWS Tier 1 Auth
 import { getVertexGenerativeModel } from './msgf-vertex';
+import { fromPillarVectors } from '@/lib/msgf-pillar-table';
+import {
+  applyPillarVectorsTenantFilter,
+  filterPillarRowsByTenant,
+  resolveTenantIdForQuery,
+} from '@/lib/services/tenant-query-scope';
 
 const model = getVertexGenerativeModel();
 
@@ -13,7 +31,12 @@ export class MSGFShield {
   /**
    * TIER 1: Instant Security & Compliance (ADC Version)
    */
-  async triage(token: string, proposedCode: string, filePath: string) {
+  async triage(
+    token: string,
+    proposedCode: string,
+    filePath: string,
+    tenantId: string
+  ) {
     // 1. AWS P3 Validation: Ensure the entity has authority 
     try {
       const verifier = CognitoJwtVerifier.create({
@@ -27,13 +50,17 @@ export class MSGFShield {
       return { blocked: true, reason: "AUTH_FAILURE_P3" };
     }
 
-    // 2. Fetch Compliance Guardrails (P1 & P6) 
-    const { data: pillars } = await supabase
-      .from('pillar_vectors')
-      .select('content')
+    // 2. Fetch Compliance Guardrails (P1 & P6) for this tenant silo only
+    const tid = resolveTenantIdForQuery(tenantId);
+    let pillarQuery = fromPillarVectors(supabase, tid)
+      .select('content, metadata')
       .in('metadata->>pillar', ['P1', 'P6']);
+    pillarQuery = applyPillarVectorsTenantFilter(pillarQuery, tid);
+    const { data: pillars } = await pillarQuery;
 
-    const complianceContext = pillars?.map(p => p.content).join("\n");
+    const complianceContext = filterPillarRowsByTenant(pillars ?? [], tid)
+      .map((p) => p.content)
+      .join("\n");
 
     // 3. Shadow Defense Audit [cite: 8, 9]
     const prompt = {

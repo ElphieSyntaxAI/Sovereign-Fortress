@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
+/**
  * Cross-stack smoke probe: Author Ecosystem (Express) + MSGF (Next).
  *
  * Author ecosystem default: http://127.0.0.1:3002 (see apps/author-ecosystem/server/index.js)

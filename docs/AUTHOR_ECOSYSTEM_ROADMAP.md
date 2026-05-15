@@ -3,7 +3,11 @@
 **Status:** Single source of truth for product vision, terminology, phased delivery, tiers, and target system states.  
 **Companion tracker:** Operational repo ↔ pillar mapping lives in `docs/PILLAR_PROGRESS.md` (update both when scope shifts).
 
-**Last updated:** 2026-05-13
+**Production URL:** **https://elphiesyntax.com**
+
+**Shared engine:** MSGF (guardrails, Pulse, Vault/Hall) — **https://elphiesgatedai.elphiesyntax.com** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) and [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md).
+
+**Last updated:** 2026-05-15
 
 ---
 
@@ -102,4 +106,5 @@ Target lifecycle vocabulary (product / guardrail layer). Map to `p4_manuscripts.
 
 | Date | Change |
 | :--- | :--- |
+| 2026-05-15 | Linked production URL (elphiesyntax.com), MSGF engine (elphiesgatedai.elphiesyntax.com), and monorepo/MSGF 1.0 companion docs. |
 | 2026-05-13 | Initial SSoT: Creative Integrity Flywheel, Sovereign Lexicon, three phases, five author tiers, four publisher key levels, MSGF state model. |

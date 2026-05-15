@@ -1,5 +1,7 @@
 # MSGF V3.2-ULTRA Pre-Ingestion Audit
 
+**Spec:** [`docs/references/MSGF_v3_2_masterdoc.pdf`](../../docs/references/MSGF_v3_2_masterdoc.pdf) · **Release plan:** [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) (SWEEP step §2.6).
+
 ## INIT Phase Status
 - SWEEP completed in analysis mode (no refactor performed).
 - Scope reviewed: `app/api/msgf/*`, `lib/*`, `utils/msgf/*`, `supabase/migrations/*`, ingestion and gate modules.

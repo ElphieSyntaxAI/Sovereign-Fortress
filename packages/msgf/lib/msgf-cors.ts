@@ -1,3 +1,15 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
 import { type NextRequest, NextResponse } from "next/server";
 
 const DEFAULT_PULSE_ORIGINS = [
@@ -48,6 +60,14 @@ export function applyPulseCorsHeaders(
         "Authorization",
         "Cookie",
         "x-msgf-test-force-mismatch",
+        "x-msgf-act-as-user",
+        "x-msgf-admin-tiebreak",
+        "x-msgf-license-key",
+        "x-msgf-brain-sensitivity",
+        "x-msgf-drift-threshold",
+        "x-msgf-tenant-id",
+        "x-msgf-entity-id",
+        "x-msgf-ide-pulse",
       ].join(", ")
     );
     res.headers.set("Vary", "Origin");
@@ -73,6 +93,40 @@ export function applyIncidentReportCorsHeaders(
     res.headers.set("Vary", "Origin");
   }
   return res;
+}
+
+const ADMIN_CORS_HEADERS = [
+  "Content-Type",
+  "Authorization",
+  "x-msgf-act-as-user",
+  "x-msgf-admin-tiebreak",
+  "x-msgf-license-key",
+  "x-msgf-brain-sensitivity",
+  "x-msgf-drift-threshold",
+  "x-msgf-tenant-id",
+  "x-msgf-entity-id",
+  "x-msgf-ide-pulse",
+].join(", ");
+
+/** CORS for M4 ops dashboard → admin + tie-break Pulse (Bearer auth, no cookies). */
+export function applyAdminCorsHeaders(
+  req: NextRequest,
+  res: NextResponse
+): NextResponse {
+  const origin = req.headers.get("origin");
+  if (origin && isPulseAllowedOrigin(origin)) {
+    res.headers.set("Access-Control-Allow-Origin", origin);
+    res.headers.set("Access-Control-Allow-Methods", "GET, PATCH, POST, OPTIONS");
+    res.headers.set("Access-Control-Allow-Credentials", "true");
+    res.headers.set("Access-Control-Allow-Headers", ADMIN_CORS_HEADERS);
+    res.headers.set("Vary", "Origin");
+  }
+  return res;
+}
+
+export function adminCorsPreflightResponse(req: NextRequest): NextResponse {
+  const res = new NextResponse(null, { status: 204 });
+  return applyAdminCorsHeaders(req, res);
 }
 
 export function incidentReportCorsPreflightResponse(

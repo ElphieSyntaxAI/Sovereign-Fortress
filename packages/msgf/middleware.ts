@@ -1,10 +1,25 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ */
 import { type NextRequest } from "next/server";
 
+import { applyMsgfApiTenantMiddleware } from "@/app/api/middleware";
 import { assertMsgfCreditsOr429, applyMsgfCreditModelHeader } from "@/lib/creditGuard";
+import { assertPulseEntitlementOr429 } from "@/lib/middleware/entitlementGuard";
 import { updateSession } from "@/utils/supabase/middleware";
 
 /**
- * Session refresh + MSGF credit guard on `/api/msgf/*` (usage_monitor, billing soft cap, beta Gemini).
+ * Session refresh + M3 entitlement guard on `POST /api/msgf/pulse`, then MSGF credit guard on
+ * `/api/msgf/*` (usage_monitor, billing soft cap, beta Gemini).
  *
  * Supabase cookie `Set-Cookie` attributes (domain / secure / sameSite) come from `updateSession` →
  * `withMsgfAuthCookieOptions` in `@/lib/msgf-auth-cookies` — same `MSGF_AUTH_COOKIE_DOMAIN` and
@@ -13,10 +28,18 @@ import { updateSession } from "@/utils/supabase/middleware";
  */
 export async function middleware(request: NextRequest) {
   let req = request;
+
+  const tenantGate = applyMsgfApiTenantMiddleware(req);
+  if (tenantGate.response) return tenantGate.response;
+  req = tenantGate.request;
+
   if (req.nextUrl.pathname.startsWith("/api/msgf")) {
-    const denied = await assertMsgfCreditsOr429(request);
+    const entitlementDenied = await assertPulseEntitlementOr429(req);
+    if (entitlementDenied) return entitlementDenied;
+
+    const denied = await assertMsgfCreditsOr429(req);
     if (denied) return denied;
-    req = applyMsgfCreditModelHeader(request);
+    req = applyMsgfCreditModelHeader(req);
   }
 
   return await updateSession(req);
