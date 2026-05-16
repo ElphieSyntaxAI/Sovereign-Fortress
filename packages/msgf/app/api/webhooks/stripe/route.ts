@@ -8,13 +8,13 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
+ * Distribution Build ID: MSGF-51d39b5-20260516T031044Z-internal
  */
 import { headers } from "next/headers";
 import type Stripe from "stripe";
 
 import { msgfLogger } from "@msgf/lib/logger";
-import { stripe } from "@msgf/lib/stripe";
+import { getStripeWebhookClient } from "@msgf/lib/stripe";
 import { tenantIdForNarrativeLog } from "@msgf/lib/tenant-ids";
 
 export async function POST(req: Request) {
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, secret);
+    event = getStripeWebhookClient().webhooks.constructEvent(body, signature, secret);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return new Response(`Webhook Error: ${message}`, { status: 400 });

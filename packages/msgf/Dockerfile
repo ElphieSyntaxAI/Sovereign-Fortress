@@ -31,7 +31,8 @@ COPY apps ./apps
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund \
+  && mkdir -p /app/packages/msgf/node_modules
 
 # -----------------------------------------------------------------------------
 # Stage: compile SDK + Next.js (TypeScript via Next/tsc pipeline)
@@ -51,6 +52,8 @@ COPY apps ./apps
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+
+COPY --from=deps /app/packages/msgf/node_modules ./packages/msgf/node_modules
 
 # Production SDK + Next production bundle (outputs `.next/standalone` + traced deps)
 RUN npm run build -w msgf
@@ -74,7 +77,7 @@ LABEL com.google.cloud.run.service="msgf-core"
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# Cloud Run sets $PORT; bind on all interfaces
+# Next standalone binds using HOSTNAME; Cloud Run sets it to the pod id — CMD forces 0.0.0.0 at startup.
 ENV HOSTNAME=0.0.0.0
 
 RUN apt-get update \
@@ -94,4 +97,4 @@ USER msgf
 EXPOSE 8080
 
 # Next monorepo standalone may emit `server.js` at the tracing root or under `packages/msgf/`
-CMD ["sh", "-c", "if [ -f server.js ]; then exec node server.js; elif [ -f packages/msgf/server.js ]; then exec node packages/msgf/server.js; else echo 'MSGF: server.js not found in standalone layout' >&2; find . -name server.js -print; exit 1; fi"]
+CMD ["sh", "-c", "if [ -f server.js ]; then HOSTNAME=0.0.0.0 exec node server.js; elif [ -f packages/msgf/server.js ]; then HOSTNAME=0.0.0.0 exec node packages/msgf/server.js; else echo 'MSGF: server.js not found in standalone layout' >&2; find . -name server.js -print; exit 1; fi"]

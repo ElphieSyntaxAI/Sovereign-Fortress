@@ -50,7 +50,8 @@ substitutions:
   # Requests per instance. Raise for I/O-heavy MSGF traffic (max 1000). Tune with load tests.
   _CLOUD_RUN_CONCURRENCY: "160"
   _CLOUD_RUN_MIN_INSTANCES: "0"
-  _CLOUD_RUN_MAX_INSTANCES: "100"
+  # Within default regional Serverless CPU allocation at 2 vCPU/instance (override after quota increase).
+  _CLOUD_RUN_MAX_INSTANCES: "28"
   _CLOUD_RUN_CPU: "2"
   _CLOUD_RUN_MEMORY: "2Gi"
   # Secret Manager *resource* names (short id in same project). Values are injected at runtime only.

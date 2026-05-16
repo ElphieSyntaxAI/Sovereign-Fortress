@@ -35,7 +35,9 @@ CLOUD_RUN_CPU="${CLOUD_RUN_CPU:-2}"
 CLOUD_RUN_MEMORY="${CLOUD_RUN_MEMORY:-2Gi}"
 CLOUD_RUN_CONCURRENCY="${CLOUD_RUN_CONCURRENCY:-80}"
 CLOUD_RUN_MIN_INSTANCES="${CLOUD_RUN_MIN_INSTANCES:-0}"
-CLOUD_RUN_MAX_INSTANCES="${CLOUD_RUN_MAX_INSTANCES:-100}"
+# Default max scale must stay within per-region Serverless CPU quota (e.g. 2 vCPU × 100 instances
+# exceeds typical defaults). Raise quota or override: export CLOUD_RUN_MAX_INSTANCES=…
+CLOUD_RUN_MAX_INSTANCES="${CLOUD_RUN_MAX_INSTANCES:-28}"
 
 # Serverless VPC Access — Cloud Run reaches private DB / Redis via this connector.
 # Range must be /28 (or larger), unused, and must not overlap VPC subnets.

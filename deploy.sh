@@ -144,7 +144,8 @@ SECRET_STRIPE_WEBHOOK="${SECRET_STRIPE_WEBHOOK:-msgf-stripe-webhook-secret}"
 CLOUD_RUN_CPU="${CLOUD_RUN_CPU:-2}"
 CLOUD_RUN_MEMORY="${CLOUD_RUN_MEMORY:-2Gi}"
 CLOUD_RUN_MIN_INSTANCES="${CLOUD_RUN_MIN_INSTANCES:-0}"
-CLOUD_RUN_MAX_INSTANCES="${CLOUD_RUN_MAX_INSTANCES:-100}"
+# Stay within default Serverless CPU quota at 2 vCPU/instance unless quota is raised.
+CLOUD_RUN_MAX_INSTANCES="${CLOUD_RUN_MAX_INSTANCES:-28}"
 
 IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || echo "manual-$(date +%s)")"
 GIT_REVISION="$(git rev-parse HEAD 2>/dev/null || echo "unknown")"

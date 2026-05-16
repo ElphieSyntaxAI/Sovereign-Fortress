@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
+ * Distribution Build ID: MSGF-51d39b5-20260516T031044Z-internal
  */
 /**
  * M3 — commercial entitlement gate for MSGF Brain (`POST /api/msgf/pulse`).

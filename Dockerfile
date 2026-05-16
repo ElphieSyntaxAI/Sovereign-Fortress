@@ -40,7 +40,8 @@ COPY packages ./packages
 COPY apps ./apps
 COPY tools ./tools
 
-RUN npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund \
+  && mkdir -p /app/packages/msgf/node_modules
 
 # =============================================================================
 # Stage 2 — compile SDK (`packages/msgf/dist`) + Next production bundle (`.next/*`)
@@ -69,6 +70,11 @@ COPY packages ./packages
 COPY apps ./apps
 COPY tools ./tools
 
+# `npm ci` may install workspace-only deps under `packages/msgf/node_modules`. The context COPY above
+# cannot include `**/node_modules` (see `.dockerignore`). Restore that tree from deps (classic Docker;
+# no BuildKit mounts).
+COPY --from=deps /app/packages/msgf/node_modules ./packages/msgf/node_modules
+
 # MSGF: `build:sdk:prod` emits SDK under packages/msgf/dist; `next build` emits `.next/standalone`
 # with traced production dependencies only (devDependencies stay outside this artifact tree).
 # Parentheses: without them, `a && b || true` succeeds even when `a` (the build) fails.
@@ -87,7 +93,8 @@ WORKDIR /home/node/app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV HOSTNAME=0.0.0.0
+# Next standalone `server.js` binds with `hostname = process.env.HOSTNAME || '0.0.0.0'`.
+# Cloud Run / Knative sets HOSTNAME to the pod name — not a bindable address — so we force 0.0.0.0 at exec time.
 
 LABEL org.opencontainers.image.title="MSGF Core"
 LABEL org.opencontainers.image.description="Elphie Syntax MSGF — Next.js standalone"
@@ -110,5 +117,5 @@ USER node
 
 EXPOSE 8080
 
-# Resolve server entry for monorepo standalone layout (tracing root = repo root).
-CMD ["sh", "-c", "if [ -f server.js ]; then exec node server.js; elif [ -f packages/msgf/server.js ]; then exec node packages/msgf/server.js; else echo 'MSGF: server.js not found in standalone layout' >&2; find . -maxdepth 4 -name server.js -print; exit 1; fi"]
+# Cloud Run sets HOSTNAME to the pod id; Next standalone uses HOSTNAME for listen() — override when starting node.
+CMD ["sh", "-c", "if [ -f server.js ]; then HOSTNAME=0.0.0.0 exec node server.js; elif [ -f packages/msgf/server.js ]; then HOSTNAME=0.0.0.0 exec node packages/msgf/server.js; else echo 'MSGF: server.js not found in standalone layout' >&2; find . -maxdepth 4 -name server.js -print; exit 1; fi"]
