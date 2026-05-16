@@ -6,6 +6,9 @@
 !package.json
 !package-lock.json
 !packages/msgf/config/tenant-manifest.json
+# TypeScript project files (required in Docker / Cloud Build; *.json above would exclude them)
+!**/tsconfig.json
+!**/tsconfig.*.json
 node_modules/
 dist/
 .next/

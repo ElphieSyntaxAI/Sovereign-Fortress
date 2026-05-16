@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "incremental": false,
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "dist",
+    "plugins": []
+  },
+  "include": [
+    "lib/**/*.ts",
+    "ui/**/*.ts",
+    "ui/**/*.tsx",
+    "src/lib/universal/**/*.ts"
+  ],
+  "exclude": ["node_modules", "app", "**/*.test.ts", "scripts", "tests"]
+}
