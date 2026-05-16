@@ -4,6 +4,7 @@
 .env.*.local
 *.json
 !package.json
+!package-lock.json
 !packages/msgf/config/tenant-manifest.json
 node_modules/
 dist/
