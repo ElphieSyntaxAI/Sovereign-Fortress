@@ -71,8 +71,9 @@ COPY tools ./tools
 
 # MSGF: `build:sdk:prod` emits SDK under packages/msgf/dist; `next build` emits `.next/standalone`
 # with traced production dependencies only (devDependencies stay outside this artifact tree).
+# Parentheses: without them, `a && b || true` succeeds even when `a` (the build) fails.
 RUN npm run build -w msgf \
-  && rm -rf /tmp/* /root/.npm 2>/dev/null || true
+  && (rm -rf /tmp/* /root/.npm 2>/dev/null || true)
 
 # =============================================================================
 # Stage 3 — production runtime: traced JS only (no sources, no devDependencies)

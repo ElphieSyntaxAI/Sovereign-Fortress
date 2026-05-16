@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
+-- =============================================================================
 -- msgf_rules: GLOBAL vs LOCAL scope + disambiguation key for upserts.
 -- Submissions: company admins propose elevating a local mitigation to platform-global rules.
 

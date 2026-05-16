@@ -8,13 +8,13 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * Tenant BYOK / provider API keys: AES-256-GCM envelope locally (CRYPTO_SECRET_KEY),
  * or Google Cloud KMS–wrapped DEK when NODE_ENV === "production".
  */
-import crypto from "node:crypto";
+import crypto from "crypto";
 
 const FORMAT_LOCAL = 0x01;
 /** KMS wraps a random DEK; payload ciphertext uses AES-GCM with that DEK (fresh IV + tag per encrypt). */

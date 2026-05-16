@@ -15,25 +15,110 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${ROOT}"
 
-# Windows Git Bash: gcloud execs `python` — set CLOUDSDK_PYTHON if unset (see setup-cloud.sh).
+# Windows Git Bash: gcloud needs a real Python (not the Microsoft Store stub under WindowsApps).
+# See setup-cloud.sh for the same resolution logic.
+_gcloud_python_usable() {
+  local py="$1"
+  [[ -z "${py}" ]] && return 1
+  case "${py}" in
+    *[/\\]WindowsApps[/\\]*) return 1 ;;
+  esac
+  "${py}" -c "import sys" >/dev/null 2>&1
+}
+
+_python_via_py_launcher() {
+  command -v py >/dev/null 2>&1 || return 1
+  local raw out
+  raw="$(py -3 -c "import sys; print(sys.executable)" 2>/dev/null || true)"
+  raw="${raw//$'\r'/}"
+  raw="$(printf '%s' "${raw}" | tr -d '\r')"
+  [[ -z "${raw}" ]] && return 1
+  case "${raw}" in
+    *[/\\]WindowsApps[/\\]*) return 1 ;;
+  esac
+  if [[ "${raw}" =~ ^[A-Za-z]: ]]; then
+    if command -v cygpath >/dev/null 2>&1; then
+      out="$(cygpath -u "${raw}" 2>/dev/null || true)"
+    else
+      local d r
+      d="${raw:0:1}"
+      r="${raw:2}"
+      r="${r//\\//}"
+      out="/${d,,}/${r}"
+    fi
+  else
+    out="${raw}"
+  fi
+  [[ -n "${out}" ]] && _gcloud_python_usable "${out}" && printf '%s' "${out}"
+}
+
+_pick_cloudsdk_python() {
+  local cands=()
+  command -v python3 >/dev/null 2>&1 && cands+=("$(command -v python3)")
+  command -v py >/dev/null 2>&1 && cands+=("$(command -v py)")
+  [[ -x "/c/Windows/py.exe" ]] && cands+=("/c/Windows/py.exe")
+  command -v python >/dev/null 2>&1 && cands+=("$(command -v python)")
+  local c
+  for c in "${cands[@]}"; do
+    if _gcloud_python_usable "${c}"; then
+      printf '%s' "${c}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+_probe_windows_python_org() {
+  local py
+  shopt -s nullglob
+  local matches=(
+    "${HOME}/AppData/Local/Programs/Python"/Python*/python.exe
+  )
+  if [[ -n "${USERPROFILE:-}" ]]; then
+    local up
+    up="$(cygpath -u "${USERPROFILE}" 2>/dev/null)" || true
+    [[ -n "${up}" ]] && matches+=("${up}/AppData/Local/Programs/Python"/Python*/python.exe)
+  fi
+  if [[ -n "${LOCALAPPDATA:-}" ]] && command -v cygpath >/dev/null 2>&1; then
+    local la
+    la="$(cygpath -u "${LOCALAPPDATA}" 2>/dev/null)" || true
+    [[ -n "${la}" ]] && matches+=("${la}/Programs/Python"/Python*/python.exe)
+  fi
+  matches+=(
+    "/c/Program Files"/Python*/python.exe
+    "/c/Program Files (x86)"/Python*/python.exe
+  )
+  for py in "${matches[@]}"; do
+    if [[ -f "${py}" ]] && _gcloud_python_usable "${py}"; then
+      printf '%s' "${py}"
+      shopt -u nullglob
+      return 0
+    fi
+  done
+  shopt -u nullglob
+  return 1
+}
+
 if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
-  if command -v python >/dev/null 2>&1; then
-    CLOUDSDK_PYTHON="$(command -v python)"
-    export CLOUDSDK_PYTHON
-  elif command -v python3 >/dev/null 2>&1; then
-    CLOUDSDK_PYTHON="$(command -v python3)"
-    export CLOUDSDK_PYTHON
-  elif command -v py >/dev/null 2>&1; then
-    CLOUDSDK_PYTHON="$(command -v py)"
-    export CLOUDSDK_PYTHON
-  elif [[ -x "/c/Windows/py.exe" ]]; then
-    export CLOUDSDK_PYTHON="/c/Windows/py.exe"
+  if picked="$(_python_via_py_launcher)"; then
+    export CLOUDSDK_PYTHON="${picked}"
   fi
 fi
 if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
-  echo "deploy.sh: gcloud needs Python. Set CLOUDSDK_PYTHON or install Python on PATH." >&2
+  if picked="$(_pick_cloudsdk_python)"; then
+    export CLOUDSDK_PYTHON="${picked}"
+  fi
+fi
+if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
+  if picked="$(_probe_windows_python_org)"; then
+    export CLOUDSDK_PYTHON="${picked}"
+  fi
+fi
+if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
+  echo "deploy.sh: gcloud needs a working Python 3. Install from python.org or set CLOUDSDK_PYTHON." >&2
   exit 1
 fi
+echo "Using Python for Google Cloud CLI: ${CLOUDSDK_PYTHON}"
 
 PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
 if [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "(unset)" ]]; then

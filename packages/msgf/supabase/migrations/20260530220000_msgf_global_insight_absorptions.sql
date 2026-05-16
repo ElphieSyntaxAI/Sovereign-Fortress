@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
+-- =============================================================================
 -- GLOBAL_ADMIN "Absorb into Global Brain" — dedupe + audit trail for Sentinel self-heal → vault_core patterns.
 
 CREATE TABLE IF NOT EXISTS public.msgf_global_insight_absorptions (

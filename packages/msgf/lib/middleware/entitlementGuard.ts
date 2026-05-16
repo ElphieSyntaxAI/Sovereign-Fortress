@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * M3 — commercial entitlement gate for MSGF Brain (`POST /api/msgf/pulse`).
@@ -200,12 +200,8 @@ export async function assertPulseEntitlementOr429(
   if (!isPulseEntitlementPath(request.nextUrl.pathname)) return null;
   if (request.method !== "POST") return null;
 
-  const { Msgf } = await import("@/lib/msgf");
-  const customAssert = Msgf.getRuntime().getEntitlementPlugin()?.assertPulseRequest;
-  if (customAssert) {
-    const blocked = await customAssert(request);
-    if (blocked) return blocked;
-  }
+  // Do not import `@/lib/msgf` here — middleware runs on the Edge runtime and cannot bundle
+  // Node-only deps (Redis, full Msgf graph). `Msgf.init` entitlement hooks apply in Node routes only.
 
   const userId = await resolveAuthUserId(request);
   if (!userId) {
@@ -223,27 +219,6 @@ export async function assertPulseEntitlementOr429(
   const profile = await fetchProfileEntitlements(admin, userId);
   if (!profile) {
     return entitlementExhaustedResponse("No p4_profiles row for this account.");
-  }
-
-  const headerTenant = request.headers.get("x-msgf-tenant-id")?.trim() || undefined;
-
-  const customEvaluate = Msgf.getRuntime().getEntitlementPlugin()?.evaluatePulse;
-  if (customEvaluate) {
-    const custom = await customEvaluate({
-      entityId: userId,
-      tenantId: headerTenant,
-      profile,
-    });
-    if (!custom.allowed) {
-      return NextResponse.json(
-        {
-          error: custom.reason,
-          code: custom.code ?? ERR_CREDIT_GUARD_EXHAUSTED,
-        },
-        { status: custom.status ?? 429 }
-      );
-    }
-    return null;
   }
 
   const evaluation = evaluatePulseEntitlement(profile);

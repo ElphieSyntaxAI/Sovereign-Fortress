@@ -8,12 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 import fs from "fs";
 import path from "path";
 
-/** Same convention as `lib/msgf-vertex.ts` / `msgf-init.js` (cwd is the msgf package when running Next). */
+/** Same convention as `lib/msgf-vertex.ts` / `msgf-init.cjs` (cwd is the msgf package when running Next). */
 const SERVICE_ACCOUNT_PATH = path.join(process.cwd(), "service-account.json");
 
 export type ConnectionLine = {

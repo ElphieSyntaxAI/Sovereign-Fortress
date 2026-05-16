@@ -14,7 +14,7 @@
     "utils",
     "middleware.ts",
     "next.config.ts",
-    "msgf-init.js"
+    "msgf-init.cjs"
   ],
   "exports": {
     ".": {
@@ -79,9 +79,9 @@
     }
   },
   "scripts": {
-    "predev": "node msgf-init.js",
-    "prebuild": "node msgf-init.js",
-    "prestart": "node msgf-init.js",
+    "predev": "node msgf-init.cjs",
+    "prebuild": "node msgf-init.cjs",
+    "prestart": "node msgf-init.cjs",
     "license:stamp": "node scripts/apply-license-headers.mjs",
     "build:id": "node scripts/print-build-id.mjs",
     "build:sdk": "tsup && cross-env MSGF_SDK_DTS_ONLY=1 tsup && node scripts/generate-server-dts.mjs",

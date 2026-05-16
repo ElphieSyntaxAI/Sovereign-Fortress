@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * Mint a contract-based MSGF license key (shown once; only the SHA-256 hash is stored).
@@ -24,7 +24,7 @@
  * Migration: 20260527120000_msgf_licensing.sql applied on the target project.
  */
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
 function parseArgs(argv) {

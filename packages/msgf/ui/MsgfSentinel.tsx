@@ -10,6 +10,42 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-2d8d295-20260516T002100Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-2d8d295-20260516T001739Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
  */
 import type { HTMLAttributes } from "react";

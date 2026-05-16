@@ -8,14 +8,14 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * MSGF V3.2-ULTRA Pulse pipeline — SHARD → DEFEND → CONVERGE → PERSIST.
  * Modular: no imports from apps/author-ecosystem.
  */
 
-import { randomUUID } from "node:crypto";
+import { randomUUID } from "crypto";
 
 import { v1beta1 } from "@google-cloud/aiplatform";
 import type { SupabaseClient } from "@supabase/supabase-js";

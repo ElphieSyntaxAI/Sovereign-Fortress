@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
+-- =============================================================================
 -- Audit columns when a pending LogicDelta is promoted to vault_core.
 
 ALTER TABLE public.local_state_cache

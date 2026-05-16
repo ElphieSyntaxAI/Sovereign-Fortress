@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * Universal P1 envelope for cross-app MSGF Pulse dispatch.
@@ -18,7 +18,7 @@
 import {
   assertP1UniversalNonPolluted,
   type UniversalP1KeystrokeEvent,
-} from "../../src/lib/universal/p1HalStandard";
+} from "@/src/lib/universal/p1HalStandard";
 
 export type { UniversalP1KeystrokeEvent as P1KeystrokeEvent };
 

@@ -8,10 +8,10 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getVertexGenerativeModel } from './msgf-vertex';
+import { getVertexGenerativeModel } from "@/lib/msgf-vertex";
 import { runWithLlmTimeoutSimple } from '@/lib/services/cost-runaway-guard';
 
 /** Raw keystroke from the frontend (send only what you need; avoid secrets). */

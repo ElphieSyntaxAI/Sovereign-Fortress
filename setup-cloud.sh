@@ -58,33 +58,122 @@ cd "${SCRIPT_DIR}"
 
 # -----------------------------------------------------------------------------
 # Windows Git Bash / MSYS: the bundled gcloud script does `exec python ...`.
-# If only python3 or the Windows "py" launcher is on PATH, gcloud fails with:
-#   exec: python: not found
-# Fix: point CLOUDSDK_PYTHON at a real interpreter (override anytime: export CLOUDSDK_PYTHON=...).
+# Prefer a real interpreter: PATH often has Microsoft Store *stubs* under
+# .../WindowsApps/python (and python3) that print "install from the Store" and break gcloud.
+# We probe with `python -c "import sys"` and skip WindowsApps paths first-class.
+# Override anytime: export CLOUDSDK_PYTHON=/c/Path/To/python.exe
 # -----------------------------------------------------------------------------
+_gcloud_python_usable() {
+  local py="$1"
+  [[ -z "${py}" ]] && return 1
+  case "${py}" in
+    *[/\\]WindowsApps[/\\]*) return 1 ;;
+  esac
+  "${py}" -c "import sys" >/dev/null 2>&1
+}
+
+# After a python.org install, `py` often works even when `python` on PATH is the Store stub.
+# This asks the launcher which interpreter it would use for Python 3.
+_python_via_py_launcher() {
+  command -v py >/dev/null 2>&1 || return 1
+  local raw out
+  raw="$(py -3 -c "import sys; print(sys.executable)" 2>/dev/null || true)"
+  raw="${raw//$'\r'/}"
+  raw="$(printf '%s' "${raw}" | tr -d '\r')"
+  [[ -z "${raw}" ]] && return 1
+  case "${raw}" in
+    *[/\\]WindowsApps[/\\]*) return 1 ;;
+  esac
+  if [[ "${raw}" =~ ^[A-Za-z]: ]]; then
+    if command -v cygpath >/dev/null 2>&1; then
+      out="$(cygpath -u "${raw}" 2>/dev/null || true)"
+    else
+      local d r
+      d="${raw:0:1}"
+      r="${raw:2}"
+      r="${r//\\//}"
+      out="/${d,,}/${r}"
+    fi
+  else
+    out="${raw}"
+  fi
+  [[ -n "${out}" ]] && _gcloud_python_usable "${out}" && printf '%s' "${out}"
+}
+
+_pick_cloudsdk_python() {
+  local cands=()
+  command -v python3 >/dev/null 2>&1 && cands+=("$(command -v python3)")
+  command -v py >/dev/null 2>&1 && cands+=("$(command -v py)")
+  [[ -x "/c/Windows/py.exe" ]] && cands+=("/c/Windows/py.exe")
+  command -v python >/dev/null 2>&1 && cands+=("$(command -v python)")
+  local c
+  for c in "${cands[@]}"; do
+    if _gcloud_python_usable "${c}"; then
+      printf '%s' "${c}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Git Bash often does not put python.org installs on PATH; probe default layout.
+_probe_windows_python_org() {
+  local py
+  shopt -s nullglob
+  local matches=(
+    "${HOME}/AppData/Local/Programs/Python"/Python*/python.exe
+  )
+  # USERPROFILE is often set (sometimes C:\Users\... — normalize if cygpath exists).
+  if [[ -n "${USERPROFILE:-}" ]]; then
+    local up
+    up="$(cygpath -u "${USERPROFILE}" 2>/dev/null)" || true
+    [[ -n "${up}" ]] && matches+=("${up}/AppData/Local/Programs/Python"/Python*/python.exe)
+  fi
+  if [[ -n "${LOCALAPPDATA:-}" ]] && command -v cygpath >/dev/null 2>&1; then
+    local la
+    la="$(cygpath -u "${LOCALAPPDATA}" 2>/dev/null)" || true
+    [[ -n "${la}" ]] && matches+=("${la}/Programs/Python"/Python*/python.exe)
+  fi
+  matches+=(
+    "/c/Program Files"/Python*/python.exe
+    "/c/Program Files (x86)"/Python*/python.exe
+  )
+  for py in "${matches[@]}"; do
+    if [[ -f "${py}" ]] && _gcloud_python_usable "${py}"; then
+      printf '%s' "${py}"
+      shopt -u nullglob
+      return 0
+    fi
+  done
+  shopt -u nullglob
+  return 1
+}
+
 if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
-  if command -v python >/dev/null 2>&1; then
-    CLOUDSDK_PYTHON="$(command -v python)"
-    export CLOUDSDK_PYTHON
-  elif command -v python3 >/dev/null 2>&1; then
-    CLOUDSDK_PYTHON="$(command -v python3)"
-    export CLOUDSDK_PYTHON
-  elif command -v py >/dev/null 2>&1; then
-    CLOUDSDK_PYTHON="$(command -v py)"
-    export CLOUDSDK_PYTHON
-  elif [[ -x "/c/Windows/py.exe" ]]; then
-    export CLOUDSDK_PYTHON="/c/Windows/py.exe"
+  if picked="$(_python_via_py_launcher)"; then
+    export CLOUDSDK_PYTHON="${picked}"
+  fi
+fi
+if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
+  if picked="$(_pick_cloudsdk_python)"; then
+    export CLOUDSDK_PYTHON="${picked}"
+  fi
+fi
+if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
+  if picked="$(_probe_windows_python_org)"; then
+    export CLOUDSDK_PYTHON="${picked}"
   fi
 fi
 if [[ -n "${CLOUDSDK_PYTHON:-}" ]]; then
   echo "Using Python for Google Cloud CLI: ${CLOUDSDK_PYTHON}"
 fi
 if [[ -z "${CLOUDSDK_PYTHON:-}" ]]; then
-  echo "gcloud requires Python, but none was found for CLOUDSDK_PYTHON." >&2
-  echo "Install Python (https://www.python.org/downloads/) and enable 'Add python.exe to PATH'," >&2
-  echo "or set explicitly before re-running, e.g. in Git Bash:" >&2
-  echo "  export CLOUDSDK_PYTHON=/c/Path/To/python.exe" >&2
-  echo "Alternatively run this script from PowerShell:  bash ./setup-cloud.sh" >&2
+  echo "gcloud requires a working Python 3, but none passed a quick import test." >&2
+  echo "The Microsoft Store stub under .../WindowsApps/ is ignored (not a real Python)." >&2
+  echo "Install https://www.python.org/downloads/ (check 'Add python.exe to PATH')." >&2
+  echo "Typical install (even if not on PATH): ~/AppData/Local/Programs/Python/Python3xx/python.exe" >&2
+  echo "Or disable Store aliases: Settings → Apps → App execution aliases." >&2
+  echo "Then:  export CLOUDSDK_PYTHON=/c/Users/YOU/AppData/Local/Programs/Python/Python312/python.exe" >&2
   exit 1
 fi
 
@@ -93,7 +182,7 @@ echo "=== MSGF — Cloud Build + Cloud Run deploy ==="
 echo ""
 
 # --- Project -----------------------------------------------------------------
-if [[ -z "${GCP_PROJECT_ID// }" ]]; then
+if [[ -z "${GCP_PROJECT_ID// /}" ]]; then
   read -r -p "Enter GCP_PROJECT_ID: " GCP_PROJECT_ID
   GCP_PROJECT_ID="${GCP_PROJECT_ID//[[:space:]]/}"
 fi
@@ -199,8 +288,8 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
   --quiet 2>/dev/null || true
 
 # --- Image URI ---------------------------------------------------------------
-if [[ -z "${IMAGE_TAG// }" ]]; then
-  IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || echo "manual-$(date +%s)')"
+if [[ -z "${IMAGE_TAG// /}" ]]; then
+  IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || echo "manual-$(date +%s)")"
 fi
 IMAGE_URI="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -256,7 +345,7 @@ if [[ -f "${CLOUDRUN_ENV_FILE}" ]]; then
   while IFS= read -r line || [[ -n "${line}" ]]; do
     line="${line//$'\r'/}"
     [[ "${line}" =~ ^[[:space:]]*# ]] && continue
-    [[ -z "${line// }" ]] && continue
+    [[ -z "${line// /}" ]] && continue
     if [[ "${line}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
       k="${line%%=*}"
       v="${line#*=}"

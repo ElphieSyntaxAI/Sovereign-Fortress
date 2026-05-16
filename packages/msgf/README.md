@@ -39,7 +39,7 @@ Place your GCP service account JSON at:
 
 `packages/msgf/service-account.json`
 
-(`predev` / `prebuild` run `msgf-init.js`, which requires this file.) Alternatively set `GOOGLE_APPLICATION_CREDENTIALS` to the key file path.
+(`predev` / `prebuild` run `msgf-init.cjs`, which requires this file.) Alternatively set `GOOGLE_APPLICATION_CREDENTIALS` to the key file path.
 
 ### 3. Verify Phase 0 env
 

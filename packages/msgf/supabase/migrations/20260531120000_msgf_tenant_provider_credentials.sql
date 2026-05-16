@@ -1,4 +1,14 @@
 -- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
+-- =============================================================================
+-- =============================================================================
 -- Per-tenant provider API keys (Gemini / Anthropic BYOK). Stored encrypted only —
 -- see packages/msgf/lib/crypto/CryptoService.ts and tenant-provider-credentials service.
 -- =============================================================================

@@ -8,13 +8,13 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * P2 Vault lineage — Redis cache (`msgf:lineage:{tenantId}:{documentId}:dual-lawbook`, 300s TTL).
  */
 
-import { createHash } from "node:crypto";
+import { createHash } from "crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 

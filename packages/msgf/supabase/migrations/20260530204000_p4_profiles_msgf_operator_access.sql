@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
+-- =============================================================================
 -- MSGF operator RBAC: company silo + dashboard role (GLOBAL / COMPANY / DEVELOPER).
 
 ALTER TABLE public.p4_profiles

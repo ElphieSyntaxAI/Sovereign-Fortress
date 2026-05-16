@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * Publisher share links: hashed tokens, verify flow, author notifications via `p4_author_signal`.
@@ -16,7 +16,7 @@
  * Uses `DashboardOrchestratorService` from the author-ecosystem server tree (`experimental.externalDir` + webpack `.js`→`.ts` alias).
  */
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 

@@ -3,13 +3,18 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * Session-local LogicDelta cache — Redis hot path + `local_state_cache` table fallback.
  */
 
-import { randomUUID } from "node:crypto";
+import { randomUUID } from "crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 

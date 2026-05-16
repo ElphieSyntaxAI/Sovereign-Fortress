@@ -3,14 +3,19 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 /**
  * **Global Insight** — anonymized cross-tenant feed of successful Sentinel local self-heals,
  * with optional absorption of **logic patterns** (not raw code) into `global_vault` / vault_core.
  */
 
-import { createHash } from "node:crypto";
+import { createHash } from "crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 

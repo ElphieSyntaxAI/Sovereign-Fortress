@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-7175065-20260515T200509Z-internal
+ * Distribution Build ID: MSGF-2d8d295-20260516T002421Z-internal
  */
 import fs from 'fs';
 import path from 'path';
@@ -24,7 +24,7 @@ export const SERVICE_ACCOUNT_PATH = path.join(
 export function assertServiceAccountPresent(): void {
   if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
     throw new Error(
-      `MSGF: service-account.json not found at ${SERVICE_ACCOUNT_PATH}. Run \`node msgf-init.js\` or add the file before starting.`
+      `MSGF: service-account.json not found at ${SERVICE_ACCOUNT_PATH}. Run \`node msgf-init.cjs\` or add the file before starting.`
     );
   }
 }
