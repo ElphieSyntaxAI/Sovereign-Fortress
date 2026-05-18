@@ -8,10 +8,17 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-51d39b5-20260516T031044Z-internal
+ * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
  */
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Elphie's Gated AI | MSGF",
+  description:
+    "Modular State-Gate Framework — glass-box sovereign AI with six pillars, dual-model consensus, and auditable lineage.",
+};
 
 export default function RootLayout({
   children,
@@ -20,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
+      <body className="min-h-screen antialiased">
         {children}
       </body>
     </html>

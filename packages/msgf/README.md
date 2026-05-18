@@ -53,13 +53,20 @@ Exits non-zero if any required variable is missing or `service-account.json` is 
 
 ### 4. Database schema (cold layer)
 
-Apply Supabase migrations under `supabase/migrations/`, then optionally:
+Apply Supabase migrations under `supabase/migrations/` (Supabase CLI — not Prisma/Drizzle):
+
+```bash
+# From repo root — set DATABASE_URL in packages/msgf/.env.local or root .env.local first
+npm run db:push
+```
+
+Then verify:
 
 ```bash
 npm run verify:db-schema -w msgf
 ```
 
-Requires `DATABASE_URL` or `SUPABASE_DATABASE_URL` (Postgres connection string).
+Requires `DATABASE_URL` or `SUPABASE_DATABASE_URL` (Postgres connection string from Supabase Dashboard → Database).
 
 ---
 

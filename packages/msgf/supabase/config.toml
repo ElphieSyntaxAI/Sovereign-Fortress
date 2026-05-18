@@ -1,0 +1,28 @@
+# MSGF cold layer — Supabase CLI project root (run commands from packages/msgf).
+# Migrations: supabase/migrations/*.sql (timestamp order, ~60 files).
+
+project_id = "msgf"
+
+[db]
+major_version = 15
+
+[api]
+enabled = false
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = false
+
+[storage]
+enabled = false
+
+[auth]
+enabled = false
+
+[realtime]
+enabled = false
+
+[edge_runtime]
+enabled = false

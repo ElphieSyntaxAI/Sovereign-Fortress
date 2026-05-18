@@ -11,7 +11,9 @@
     "enforce-silo": "node tools/enforce-silo.js",
     "prepare": "node tools/enforce-silo.js install",
     "security:prancer-pillars": "node packages/msgf/scripts/security-primer-pillars.mjs",
-    "verify:supabase-schema": "npm run verify:db-schema -w msgf"
+    "verify:supabase-schema": "npm run verify:db-schema -w msgf",
+    "db:push": "npm run db:push -w msgf",
+    "db:push:verify": "npm run db:push && npm run verify:supabase-schema"
   },
   "workspaces": [
     "packages/*",

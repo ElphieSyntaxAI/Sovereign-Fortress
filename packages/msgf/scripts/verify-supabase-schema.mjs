@@ -8,35 +8,155 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-51d39b5-20260516T031044Z-internal
+ * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
  */
 /**
- * Verifies Postgres schema for MSGF Supabase (pillar_vectors 1536, ledger CHECK, GIN indexes).
+ * Verifies Postgres schema for MSGF Supabase cold layer.
+ *
+ * Dashboard-critical tables (PostgREST schema cache):
+ *   public.msgf_incidents
+ *   public.local_state_cache
+ *   public.msgf_rule_global_review_submissions
+ *
+ * Plus pillar_vectors / p4_state_ledger checks from V3.2 migrations.
  *
  * Requires a direct Postgres URL (pooler or primary), e.g. from Supabase Dashboard → Settings → Database:
  *   postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
  *
- * Env:
+ * Env (loaded from repo root + packages/msgf .env files if not already set):
  *   DATABASE_URL or SUPABASE_DATABASE_URL
  *
- * Usage (from packages/msgf):
- *   node --env-file=.env.local scripts/verify-supabase-schema.mjs
+ * Usage (from repo root):
+ *   npm run verify:supabase-schema
+ *   npm run verify:db-schema -w msgf
  */
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 import pg from "pg";
 
-const conn =
-  process.env.DATABASE_URL ||
-  process.env.SUPABASE_DATABASE_URL ||
-  process.env.POSTGRES_URL ||
-  "";
+const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+function loadEnvFiles() {
+  for (const rel of ["../../.env", "../../.env.local", ".env", ".env.local"]) {
+    const p = path.resolve(pkgRoot, rel);
+    if (fs.existsSync(p)) {
+      dotenv.config({ path: p, override: true });
+    }
+  }
+}
+
+/** Tables that clear dashboard "missing from schema cache" errors when present. */
+const DASHBOARD_COLD_LAYER_TABLES = [
+  {
+    name: "msgf_incidents",
+    requiredColumns: [
+      "id",
+      "user_id",
+      "status",
+      "bug_index",
+      "metadata",
+      "source",
+      "created_at",
+      "updated_at",
+    ],
+    expectRls: true,
+  },
+  {
+    name: "local_state_cache",
+    requiredColumns: [
+      "id",
+      "tenant_id",
+      "entity_id",
+      "delta_payload",
+      "promotion_status",
+      "created_at",
+    ],
+    expectRls: true,
+  },
+  {
+    name: "msgf_rule_global_review_submissions",
+    requiredColumns: [
+      "id",
+      "tenant_id",
+      "company_id",
+      "bug_index_instance",
+      "mitigation_snapshot",
+      "status",
+      "created_at",
+      "updated_at",
+    ],
+    expectRls: true,
+  },
+];
+
+async function assertPublicTable(client, spec) {
+  const { name, requiredColumns, expectRls } = spec;
+
+  const tableRow = await client.query(
+    `select c.relname, c.relrowsecurity
+     from pg_catalog.pg_class c
+     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public'
+       and c.relname = $1
+       and c.relkind = 'r'`,
+    [name]
+  );
+
+  if (tableRow.rowCount === 0) {
+    console.error(
+      `FAIL: public.${name} does not exist. Run: npm run db:push (from repo root) to apply packages/msgf/supabase/migrations/.`
+    );
+    return false;
+  }
+
+  const colRows = await client.query(
+    `select column_name
+     from information_schema.columns
+     where table_schema = 'public'
+       and table_name = $1`,
+    [name]
+  );
+  const present = new Set(colRows.rows.map((r) => r.column_name));
+  const missing = requiredColumns.filter((c) => !present.has(c));
+
+  if (missing.length > 0) {
+    console.error(
+      `FAIL: public.${name} is missing columns: ${missing.join(", ")}. Re-run db:push or apply pending migrations.`
+    );
+    return false;
+  }
+
+  if (expectRls && !tableRow.rows[0].relrowsecurity) {
+    console.error(`FAIL: public.${name} exists but row level security is not enabled.`);
+    return false;
+  }
+
+  console.log(`OK: public.${name} exists with required columns (${requiredColumns.length}) and RLS.`);
+  return true;
+}
 
 async function main() {
+  loadEnvFiles();
+
+  const conn =
+    process.env.DATABASE_URL?.trim() ||
+    process.env.SUPABASE_DATABASE_URL?.trim() ||
+    process.env.POSTGRES_URL?.trim() ||
+    "";
+
   if (!conn) {
     console.error(
       "Missing DATABASE_URL (or SUPABASE_DATABASE_URL / POSTGRES_URL). " +
-        "Supabase anon/service keys alone cannot run information_schema checks; use the Postgres connection string."
+        "Set in packages/msgf/.env.local — Supabase anon/service keys cannot run information_schema checks."
     );
+    process.exit(1);
+  }
+
+  if (conn.includes("[YOUR_DB_PASSWORD]")) {
+    console.error("DATABASE_URL still contains [YOUR_DB_PASSWORD]. Update packages/msgf/.env.local first.");
     process.exit(1);
   }
 
@@ -47,6 +167,20 @@ async function main() {
 
   await client.connect();
   console.log("Postgres: connected.");
+  console.log("--- Dashboard cold-layer tables ---");
+
+  let ok = true;
+  for (const spec of DASHBOARD_COLD_LAYER_TABLES) {
+    const passed = await assertPublicTable(client, spec);
+    if (!passed) ok = false;
+  }
+
+  if (!ok) {
+    await client.end();
+    process.exit(1);
+  }
+
+  console.log("--- Pillar / ledger baseline ---");
 
   const emb = await client.query(
     `select pg_catalog.format_type(a.atttypid, a.atttypmod) as coltype
@@ -61,7 +195,7 @@ async function main() {
 
   if (emb.rowCount === 0) {
     console.error("FAIL: public.pillar_vectors.embedding column not found.");
-    process.exitCode = 1;
+    ok = false;
   } else {
     const t = emb.rows[0].coltype;
     if (t === "vector(1536)") {
@@ -70,10 +204,10 @@ async function main() {
       console.error(
         "FAIL: pillar_vectors.embedding is still vector(768). Apply migration 20260506200000 on a fresh table, or migrate embeddings to 1536."
       );
-      process.exitCode = 1;
+      ok = false;
     } else {
       console.error(`FAIL: pillar_vectors.embedding unexpected type: ${t}`);
-      process.exitCode = 1;
+      ok = false;
     }
   }
 
@@ -87,26 +221,22 @@ async function main() {
        and c.contype = 'c'`
   );
 
-  const statusCheck = checks.rows.find((r) =>
-    String(r.def).includes("consensus_status")
-  );
+  const statusCheck = checks.rows.find((r) => String(r.def).includes("consensus_status"));
   const need = ["pending", "approved", "rejected"];
   if (!statusCheck) {
     console.error(
       "FAIL: p4_state_ledger has no CHECK on consensus_status (run migration 20260506201000)."
     );
-    process.exitCode = 1;
+    ok = false;
   } else {
-    const ok = need.every((w) => String(statusCheck.def).includes(w));
-    if (ok) {
+    const statusOk = need.every((w) => String(statusCheck.def).includes(w));
+    if (statusOk) {
       console.log(
         "OK: p4_state_ledger consensus_status CHECK allows pending, approved, rejected."
       );
     } else {
-      console.error(
-        `FAIL: consensus_status CHECK incomplete. Found: ${statusCheck.def}`
-      );
-      process.exitCode = 1;
+      console.error(`FAIL: consensus_status CHECK incomplete. Found: ${statusCheck.def}`);
+      ok = false;
     }
   }
 
@@ -131,7 +261,7 @@ async function main() {
     console.error(
       "FAIL: No GIN index on pillar_vectors.metadata (expected pillar_vectors_metadata_gin)."
     );
-    process.exitCode = 1;
+    ok = false;
   }
 
   if (ledgerBlob) {
@@ -140,12 +270,20 @@ async function main() {
     console.error(
       "FAIL: No GIN index on p4_state_ledger.state_blob (expected p4_state_ledger_state_blob_gin)."
     );
-    process.exitCode = 1;
+    ok = false;
   }
 
   await client.end();
-  if (process.exitCode === 1) process.exit(1);
+
+  if (!ok) {
+    process.exit(1);
+  }
+
+  console.log("");
   console.log("All schema checks passed.");
+  console.log(
+    "If the dashboard still reports schema-cache errors, reload the API schema in Supabase Dashboard → Settings → API."
+  );
 }
 
 main().catch((e) => {

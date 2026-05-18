@@ -1,9 +1,17 @@
 /**
  * M4 ops dashboard → MSGF admin API (incidents + admin tie-break Pulse).
  *
- * Prefer Vite dev proxy (see vite.config.ts) so the service-role token is NOT bundled.
- * Fallback: set VITE_MSGF_ADMIN_BEARER_TOKEN only for trusted internal builds.
+ * Production: `MSGF_PRODUCTION_API_ORIGIN` (override with `VITE_MSGF_API_BASE_URL`).
+ * Local dev: leave `VITE_MSGF_API_BASE_URL` unset — relative `/api/msgf/*` calls are proxied
+ * to Cloud Run by Vite (see `apps/msgf-dashboard/vite.config.ts`).
+ *
+ * Prefer the dev proxy so the service-role token is NOT bundled.
+ * Fallback: set `VITE_MSGF_ADMIN_BEARER_TOKEN` only for trusted internal builds.
  */
+
+/** Live Google Cloud Run MSGF API (us-central1). */
+export const MSGF_PRODUCTION_API_ORIGIN =
+  "https://msgf-api-bkracxai6q-uc.a.run.app" as const;
 
 export type GenealogicalBugIndex = {
   level_1_category: string;
@@ -93,7 +101,13 @@ export type MsgfIncident = {
   updated_at: string;
 };
 
-const apiBase = () => import.meta.env.VITE_MSGF_API_BASE_URL?.replace(/\/$/, "") ?? "";
+/** Origin for `fetch` — no trailing slash. Paths are always `${apiBase()}/api/msgf/...`. */
+export function apiBase(): string {
+  const fromEnv = import.meta.env.VITE_MSGF_API_BASE_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  if (import.meta.env.DEV) return "";
+  return MSGF_PRODUCTION_API_ORIGIN;
+}
 
 function adminBearer(): string | undefined {
   const token = import.meta.env.VITE_MSGF_ADMIN_BEARER_TOKEN?.trim();

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-51d39b5-20260516T031044Z-internal
+ * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
  */
 /**
  * Normalized string / shallow structural similarity for dual-model consensus scoring (0–1).

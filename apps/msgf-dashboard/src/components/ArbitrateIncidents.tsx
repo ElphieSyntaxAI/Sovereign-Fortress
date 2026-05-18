@@ -13,11 +13,13 @@ type Props = {
   onSession?: (session: AdminDashboardSession) => void;
   /** @see ResolutionPanel */
   hideDeveloperKeystrokes?: boolean;
+  /** Dev gate: seed GLOBAL_ADMIN before the first API round-trip. */
+  seedSession?: AdminDashboardSession;
 };
 
-export function ArbitrateIncidents({ onSession, hideDeveloperKeystrokes }: Props) {
+export function ArbitrateIncidents({ onSession, hideDeveloperKeystrokes, seedSession }: Props) {
   const [incidents, setIncidents] = useState<MsgfIncident[]>([]);
-  const [session, setSession] = useState<AdminDashboardSession>({});
+  const [session, setSession] = useState<AdminDashboardSession>(seedSession ?? {});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -27,8 +29,9 @@ export function ArbitrateIncidents({ onSession, hideDeveloperKeystrokes }: Props
     setError(null);
     try {
       const { incidents: rows, session: nextSession } = await fetchPendingIncidents();
-      setSession(nextSession);
-      onSession?.(nextSession);
+      const merged = seedSession ? { ...nextSession, ...seedSession } : nextSession;
+      setSession(merged);
+      onSession?.(merged);
       setIncidents(rows);
       setSelectedId((prev) =>
         prev && rows.some((r) => r.id === prev) ? prev : rows[0]?.id ?? null
@@ -39,7 +42,7 @@ export function ArbitrateIncidents({ onSession, hideDeveloperKeystrokes }: Props
     } finally {
       setLoading(false);
     }
-  }, [onSession]);
+  }, [onSession, seedSession]);
 
   useEffect(() => {
     void load();

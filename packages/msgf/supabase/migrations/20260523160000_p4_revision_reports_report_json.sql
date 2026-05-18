@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-51d39b5-20260516T031044Z-internal
+-- Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
 -- =============================================================================
 -- Editor hub quality gate: `report_json.continuity_score` on `p4_revision_reports` (latest row SSOT).
 
