@@ -17,6 +17,8 @@ create table if not exists public.todos (
 
 alter table public.todos enable row level security;
 
+drop policy if exists "todos_select_anon_authenticated" on public.todos;
+
 create policy "todos_select_anon_authenticated"
   on public.todos
   for select

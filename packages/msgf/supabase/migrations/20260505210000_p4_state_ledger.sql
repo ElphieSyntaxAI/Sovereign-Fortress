@@ -24,6 +24,7 @@ create index if not exists p4_state_ledger_author_created_idx
 
 alter table public.p4_state_ledger enable row level security;
 
+drop policy if exists "p4_state_ledger_select_own" on public.p4_state_ledger;
 create policy "p4_state_ledger_select_own"
   on public.p4_state_ledger
   for select

@@ -28,6 +28,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
+import {
+  connectionFailureHint,
+  normalizeDatabaseUrl,
+  resolveDatabaseUrl,
+  trimEnv,
+  validateDatabaseHostname,
+} from "./lib/normalize-database-url.mjs";
+
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(pkgRoot, "../..");
 const migrationsDir = path.join(pkgRoot, "supabase", "migrations");
@@ -38,29 +46,6 @@ function loadEnvFiles() {
     if (fs.existsSync(p)) {
       dotenv.config({ path: p, override: true });
     }
-  }
-}
-
-function trimEnv(value) {
-  if (value == null) return "";
-  const s = String(value).trim();
-  if (
-    (s.startsWith('"') && s.endsWith('"')) ||
-    (s.startsWith("'") && s.endsWith("'"))
-  ) {
-    return s.slice(1, -1);
-  }
-  return s;
-}
-
-function projectRefFromSupabaseUrl(url) {
-  if (!url?.trim()) return null;
-  try {
-    const host = new URL(url.trim()).hostname;
-    const m = host.match(/^([a-z0-9]+)\.supabase\.co$/i);
-    return m?.[1] ?? null;
-  } catch {
-    return null;
   }
 }
 
@@ -127,15 +112,16 @@ function resolveNpxSpawn() {
   return { command: "npx", argsPrefix: [] };
 }
 
-function runNpx(npxArgs) {
+function runNpx(npxArgs, { troubleshootOnFailure = false } = {}) {
   const { command, argsPrefix } = resolveNpxSpawn();
   const spawnArgs = [...argsPrefix, ...npxArgs];
   const result = spawnSync(command, spawnArgs, {
     cwd: pkgRoot,
     stdio: "inherit",
     shell: false,
-    env: process.env,
+    env: { ...process.env, CI: "true" },
     windowsHide: true,
+    input: npxArgs.includes("db") && npxArgs.includes("push") ? "y\n" : undefined,
   });
 
   if (result.error) {
@@ -146,32 +132,53 @@ function runNpx(npxArgs) {
     process.exit(1);
   }
   if (result.status !== 0) {
+    if (troubleshootOnFailure) {
+      console.error(
+        "\nIf migrations were skipped, the CLI may require --include-all (already passed by this script)."
+      );
+      console.error(
+        "\nIf you see tenant/user not found: set SUPABASE_POOLER_AWS_PREFIX=aws-1 (or aws-0) to match your dashboard URI."
+      );
+      console.error(
+        "If you see prepared statement already exists: db:push uses session pooler port 5432 (not 6543)."
+      );
+      console.error(
+        "If you see policy/relation already exists: partial migrations — use Supabase SQL editor or `supabase migration repair`."
+      );
+    }
     process.exit(result.status ?? 1);
   }
 }
 
 function dbPush(dbUrl) {
   assertDbUrlUsable(dbUrl);
-  console.log(`Command: npx supabase db push --db-url "${redactDbUrl(dbUrl)}" --yes`);
+  const hostError = validateDatabaseHostname(dbUrl);
+  if (hostError) {
+    console.error(hostError);
+    process.exit(1);
+  }
+  const normalized = normalizeDatabaseUrl(dbUrl);
+  console.log(
+    `Command: npx supabase db push --db-url "${redactDbUrl(normalized)}" --yes --include-all`
+  );
   console.log(`Working directory: ${pkgRoot}`);
-  runNpx(["supabase", "db", "push", "--db-url", dbUrl, "--yes"]);
+  runNpx(
+    ["supabase", "db", "push", "--db-url", normalized, "--yes", "--include-all"],
+    { troubleshootOnFailure: true }
+  );
 }
 
 loadEnvFiles();
 assertMigrationsDir();
 
-const dbUrl =
-  trimEnv(process.env.DATABASE_URL) ||
-  trimEnv(process.env.SUPABASE_DATABASE_URL) ||
-  trimEnv(process.env.POSTGRES_URL) ||
-  "";
+/** Migrations need session pooler (:5432); transaction pooler (:6543) breaks with prepared statements. */
+const { url: dbUrl, warnings } = resolveDatabaseUrl({
+  ...process.env,
+  SUPABASE_POOLER_PORT: trimEnv(process.env.SUPABASE_DB_PUSH_POOLER_PORT) || "5432",
+});
+for (const w of warnings) console.warn(`Note: ${w}`);
 
-const supabaseUrl =
-  trimEnv(process.env.SUPABASE_URL) || trimEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) || "";
-
-const projectRef =
-  trimEnv(process.env.SUPABASE_PROJECT_REF) || projectRefFromSupabaseUrl(supabaseUrl) || "";
-
+const projectRef = trimEnv(process.env.SUPABASE_PROJECT_REF) || "";
 const dbPassword = trimEnv(process.env.SUPABASE_DB_PASSWORD) || "";
 
 if (dbUrl) {
@@ -196,15 +203,11 @@ console.error(
   [
     "Missing database credentials for supabase db push.",
     "",
-    "Option A (recommended): set in packages/msgf/.env.local or repo root .env.local:",
-    '  DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres"',
+    "Set in packages/msgf/.env.local:",
+    "  SUPABASE_DB_PASSWORD=<database password from Supabase Dashboard → Database>",
+    "  DATABASE_URL=postgresql://postgres@db.<project-ref>.supabase.co:5432/postgres",
     "",
-    "Option B: link then push:",
-    "  SUPABASE_PROJECT_REF=<from https://xxx.supabase.co>",
-    "  SUPABASE_DB_PASSWORD=<database password>",
-    "  SUPABASE_ACCESS_TOKEN=<personal access token from supabase.com/dashboard/account/tokens>",
-    "",
-    `Detected SUPABASE_URL host ref: ${projectRef || "(none)"}`,
+    `SUPABASE_PROJECT_REF: ${projectRef || "(set SUPABASE_PROJECT_REF or NEXT_PUBLIC_SUPABASE_URL)"}`,
   ].join("\n")
 );
 process.exit(1);

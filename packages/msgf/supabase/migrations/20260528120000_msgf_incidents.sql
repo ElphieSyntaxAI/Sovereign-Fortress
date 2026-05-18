@@ -15,13 +15,20 @@ CREATE TABLE IF NOT EXISTS public.msgf_incidents (
   user_id UUID NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   narrative_log_id UUID REFERENCES public.p4_narrative_logs (id) ON DELETE SET NULL,
   status TEXT NOT NULL DEFAULT 'pending',
+  source TEXT NOT NULL DEFAULT 'SYSTEM',
   bug_index JSONB NOT NULL,
   resolution_note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT msgf_incidents_status_check CHECK (status IN ('pending', 'resolved')),
+  CONSTRAINT msgf_incidents_source_check CHECK (
+    source IN ('SYSTEM', 'USER_SENTINEL', 'ARBITRATE_AUTO')
+  ),
   CONSTRAINT msgf_incidents_bug_index_object CHECK (jsonb_typeof(bug_index) = 'object')
 );
+
+CREATE INDEX IF NOT EXISTS idx_msgf_incidents_source_status_created
+  ON public.msgf_incidents (source, status, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_msgf_incidents_status_created
   ON public.msgf_incidents (status, created_at DESC);

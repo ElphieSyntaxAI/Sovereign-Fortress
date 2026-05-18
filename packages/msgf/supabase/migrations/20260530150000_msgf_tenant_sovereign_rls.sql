@@ -15,7 +15,7 @@
 -- service_role bypasses RLS (PulseEngine admin client). authenticated is silo-scoped.
 -- anon has no policies (deny by default once RLS is enabled).
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 -- Optional per-tenant API keys (mint hashes offline; plain keys never stored).
 CREATE TABLE IF NOT EXISTS public.msgf_tenant_api_keys (
@@ -105,9 +105,9 @@ CREATE OR REPLACE FUNCTION public.msgf_sha256_hex(p_plain text)
 RETURNS text
 LANGUAGE sql
 IMMUTABLE
-SET search_path = public
+SET search_path = public, extensions
 AS $$
-  SELECT encode(digest(p_plain, 'sha256'), 'hex');
+  SELECT encode(extensions.digest(p_plain, 'sha256'), 'hex');
 $$;
 
 CREATE OR REPLACE FUNCTION public.msgf_license_tenant_id()

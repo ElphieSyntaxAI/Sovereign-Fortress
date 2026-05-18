@@ -43,8 +43,9 @@ BEGIN
   ALTER TABLE public.p4_narrative_logs
     ALTER COLUMN tenant_id TYPE UUID USING tenant_id::uuid;
 
-  CREATE POLICY "Users can only see their own tenant logs"
-  ON public.p4_narrative_logs
+  drop policy if exists "Users can only see their own tenant logs" on public.p4_narrative_logs;
+create policy "Users can only see their own tenant logs"
+  on public.p4_narrative_logs
   FOR SELECT
   TO authenticated
   USING (

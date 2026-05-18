@@ -18,5 +18,5 @@ ON public.p4_narrative_logs
 FOR SELECT
 TO authenticated
 USING (
-  tenant_id = (auth.jwt() -> 'user_metadata' ->> 'tenant_id')
+  tenant_id::text = (auth.jwt() -> 'user_metadata' ->> 'tenant_id')
 );

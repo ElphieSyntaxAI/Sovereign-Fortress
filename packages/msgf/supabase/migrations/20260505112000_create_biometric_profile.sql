@@ -35,16 +35,19 @@ execute function public.set_biometric_profile_updated_at();
 
 alter table public.biometric_profile enable row level security;
 
+drop policy if exists "biometric_profile_select_own" on public.biometric_profile;
 create policy "biometric_profile_select_own"
   on public.biometric_profile for select
   to authenticated
   using (user_id = (select auth.uid()::text));
 
+drop policy if exists "biometric_profile_insert_own" on public.biometric_profile;
 create policy "biometric_profile_insert_own"
   on public.biometric_profile for insert
   to authenticated
   with check (user_id = (select auth.uid()::text));
 
+drop policy if exists "biometric_profile_update_own" on public.biometric_profile;
 create policy "biometric_profile_update_own"
   on public.biometric_profile for update
   to authenticated

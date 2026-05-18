@@ -31,11 +31,20 @@
  *   npm run verify:db-schema -w msgf
  */
 
+import dns from "node:dns";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import pg from "pg";
+
+import {
+  authFailureHint,
+  connectionFailureHint,
+  resolveDatabaseUrl,
+  trimEnv,
+  validateDatabaseHostname,
+} from "./lib/normalize-database-url.mjs";
 
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -141,11 +150,8 @@ async function assertPublicTable(client, spec) {
 async function main() {
   loadEnvFiles();
 
-  const conn =
-    process.env.DATABASE_URL?.trim() ||
-    process.env.SUPABASE_DATABASE_URL?.trim() ||
-    process.env.POSTGRES_URL?.trim() ||
-    "";
+  const { url: conn, warnings } = resolveDatabaseUrl(process.env);
+  for (const w of warnings) console.warn(`Note: ${w}`);
 
   if (!conn) {
     console.error(
@@ -160,9 +166,19 @@ async function main() {
     process.exit(1);
   }
 
+  const hostError = validateDatabaseHostname(conn);
+  if (hostError) {
+    console.error(hostError);
+    process.exit(1);
+  }
+
   const client = new pg.Client({
     connectionString: conn,
     ssl: { rejectUnauthorized: false },
+    /** Prefer IPv4 when IPv6 routes time out (common on some Windows networks). */
+    lookup: (hostname, _opts, callback) => {
+      dns.lookup(hostname, { family: 4 }, callback);
+    },
   });
 
   await client.connect();
@@ -287,6 +303,34 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e.message || e);
+  const msg = e.message || String(e);
+  if (/tenant\/user|Tenant or user not found/i.test(msg)) {
+    console.error(msg);
+    console.error(
+      "\nPooler host does not match your project. In Supabase Dashboard → Database → Connection string, " +
+        "copy the URI exactly (check aws-0 vs aws-1 prefix and region, e.g. aws-1-us-west-2). " +
+        "Set SUPABASE_POOLER_AWS_PREFIX=aws-1 (or aws-0) and SUPABASE_POOLER_REGION to match the host."
+    );
+    process.exit(1);
+  }
+  if (/getaddrinfo ENOTFOUND/i.test(msg)) {
+    console.error(msg);
+    console.error(
+      "\nDatabase host could not be resolved. Paste the exact Connection string URI from " +
+        "Supabase Dashboard → Database into packages/msgf/.env.local as DATABASE_URL."
+    );
+    process.exit(1);
+  }
+  if (/ETIMEDOUT|ECONNREFUSED|i\/o timeout|dial tcp/i.test(msg)) {
+    console.error(msg);
+    console.error("\n" + connectionFailureHint());
+    process.exit(1);
+  }
+  if (/password authentication failed|28P01/i.test(msg)) {
+    console.error(msg);
+    console.error("\n" + authFailureHint());
+    process.exit(1);
+  }
+  console.error(msg);
   process.exit(1);
 });

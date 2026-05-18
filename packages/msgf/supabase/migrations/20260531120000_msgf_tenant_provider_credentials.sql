@@ -41,8 +41,9 @@ ALTER TABLE public.msgf_tenant_provider_credentials ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "msgf_tenant_provider_credentials_service_role_all"
   ON public.msgf_tenant_provider_credentials;
 
-CREATE POLICY "msgf_tenant_provider_credentials_service_role_all"
-  ON public.msgf_tenant_provider_credentials
+drop policy if exists "msgf_tenant_provider_credentials_service_role_all" on public.msgf_tenant_provider_credentials;
+create policy "msgf_tenant_provider_credentials_service_role_all"
+  on public.msgf_tenant_provider_credentials
   FOR ALL
   TO service_role
   USING (true)

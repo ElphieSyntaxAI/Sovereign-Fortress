@@ -25,12 +25,14 @@ create index if not exists idx_p4_profiles_legacy_user_id on public.p4_profiles 
 
 alter table public.p4_profiles enable row level security;
 
+drop policy if exists "p4_profiles_select_own" on public.p4_profiles;
 create policy "p4_profiles_select_own"
   on public.p4_profiles
   for select
   to authenticated
   using (auth.uid() = user_id);
 
+drop policy if exists "p4_profiles_update_own" on public.p4_profiles;
 create policy "p4_profiles_update_own"
   on public.p4_profiles
   for update

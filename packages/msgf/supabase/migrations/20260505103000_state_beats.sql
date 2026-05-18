@@ -26,22 +26,26 @@ create index if not exists state_beats_author_sequence_idx
 
 alter table public.state_beats enable row level security;
 
+drop policy if exists "state_beats_select_own" on public.state_beats;
 create policy "state_beats_select_own"
   on public.state_beats for select
   to authenticated
   using (author_id = (select auth.uid()::text));
 
+drop policy if exists "state_beats_insert_own" on public.state_beats;
 create policy "state_beats_insert_own"
   on public.state_beats for insert
   to authenticated
   with check (author_id = (select auth.uid()::text));
 
+drop policy if exists "state_beats_update_own" on public.state_beats;
 create policy "state_beats_update_own"
   on public.state_beats for update
   to authenticated
   using (author_id = (select auth.uid()::text))
   with check (author_id = (select auth.uid()::text));
 
+drop policy if exists "state_beats_delete_own" on public.state_beats;
 create policy "state_beats_delete_own"
   on public.state_beats for delete
   to authenticated
