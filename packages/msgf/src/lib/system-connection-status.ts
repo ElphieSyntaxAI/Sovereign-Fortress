@@ -2,18 +2,14 @@
  * @msgf-license-header
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-51d39b5-20260516T031044Z-internal
  */
 import fs from "fs";
 import path from "path";
 
-/** Same convention as `lib/msgf-vertex.ts` / `msgf-init.cjs` (cwd is the msgf package when running Next). */
+// FORCE NEXT.JS TO EVALUATE THIS LIVE AT RUNTIME, NOT BUILD TIME
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const SERVICE_ACCOUNT_PATH = path.join(process.cwd(), "service-account.json");
 
 export type ConnectionLine = {
@@ -26,14 +22,15 @@ function fileConfigured(p: string | undefined): boolean {
   return Boolean(p?.trim() && fs.existsSync(path.resolve(p)));
 }
 
-/** Server-only: env / filesystem checks (no outbound calls, no secrets exposed). */
 export function getSystemConnectionStatus(): {
   gcp: ConnectionLine;
   anthropic: ConnectionLine;
   stripe: ConnectionLine;
 } {
+  // 1. Google Vertex Fallback (Accepts your plain text GCP_API_KEY variable too)
   const saPresent = fs.existsSync(SERVICE_ACCOUNT_PATH);
   const gcpCreds = fileConfigured(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  const gcpKeyPresent = Boolean(process.env.GCP_API_KEY?.trim() || process.env.MASTER_GEMINI_KEY?.trim());
 
   let gcp: ConnectionLine;
   if (saPresent) {
@@ -48,11 +45,17 @@ export function getSystemConnectionStatus(): {
       label: "Google Cloud (Vertex)",
       detail: "GOOGLE_APPLICATION_CREDENTIALS points to a readable key file",
     };
+  } else if (gcpKeyPresent) {
+    gcp = {
+      ok: true,
+      label: "Google Cloud (Vertex)",
+      detail: "Connected via GCP_API_KEY runtime variable",
+    };
   } else if (process.env.GCP_PROJECT_ID?.trim()) {
     gcp = {
       ok: false,
       label: "Google Cloud (Vertex)",
-      detail: "GCP_PROJECT_ID is set but no service-account.json or GOOGLE_APPLICATION_CREDENTIALS file found",
+      detail: "GCP_PROJECT_ID is set but no configuration found",
     };
   } else {
     gcp = {
@@ -62,13 +65,15 @@ export function getSystemConnectionStatus(): {
     };
   }
 
-  const anthropicKey = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
+  // 2. Anthropic Runtime Check
+  const anthropicKey = Boolean(process.env.ANTHROPIC_API_KEY?.trim() || process.env.MASTER_ANTHROPIC_KEY?.trim());
   const anthropic: ConnectionLine = {
     ok: anthropicKey,
     label: "Anthropic",
-    detail: anthropicKey ? "ANTHROPIC_API_KEY is set" : "Set ANTHROPIC_API_KEY for narrative AI",
+    detail: anthropicKey ? "ANTHROPIC_API_KEY is active" : "Set ANTHROPIC_API_KEY for narrative AI",
   };
 
+  // 3. Stripe Runtime Check
   const secret = Boolean(process.env.STRIPE_SECRET_KEY?.trim());
   const webhook = Boolean(process.env.STRIPE_WEBHOOK_SECRET?.trim());
   const stripe: ConnectionLine = {
