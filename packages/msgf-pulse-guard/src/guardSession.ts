@@ -10,7 +10,9 @@ import {
 import type { IdeStatusBarSnapshot } from "./ide-types";
 import { MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
 import { parseTextDocumentEvent } from "./keystrokeCapture";
+import { LocalStateCacheWriter } from "./localStateCache";
 import { TelemetryBuffer } from "./telemetryBuffer";
+import { initializeMsgfWorkspace } from "./workspace/msgfWorkspace";
 
 const LOG_PREFIX = "[MSGF Guard]";
 
@@ -23,6 +25,7 @@ export class GuardSession {
   private tenantId = "";
   private entityId = "";
   private buffer: TelemetryBuffer | null = null;
+  private localCache: LocalStateCacheWriter | null = null;
   private readonly disposables: vscode.Disposable[] = [];
   private lastSnapshot: IdeStatusBarSnapshot = {
     logicDriftScore: null,
@@ -42,6 +45,7 @@ export class GuardSession {
   ) {}
 
   async start(): Promise<void> {
+    await initializeMsgfWorkspace();
     await this.reloadFromSettings();
     this.wireDocumentListener();
   }
@@ -58,6 +62,8 @@ export class GuardSession {
   async reloadFromSettings(): Promise<void> {
     this.buffer?.dispose();
     this.buffer = null;
+    this.localCache?.dispose();
+    this.localCache = null;
 
     this.settings = readMsgfSettings();
     this.tenantId = resolveTenantId(this.settings);
@@ -80,6 +86,7 @@ export class GuardSession {
       settings: this.settings,
       tenantId: this.tenantId,
       entityId: this.entityId,
+      localCache: this.localCache,
       onRbacForbidden: () => {
         void vscode.window.showWarningMessage(MSGF_RBAC_FORBIDDEN_WARNING);
       },
@@ -96,9 +103,15 @@ export class GuardSession {
         this.pushSnapshot(this.lastSnapshot);
       },
     });
+    this.localCache = new LocalStateCacheWriter(
+      this.tenantId,
+      this.entityId,
+      this.settings
+    );
+
     this.buffer.start();
     console.info(
-      `${LOG_PREFIX} Telemetry buffer armed · tenant=${this.tenantId} · api=${this.settings.apiUrl}`
+      `${LOG_PREFIX} Telemetry buffer armed · tenant=${this.tenantId} · api=${this.settings.apiUrl} · smallBrain=${this.settings.smallBrainProvider}`
     );
     this.pushSnapshot({ ...this.lastSnapshot, routing: "idle", bufferedEventCount: 0 });
   }
@@ -112,6 +125,7 @@ export class GuardSession {
       if (!telemetry.length) return;
 
       this.buffer.push(telemetry);
+      this.localCache?.recordDocumentChanges(telemetry);
       this.pushSnapshot({
         ...this.lastSnapshot,
         routing: "buffering",

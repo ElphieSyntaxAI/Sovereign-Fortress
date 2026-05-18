@@ -2,6 +2,13 @@ import * as vscode from "vscode";
 
 import { DEFAULT_MSGF_API_URL } from "./constants";
 
+export type SmallBrainProvider =
+  | "openai"
+  | "anthropic"
+  | "ollama"
+  | "deepseek"
+  | "gemini";
+
 export type MsgfGuardSettings = {
   tenantKey: string;
   authToken: string;
@@ -12,10 +19,20 @@ export type MsgfGuardSettings = {
   organizationId: string;
   licenseKey: string;
   entityId: string;
+  smallBrainProvider: SmallBrainProvider;
+  smallBrainApiKey: string;
+  smallBrainModelName: string;
 };
 
 export function readMsgfSettings(): MsgfGuardSettings {
   const config = vscode.workspace.getConfiguration("msgf");
+  const provider = config.get<string>("smallBrainProvider", "gemini");
+  const normalizedProvider = (
+    ["openai", "anthropic", "ollama", "deepseek", "gemini"] as const
+  ).includes(provider as SmallBrainProvider)
+    ? (provider as SmallBrainProvider)
+    : "gemini";
+
   return {
     tenantKey: config.get<string>("tenantKey", "").trim(),
     authToken: config.get<string>("authToken", "").trim(),
@@ -24,6 +41,9 @@ export function readMsgfSettings(): MsgfGuardSettings {
     organizationId: config.get<string>("organizationId", "").trim(),
     licenseKey: config.get<string>("licenseKey", "").trim(),
     entityId: config.get<string>("entityId", "").trim(),
+    smallBrainProvider: normalizedProvider,
+    smallBrainApiKey: config.get<string>("smallBrainApiKey", "").trim(),
+    smallBrainModelName: config.get<string>("smallBrainModelName", "").trim(),
   };
 }
 

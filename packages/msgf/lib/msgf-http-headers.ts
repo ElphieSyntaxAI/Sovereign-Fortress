@@ -31,6 +31,16 @@ export const MSGF_PERSONAL_SANDBOX_HEADER = "x-msgf-personal-sandbox";
 /** Trusted marker: access role was elevated server-side after profile validation. */
 export const MSGF_AUTO_PROMOTED_HEADER = "x-msgf-auto-promoted";
 
+/** IDE `.msgf/keys/gemini.key` — tenant Gemini BYOK for dual-model consensus. */
+export const MSGF_BYOK_GEMINI_HEADER = "x-msgf-byok-gemini";
+
+/** IDE `.msgf/keys/claude.key` — tenant Anthropic BYOK for dual-model consensus. */
+export const MSGF_BYOK_CLAUDE_HEADER = "x-msgf-byok-claude";
+
+export const MSGF_SMALL_BRAIN_PROVIDER_HEADER = "x-msgf-small-brain-provider";
+export const MSGF_SMALL_BRAIN_MODEL_HEADER = "x-msgf-small-brain-model";
+export const MSGF_SMALL_BRAIN_API_KEY_HEADER = "x-msgf-small-brain-api-key";
+
 /** Headless IDE / CLI: stable developer identity (machine id, extension install id, etc.). */
 export const MSGF_ENTITY_ID_HEADER = "x-msgf-entity-id";
 

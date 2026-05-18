@@ -27,7 +27,25 @@ export function LandingNav() {
             Elphie Syntax
           </span>
         </Link>
-        <nav className="flex items-center gap-2 sm:gap-3" aria-label="Account">
+        <nav className="flex items-center gap-1 sm:gap-2" aria-label="Site">
+          <Link
+            href="/features"
+            className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white md:inline-block"
+          >
+            Features
+          </Link>
+          <Link
+            href="/getting-started"
+            className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white lg:inline-block"
+          >
+            Start
+          </Link>
+          <Link
+            href="/pricing"
+            className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:inline-block"
+          >
+            Pricing
+          </Link>
           <Link
             href="/sign-in"
             className="rounded-full px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"

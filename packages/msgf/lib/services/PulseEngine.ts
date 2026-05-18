@@ -88,9 +88,18 @@ import { assessLogicDrift, shouldEscalateToGlobalBrain } from "@/lib/services/lo
 import { processLocalGateway } from "@/lib/services/local-state-gateway";
 import {
   isDualModelLocalGatewayEnabled,
+  runTenantAnthropicValidation,
   runTenantDualModelConsensusGateway,
+  runTenantGeminiValidation,
   type DualModelGatewaySnapshot,
 } from "@/lib/services/dual-model-consensus-gateway";
+import {
+  buildConvergeBypassResponseFields,
+  resolveConvergeConsensusRouting,
+  shouldRunLocalDualModelGateway,
+  usesPlatformMasterConvergeCredentials,
+} from "@/lib/services/converge-consensus-routing";
+import { recordPaidIndividualPlatformConvergeCharge } from "@/lib/services/paid-individual-usage";
 import {
   ensureTenantPillarBaseline,
   isTenantPillarBaselineSet,
@@ -191,6 +200,9 @@ export type PulseFullPipelineInput = PulseEngineInput & {
   logicDriftEscalationThreshold?: number;
   /** V3.2 SHARD / CROSS-REF hot session from the HTTP route (Redis fail-open). */
   hotSession?: PulseHotSession;
+  /** IDE `.msgf/keys` BYOK for dual-model local gateway. */
+  byokGeminiKey?: string | null;
+  byokAnthropicKey?: string | null;
 };
 
 export type LineageLedgerRow = {
@@ -358,9 +370,22 @@ export class PulseEngine {
     const forceGlobal =
       defended.humanTieBreakerResolved || Boolean(defended.approvedDelta?.trim());
 
+    const { commercial: tenantCommercial, routing: convergeRouting } =
+      await resolveConvergeConsensusRouting({
+        adminSupabase: input.adminSupabase,
+        tenantId: input.tenantId,
+        entityId: input.entityId,
+        license: input.license,
+        headerGeminiKey: input.byokGeminiKey,
+        headerAnthropicKey: input.byokAnthropicKey,
+      });
+
     if (!shouldEscalateToGlobalBrain(logicDrift, { forceGlobal })) {
       let dualModelGateway: DualModelGatewaySnapshot | undefined;
-      if (isDualModelLocalGatewayEnabled()) {
+      if (
+        isDualModelLocalGatewayEnabled() &&
+        shouldRunLocalDualModelGateway(convergeRouting)
+      ) {
         dualModelGateway = await runTenantDualModelConsensusGateway({
           adminSupabase: input.adminSupabase,
           tenantId: input.tenantId,
@@ -371,6 +396,17 @@ export class PulseEngine {
           vaultCrossRefContext: defended.vaultCrossRefContext,
           defendConstraints: defended.defendConstraints,
           geminiModelId: input.geminiModelId,
+          byokGeminiKey:
+            convergeRouting.action === "run_byok_converge"
+              ? convergeRouting.byok.gemini
+              : convergeRouting.byok.gemini ?? input.byokGeminiKey,
+          byokAnthropicKey:
+            convergeRouting.action === "run_byok_converge"
+              ? convergeRouting.byok.anthropic
+              : convergeRouting.byok.anthropic ?? input.byokAnthropicKey,
+          skipTenantCredentialAssert:
+            convergeRouting.segment === "corporate_paid" ||
+            convergeRouting.action === "run_paid_individual_platform_converge",
         });
       }
 
@@ -437,6 +473,8 @@ export class PulseEngine {
         vault_p2_contradicts_roadmap: defended.vaultP2Prioritized.contradicts.length,
         p2_roadmap_version: defended.p2Roadmap.version,
         momentum_increased: false,
+        tenant_commercial_segment: tenantCommercial.segment,
+        converge_routing_action: convergeRouting.action,
         ...(dualModelGateway
           ? {
               dual_model_tenant_agreement_score: dualModelGateway.tenant_agreement_score,
@@ -444,6 +482,7 @@ export class PulseEngine {
               dual_model_sovereign_agreement_score: dualModelGateway.sovereign_agreement_score,
             }
           : {}),
+        ...buildConvergeBypassResponseFields(convergeRouting),
       };
 
       const forensic: Record<string, unknown> = {
@@ -468,6 +507,8 @@ export class PulseEngine {
         hot_layer_hit: defended.hotLayerHit,
         lineage_redis_hit: defended.lineageRedisHit,
         dual_model_gateway: dualModelGateway ?? null,
+        tenant_commercial_segment: tenantCommercial.segment,
+        converge_routing: convergeRouting,
       };
 
       return {
@@ -477,6 +518,122 @@ export class PulseEngine {
       };
     }
 
+    if (convergeRouting.action === "bypass_converge_baseline") {
+      const local = await processLocalGateway({
+        supabase: input.supabase,
+        tenantId: input.tenantId,
+        entityId: input.entityId,
+        legalVersion: pledge.legalVersion,
+        pulseText: defended.pulseText,
+        keystrokes: defended.keystrokes,
+        logicDrift,
+        isPillarBaselineSet: defended.isPillarBaselineSet,
+        defendPreflightTier: defended.preflight.tier,
+        pulseTraceId,
+        beatLabel: "converge_bypass",
+        convergeBypass: true,
+      });
+
+      await setActiveSlice({
+        entityId: input.entityId,
+        previousBeats: [...defended.previousBeats, local.storedBeat].slice(-32),
+        previousRetryCount: defended.previousRetryCount,
+      });
+
+      const remediationSummary = buildPulseRemediationSummaryLocal();
+      const glass = buildPulseGlassBoxData({
+        driftScore: logicDrift.score,
+        preflightTier: String(defended.preflight.tier),
+        routing: "converge_bypass",
+        humanTiebreakerRequired: false,
+        halScore: biometric.score,
+        ledger: null,
+        consensusAllHuman: null,
+        modelsDisagree: null,
+        remediationSummary,
+      });
+
+      const publicBody: Record<string, unknown> = {
+        ok: true,
+        trace_id: pulseTraceId,
+        data: glass,
+        routing: "converge_bypass",
+        ...buildConvergeBypassResponseFields(convergeRouting),
+        logic_drift_score: logicDrift.score,
+        logic_drift_escalation_threshold: logicDrift.escalation_threshold,
+        contradicts_p2_roadmap: logicDrift.contradictsP2Roadmap,
+        is_pillar_baseline_set: defended.isPillarBaselineSet,
+        beat: stripPublicBeat(local.storedBeat),
+        hal_score: biometric.score,
+        retry_count: defended.previousRetryCount,
+        tie_breaker_protocol_triggered: false,
+        human_tiebreaker_required: false,
+        human_tiebreaker_resolved: false,
+        block_user: false,
+        active_slice_ttl_seconds: HOT_LAYER_ACTIVE_SLICE_TTL_SECONDS,
+        hot_layer_hit: defended.hotLayerHit,
+        lineage_redis_hit: defended.lineageRedisHit,
+        vault_narrative_log_id: null,
+        hall_narrative_log_id: null,
+        ledger: null,
+        license_tenant: input.license.tenantId,
+        license_tier: input.license.tierId,
+        tenant_commercial_segment: tenantCommercial.segment,
+        defend_preflight_tier: defended.preflight.tier,
+        vault_lineage_hits: defended.vaultLineage.length,
+        vault_p2_aligned: defended.vaultP2Prioritized.aligned.length,
+        vault_p2_contradicts_roadmap: defended.vaultP2Prioritized.contradicts.length,
+        p2_roadmap_version: defended.p2Roadmap.version,
+        momentum_increased: false,
+      };
+
+      const forensic: Record<string, unknown> = {
+        kind: "pulse_converge_bypass",
+        trace_id: pulseTraceId,
+        captured_at: new Date().toISOString(),
+        tenant_id: input.tenantId,
+        entity_id: input.entityId,
+        pulse_text: defended.pulseText,
+        keystrokes: defended.keystrokes,
+        logic_drift: logicDrift,
+        biometric,
+        stored_beat_row: local.storedBeat,
+        defend_preflight: defended.preflight,
+        tenant_commercial_segment: tenantCommercial.segment,
+        converge_routing: convergeRouting,
+        byok_presence: {
+          gemini: convergeRouting.byok.sources.gemini,
+          anthropic: convergeRouting.byok.sources.anthropic,
+        },
+      };
+
+      return {
+        kind: "ok",
+        public: publicBody,
+        forensic,
+      };
+    }
+
+    const byokConverge =
+      convergeRouting.action === "run_byok_converge"
+        ? {
+            geminiKey: convergeRouting.byok.gemini!,
+            anthropicKey: convergeRouting.byok.anthropic!,
+          }
+        : undefined;
+
+    const corporateVaultByok =
+      convergeRouting.action === "run_corporate_system_converge" &&
+      convergeRouting.enterpriseVaultConfigured
+        ? {
+            geminiKey: convergeRouting.byok.gemini!,
+            anthropicKey: convergeRouting.byok.anthropic!,
+          }
+        : undefined;
+
+    const convergeByok = byokConverge ?? corporateVaultByok;
+    const platformMaster = usesPlatformMasterConvergeCredentials(convergeRouting);
+
     const converged = await this.converge({
       ...defended,
       supabase: input.supabase,
@@ -484,7 +641,24 @@ export class PulseEngine {
       legalVersion: pledge.legalVersion,
       geminiModelId: input.geminiModelId,
       license: input.license,
+      convergeCredentialMode: platformMaster
+        ? convergeRouting.segment === "paid_individual"
+          ? "paid_individual_platform"
+          : "corporate_system"
+        : "individual_byok",
+      byokGeminiKey: convergeByok?.geminiKey,
+      byokAnthropicKey: convergeByok?.anthropicKey,
     });
+
+    if (convergeRouting.action === "run_paid_individual_platform_converge") {
+      await recordPaidIndividualPlatformConvergeCharge({
+        adminSupabase: input.adminSupabase,
+        entityId: input.entityId,
+        tenantId: input.tenantId,
+        idempotencyKey: pulseTraceId,
+        traceId: pulseTraceId,
+      });
+    }
 
     const persisted = await this.persist({
       adminSupabase: input.adminSupabase,
@@ -534,6 +708,18 @@ export class PulseEngine {
       ledger: persisted.ledger,
       license_tenant: input.license.tenantId,
       license_tier: input.license.tierId,
+      tenant_commercial_segment: tenantCommercial.segment,
+      converge_credential_mode: platformMaster
+        ? convergeRouting.segment === "paid_individual"
+          ? "paid_individual_platform"
+          : "corporate_system"
+        : "individual_byok",
+      ...(convergeRouting.segment === "paid_individual" && "monthlyUsage" in convergeRouting
+        ? {
+            monthly_tokens_consumed: convergeRouting.monthlyUsage.tokensConsumed,
+            monthly_token_soft_cap: convergeRouting.monthlyUsage.softCap,
+          }
+        : {}),
       defend_preflight_tier: converged.preflight.tier,
       vault_lineage_hits: converged.vaultLineage.length,
       vault_p2_aligned: converged.vaultP2Prioritized.aligned.length,
@@ -668,6 +854,12 @@ export class PulseEngine {
       legalVersion: string;
       geminiModelId: string;
       license: PulseLicenseContext;
+      convergeCredentialMode:
+        | "corporate_system"
+        | "paid_individual_platform"
+        | "individual_byok";
+      byokGeminiKey?: string;
+      byokAnthropicKey?: string;
     }
   ): Promise<PulseConvergeContext> {
     const p4 = new StateLedgerP4(ctx.supabase, ctx.tenantId);
@@ -679,12 +871,18 @@ export class PulseEngine {
     const momentumRetryForPrompt = ctx.previousRetryCount;
 
     const chunkForConsensus = chunkKeystrokeStream(ctx.keystrokes);
+    const useByokConverge = Boolean(
+      ctx.byokGeminiKey?.trim() && ctx.byokAnthropicKey?.trim()
+    );
+
     const consensus = await Promise.all(
       chunkForConsensus.map((c) =>
         this.runConsensusForChunk(c, ctx.beatsContext, ctx.geminiModelId, momentumRetryForPrompt, {
           p2FlowDirective: ctx.p2FlowDirective,
           vaultCrossRefContext: ctx.vaultCrossRefContext,
           defendConstraints: ctx.defendConstraints,
+          byokGeminiKey: useByokConverge ? ctx.byokGeminiKey : undefined,
+          byokAnthropicKey: useByokConverge ? ctx.byokAnthropicKey : undefined,
         })
       )
     );
@@ -1890,17 +2088,32 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
       p2FlowDirective: string;
       vaultCrossRefContext: string;
       defendConstraints?: string;
+      byokGeminiKey?: string;
+      byokAnthropicKey?: string;
     }
   ): Promise<ChunkConsensus> {
-    const projectId = getGcpProjectId();
-    const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${geminiModelId}`;
-    const claudePath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
     const prompt = this.buildPrompt(chunk, beatsContext, momentumRetryCount, p2Context);
 
-    const [gemini, claude] = await Promise.all([
-      this.runPublisherModel(geminiPath, prompt),
-      this.runPublisherModel(claudePath, prompt),
-    ]);
+    const geminiKey = p2Context?.byokGeminiKey?.trim();
+    const anthropicKey = p2Context?.byokAnthropicKey?.trim();
+
+    const [gemini, claude] =
+      geminiKey && anthropicKey
+        ? await Promise.all([
+            runTenantGeminiValidation(geminiKey, prompt).then((text) => this.parseVote(text)),
+            runTenantAnthropicValidation(anthropicKey, prompt).then((text) =>
+              this.parseVote(text)
+            ),
+          ])
+        : await (async () => {
+            const projectId = getGcpProjectId();
+            const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${geminiModelId}`;
+            const claudePath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
+            return Promise.all([
+              this.runPublisherModel(geminiPath, prompt),
+              this.runPublisherModel(claudePath, prompt),
+            ]);
+          })();
 
     const agreement = gemini.verdict === claude.verdict;
     const bothHuman = agreement && gemini.verdict === "HUMAN";

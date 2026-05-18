@@ -127,6 +127,23 @@
           "type": "string",
           "default": "",
           "description": "Optional stable developer machine id (x-msgf-entity-id). Defaults to a generated id per machine."
+        },
+        "msgf.smallBrainProvider": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "ollama", "deepseek", "gemini"],
+          "default": "gemini",
+          "description": "Local Small Brain provider for lightweight IDE-side routing."
+        },
+        "msgf.smallBrainApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for the configured Small Brain provider (sent as x-msgf-small-brain-api-key on pulse).",
+          "scope": "application"
+        },
+        "msgf.smallBrainModelName": {
+          "type": "string",
+          "default": "",
+          "description": "Model id for Small Brain (e.g. gemini-2.0-flash, gpt-4o-mini). Sent as x-msgf-small-brain-model."
         }
       }
     }

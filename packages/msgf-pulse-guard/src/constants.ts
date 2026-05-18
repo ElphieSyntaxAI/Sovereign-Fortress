@@ -28,3 +28,12 @@ export const PILLAR_POLL_INTERVAL_MS = 30_000;
 
 /** Insert length at or above this in one change → treat as block paste. */
 export const PASTE_DELTA_THRESHOLD = 8;
+
+/** Workspace BYOK — forwarded on pulse flush for tenant dual-model consensus. */
+export const MSGF_BYOK_GEMINI_HEADER = "x-msgf-byok-gemini";
+export const MSGF_BYOK_CLAUDE_HEADER = "x-msgf-byok-claude";
+
+/** Local Small Brain preferences (IDE → cloud orchestration). */
+export const MSGF_SMALL_BRAIN_PROVIDER_HEADER = "x-msgf-small-brain-provider";
+export const MSGF_SMALL_BRAIN_MODEL_HEADER = "x-msgf-small-brain-model";
+export const MSGF_SMALL_BRAIN_API_KEY_HEADER = "x-msgf-small-brain-api-key";

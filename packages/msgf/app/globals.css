@@ -51,3 +51,108 @@ body {
   background-clip: text;
   color: transparent;
 }
+
+/* —— Pricing matrix (jewel obsidian / emerald / ivory) —— */
+.pricing-page {
+  --pricing-obsidian: #160f29;
+  --pricing-obsidian-deep: #0f0a1c;
+  --pricing-ivory: #f5f0e8;
+  --pricing-ivory-muted: #e8e4df;
+}
+
+.pricing-card {
+  background: linear-gradient(165deg, rgba(22, 15, 41, 0.95) 0%, rgba(15, 10, 28, 0.98) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.06) inset,
+    0 0 32px -8px rgba(16, 185, 129, 0.12),
+    0 24px 48px -28px rgba(0, 0, 0, 0.65);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease;
+}
+
+.pricing-card:hover {
+  border-color: rgba(16, 185, 129, 0.32);
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.12) inset,
+    0 0 40px -6px rgba(16, 185, 129, 0.2),
+    0 28px 56px -24px rgba(0, 0, 0, 0.7);
+}
+
+.pricing-card-featured {
+  border: none;
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.85) 0%,
+    rgba(107, 33, 168, 0.9) 40%,
+    rgba(16, 185, 129, 0.55) 100%
+  );
+  box-shadow:
+    0 0 48px -8px rgba(168, 85, 247, 0.55),
+    0 0 24px -4px rgba(16, 185, 129, 0.25);
+  animation: pricing-glow-pulse 4s ease-in-out infinite;
+}
+
+@keyframes pricing-glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 48px -8px rgba(168, 85, 247, 0.5),
+      0 0 20px -4px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 56px -6px rgba(168, 85, 247, 0.65),
+      0 0 28px -2px rgba(16, 185, 129, 0.35);
+  }
+}
+
+.pricing-featured-badge {
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  border: 1px solid rgba(196, 181, 253, 0.45);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.45);
+}
+
+.pricing-ivory-sheet {
+  background: linear-gradient(
+    180deg,
+    rgba(245, 240, 232, 0.04) 0%,
+    rgba(22, 15, 41, 0.35) 100%
+  );
+  border: 1px solid rgba(245, 240, 232, 0.06);
+}
+
+.pricing-matrix-grid {
+  perspective: 1200px;
+}
+
+@media (max-width: 1023px) {
+  .pricing-card-featured {
+    order: -1;
+  }
+}
+
+.pricing-notice-ok {
+  background: rgba(6, 78, 59, 0.35);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: inset 0 0 24px rgba(16, 185, 129, 0.08);
+}
+
+.pricing-notice-cancel {
+  background: rgba(76, 29, 149, 0.25);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+}
+
+.marketing-section h2 {
+  text-shadow: 0 0 32px rgba(16, 185, 129, 0.12);
+}
+
+.marketing-section-featured {
+  border-color: rgba(168, 85, 247, 0.28);
+}
+
+.marketing-code code {
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+}

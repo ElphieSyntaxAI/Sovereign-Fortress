@@ -117,10 +117,10 @@ export function HomeLanding() {
                 Start gated access
               </Link>
               <Link
-                href="/sign-in"
+                href="/pricing"
                 className="w-full rounded-full border border-violet-400/30 bg-violet-500/10 px-8 py-3.5 text-center text-sm font-semibold text-violet-100 transition hover:bg-violet-500/20 sm:w-auto"
               >
-                Sign in
+                View pricing
               </Link>
             </div>
           </div>
@@ -220,6 +220,10 @@ export function HomeLanding() {
       <footer className="border-t border-slate-800/80 py-8 text-center text-xs text-slate-500">
         <p>© {new Date().getFullYear()} Elphie Syntax LLC. All rights reserved.</p>
         <p className="mt-2">
+          <Link href="/pricing" className="text-violet-400/90 underline-offset-4 hover:underline">
+            Pricing
+          </Link>
+          <span className="mx-2 text-slate-700">·</span>
           <Link href="/status" className="text-violet-400/90 underline-offset-4 hover:underline">
             System status
           </Link>

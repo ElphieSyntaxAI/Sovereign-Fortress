@@ -12,6 +12,7 @@ import {
 } from "./pulseViolationAlert";
 import { registerMsgfDashboardProvider } from "./providers/msgfDashboardProvider";
 import { StoplightStatusBar } from "./stoplightStatusBar";
+import { initializeMsgfWorkspace } from "./workspace/msgfWorkspace";
 
 const LOG_PREFIX = "[MSGF Guard]";
 
@@ -21,6 +22,12 @@ let sidebarDashboard: ReturnType<typeof registerMsgfDashboardProvider> | null = 
 
 export function activate(context: vscode.ExtensionContext): void {
   console.log(`${LOG_PREFIX} Extension successfully initialized.`);
+
+  void initializeMsgfWorkspace().then((root) => {
+    if (root) {
+      console.info(`${LOG_PREFIX} Workspace .msgf/ scaffold ready at ${root}`);
+    }
+  });
 
   stoplightBar = new StoplightStatusBar();
   stoplightBar.start();

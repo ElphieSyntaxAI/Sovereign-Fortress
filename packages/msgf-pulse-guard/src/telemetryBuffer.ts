@@ -1,4 +1,5 @@
 import type { MsgfGuardSettings } from "./config";
+import { LocalStateCacheWriter } from "./localStateCache";
 import { TELEMETRY_FLUSH_INTERVAL_MS } from "./constants";
 import { flushTelemetryBatch, type PulseFlushResult } from "./pulseFlush";
 import type { TelemetryChangeEvent } from "./telemetryTypes";
@@ -9,6 +10,7 @@ export type TelemetryBufferOptions = {
   settings: MsgfGuardSettings;
   tenantId: string;
   entityId: string;
+  localCache?: LocalStateCacheWriter | null;
   onFlushComplete: (result: PulseFlushResult, pendingCount: number) => void;
   onRbacForbidden?: () => void;
   fetchImpl?: typeof fetch;
@@ -88,6 +90,8 @@ export class TelemetryBuffer {
     this.inFlight = true;
 
     try {
+      this.options.localCache?.flushPending();
+
       const result = await flushTelemetryBatch({
         settings: this.options.settings,
         tenantId: this.options.tenantId,

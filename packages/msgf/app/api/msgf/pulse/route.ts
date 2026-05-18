@@ -44,6 +44,7 @@ import {
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
+import { extractPulseByokFromRequest } from "@/lib/services/pulse-byok-from-request";
 import { runWithPulseTrace } from "@/lib/runtime/pulse-trace-context";
 import {
   peekPulseTextSeed,
@@ -94,6 +95,8 @@ async function runPulsePipelineWithHotLayer(params: {
   lomHarnessEnabled: boolean;
   license: PulseLicenseContext;
   logicDriftEscalationThreshold: number | undefined;
+  byokGeminiKey: string | null;
+  byokAnthropicKey: string | null;
 }) {
   return pulseEngine.runFullPipeline({
     supabase: params.supabase,
@@ -108,6 +111,8 @@ async function runPulsePipelineWithHotLayer(params: {
     license: params.license,
     logicDriftEscalationThreshold: params.logicDriftEscalationThreshold,
     hotSession: params.hotSession,
+    byokGeminiKey: params.byokGeminiKey,
+    byokAnthropicKey: params.byokAnthropicKey,
   });
 }
 
@@ -260,6 +265,8 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const byok = extractPulseByokFromRequest(req);
+
       let pipelineResult;
       try {
         pipelineResult = await runPulsePipelineWithHotLayer({
@@ -275,6 +282,8 @@ export async function POST(req: NextRequest) {
           lomHarnessEnabled: lomTestHarnessEnabled(),
           license,
           logicDriftEscalationThreshold,
+          byokGeminiKey: byok.gemini,
+          byokAnthropicKey: byok.anthropic,
         });
       } catch (e) {
         if (e instanceof PulseHttpError) {

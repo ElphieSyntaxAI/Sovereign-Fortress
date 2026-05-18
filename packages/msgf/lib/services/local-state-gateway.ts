@@ -66,6 +66,12 @@ export type LocalGatewayInput = {
   /** Populated when MSGF_DUAL_MODEL_LOCAL_GATEWAY_ENABLED runs tenant BYOK dual validators + optional SovereignAuditor. */
   dualModelGateway?: DualModelGatewaySnapshot;
 
+  /** Override beat label (e.g. `converge_bypass` for margin-protected cold telemetry). */
+  beatLabel?: string;
+
+  /** Step 5 CONVERGE bypass — baseline cold beat without dual-model spend. */
+  convergeBypass?: boolean;
+
 };
 
 
@@ -112,13 +118,15 @@ export async function processLocalGateway(
 
     legalVersion: input.legalVersion,
 
-    label: "local_gateway",
+    label: input.beatLabel ?? "local_gateway",
 
     metadata: {
 
       beat_kind: LOCAL_STATE_BEAT_KIND,
 
       gateway: "local",
+
+      ...(input.convergeBypass ? { converge_bypass: true, converge_step: 5 } : {}),
 
       logic_drift_score: input.logicDrift.score,
 

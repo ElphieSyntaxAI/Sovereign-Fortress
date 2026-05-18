@@ -1,11 +1,16 @@
+import { buildByokPulseHeaders, readWorkspaceByokKeys } from "./byokKeys";
 import type { MsgfGuardSettings } from "./config";
 import {
   MSGF_ENTITY_ID_HEADER,
   MSGF_IDE_PULSE_HEADER,
+  MSGF_SMALL_BRAIN_API_KEY_HEADER,
+  MSGF_SMALL_BRAIN_MODEL_HEADER,
+  MSGF_SMALL_BRAIN_PROVIDER_HEADER,
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "./constants";
 import { buildRoleTrackingHeaders, hasValidAuthToken } from "./rolePermissions";
+import { getWorkspaceRoot } from "./workspace/msgfWorkspace";
 
 export type PulseAuthHeaders = Record<string, string>;
 
@@ -37,6 +42,19 @@ export function buildPulseAuthHeaders(params: {
       headers.Authorization = `Bearer ${license}`;
     }
   }
+
+  if (settings.smallBrainProvider) {
+    headers[MSGF_SMALL_BRAIN_PROVIDER_HEADER] = settings.smallBrainProvider;
+  }
+  if (settings.smallBrainModelName) {
+    headers[MSGF_SMALL_BRAIN_MODEL_HEADER] = settings.smallBrainModelName;
+  }
+  if (settings.smallBrainApiKey) {
+    headers[MSGF_SMALL_BRAIN_API_KEY_HEADER] = settings.smallBrainApiKey;
+  }
+
+  const byok = readWorkspaceByokKeys(getWorkspaceRoot());
+  Object.assign(headers, buildByokPulseHeaders(byok));
 
   return headers;
 }

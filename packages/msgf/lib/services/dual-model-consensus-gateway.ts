@@ -48,7 +48,7 @@ export type DualModelGatewaySnapshot = {
   sovereign_agreement_score: number | null;
 };
 
-async function runTenantGeminiValidation(apiKey: string, prompt: string): Promise<string> {
+export async function runTenantGeminiValidation(apiKey: string, prompt: string): Promise<string> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai");
   const modelId =
     process.env.MSGF_TENANT_VALIDATION_GEMINI_MODEL?.trim() || "gemini-2.0-flash";
@@ -68,7 +68,10 @@ async function runTenantGeminiValidation(apiKey: string, prompt: string): Promis
   return text.trim();
 }
 
-async function runTenantAnthropicValidation(apiKey: string, prompt: string): Promise<string> {
+export async function runTenantAnthropicValidation(
+  apiKey: string,
+  prompt: string
+): Promise<string> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const modelId =
     process.env.MSGF_TENANT_VALIDATION_ANTHROPIC_MODEL?.trim() ||
@@ -144,19 +147,34 @@ export async function runTenantDualModelConsensusGateway(params: {
   vaultCrossRefContext: string;
   defendConstraints?: string;
   geminiModelId: string;
+  /** IDE workspace BYOK overrides (`.msgf/keys/*.key`). */
+  byokGeminiKey?: string | null;
+  byokAnthropicKey?: string | null;
+  /** Corporate system path: do not require tenant vault when headers already carry BYOK. */
+  skipTenantCredentialAssert?: boolean;
 }): Promise<DualModelGatewaySnapshot> {
-  await assertTenantDualValidationModelsConfigured(params.adminSupabase, params.tenantId);
+  const geminiKey =
+    params.byokGeminiKey?.trim() ||
+    (await decryptTenantProviderCredential({
+      admin: params.adminSupabase,
+      tenantId: params.tenantId,
+      provider: "gemini",
+    }));
+  const anthropicKey =
+    params.byokAnthropicKey?.trim() ||
+    (await decryptTenantProviderCredential({
+      admin: params.adminSupabase,
+      tenantId: params.tenantId,
+      provider: "anthropic",
+    }));
 
-  const geminiKey = await decryptTenantProviderCredential({
-    admin: params.adminSupabase,
-    tenantId: params.tenantId,
-    provider: "gemini",
-  });
-  const anthropicKey = await decryptTenantProviderCredential({
-    admin: params.adminSupabase,
-    tenantId: params.tenantId,
-    provider: "anthropic",
-  });
+  const skipVaultAssert =
+    params.skipTenantCredentialAssert === true ||
+    Boolean(params.byokGeminiKey?.trim() && params.byokAnthropicKey?.trim());
+
+  if (!skipVaultAssert) {
+    await assertTenantDualValidationModelsConfigured(params.adminSupabase, params.tenantId);
+  }
 
   if (!geminiKey?.trim() || !anthropicKey?.trim()) {
     throw new PulseHttpError(400, {

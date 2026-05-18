@@ -1,0 +1,33 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+
+export function PricingCheckoutNotice() {
+  const params = useSearchParams();
+  const checkout = params.get("checkout");
+
+  if (checkout === "success") {
+    return (
+      <div
+        className="pricing-notice-ok mx-auto mb-10 max-w-2xl rounded-xl px-5 py-4 text-center text-sm text-emerald-100"
+        role="status"
+      >
+        Payment received — your subscription will activate shortly. Refresh the dashboard after
+        confirmation email.
+      </div>
+    );
+  }
+
+  if (checkout === "cancelled") {
+    return (
+      <div
+        className="pricing-notice-cancel mx-auto mb-10 max-w-2xl rounded-xl px-5 py-4 text-center text-sm text-violet-100/90"
+        role="status"
+      >
+        Checkout cancelled — no charges were made. Choose a plan when you are ready.
+      </div>
+    );
+  }
+
+  return null;
+}
