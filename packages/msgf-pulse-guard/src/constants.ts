@@ -1,0 +1,30 @@
+/** Default production MSGF host (V3.2 SaaS). */
+export const DEFAULT_MSGF_API_URL = "https://elphiesgatedai.elphiesyntax.com";
+
+/** User-facing tenant header (also mirrored to `x-msgf-tenant-id` for Pulse API). */
+export const MSGF_TENANT_KEY_HEADER = "X-MSGF-Tenant-Key";
+
+export const MSGF_TENANT_ID_HEADER = "x-msgf-tenant-id";
+export const MSGF_ENTITY_ID_HEADER = "x-msgf-entity-id";
+export const MSGF_IDE_PULSE_HEADER = "x-msgf-ide-pulse";
+
+/** Explicit V3.2 operator tier from IDE settings (`msgf.role`). */
+export const MSGF_ACCESS_ROLE_HEADER = "x-msgf-access-role";
+
+/** Sandbox auto-provision: personal token without team org → company_admin on tenant silo. */
+export const MSGF_FALLBACK_ROLE_HEADER = "x-msgf-fallback-role";
+
+/** Team / company silo when the developer belongs to an organization. */
+export const MSGF_ORGANIZATION_ID_HEADER = "x-msgf-organization-id";
+
+export const MSGF_RBAC_FORBIDDEN_WARNING =
+  "[MSGF Security] Permission Denied: Insufficient privileges for this tenant scope.";
+
+/** Micro-batch flush cadence for editor telemetry. */
+export const TELEMETRY_FLUSH_INTERVAL_MS = 3_000;
+
+/** Six-pillar stoplight poll cadence. */
+export const PILLAR_POLL_INTERVAL_MS = 30_000;
+
+/** Insert length at or above this in one change → treat as block paste. */
+export const PASTE_DELTA_THRESHOLD = 8;

@@ -1,0 +1,88 @@
+{
+  "name": "msgf-pulse-guard",
+  "displayName": "MSGF Pulse Guard",
+  "description": "V3.2-ULTRA IDE guard — buffers keystroke Pulses and routes to MSGF (SHARD / CROSS-REF / CONVERGE).",
+  "version": "0.1.0",
+  "publisher": "elphiesyntax",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "msgf.flushPulse",
+        "title": "MSGF: Flush buffered Pulse now"
+      },
+      {
+        "command": "msgf.openDashboard",
+        "title": "MSGF: Open Dashboard",
+        "icon": "$(dashboard)"
+      }
+    ],
+    "configuration": {
+      "title": "MSGF Pulse Guard",
+      "properties": {
+        "msgf.tenantKey": {
+          "type": "string",
+          "default": "",
+          "description": "Tenant key sent as X-MSGF-Tenant-Key (and x-msgf-tenant-id). Falls back to workspace folder name."
+        },
+        "msgf.authToken": {
+          "type": "string",
+          "default": "",
+          "description": "Personal or service token sent as Authorization: Bearer for POST /api/msgf/pulse.",
+          "scope": "application"
+        },
+        "msgf.role": {
+          "type": "string",
+          "enum": ["", "global_admin", "company_admin", "dev"],
+          "default": "",
+          "description": "V3.2 operator tier (maps to x-msgf-access-role on Pulse requests)."
+        },
+        "msgf.organizationId": {
+          "type": "string",
+          "default": "",
+          "description": "Team / company silo id (x-msgf-organization-id). When empty with a personal token, sandbox company_admin fallback may apply."
+        },
+        "msgf.apiUrl": {
+          "type": "string",
+          "default": "https://elphiesgatedai.elphiesyntax.com",
+          "description": "MSGF API base URL (Cloud Run or local Next app) for POST /api/msgf/pulse."
+        },
+        "msgf.licenseKey": {
+          "type": "string",
+          "default": "",
+          "description": "Contract license or service token (Bearer) for IDE Pulse when not using browser session auth.",
+          "scope": "application"
+        },
+        "msgf.entityId": {
+          "type": "string",
+          "default": "",
+          "description": "Optional stable developer machine id (x-msgf-entity-id). Defaults to a generated id per machine."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.config.mjs",
+    "typecheck": "tsc -p ./ --noEmit",
+    "watch": "node esbuild.config.mjs --watch",
+    "vscode:prepublish": "npm run compile",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "noEmit": true,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../msgf/*"],
+      "@msgf/*": ["../msgf/src/*"],
+      "@msgf/lib/*": ["../msgf/src/lib/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "out"]
+}

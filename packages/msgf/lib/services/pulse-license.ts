@@ -19,6 +19,13 @@ import crypto from "crypto";
 import type { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  MSGF_FALLBACK_ROLE_HEADER,
+  MSGF_IDE_PULSE_HEADER,
+  MSGF_ORGANIZATION_ID_HEADER,
+  MSGF_TENANT_ID_HEADER,
+  MSGF_TENANT_KEY_HEADER,
+} from "@/lib/msgf-http-headers";
 import { PulseHttpError } from "@/lib/services/pulse-http-error";
 
 export type PulseLicenseContext = {
@@ -32,20 +39,63 @@ function licenseGuardDisabled(): boolean {
   return v === "1" || v === "true" || v === "yes";
 }
 
+export function extractBearerTokenFromRequest(request: NextRequest): string | null {
+  const auth = request.headers.get("authorization")?.trim();
+  if (auth?.toLowerCase().startsWith("bearer ")) {
+    const token = auth.slice(7).trim();
+    return token || null;
+  }
+  return null;
+}
+
 export function extractLicenseKeyFromRequest(request: NextRequest): string | null {
   const direct = request.headers.get("x-msgf-license-key")?.trim();
   if (direct?.startsWith("msgf_live_")) return direct;
 
-  const auth = request.headers.get("authorization")?.trim();
-  if (auth?.toLowerCase().startsWith("bearer ")) {
-    const token = auth.slice(7).trim();
-    if (token.startsWith("msgf_live_")) return token;
-  }
+  const bearer = extractBearerTokenFromRequest(request);
+  if (bearer?.startsWith("msgf_live_")) return bearer;
 
   const envKey = process.env.MSGF_CONTRACT_LICENSE_KEY?.trim();
   if (envKey?.startsWith("msgf_live_")) return envKey;
 
   return null;
+}
+
+function isIdePulseRequest(request: NextRequest): boolean {
+  return request.headers.get(MSGF_IDE_PULSE_HEADER)?.trim() === "1";
+}
+
+function resolveIdeTenantKey(request: NextRequest): string | null {
+  return (
+    request.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() ||
+    request.headers.get(MSGF_TENANT_ID_HEADER)?.trim() ||
+    null
+  );
+}
+
+/**
+ * Personal IDE bearer (non-`msgf_live_`) with sandbox company-admin fallback — no team org on tenant.
+ */
+function assertIdePersonalSandboxLicense(request: NextRequest): PulseLicenseContext | null {
+  if (!isIdePulseRequest(request)) return null;
+
+  const bearer = extractBearerTokenFromRequest(request);
+  if (!bearer || bearer.startsWith("msgf_live_")) return null;
+
+  const fallbackRole = request.headers.get(MSGF_FALLBACK_ROLE_HEADER)?.trim().toLowerCase();
+  if (fallbackRole !== "company_admin") return null;
+
+  const orgId = request.headers.get(MSGF_ORGANIZATION_ID_HEADER)?.trim();
+  if (orgId) return null;
+
+  const tenantKey = resolveIdeTenantKey(request);
+  if (!tenantKey) return null;
+
+  return {
+    licenseId: `ide-sandbox-${sha256HexUtf8(bearer).slice(0, 16)}`,
+    tenantId: tenantKey,
+    tierId: process.env.MSGF_PULSE_LICENSE_TIER?.trim() || "brain_contract",
+  };
 }
 
 function sha256HexUtf8(value: string): string {
@@ -67,10 +117,15 @@ export async function assertPulseLicense(params: {
     };
   }
 
+  const sandboxLicense = assertIdePersonalSandboxLicense(params.request);
+  if (sandboxLicense) {
+    return sandboxLicense;
+  }
+
   const plainKey = extractLicenseKeyFromRequest(params.request);
   if (!plainKey) {
     throw new PulseHttpError(403, {
-      error: "Contract license required.",
+      error: "Insufficient privileges for this tenant scope.",
       code: "ERR_LICENSE_MISSING",
     });
   }

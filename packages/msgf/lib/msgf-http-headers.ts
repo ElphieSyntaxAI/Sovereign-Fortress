@@ -13,6 +13,18 @@
 /** Client → MSGF API: project silo slug or UUID (overrides license tenant for pillar scope). */
 export const MSGF_TENANT_ID_HEADER = "x-msgf-tenant-id";
 
+/** IDE / BFF canonical tenant key (mirrored to {@link MSGF_TENANT_ID_HEADER}). */
+export const MSGF_TENANT_KEY_HEADER = "X-MSGF-Tenant-Key";
+
+/** Personal-token sandbox: grant company-admin scope on individual tenant silo. */
+export const MSGF_FALLBACK_ROLE_HEADER = "x-msgf-fallback-role";
+
+/** Explicit V3.2 operator tier from IDE (`global_admin` | `company_admin` | `dev`). */
+export const MSGF_ACCESS_ROLE_HEADER = "x-msgf-access-role";
+
+/** Team / company organization bound to the tenant key. */
+export const MSGF_ORGANIZATION_ID_HEADER = "x-msgf-organization-id";
+
 /** Headless IDE / CLI: stable developer identity (machine id, extension install id, etc.). */
 export const MSGF_ENTITY_ID_HEADER = "x-msgf-entity-id";
 

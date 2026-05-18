@@ -41,6 +41,7 @@ import {
   MSGF_ENTITY_ID_HEADER,
   MSGF_IDE_PULSE_HEADER,
   MSGF_TENANT_ID_HEADER,
+  MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
 import { runWithPulseTrace } from "@/lib/runtime/pulse-trace-context";
@@ -205,7 +206,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const headerTenant = req.headers.get(MSGF_TENANT_ID_HEADER)?.trim();
+      const headerTenant =
+        req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() ||
+        req.headers.get(MSGF_TENANT_ID_HEADER)?.trim();
       const tenantId = resolveTenantIdForPillars(
         headerTenant || license.tenantId,
         userMetadata
