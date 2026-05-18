@@ -279,6 +279,67 @@ export async function redisDel(key: string): Promise<void> {
   }
 }
 
+/**
+ * Bounded wait for first successful ping (Pulse SHARD warm-up). Returns null on timeout or misconfig.
+ */
+export async function ensureRedisConnectedWithTimeout(
+  timeoutMs = Number(process.env.MSGF_REDIS_CONNECT_TIMEOUT_MS || 3_000)
+): Promise<Redis | null> {
+  if (!isRedisConfigured()) return null;
+
+  const bounded = Math.max(500, Math.min(timeoutMs, 30_000));
+
+  try {
+    return await Promise.race([
+      ensureRedisConnected(),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), bounded);
+      }),
+    ]);
+  } catch {
+    return null;
+  }
+}
+
+/** SET key NX with optional TTL. Returns true when the lock was acquired. */
+export async function redisSetNx(
+  key: string,
+  value: string,
+  ttlSeconds?: number
+): Promise<boolean> {
+  const redis = getRedisClient();
+  if (!redis) return false;
+  try {
+    const result =
+      ttlSeconds != null && ttlSeconds > 0
+        ? await redis.set(key, value, "EX", ttlSeconds, "NX")
+        : await redis.set(key, value, "NX");
+    return result === "OK";
+  } catch (err) {
+    console.warn("[msgf/redis-client] SET NX failed:", err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
+/** INCR with window TTL on first increment. Returns null when Redis unavailable. */
+export async function redisIncrWithWindow(
+  key: string,
+  windowSeconds: number
+): Promise<number | null> {
+  const redis = getRedisClient();
+  if (!redis) return null;
+  try {
+    const count = await redis.incr(key);
+    if (count === 1 && windowSeconds > 0) {
+      await redis.expire(key, windowSeconds);
+    }
+    return count;
+  } catch (err) {
+    console.warn("[msgf/redis-client] INCR failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 /** Test-only: disconnect and clear singleton. */
 export async function __resetRedisClientForTests(): Promise<void> {
   if (client) {

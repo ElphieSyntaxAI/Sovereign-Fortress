@@ -19,9 +19,12 @@ const KEY_PREFIX = "msgf";
 export {
   getRedisClient,
   ensureRedisConnected,
+  ensureRedisConnectedWithTimeout,
   isRedisConfigured,
   redisGet,
   redisSet,
+  redisSetNx,
+  redisIncrWithWindow,
   redisDel,
   __resetRedisClientForTests,
 } from "./redis-client";

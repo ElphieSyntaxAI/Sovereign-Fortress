@@ -218,7 +218,7 @@ async function main() {
       console.log("OK: pillar_vectors.embedding is vector(1536).");
     } else if (t === "vector(768)") {
       console.error(
-        "FAIL: pillar_vectors.embedding is still vector(768). Apply migration 20260506200000 on a fresh table, or migrate embeddings to 1536."
+        "FAIL: pillar_vectors.embedding is still vector(768). Run `npm run db:push` to apply migration 20260601120000_upgrade_vector_dimensions.sql, then re-embed cleared rows."
       );
       ok = false;
     } else {

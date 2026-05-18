@@ -100,6 +100,29 @@ export function isRedTierHallRecord(metadata: unknown): boolean {
   return false;
 }
 
+/** Resolve Hall/Vault tier from narrative or pillar_vectors metadata. */
+export function hallRecordTier(metadata: unknown): DriftTier | null {
+  if (metadata == null || typeof metadata !== "object") return null;
+  const record = metadata as Record<string, unknown>;
+  const vaultHall = record.vault_hall as Record<string, unknown> | undefined;
+  const raw = record.tier ?? vaultHall?.tier;
+  if (raw === "RED" || raw === "YELLOW" || raw === "GREEN") return raw;
+  return null;
+}
+
+/**
+ * V3.2 Step 7 (PERSIST) — purgeable low-priority Hall drift (never RED / YELLOW / HITL / LOM).
+ * Spec "LOW tier" maps to {@link DriftTier} `GREEN` (24h batch) in this codebase.
+ * Untiered legacy Hall rows (no `tier`) are treated as purgeable after retention window.
+ */
+export function isLowPriorityHallRecord(metadata: unknown): boolean {
+  if (isRedTierHallRecord(metadata)) return false;
+  const tier = hallRecordTier(metadata);
+  if (tier === "GREEN") return true;
+  if (tier === "YELLOW" || tier === "RED") return false;
+  return true;
+}
+
 export function classifyDriftTier(params: {
   ledger?: string;
   instance: string;

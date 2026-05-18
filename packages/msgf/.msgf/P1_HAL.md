@@ -1,7 +1,11 @@
-# P1 — HAL (Human Authorship Ledger)  
-**MSGF v3.2 · Universal Telemetry Pillar**
+# P4 Telemetry Extension — HAL (Human Authorship Ledger)  
+**MSGF v3.2 · Human input rhythm layer (State Ledger scope)**
 
-This document governs **P1 only**. It must not define governance rules (P2), identity stylometry (P3), temporal gates (P4), narrative audit taxonomy (P5), or world-model retrieval (P6).
+> **Naming note (read first):** The filename `P1_HAL.md` is **legacy** and does **not** denote V3.0/V3.2 **P1 — Static Ledger** (security constants, init guards, immutable global rules, legal versions that **HALT** on violation). Per the master specifications, that role belongs to **P1 Static Security** — see [`docs/MSGF_PILLAR_MAPPING_SSOT.md`](../../../docs/MSGF_PILLAR_MAPPING_SSOT.md) and `lib/msgf-legal.ts`.
+>
+> **This file** represents the **P4 Telemetry Extension: Human Authorship Ledger (HAL)**, capturing keystroke dynamics (rhythm, dwell, flight, paste/system-event markers). It is governed operationally under the **State Ledger** infrastructure (`lib/P4.ts`, `p4_hal_ledger`, `state_beats`, hot active slices) and the Author Ecosystem to avoid naming collisions with P1 Static Security.
+
+This charter governs **HAL telemetry only**. It must not define static security rules (engineering **P1**), governance consensus (engineering **P2**), identity stylometry (engineering **P3** / `.msgf/P3_STYLOMETRY.md`), revision lock calendars (`.msgf/P4_REVISION.md`), immutable narrative audit taxonomy (`.msgf/P5_AUDIT.md`), or world-model retrieval (`.msgf/P6_RAG.md`).
 
 ---
 

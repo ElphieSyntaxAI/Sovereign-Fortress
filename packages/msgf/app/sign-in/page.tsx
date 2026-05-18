@@ -15,7 +15,15 @@ import Link from "next/link";
 import { AuthForm } from "@/app/_components/auth/AuthForm";
 import { LandingNav } from "@/app/_components/landing/LandingNav";
 
-export default function SignInPage() {
+type Props = {
+  searchParams: Promise<{ next?: string }>;
+};
+
+export default async function SignInPage({ searchParams }: Props) {
+  const { next } = await searchParams;
+  const postLoginPath =
+    typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
+
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
       <LandingNav />
@@ -27,7 +35,7 @@ export default function SignInPage() {
           <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
           <p className="text-sm text-slate-400">Access your tenant workspace and MSGF gates.</p>
         </div>
-        <AuthForm mode="sign-in" />
+        <AuthForm mode="sign-in" postLoginPath={postLoginPath} />
         <p className="text-center text-sm text-slate-500">
           <Link href="/" className="text-violet-400/90 hover:underline">
             ← Back to home

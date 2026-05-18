@@ -23,13 +23,15 @@ type Mode = "sign-in" | "sign-up";
 
 type Props = {
   mode: Mode;
+  /** Override default post-login path (e.g. from `?next=/dashboard`). */
+  postLoginPath?: string;
 };
 
 function authCallbackUrl(): string {
   return resolveAuthRedirectUrl("/auth/callback");
 }
 
-export function AuthForm({ mode }: Props) {
+export function AuthForm({ mode, postLoginPath }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -95,7 +97,8 @@ export function AuthForm({ mode }: Props) {
           return;
         }
 
-        const targetPath = msgfPostLoginPath();
+        const targetPath =
+          postLoginPath?.trim().startsWith("/") ? postLoginPath.trim() : msgfPostLoginPath();
         const redirectUrl = resolveAuthRedirectUrl(targetPath);
         console.info("[AuthForm] sign-in OK, redirecting to", redirectUrl);
         window.location.assign(redirectUrl);
@@ -107,7 +110,7 @@ export function AuthForm({ mode }: Props) {
         setLoading(false);
       }
     },
-    [email, password, isSignUp]
+    [email, password, isSignUp, postLoginPath]
   );
 
   return (

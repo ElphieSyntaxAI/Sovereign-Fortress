@@ -54,7 +54,7 @@ Data and logic are segmented to reduce noise, isolate context, and optimize toke
 | **P5 — Local Variables** | Site/module sharded context | Per-tenant UI config, `tenant-manifest.json`, dashboard shells |
 | **P6 — Constraint Ledger** | **Vault** (positive) vs **Hall** (negative) | `msgf-shadow.ts`, `msgf-index.ts`, `pillar_vectors`, Hall purge (30d LOW) |
 
-Pillar charters for AI/dev: `packages/msgf/.msgf/P1_HAL.md` … `P6_RAG.md` (authoring domain); engineering rules: `packages/msgf/.cursorrules`.
+Pillar charters for AI/dev: `packages/msgf/.msgf/P1_HAL.md` … `P6_RAG.md` (authoring domain; **see [`MSGF_PILLAR_MAPPING_SSOT.md`](./MSGF_PILLAR_MAPPING_SSOT.md)** for filename ↔ V3.0 pillar crosswalk); engineering rules: `packages/msgf/.cursorrules`.
 
 ### 2.2 Genealogical bug index (1.1.1 — V3.2)
 

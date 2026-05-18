@@ -33,14 +33,9 @@
  * Requires: NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY
  */
 
-import { createClient } from "@supabase/supabase-js";
-import { isRedTierHallRecord } from "../lib/services/ReportingEngine.ts";
+import { runHallPurgeProtocol } from "../lib/services/hall-purge-protocol.ts";
 
-const PAGE_SIZE = 500;
-const DELETE_CHUNK = 100;
 const DEFAULT_RETENTION_DAYS = 30;
-
-const TABLES = ["pillar_vectors", "p4_narrative_logs"];
 
 function parseArgs(argv) {
   const out = { days: DEFAULT_RETENTION_DAYS, dryRun: false, yes: false };
@@ -64,8 +59,8 @@ Options:
   --dry-run     Count candidates only; no deletes
   --yes         Required to execute deletes (omit with --dry-run)
 
-Tables: pillar_vectors, p4_narrative_logs
-Keeps: RED-tier + 1.1.1_HITL_TIEBREAKER + 1.1.1_LOM_RECURSION_LIMIT
+Tables: pillar_vectors, p4_narrative_logs, msgf_sandbox, msgf_incidents (resolved LOW/GREEN)
+Keeps: RED-tier + 1.1.1_HITL_TIEBREAKER + 1.1.1_LOM_RECURSION_LIMIT; YELLOW Hall rows
 `);
       process.exit(0);
     }
@@ -74,122 +69,12 @@ Keeps: RED-tier + 1.1.1_HITL_TIEBREAKER + 1.1.1_LOM_RECURSION_LIMIT
   return out;
 }
 
-function cutoffIso(days) {
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-}
-
-/**
- * @param {import('@supabase/supabase-js').SupabaseClient} supabase
- */
-async function fetchHallCandidates(supabase, table, cutoff) {
-  const purgeIds = [];
-  let retained = 0;
-  let scanned = 0;
-  let offset = 0;
-
-  while (true) {
-    const { data, error } = await supabase
-      .from(table)
-      .select("id, metadata, created_at")
-      .eq("metadata->>ledger", "hall")
-      .lt("created_at", cutoff)
-      .order("created_at", { ascending: true })
-      .range(offset, offset + PAGE_SIZE - 1);
-
-    if (error) {
-      throw new Error(`${table} scan failed: ${error.message}`);
-    }
-
-    const rows = data ?? [];
-    if (!rows.length) break;
-
-    scanned += rows.length;
-    for (const row of rows) {
-      if (isRedTierHallRecord(row.metadata)) {
-        retained += 1;
-        continue;
-      }
-      purgeIds.push(row.id);
-    }
-
-    if (rows.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-
-  return { purgeIds, retained, scanned };
-}
-
-/**
- * @param {import('@supabase/supabase-js').SupabaseClient} supabase
- */
-async function deleteByIds(supabase, table, ids) {
-  let deleted = 0;
-  for (let i = 0; i < ids.length; i += DELETE_CHUNK) {
-    const chunk = ids.slice(i, i + DELETE_CHUNK);
-    const { error, count } = await supabase.from(table).delete({ count: "exact" }).in("id", chunk);
-    if (error) {
-      throw new Error(`${table} delete failed: ${error.message}`);
-    }
-    deleted += count ?? chunk.length;
-  }
-  return deleted;
-}
-
-async function purgeTable(supabase, table, cutoff, dryRun) {
-  const { purgeIds, retained, scanned } = await fetchHallCandidates(supabase, table, cutoff);
-
-  if (dryRun) {
-    return { table, scanned, retained, deleted: 0, wouldDelete: purgeIds.length };
-  }
-
-  const deleted = purgeIds.length ? await deleteByIds(supabase, table, purgeIds) : 0;
-  return { table, scanned, retained, deleted, wouldDelete: purgeIds.length };
-}
-
-export async function runHallPurgeProtocol(options = {}) {
-  const days = options.days ?? DEFAULT_RETENTION_DAYS;
-  const dryRun = options.dryRun ?? false;
-  const yes = options.yes ?? false;
-
-  if (!dryRun && !yes) {
-    throw new Error("Refusing to delete without yes=true (use dryRun to preview).");
-  }
-
-  const supabaseUrl =
-    options.supabaseUrl?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
-    process.env.SUPABASE_URL?.trim();
-  const serviceRole =
-    options.serviceRole?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-  if (!supabaseUrl || !serviceRole) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY."
-    );
-  }
-
-  const cutoff = cutoffIso(days);
-  const supabase =
-    options.supabase ??
-    createClient(supabaseUrl, serviceRole, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-
-  const results = [];
-  for (const table of TABLES) {
-    results.push(await purgeTable(supabase, table, cutoff, dryRun));
-  }
-
-  const total = results.reduce(
-    (sum, r) => sum + (dryRun ? r.wouldDelete : r.deleted),
-    0
-  );
-
-  return { cutoff, days, dryRun, results, total };
-}
-
 async function main() {
   const { days, dryRun, yes } = parseArgs(process.argv.slice(2));
+
+  if (!dryRun && !yes) {
+    throw new Error("Refusing to delete without --yes (use --dry-run to preview).");
+  }
 
   console.log("MSGF ops-purge-hall — 30-day Brain hygiene protocol");
   console.log("  Goal    : drop stale non-critical Hall noise from vector + narrative stores");
@@ -198,21 +83,34 @@ async function main() {
   console.log("  Keep    : RED-tier + HITL / LOM recursion (long-term protection training)");
   console.log("");
 
-  const { cutoff, results, total } = await runHallPurgeProtocol({ days, dryRun, yes });
+  const result = await runHallPurgeProtocol({
+    days,
+    dryRun,
+    execute: yes && !dryRun,
+  });
 
-  console.log(`  Cutoff  : created_at < ${cutoff}`);
+  console.log(`  Cutoff  : created_at < ${result.cutoff}`);
   console.log("");
 
-  for (const r of results) {
+  for (const r of result.tables) {
     console.log(`Table: ${r.table}`);
     console.log(`  Scanned (hall, stale): ${r.scanned}`);
-    console.log(`  Retained (critical):   ${r.retained}`);
+    console.log(`  Retained (non-LOW):    ${r.retained}`);
     console.log(
       `  ${dryRun ? "Would delete" : "Deleted"}:          ${dryRun ? r.wouldDelete : r.deleted}`
     );
     console.log("");
   }
 
+  console.log("Table: msgf_incidents (resolved LOW/GREEN)");
+  console.log(`  Scanned: ${result.incidents.scanned}`);
+  console.log(`  Retained: ${result.incidents.retained}`);
+  console.log(
+    `  ${dryRun ? "Would delete" : "Deleted"}: ${dryRun ? result.incidents.wouldDelete : result.incidents.deleted}`
+  );
+  console.log("");
+
+  const total = dryRun ? result.total_would_delete : result.total_deleted;
   console.log(
     dryRun
       ? `Dry run complete. ${total} row(s) would be purged — Brain index stays lean.`

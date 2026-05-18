@@ -129,6 +129,7 @@ import {
   runWithLlmTimeoutSimple,
 } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
+import type { PulseHotSession } from "@/lib/services/pulse-hot-session";
 
 const LOM_MAX_ATTEMPTS = MAX_RECURSION_DEPTH;
 /** HITL / LOM recursion ceiling — exceeding throws {@link ERR_RECURSION_LIMIT}. */
@@ -188,6 +189,8 @@ export type PulseFullPipelineInput = PulseEngineInput & {
   license: PulseLicenseContext;
   /** Logic-drift sensitivity slider (0.1 strict → 0.5 relaxed). Default 0.3. */
   logicDriftEscalationThreshold?: number;
+  /** V3.2 SHARD / CROSS-REF hot session from the HTTP route (Redis fail-open). */
+  hotSession?: PulseHotSession;
 };
 
 export type LineageLedgerRow = {
@@ -304,7 +307,8 @@ export class PulseEngine {
     const pledge = await this.assertPledgeAndBaseline(
       input.supabase,
       input.tenantId,
-      input.entityId
+      input.entityId,
+      input.hotSession
     );
     if (!pledge.ok) {
       return {
@@ -1337,11 +1341,20 @@ export class PulseEngine {
   private async assertPledgeAndBaseline(
     supabase: SupabaseClient,
     tenantId: string,
-    entityId: string
+    entityId: string,
+    hotSession?: PulseHotSession
   ): Promise<
     | { ok: true; legalVersion: string }
     | { ok: false; body: Record<string, unknown> }
   > {
+    const cachedPledge = hotSession ? await hotSession.getCachedPledge() : null;
+    if (cachedPledge?.kind === "ok") {
+      return { ok: true, legalVersion: cachedPledge.legalVersion };
+    }
+    if (cachedPledge?.kind === "baseline_required") {
+      return { ok: false, body: cachedPledge.body };
+    }
+
     /** Narrow PostgREST generic depth from `state_beats` filtering (TS2589). */
     type EqQuery = { eq: (column: string, value: string) => EqQuery };
 
@@ -1378,16 +1391,27 @@ export class PulseEngine {
     let biometricProfile = await getBiometricProfile(supabase, entityId);
     if (!biometricProfile) {
       biometricProfile = await recalibrateUser(supabase, entityId);
-      return {
+      const baselineBody = {
         ok: false,
-        body: {
-          ok: false,
-          baseline_required: true,
-          message: "Baseline Pulse required.",
-          prompt: "Type 2-3 sentences about your favorite book",
-          baseline_training_remaining: biometricProfile.baseline_training_remaining,
-        },
+        baseline_required: true,
+        message: "Baseline Pulse required.",
+        prompt: "Type 2-3 sentences about your favorite book",
+        baseline_training_remaining: biometricProfile.baseline_training_remaining,
       };
+      if (hotSession) {
+        await hotSession.setCachedPledge({
+          kind: "baseline_required",
+          body: baselineBody,
+        });
+      }
+      return { ok: false, body: baselineBody };
+    }
+
+    if (hotSession) {
+      await hotSession.setCachedPledge({
+        kind: "ok",
+        legalVersion: signedVersion,
+      });
     }
 
     return { ok: true, legalVersion: signedVersion };

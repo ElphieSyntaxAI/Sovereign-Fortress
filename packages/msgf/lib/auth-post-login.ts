@@ -9,7 +9,7 @@ export function msgfPostLoginPath(): string {
   const fromEnv =
     process.env.NEXT_PUBLIC_MSGF_POST_LOGIN_PATH?.trim() ||
     process.env.MSGF_POST_LOGIN_PATH?.trim();
-  if (!fromEnv) return "/todos";
+  if (!fromEnv) return "/dashboard";
   return fromEnv.startsWith("/") ? fromEnv : `/${fromEnv}`;
 }
 

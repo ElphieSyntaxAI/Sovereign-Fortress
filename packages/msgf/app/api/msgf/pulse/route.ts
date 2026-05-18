@@ -15,6 +15,8 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { createClient as createSupabaseServerClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { assertServiceAccountPresent } from "@/lib/msgf-vertex";
@@ -42,6 +44,12 @@ import {
 } from "@/lib/msgf-http-headers";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
 import { runWithPulseTrace } from "@/lib/runtime/pulse-trace-context";
+import {
+  peekPulseTextSeed,
+  preparePulseHotLayer,
+  pulseHotLayerDiagnostics,
+  type PulseHotSession,
+} from "@/lib/services/pulse-hot-session";
 
 function pulseJson(req: NextRequest, data: unknown, init?: ResponseInit) {
   const res = NextResponse.json(data, init);
@@ -70,6 +78,36 @@ function isAdminTiebreakRequest(req: NextRequest): boolean {
 
 function isIdePulseRequest(req: NextRequest): boolean {
   return req.headers.get(MSGF_IDE_PULSE_HEADER)?.trim() === "1";
+}
+
+async function runPulsePipelineWithHotLayer(params: {
+  hotSession: PulseHotSession;
+  supabase: SupabaseClient;
+  adminSupabase: SupabaseClient;
+  entityId: string;
+  tenantId: string;
+  traceId: string;
+  rawBody: unknown;
+  geminiModelId: string;
+  forceLomMismatch: boolean;
+  lomHarnessEnabled: boolean;
+  license: PulseLicenseContext;
+  logicDriftEscalationThreshold: number | undefined;
+}) {
+  return pulseEngine.runFullPipeline({
+    supabase: params.supabase,
+    adminSupabase: params.adminSupabase,
+    entityId: params.entityId,
+    tenantId: params.tenantId,
+    traceId: params.traceId,
+    rawBody: params.rawBody,
+    geminiModelId: params.geminiModelId,
+    forceLomMismatch: params.forceLomMismatch,
+    lomHarnessEnabled: params.lomHarnessEnabled,
+    license: params.license,
+    logicDriftEscalationThreshold: params.logicDriftEscalationThreshold,
+    hotSession: params.hotSession,
+  });
 }
 
 export async function OPTIONS(req: NextRequest) {
@@ -196,15 +234,39 @@ export async function POST(req: NextRequest) {
         req.headers.get("x-msgf-test-force-mismatch")?.toLowerCase() === "true";
       const logicDriftEscalationThreshold = parseLogicDriftThresholdFromHeaders(req.headers);
 
+      const rawBody = await req.json();
+      const pulseTextSeed = peekPulseTextSeed(rawBody);
+
+      const { session: hotSession, rateLimitExceeded } = await preparePulseHotLayer({
+        traceId,
+        tenantId,
+        entityId,
+        pulseTextSeed,
+      });
+
+      if (rateLimitExceeded) {
+        await hotSession.release();
+        return pulseJsonWithTrace(
+          req,
+          traceId,
+          {
+            error: "RATE_LIMIT_EXCEEDED",
+            hot_layer: pulseHotLayerDiagnostics(hotSession),
+          },
+          { status: 429 }
+        );
+      }
+
       let pipelineResult;
       try {
-        pipelineResult = await pulseEngine.runFullPipeline({
+        pipelineResult = await runPulsePipelineWithHotLayer({
+          hotSession,
           supabase,
           adminSupabase,
           entityId,
           tenantId,
           traceId,
-          rawBody: await req.json(),
+          rawBody,
           geminiModelId,
           forceLomMismatch: forceMismatch,
           lomHarnessEnabled: lomTestHarnessEnabled(),
@@ -218,7 +280,14 @@ export async function POST(req: NextRequest) {
         }
         await endTenantCreditReservation(adminSupabase, creditStart, 500);
         throw e;
+      } finally {
+        await hotSession.release();
       }
+
+      const withHotLayer = (payload: Record<string, unknown>) => ({
+        ...payload,
+        hot_layer: pulseHotLayerDiagnostics(hotSession),
+      });
 
       if (pipelineResult.kind === "baseline_required") {
         void insertPulseAdminVaultForensic({
@@ -228,7 +297,12 @@ export async function POST(req: NextRequest) {
           kind: "pulse_baseline_required",
           payload: pipelineResult.forensic,
         });
-        const res202 = pulseJsonWithTrace(req, traceId, pipelineResult.public, { status: 202 });
+        const res202 = pulseJsonWithTrace(
+          req,
+          traceId,
+          withHotLayer(pipelineResult.public as Record<string, unknown>),
+          { status: 202 }
+        );
         await endTenantCreditReservation(adminSupabase, creditStart, res202.status);
         return res202;
       }
@@ -241,7 +315,11 @@ export async function POST(req: NextRequest) {
         payload: pipelineResult.forensic,
       });
 
-      const res200 = pulseJsonWithTrace(req, traceId, pipelineResult.public);
+      const res200 = pulseJsonWithTrace(
+        req,
+        traceId,
+        withHotLayer(pipelineResult.public as Record<string, unknown>)
+      );
       await endTenantCreditReservation(adminSupabase, creditStart, res200.status);
       return res200;
     });
