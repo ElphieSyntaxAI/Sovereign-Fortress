@@ -12,22 +12,25 @@
  */
 /**
  * Shared cookie domain for Supabase auth across elphiesyntax.com subdomains (and the author BFF).
- * Loaded from the monorepo root `.env` / `.env.local` (see `packages/msgf/next.config.ts` and BFF
- * `loadMonorepoRootEnv`): `MSGF_AUTH_COOKIE_DOMAIN`, `MSGF_AUTH_COOKIE_SECURE`.
  *
- * For local dev (`localhost:3000` Next + `localhost:3002` BFF), leave unset or set to `host` so
- * cookies are host-only for `localhost` and the browser sends them on every localhost port.
+ * Env (server + client via NEXT_PUBLIC_*):
+ *   MSGF_AUTH_COOKIE_DOMAIN=host     — host-only cookies (required for *.run.app / localhost)
+ *   MSGF_AUTH_COOKIE_DOMAIN=.elphiesyntax.com — shared apex (custom domain only)
+ *   MSGF_AUTH_COOKIE_SECURE=1        — force Secure flag (HTTPS)
+ *
+ * Do not default to `.elphiesyntax.com` in production: standalone Cloud Run hosts cannot set
+ * cookies for that domain and sign-in will hang or loop with no session.
  */
 export function msgfAuthCookieDomain(): string | undefined {
-  const fromEnv = process.env.MSGF_AUTH_COOKIE_DOMAIN?.trim();
-  if (fromEnv === "" || fromEnv?.toLowerCase() === "host") {
+  const fromEnv =
+    process.env.MSGF_AUTH_COOKIE_DOMAIN?.trim() ||
+    process.env.NEXT_PUBLIC_MSGF_AUTH_COOKIE_DOMAIN?.trim();
+
+  if (!fromEnv || fromEnv.toLowerCase() === "host") {
     return undefined;
   }
-  if (fromEnv) return fromEnv;
-  if (process.env.NODE_ENV === "production") {
-    return ".elphiesyntax.com";
-  }
-  return undefined;
+
+  return fromEnv;
 }
 
 export function withMsgfAuthCookieOptions<T extends Record<string, unknown> | undefined>(
@@ -43,6 +46,7 @@ export function withMsgfAuthCookieOptions<T extends Record<string, unknown> | un
     secure:
       (base.secure as boolean | undefined) ??
       (process.env.NODE_ENV === "production" ||
-        process.env.MSGF_AUTH_COOKIE_SECURE === "1"),
+        process.env.MSGF_AUTH_COOKIE_SECURE === "1" ||
+        process.env.NEXT_PUBLIC_MSGF_AUTH_COOKIE_SECURE === "1"),
   } as T & { path: string; sameSite: "lax" | "strict" | "none"; secure: boolean };
 }

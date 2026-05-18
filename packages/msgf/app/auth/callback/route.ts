@@ -12,12 +12,13 @@
  */
 import { NextResponse } from "next/server";
 
+import { msgfPostLoginPath } from "@/lib/auth-post-login";
 import { createClient } from "@/utils/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/todos";
+  const next = searchParams.get("next") ?? msgfPostLoginPath();
 
   if (code) {
     const { cookies } = await import("next/headers");

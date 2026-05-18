@@ -13,9 +13,10 @@
  * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
  */
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
+import { msgfPostLoginPath, resolveAuthRedirectUrl } from "@/lib/auth-post-login";
+import { msgfAuthCookieDomain } from "@/lib/msgf-auth-cookies";
 import { createClient } from "@/utils/supabase/client";
 
 type Mode = "sign-in" | "sign-up";
@@ -24,8 +25,11 @@ type Props = {
   mode: Mode;
 };
 
+function authCallbackUrl(): string {
+  return resolveAuthRedirectUrl("/auth/callback");
+}
+
 export function AuthForm({ mode }: Props) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,31 +47,67 @@ export function AuthForm({ mode }: Props) {
 
       const supabase = createClient();
 
-      if (isSignUp) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-        });
-        setLoading(false);
-        if (signUpError) {
-          setError(signUpError.message);
+      try {
+        if (isSignUp) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { emailRedirectTo: authCallbackUrl() },
+          });
+          if (signUpError) {
+            console.error("[AuthForm] sign-up failed:", signUpError.message, signUpError);
+            setError(signUpError.message);
+            return;
+          }
+          setMessage(
+            "Check your email to confirm your account, or sign in if confirmation is disabled."
+          );
           return;
         }
-        setMessage("Check your email to confirm your account, or sign in if confirmation is disabled.");
-        return;
-      }
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      setLoading(false);
-      if (signInError) {
-        setError(signInError.message);
-        return;
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) {
+          console.error("[AuthForm] signInWithPassword failed:", signInError.message, signInError);
+          setError(signInError.message);
+          return;
+        }
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error("[AuthForm] getSession after sign-in failed:", sessionError.message, sessionError);
+          throw sessionError;
+        }
+
+        if (!sessionData.session) {
+          const cookieDomain = msgfAuthCookieDomain() ?? "(host-only)";
+          const hint =
+            "Sign-in returned 200 but no session was stored. On Cloud Run set MSGF_AUTH_COOKIE_DOMAIN=host " +
+            "and NEXT_PUBLIC_MSGF_AUTH_COOKIE_DOMAIN=host in your deploy env (not .elphiesyntax.com).";
+          console.error("[AuthForm] missing session after sign-in", {
+            origin: window.location.origin,
+            cookieDomain,
+            hint,
+          });
+          setError(hint);
+          return;
+        }
+
+        const targetPath = msgfPostLoginPath();
+        const redirectUrl = resolveAuthRedirectUrl(targetPath);
+        console.info("[AuthForm] sign-in OK, redirecting to", redirectUrl);
+        window.location.assign(redirectUrl);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[AuthForm] unhandled sign-in error:", err);
+        setError(msg || "Sign-in failed. See browser console for details.");
+      } finally {
+        setLoading(false);
       }
-      router.push("/todos");
-      router.refresh();
     },
-    [email, password, isSignUp, router]
+    [email, password, isSignUp]
   );
 
   return (
@@ -83,7 +123,8 @@ export function AuthForm({ mode }: Props) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg border border-violet-500/25 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 outline-none ring-emerald-500/30 focus:border-emerald-500/50 focus:ring-2"
+          disabled={loading}
+          className="w-full rounded-lg border border-violet-500/25 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 outline-none ring-emerald-500/30 focus:border-emerald-500/50 focus:ring-2 disabled:opacity-60"
         />
       </label>
       <label className="block space-y-1.5">
@@ -95,12 +136,16 @@ export function AuthForm({ mode }: Props) {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border border-violet-500/25 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 outline-none ring-violet-500/30 focus:border-violet-500/50 focus:ring-2"
+          disabled={loading}
+          className="w-full rounded-lg border border-violet-500/25 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 outline-none ring-violet-500/30 focus:border-violet-500/50 focus:ring-2 disabled:opacity-60"
         />
       </label>
 
       {error ? (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200" role="alert">
+        <p
+          className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
