@@ -1,0 +1,143 @@
+import type { ViolationDiagnostic } from "../pulseViolationAudit";
+import type { PillarHealthReport } from "../pillarHealthTypes";
+import { aggregateStoplight } from "../pillarHealthTypes";
+import { JEWEL_SIDEBAR_STYLES } from "../ui/jewelTheme";
+
+export type DashboardHealthView = {
+  apiUrl: string;
+  tenantId: string;
+  report: PillarHealthReport | null;
+  healthError: string | null;
+  scanMessage: string | null;
+  scanOk: boolean | null;
+  violationSummary: string | null;
+  violationDiagnostics: ViolationDiagnostic[] | null;
+};
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderPillarRows(report: PillarHealthReport | null): string {
+  if (!report?.pillars?.length) {
+    return `<p class="muted">Health data unavailable — check msgf.authToken and apiUrl.</p>`;
+  }
+
+  return report.pillars
+    .map((p) => {
+      const tone =
+        p.status === "red" ? "red" : p.status === "green" ? "green" : "yellow";
+      return `<li class="pillar ${tone}"><span class="id">${escapeHtml(p.pillar)}</span> ${escapeHtml(p.label)} — ${escapeHtml(p.status_label)}</li>`;
+    })
+    .join("");
+}
+
+function renderViolationDiagnostics(
+  summary: string | null,
+  items: ViolationDiagnostic[] | null
+): string {
+  if (!summary && (!items || !items.length)) return "";
+
+  const rows =
+    items?.map((d) => {
+      const loc = [d.path, d.line].filter(Boolean).join(":");
+      return `<li>
+        <span class="rule">${escapeHtml(d.ruleIndex)}</span>
+        ${loc ? `<span class="loc">${escapeHtml(loc)}</span>` : ""}
+        ${escapeHtml(d.summary)}
+      </li>`;
+    }).join("") ?? "";
+
+  return `
+  <div class="diagnostics-panel" id="diagnosticsPanel">
+    <h3>Wrong logic diagnostics</h3>
+    ${summary ? `<p class="muted">${escapeHtml(summary)}</p>` : ""}
+    <ul class="diagnostics">${rows || "<li class=\"muted\">No line-level detail returned — check trace in Cloud Run logs.</li>"}</ul>
+  </div>`;
+}
+
+
+function statCard(label: string, value: string, tone: string): string {
+  return `
+    <div class="stat-wrap">
+      <div class="stat ${tone}">
+        <div class="label">${escapeHtml(label)}</div>
+        <div class="value">${value}</div>
+      </div>
+    </div>`;
+}
+
+export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
+  const agg = view.report ? aggregateStoplight(view.report) : null;
+  const overall = agg?.tone ?? "unknown";
+  const overallLabel =
+    overall === "green"
+      ? "All pillars healthy"
+      : overall === "yellow"
+        ? "Degraded"
+        : overall === "red"
+          ? "Halt / violations"
+          : "Awaiting poll";
+
+  const scanBanner =
+    view.scanMessage != null
+      ? `<div id="scanBanner" class="banner ${view.scanOk ? "ok" : "err"}">${escapeHtml(view.scanMessage)}</div>`
+      : "";
+
+  const pillarCount = view.report?.pillars?.length ?? "—";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>${JEWEL_SIDEBAR_STYLES}</style>
+</head>
+<body>
+  <h1>MSGF Operations</h1>
+  <p class="meta">Tenant: <strong>${escapeHtml(view.tenantId)}</strong><br/>API: ${escapeHtml(view.apiUrl)}</p>
+
+  <h2>System health</h2>
+  <div class="stat-grid">
+    ${statCard("Stoplight", escapeHtml(overallLabel), overall)}
+    ${statCard("Pillars", String(pillarCount), "unknown")}
+  </div>
+  ${view.healthError ? `<p class="muted">${escapeHtml(view.healthError)}</p>` : ""}
+  <ul class="pillars">${renderPillarRows(view.report)}</ul>
+
+  <h2>Violations</h2>
+  ${renderViolationDiagnostics(view.violationSummary, view.violationDiagnostics)}
+
+  <h2>Actions</h2>
+  <button class="scan" id="shadowScanBtn" type="button">Trigger Shadow Scan</button>
+  ${scanBanner}
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    const btn = document.getElementById('shadowScanBtn');
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      vscode.postMessage({ type: 'triggerShadowScan' });
+    });
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (msg.type === 'shadowScanResult') {
+        btn.disabled = false;
+        let el = document.getElementById('scanBanner');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'scanBanner';
+          btn.after(el);
+        }
+        el.className = 'banner ' + (msg.ok ? 'ok' : 'err');
+        el.textContent = msg.message || (msg.ok ? 'Scan succeeded.' : 'Scan failed.');
+      }
+    });
+  </script>
+</body>
+</html>`;
+}

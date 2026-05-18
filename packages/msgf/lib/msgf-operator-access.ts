@@ -14,7 +14,16 @@ import type { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { assertMsgfServiceAdmin } from "@/lib/msgf-admin-auth";
-import { MSGF_OPERATOR_USER_ID_HEADER } from "@/lib/msgf-http-headers";
+import {
+  MSGF_AUTO_PROMOTED_HEADER,
+  MSGF_OPERATOR_USER_ID_HEADER,
+  MSGF_PERSONAL_SANDBOX_HEADER,
+  MSGF_TENANT_KEY_HEADER,
+} from "@/lib/msgf-http-headers";
+import {
+  allocatePersonalSandboxTenantId,
+  isIndependentDeveloper,
+} from "@/lib/msgf-tenant-governance";
 
 export { MSGF_OPERATOR_USER_ID_HEADER };
 
@@ -84,6 +93,45 @@ export async function listUserIdsForCompany(
 }
 
 /**
+ * Personal sandbox operator elevated by tenant middleware (company_admin, own silo only).
+ */
+export async function resolvePersonalSandboxOperator(
+  req: NextRequest,
+  admin: SupabaseClient
+): Promise<DashboardOperatorContext | null> {
+  if (
+    req.headers.get(MSGF_PERSONAL_SANDBOX_HEADER)?.trim() !== "1" ||
+    req.headers.get(MSGF_AUTO_PROMOTED_HEADER)?.trim() !== "1"
+  ) {
+    return null;
+  }
+
+  const operatorUserId = req.headers.get(MSGF_OPERATOR_USER_ID_HEADER)?.trim() || null;
+  if (!operatorUserId) return null;
+
+  const tenantKey = req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() ?? null;
+  const profile = await fetchProfileCompanyAndRole(admin, operatorUserId);
+  const independent = isIndependentDeveloper({
+    company_id: profile.company_id,
+    tenantKey,
+  });
+  if (!independent) return null;
+
+  const scopedTenant = allocatePersonalSandboxTenantId(operatorUserId);
+  if (tenantKey && tenantKey !== scopedTenant && !tenantKey.endsWith(operatorUserId)) {
+    throw new MsgfOperatorGateError("Personal sandbox tenant scope mismatch.", 403);
+  }
+
+  return {
+    role: "COMPANY_ADMIN",
+    companyId: null,
+    operatorUserId,
+    dashboardView: "tenant_health",
+    canPromoteToGlobal: false,
+  };
+}
+
+/**
  * Resolves operator RBAC after {@link assertMsgfServiceAdmin}.
  * Omit {@link MSGF_OPERATOR_USER_ID_HEADER} for legacy global-ops callers (full tenant health).
  */
@@ -91,6 +139,9 @@ export async function resolveDashboardOperator(
   req: NextRequest,
   admin: SupabaseClient
 ): Promise<DashboardOperatorContext> {
+  const personal = await resolvePersonalSandboxOperator(req, admin);
+  if (personal) return personal;
+
   assertMsgfServiceAdmin(req);
 
   const operatorUserId = req.headers.get(MSGF_OPERATOR_USER_ID_HEADER)?.trim() || null;

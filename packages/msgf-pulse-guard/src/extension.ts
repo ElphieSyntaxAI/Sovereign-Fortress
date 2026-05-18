@@ -6,12 +6,18 @@ import * as vscode from "vscode";
 import { readMsgfSettings, settingsReady } from "./config";
 import { registerOpenDashboardCommand } from "./dashboardPanel";
 import { GuardSession } from "./guardSession";
+import {
+  bindViolationDashboardProvider,
+  registerViolationCommands,
+} from "./pulseViolationAlert";
+import { registerMsgfDashboardProvider } from "./providers/msgfDashboardProvider";
 import { StoplightStatusBar } from "./stoplightStatusBar";
 
 const LOG_PREFIX = "[MSGF Guard]";
 
 let session: GuardSession | null = null;
 let stoplightBar: StoplightStatusBar | null = null;
+let sidebarDashboard: ReturnType<typeof registerMsgfDashboardProvider> | null = null;
 
 export function activate(context: vscode.ExtensionContext): void {
   console.log(`${LOG_PREFIX} Extension successfully initialized.`);
@@ -21,6 +27,9 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push({ dispose: () => stoplightBar?.dispose() });
 
   registerOpenDashboardCommand(context);
+  registerViolationCommands(context);
+  sidebarDashboard = registerMsgfDashboardProvider(context);
+  bindViolationDashboardProvider(sidebarDashboard);
 
   session = new GuardSession(context, {
     onSnapshot: () => {
@@ -46,6 +55,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!e.affectsConfiguration("msgf")) return;
       await session?.reloadFromSettings();
       void stoplightBar?.refresh();
+      void sidebarDashboard?.refresh();
       const settings = readMsgfSettings();
       const ready = settingsReady(settings);
       if (!ready.ok) {

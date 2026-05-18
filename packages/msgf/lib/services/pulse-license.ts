@@ -20,12 +20,14 @@ import type { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
-  MSGF_FALLBACK_ROLE_HEADER,
+  MSGF_AUTO_PROMOTED_HEADER,
   MSGF_IDE_PULSE_HEADER,
-  MSGF_ORGANIZATION_ID_HEADER,
+  MSGF_OPERATOR_USER_ID_HEADER,
+  MSGF_PERSONAL_SANDBOX_HEADER,
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
+import { allocatePersonalSandboxTenantId } from "@/lib/msgf-tenant-governance";
 import { PulseHttpError } from "@/lib/services/pulse-http-error";
 
 export type PulseLicenseContext = {
@@ -74,26 +76,29 @@ function resolveIdeTenantKey(request: NextRequest): string | null {
 }
 
 /**
- * Personal IDE bearer (non-`msgf_live_`) with sandbox company-admin fallback — no team org on tenant.
+ * IDE pulse after middleware auto-promotion (trusted personal sandbox headers).
  */
-function assertIdePersonalSandboxLicense(request: NextRequest): PulseLicenseContext | null {
+function assertPromotedPersonalSandboxLicense(request: NextRequest): PulseLicenseContext | null {
   if (!isIdePulseRequest(request)) return null;
-
-  const bearer = extractBearerTokenFromRequest(request);
-  if (!bearer || bearer.startsWith("msgf_live_")) return null;
-
-  const fallbackRole = request.headers.get(MSGF_FALLBACK_ROLE_HEADER)?.trim().toLowerCase();
-  if (fallbackRole !== "company_admin") return null;
-
-  const orgId = request.headers.get(MSGF_ORGANIZATION_ID_HEADER)?.trim();
-  if (orgId) return null;
+  if (request.headers.get(MSGF_PERSONAL_SANDBOX_HEADER)?.trim() !== "1") return null;
+  if (request.headers.get(MSGF_AUTO_PROMOTED_HEADER)?.trim() !== "1") return null;
 
   const tenantKey = resolveIdeTenantKey(request);
   if (!tenantKey) return null;
 
+  const operatorUserId = request.headers.get(MSGF_OPERATOR_USER_ID_HEADER)?.trim();
+  const scopedTenant = operatorUserId
+    ? allocatePersonalSandboxTenantId(operatorUserId)
+    : tenantKey;
+
+  const bearer = extractBearerTokenFromRequest(request);
+  const licenseSeed = bearer?.startsWith("msgf_live_")
+    ? bearer
+    : bearer ?? tenantKey;
+
   return {
-    licenseId: `ide-sandbox-${sha256HexUtf8(bearer).slice(0, 16)}`,
-    tenantId: tenantKey,
+    licenseId: `ide-sandbox-${sha256HexUtf8(licenseSeed).slice(0, 16)}`,
+    tenantId: scopedTenant,
     tierId: process.env.MSGF_PULSE_LICENSE_TIER?.trim() || "brain_contract",
   };
 }
@@ -117,7 +122,7 @@ export async function assertPulseLicense(params: {
     };
   }
 
-  const sandboxLicense = assertIdePersonalSandboxLicense(params.request);
+  const sandboxLicense = assertPromotedPersonalSandboxLicense(params.request);
   if (sandboxLicense) {
     return sandboxLicense;
   }

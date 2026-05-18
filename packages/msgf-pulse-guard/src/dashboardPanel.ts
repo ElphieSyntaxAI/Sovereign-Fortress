@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 
 import { readMsgfSettings } from "./config";
+import { JEWEL_PANEL_SHELL_STYLES } from "./ui/jewelTheme";
 
 let activePanel: vscode.WebviewPanel | undefined;
 
@@ -24,15 +25,17 @@ function buildDashboardHtml(cspSource: string, targetUrl: string): string {
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MSGF Dashboard</title>
-  <style>
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #1e1e1e; }
-    iframe { border: 0; width: 100%; height: 100%; }
-    .fallback { padding: 1rem; font-family: sans-serif; color: #ccc; }
-    a { color: #3794ff; }
-  </style>
+  <style>${JEWEL_PANEL_SHELL_STYLES}</style>
 </head>
 <body>
-  <iframe src="${safeUrl}" title="MSGF Dashboard"></iframe>
+  <div class="jewel-chrome">
+    <header class="jewel-header">MSGF <span class="accent">Governance</span> Dashboard</header>
+    <div class="jewel-frame-wrap">
+      <div class="jewel-frame-inner">
+        <iframe src="${safeUrl}" title="MSGF Dashboard"></iframe>
+      </div>
+    </div>
+  </div>
   <noscript>
     <div class="fallback">
       <p>MSGF Dashboard requires scripts.</p>

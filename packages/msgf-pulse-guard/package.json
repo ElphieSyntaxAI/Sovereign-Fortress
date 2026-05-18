@@ -17,6 +17,61 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "colors": [
+      {
+        "id": "msgf.jewel.midnight",
+        "description": "MSGF jewel midnight status bar backdrop",
+        "defaults": { "dark": "#04140e", "light": "#04140e" }
+      },
+      {
+        "id": "msgf.jewel.stoplight.green",
+        "description": "MSGF stoplight green — vibrant emerald",
+        "defaults": { "dark": "#10b981", "light": "#059669" }
+      },
+      {
+        "id": "msgf.jewel.stoplight.amber",
+        "description": "MSGF stoplight yellow — topaz amber warning",
+        "defaults": { "dark": "#f59e0b", "light": "#d97706" }
+      },
+      {
+        "id": "msgf.jewel.stoplight.ruby",
+        "description": "MSGF stoplight red — ruby crimson halt",
+        "defaults": { "dark": "#ef4444", "light": "#dc2626" }
+      },
+      {
+        "id": "msgf.jewel.stoplight.greenBg",
+        "description": "MSGF stoplight green background",
+        "defaults": { "dark": "#022c22", "light": "#022c22" }
+      },
+      {
+        "id": "msgf.jewel.stoplight.amberBg",
+        "description": "MSGF stoplight amber background",
+        "defaults": { "dark": "#1c1408", "light": "#1c1408" }
+      },
+      {
+        "id": "msgf.jewel.stoplight.rubyBg",
+        "description": "MSGF stoplight ruby background",
+        "defaults": { "dark": "#2a0a0a", "light": "#2a0a0a" }
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "msgf-ops",
+          "title": "MSGF",
+          "icon": "media/msgf.svg"
+        }
+      ]
+    },
+    "views": {
+      "msgf-ops": [
+        {
+          "type": "webview",
+          "id": "msgf.dashboard",
+          "name": "Operations"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "msgf.flushPulse",
@@ -26,6 +81,10 @@
         "command": "msgf.openDashboard",
         "title": "MSGF: Open Dashboard",
         "icon": "$(dashboard)"
+      },
+      {
+        "command": "msgf.openDiagnostics",
+        "title": "MSGF: Open violation diagnostics"
       }
     ],
     "configuration": {

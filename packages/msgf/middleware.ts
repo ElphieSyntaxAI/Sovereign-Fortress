@@ -29,7 +29,7 @@ import { updateSession } from "@/utils/supabase/middleware";
 export async function middleware(request: NextRequest) {
   let req = request;
 
-  const tenantGate = applyMsgfApiTenantMiddleware(req);
+  const tenantGate = await applyMsgfApiTenantMiddleware(req);
   if (tenantGate.response) return tenantGate.response;
   req = tenantGate.request;
 

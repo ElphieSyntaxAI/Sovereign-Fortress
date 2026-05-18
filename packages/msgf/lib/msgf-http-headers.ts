@@ -25,6 +25,12 @@ export const MSGF_ACCESS_ROLE_HEADER = "x-msgf-access-role";
 /** Team / company organization bound to the tenant key. */
 export const MSGF_ORGANIZATION_ID_HEADER = "x-msgf-organization-id";
 
+/** Trusted marker: independent developer promoted to personal sandbox (set by middleware only). */
+export const MSGF_PERSONAL_SANDBOX_HEADER = "x-msgf-personal-sandbox";
+
+/** Trusted marker: access role was elevated server-side after profile validation. */
+export const MSGF_AUTO_PROMOTED_HEADER = "x-msgf-auto-promoted";
+
 /** Headless IDE / CLI: stable developer identity (machine id, extension install id, etc.). */
 export const MSGF_ENTITY_ID_HEADER = "x-msgf-entity-id";
 

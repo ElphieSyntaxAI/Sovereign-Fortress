@@ -11,13 +11,14 @@
  * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
  */
 /**
- * MSGF API tenant governance — `x-msgf-tenant-id` domain lock + sandbox write routing.
+ * MSGF API tenant governance — personal sandbox promotion, domain lock, sandbox writes.
  *
  * Wired from the root `middleware.ts` for `/api/msgf/*`.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { applyIndividualTenantPromotion } from "@/lib/middleware/individual-tenant-promotion";
 import { MSGF_TENANT_ID_HEADER } from "@/lib/msgf-http-headers";
 import { MSGF_WRITE_TARGET_HEADER } from "@/lib/msgf-tenant-governance";
 import {
@@ -30,44 +31,52 @@ import {
 export type MsgfApiMiddlewareResult = {
   /** When set, return immediately (403, etc.). */
   response: NextResponse | null;
-  /** Forward this request (headers may include sandbox write target). */
+  /** Forward this request (headers may include sandbox write target + promotion). */
   request: NextRequest;
 };
 
 /**
  * Enforces:
+ * - **Independent developers** — `tenant-indiv-{userId}` + `company_admin` inside personal sandbox only
  * - **PRODUCTION_AUTHOR** — Origin / Referer / Host must match `MSGF_PRODUCTION_AUTHOR_ALLOWED_ORIGINS`
- * - **DEV_TEST** — mutating methods set `x-msgf-write-target: sandbox` for downstream Hall/Vault writes
+ * - **DEV_TEST / personal sandbox** — mutating methods set `x-msgf-write-target: sandbox`
  */
-export function applyMsgfApiTenantMiddleware(
+export async function applyMsgfApiTenantMiddleware(
   request: NextRequest
-): MsgfApiMiddlewareResult {
+): Promise<MsgfApiMiddlewareResult> {
   if (!request.nextUrl.pathname.startsWith("/api/msgf")) {
     return { response: null, request };
   }
 
+  const promotion = await applyIndividualTenantPromotion(request);
+  if (promotion.response) {
+    return { response: promotion.response, request };
+  }
+  let req = promotion.request;
+
   const tenantId = normalizeMsgfGovernanceTenantId(
-    request.headers.get(MSGF_TENANT_ID_HEADER)
+    req.headers.get(MSGF_TENANT_ID_HEADER) ||
+      req.headers.get("X-MSGF-Tenant-Key")
   );
 
   if (!tenantId) {
-    return { response: null, request };
+    return { response: null, request: req };
   }
 
-  const originDenied = assertProductionAuthorOrigin(request, tenantId);
+  const originDenied = assertProductionAuthorOrigin(req, tenantId);
   if (originDenied) {
-    return { response: originDenied, request };
+    return { response: originDenied, request: req };
   }
 
   const writeTarget = resolveWriteTargetHeader(tenantId);
-  if (!writeTarget || !isMsgfWriteMethod(request.method)) {
-    return { response: null, request };
+  if (!writeTarget || !isMsgfWriteMethod(req.method)) {
+    return { response: null, request: req };
   }
 
-  const headers = new Headers(request.headers);
+  const headers = new Headers(req.headers);
   headers.set(MSGF_WRITE_TARGET_HEADER, writeTarget);
 
-  const forwarded = new NextRequest(request, { headers });
+  const forwarded = new NextRequest(req, { headers });
 
   return { response: null, request: forwarded };
 }

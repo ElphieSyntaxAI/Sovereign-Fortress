@@ -25,6 +25,9 @@ export const MSGF_TENANT_PRODUCTION_AUTHOR = "PRODUCTION_AUTHOR";
 /** Sandbox silo — writes land in `msgf_sandbox`, not production Hall/Vault. */
 export const MSGF_TENANT_DEV_TEST = "DEV_TEST";
 
+/** Personal free-tier / independent developer tenant prefix (`tenant-indiv-{userId}`). */
+export const TENANT_INDIV_PREFIX = "tenant-indiv-";
+
 export const MSGF_PILLAR_TABLE_PRODUCTION = "pillar_vectors" as const;
 export const MSGF_PILLAR_TABLE_SANDBOX = "msgf_sandbox" as const;
 
@@ -65,6 +68,28 @@ export function isDevTestTenant(tenantId: string): boolean {
   return tenantId === MSGF_TENANT_DEV_TEST;
 }
 
+export function isPersonalSandboxTenant(tenantId: string): boolean {
+  const tid = tenantId.trim();
+  return tid.startsWith(TENANT_INDIV_PREFIX) || isDevTestTenant(tid);
+}
+
+/** Canonical personal silo id for an independent developer. */
+export function allocatePersonalSandboxTenantId(userId: string): string {
+  return `${TENANT_INDIV_PREFIX}${userId}`;
+}
+
+/**
+ * Independent when `company_id` is null/empty, or the tenant key is already a personal sandbox slug.
+ */
+export function isIndependentDeveloper(profile: {
+  company_id: string | null;
+  tenantKey: string | null;
+}): boolean {
+  if (!profile.company_id) return true;
+  const key = profile.tenantKey?.trim() ?? "";
+  return key.length > 0 && isPersonalSandboxTenant(key);
+}
+
 export function isMsgfWriteMethod(method: string): boolean {
   return WRITE_METHODS.has(method.toUpperCase());
 }
@@ -74,14 +99,14 @@ export function isMsgfWriteMethod(method: string): boolean {
  * DEV_TEST always uses `msgf_sandbox` so the Hall of Records stays clean.
  */
 export function resolvePillarVectorsTable(tenantId: string): MsgfPillarTableName {
-  if (isDevTestTenant(tenantId)) {
+  if (isDevTestTenant(tenantId) || isPersonalSandboxTenant(tenantId)) {
     return MSGF_PILLAR_TABLE_SANDBOX;
   }
   return MSGF_PILLAR_TABLE_PRODUCTION;
 }
 
 export function resolveWriteTargetHeader(tenantId: string): string | null {
-  if (isDevTestTenant(tenantId)) {
+  if (isDevTestTenant(tenantId) || isPersonalSandboxTenant(tenantId)) {
     return MSGF_WRITE_TARGET_SANDBOX;
   }
   return null;

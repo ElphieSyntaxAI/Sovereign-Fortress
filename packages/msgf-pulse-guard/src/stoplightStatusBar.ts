@@ -9,6 +9,17 @@ import {
 
 const INITIAL_TEXT = "$(sync~spin) MSGF: Initializing...";
 
+/** Jewel Tone stoplight — theme colors registered in package.json */
+const THEME = {
+  greenFg: "msgf.jewel.stoplight.green",
+  amberFg: "msgf.jewel.stoplight.amber",
+  rubyFg: "msgf.jewel.stoplight.ruby",
+  midnightBg: "msgf.jewel.midnight",
+  greenBg: "msgf.jewel.stoplight.greenBg",
+  amberBg: "msgf.jewel.stoplight.amberBg",
+  rubyBg: "msgf.jewel.stoplight.rubyBg",
+} as const;
+
 /**
  * Six-pillar MSGF stoplight indicator (polls Cloud Run health every 30s).
  */
@@ -22,7 +33,7 @@ export class StoplightStatusBar {
     this.item.command = "msgf.openDashboard";
     this.item.text = INITIAL_TEXT;
     this.item.tooltip = "MSGF 6-Pillar governance stoplight — loading…";
-    this.item.backgroundColor = undefined;
+    this.applyJewelState("init");
     this.item.show();
   }
 
@@ -33,7 +44,6 @@ export class StoplightStatusBar {
     }, PILLAR_POLL_INTERVAL_MS);
   }
 
-  /** Immediate poll (e.g. after settings change). */
   refresh(): Promise<void> {
     return this.poll();
   }
@@ -44,6 +54,29 @@ export class StoplightStatusBar {
       this.pollTimer = null;
     }
     this.item.dispose();
+  }
+
+  private applyJewelState(
+    state: "init" | "green" | "yellow" | "red"
+  ): void {
+    switch (state) {
+      case "green":
+        this.item.color = new vscode.ThemeColor(THEME.greenFg);
+        this.item.backgroundColor = new vscode.ThemeColor(THEME.greenBg);
+        break;
+      case "yellow":
+        this.item.color = new vscode.ThemeColor(THEME.amberFg);
+        this.item.backgroundColor = new vscode.ThemeColor(THEME.amberBg);
+        break;
+      case "red":
+        this.item.color = new vscode.ThemeColor(THEME.rubyFg);
+        this.item.backgroundColor = new vscode.ThemeColor(THEME.rubyBg);
+        break;
+      default:
+        this.item.color = new vscode.ThemeColor(THEME.amberFg);
+        this.item.backgroundColor = new vscode.ThemeColor(THEME.midnightBg);
+        break;
+    }
   }
 
   private async poll(): Promise<void> {
@@ -65,7 +98,7 @@ export class StoplightStatusBar {
           violations.length > 0
             ? `Halt / failure — violations:\n${formatPillarList(violations)}`
             : "Halt / failure on one or more governance pillars.";
-        this.item.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+        this.applyJewelState("red");
         return;
       }
 
@@ -75,13 +108,13 @@ export class StoplightStatusBar {
           degraded.length > 0
             ? `Degraded pillars:\n${formatPillarList(degraded)}`
             : "One or more governance pillars require attention.";
-        this.item.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+        this.applyJewelState("yellow");
         return;
       }
 
       this.item.text = "$(check) MSGF: Green";
       this.item.tooltip = "All 6 Governance Pillars Healthy";
-      this.item.backgroundColor = undefined;
+      this.applyJewelState("green");
     } finally {
       this.inFlight = false;
     }
@@ -90,6 +123,6 @@ export class StoplightStatusBar {
   private applyError(message: string): void {
     this.item.text = "$(warning) MSGF: Yellow";
     this.item.tooltip = `Pillar health unavailable: ${message}`;
-    this.item.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+    this.applyJewelState("yellow");
   }
 }

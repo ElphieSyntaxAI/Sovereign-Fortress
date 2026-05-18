@@ -2,6 +2,7 @@ import type { IdeStatusBarSnapshot } from "./ide-types";
 import { MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
 import type { MsgfGuardSettings } from "./config";
 import { buildPulseAuthHeaders } from "./pulseAuth";
+import { handlePulseResponseViolations } from "./pulseViolationAlert";
 import { telemetryToKeystrokes } from "./keystrokeCapture";
 import type { TelemetryChangeEvent } from "./telemetryTypes";
 
@@ -138,6 +139,8 @@ export async function flushTelemetryBatch(params: {
         snapshot: emptySnapshot("error", message),
       };
     }
+
+    handlePulseResponseViolations(raw);
 
     return {
       ok: raw.ok !== false,

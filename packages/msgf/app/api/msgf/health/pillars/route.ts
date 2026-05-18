@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
+import { MSGF_PERSONAL_SANDBOX_HEADER } from "@/lib/msgf-http-headers";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
 import {
   listUserIdsForCompany,
@@ -70,14 +71,24 @@ export async function GET(req: NextRequest) {
           global = true;
         }
       } else if (op.role === "COMPANY_ADMIN") {
-        if (!op.companyId) {
+        const personalSandbox =
+          req.headers.get(MSGF_PERSONAL_SANDBOX_HEADER)?.trim() === "1";
+
+        if (!op.companyId && personalSandbox && op.operatorUserId) {
+          reportOptions = {
+            userId: op.operatorUserId,
+            lookbackHours: lb,
+            dashboardView: "tenant_health",
+          };
+          global = false;
+        } else if (!op.companyId) {
           return healthJson(
             req,
             { ok: false, error: "Company admin requires company_id on p4_profiles." },
             { status: 403 }
           );
-        }
-        const memberIds = await listUserIdsForCompany(admin, op.companyId);
+        } else {
+        const memberIds = await listUserIdsForCompany(admin, op.companyId!);
         if (q) {
           if (!memberIds.includes(q)) {
             return healthJson(
@@ -102,6 +113,7 @@ export async function GET(req: NextRequest) {
             lookbackHours: lb,
           };
           global = false;
+        }
         }
       }
     } catch (e) {
