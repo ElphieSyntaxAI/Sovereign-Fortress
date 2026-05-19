@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-753c05a-20260519T050509Z-internal
+ * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
  */
 /**
  * Canvas LTI 1.3 controller — OIDC login, launch, P3 privacy gate, profile bind.
