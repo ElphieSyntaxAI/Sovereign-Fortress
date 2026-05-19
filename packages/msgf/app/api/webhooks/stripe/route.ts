@@ -8,11 +8,13 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 import { headers } from "next/headers";
 import type Stripe from "stripe";
 
+import { activateIndividualPerpetualLicense } from "@/lib/services/individual-perpetual-license";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { msgfLogger } from "@msgf/lib/logger";
 import { getStripeWebhookClient } from "@msgf/lib/stripe";
 import { tenantIdForNarrativeLog } from "@msgf/lib/tenant-ids";
@@ -46,9 +48,30 @@ export async function POST(req: Request) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const tenantId = tenantFrom(session);
+      const entityId =
+        session.metadata?.msgf_entity_id?.trim() ||
+        session.client_reference_id?.trim() ||
+        "";
+      const plan = session.metadata?.msgf_plan?.trim() ?? "";
+
+      if (entityId && plan === "pro_individual") {
+        try {
+          const admin = createAdminClient();
+          await activateIndividualPerpetualLicense({
+            adminSupabase: admin,
+            entityId,
+            purchaseDate: new Date(),
+          });
+        } catch (e) {
+          console.error("[stripe-webhook] INDIVIDUAL_PERPETUAL activation failed:", e);
+        }
+      }
+
       await msgfLogger.info(tenantId, "STRIPE_PAYMENT_SUCCESS", "stripe-gateway", {
         sessionId: session.id,
         amount: session.amount_total,
+        msgf_plan: plan || null,
+        msgf_entity_id: entityId || null,
       });
       break;
     }

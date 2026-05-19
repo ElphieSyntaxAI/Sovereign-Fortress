@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 import { z } from "zod";
 
@@ -24,6 +24,8 @@ export const MsgfProfileSchema = z.object({
   user_role: z.string().max(64).optional(),
   preferred_theme: z.string().max(64).optional(),
   billing_license_type: z.enum(["free", "monthly", "lifetime"]).optional(),
+  license_type: z.string().nullable().optional(),
+  license_purchase_date: z.string().datetime().nullable().optional(),
   stripe_subscription_status: z.string().nullable().optional(),
   current_credits: z.number().int().min(0).optional(),
   updated_at: z.string().optional(),

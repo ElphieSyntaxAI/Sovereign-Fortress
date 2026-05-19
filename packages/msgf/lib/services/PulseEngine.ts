@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 /**
  * MSGF V3.2-ULTRA Pulse pipeline — SHARD → DEFEND → CONVERGE → PERSIST.
@@ -94,12 +94,13 @@ import {
   type DualModelGatewaySnapshot,
 } from "@/lib/services/dual-model-consensus-gateway";
 import {
-  buildConvergeBypassResponseFields,
+  buildConvergePublicResponseFields,
+  isConvergeEscalationBypassOrDegraded,
   resolveConvergeConsensusRouting,
   shouldRunLocalDualModelGateway,
   usesPlatformMasterConvergeCredentials,
 } from "@/lib/services/converge-consensus-routing";
-import { recordPaidIndividualPlatformConvergeCharge } from "@/lib/services/paid-individual-usage";
+import { recordPerpetualPlatformConvergeSlice } from "@/lib/services/paid-individual-usage";
 import {
   ensureTenantPillarBaseline,
   isTenantPillarBaselineSet,
@@ -406,7 +407,7 @@ export class PulseEngine {
               : convergeRouting.byok.anthropic ?? input.byokAnthropicKey,
           skipTenantCredentialAssert:
             convergeRouting.segment === "corporate_paid" ||
-            convergeRouting.action === "run_paid_individual_platform_converge",
+            convergeRouting.action === "run_perpetual_platform_converge",
         });
       }
 
@@ -482,7 +483,7 @@ export class PulseEngine {
               dual_model_sovereign_agreement_score: dualModelGateway.sovereign_agreement_score,
             }
           : {}),
-        ...buildConvergeBypassResponseFields(convergeRouting),
+        ...buildConvergePublicResponseFields(convergeRouting),
       };
 
       const forensic: Record<string, unknown> = {
@@ -518,7 +519,12 @@ export class PulseEngine {
       };
     }
 
-    if (convergeRouting.action === "bypass_converge_baseline") {
+    if (isConvergeEscalationBypassOrDegraded(convergeRouting)) {
+      const beatLabel =
+        convergeRouting.action === "soft_cap_exceeded_ide_degraded"
+          ? "converge_soft_cap_degraded"
+          : "converge_bypass";
+
       const local = await processLocalGateway({
         supabase: input.supabase,
         tenantId: input.tenantId,
@@ -530,8 +536,8 @@ export class PulseEngine {
         isPillarBaselineSet: defended.isPillarBaselineSet,
         defendPreflightTier: defended.preflight.tier,
         pulseTraceId,
-        beatLabel: "converge_bypass",
-        convergeBypass: true,
+        beatLabel,
+        convergeBypass: convergeRouting.action !== "soft_cap_exceeded_ide_degraded",
       });
 
       await setActiveSlice({
@@ -541,10 +547,15 @@ export class PulseEngine {
       });
 
       const remediationSummary = buildPulseRemediationSummaryLocal();
+      const routingLabel =
+        convergeRouting.action === "soft_cap_exceeded_ide_degraded"
+          ? "converge_soft_cap_degraded"
+          : "converge_bypass";
+
       const glass = buildPulseGlassBoxData({
         driftScore: logicDrift.score,
         preflightTier: String(defended.preflight.tier),
-        routing: "converge_bypass",
+        routing: routingLabel,
         humanTiebreakerRequired: false,
         halScore: biometric.score,
         ledger: null,
@@ -557,8 +568,8 @@ export class PulseEngine {
         ok: true,
         trace_id: pulseTraceId,
         data: glass,
-        routing: "converge_bypass",
-        ...buildConvergeBypassResponseFields(convergeRouting),
+        routing: routingLabel,
+        ...buildConvergePublicResponseFields(convergeRouting),
         logic_drift_score: logicDrift.score,
         logic_drift_escalation_threshold: logicDrift.escalation_threshold,
         contradicts_p2_roadmap: logicDrift.contradictsP2Roadmap,
@@ -588,7 +599,10 @@ export class PulseEngine {
       };
 
       const forensic: Record<string, unknown> = {
-        kind: "pulse_converge_bypass",
+        kind:
+          convergeRouting.action === "soft_cap_exceeded_ide_degraded"
+            ? "pulse_converge_soft_cap_degraded"
+            : "pulse_converge_bypass",
         trace_id: pulseTraceId,
         captured_at: new Date().toISOString(),
         tenant_id: input.tenantId,
@@ -642,16 +656,16 @@ export class PulseEngine {
       geminiModelId: input.geminiModelId,
       license: input.license,
       convergeCredentialMode: platformMaster
-        ? convergeRouting.segment === "paid_individual"
-          ? "paid_individual_platform"
+        ? convergeRouting.segment === "individual_perpetual"
+          ? "individual_perpetual_platform"
           : "corporate_system"
         : "individual_byok",
       byokGeminiKey: convergeByok?.geminiKey,
       byokAnthropicKey: convergeByok?.anthropicKey,
     });
 
-    if (convergeRouting.action === "run_paid_individual_platform_converge") {
-      await recordPaidIndividualPlatformConvergeCharge({
+    if (convergeRouting.action === "run_perpetual_platform_converge") {
+      await recordPerpetualPlatformConvergeSlice({
         adminSupabase: input.adminSupabase,
         entityId: input.entityId,
         tenantId: input.tenantId,
@@ -710,14 +724,16 @@ export class PulseEngine {
       license_tier: input.license.tierId,
       tenant_commercial_segment: tenantCommercial.segment,
       converge_credential_mode: platformMaster
-        ? convergeRouting.segment === "paid_individual"
-          ? "paid_individual_platform"
+        ? convergeRouting.segment === "individual_perpetual"
+          ? "individual_perpetual_platform"
           : "corporate_system"
         : "individual_byok",
-      ...(convergeRouting.segment === "paid_individual" && "monthlyUsage" in convergeRouting
+      ...buildConvergePublicResponseFields(convergeRouting),
+      ...(convergeRouting.segment === "individual_perpetual" &&
+      "monthlyUsage" in convergeRouting
         ? {
-            monthly_tokens_consumed: convergeRouting.monthlyUsage.tokensConsumed,
-            monthly_token_soft_cap: convergeRouting.monthlyUsage.softCap,
+            monthly_slices_consumed: convergeRouting.monthlyUsage.slicesConsumed,
+            monthly_slice_soft_cap: convergeRouting.monthlyUsage.softCap,
           }
         : {}),
       defend_preflight_tier: converged.preflight.tier,
@@ -856,7 +872,7 @@ export class PulseEngine {
       license: PulseLicenseContext;
       convergeCredentialMode:
         | "corporate_system"
-        | "paid_individual_platform"
+        | "individual_perpetual_platform"
         | "individual_byok";
       byokGeminiKey?: string;
       byokAnthropicKey?: string;

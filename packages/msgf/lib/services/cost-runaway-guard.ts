@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 /**
  * Cost-runaway protections: bounded AI recursion depth and strict LLM request timeouts.

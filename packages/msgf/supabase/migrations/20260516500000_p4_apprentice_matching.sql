@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
+-- Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
 -- =============================================================================
 -- Apprentice matching: helpers queue, per-manuscript projects / billing state, revision-lock completion tally, genre.
 

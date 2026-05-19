@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 import { randomUUID } from "crypto";
 
@@ -42,6 +42,7 @@ import {
   MSGF_IDE_PULSE_HEADER,
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
+  MSGF_ALLOWANCE_STATE_HEADER,
 } from "@/lib/msgf-http-headers";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
 import { extractPulseByokFromRequest } from "@/lib/services/pulse-byok-from-request";
@@ -327,11 +328,14 @@ export async function POST(req: NextRequest) {
         payload: pipelineResult.forensic,
       });
 
-      const res200 = pulseJsonWithTrace(
-        req,
-        traceId,
-        withHotLayer(pipelineResult.public as Record<string, unknown>)
-      );
+      const publicPayload = withHotLayer(
+        pipelineResult.public as Record<string, unknown>
+      ) as Record<string, unknown>;
+      const res200 = pulseJsonWithTrace(req, traceId, publicPayload);
+      const allowance = publicPayload.x_msgf_allowance_state;
+      if (typeof allowance === "string" && allowance.trim()) {
+        res200.headers.set(MSGF_ALLOWANCE_STATE_HEADER, allowance.trim());
+      }
       await endTenantCreditReservation(adminSupabase, creditStart, res200.status);
       return res200;
     });

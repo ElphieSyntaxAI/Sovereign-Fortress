@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ */
+/**
  * Stripe Checkout session initialization for MSGF pricing tiers.
  */
 
@@ -18,7 +30,7 @@ export const CHECKOUT_PLANS: Record<CheckoutPlanId, CheckoutPlanConfig> = {
   pro_individual: {
     planId: "pro_individual",
     priceEnvKey: "STRIPE_PRICE_PRO_INDIVIDUAL",
-    tierMetadata: "paid_individual",
+    tierMetadata: "individual_perpetual",
     defaultQuantity: 1,
     mode: "payment",
   },
@@ -39,6 +51,7 @@ export async function createStripeCheckoutSession(params: {
   planId: CheckoutPlanId;
   origin: string;
   customerEmail?: string | null;
+  entityId?: string | null;
   quantity?: number;
 }): Promise<CheckoutSessionResult> {
   const plan = CHECKOUT_PLANS[params.planId];
@@ -84,9 +97,13 @@ export async function createStripeCheckoutSession(params: {
     cancel_url: `${origin}/pricing?checkout=cancelled&plan=${params.planId}`,
     customer_email: params.customerEmail?.trim() || undefined,
     allow_promotion_codes: true,
+    client_reference_id: params.entityId?.trim() || undefined,
     metadata: {
       msgf_plan: params.planId,
       msgf_tier: plan.tierMetadata,
+      ...(params.entityId?.trim()
+        ? { msgf_entity_id: params.entityId.trim() }
+        : {}),
     },
     ...(plan.mode === "subscription"
       ? {

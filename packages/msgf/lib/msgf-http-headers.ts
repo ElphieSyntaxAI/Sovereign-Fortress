@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 /** Client → MSGF API: project silo slug or UUID (overrides license tenant for pillar scope). */
 export const MSGF_TENANT_ID_HEADER = "x-msgf-tenant-id";
@@ -36,6 +36,9 @@ export const MSGF_BYOK_GEMINI_HEADER = "x-msgf-byok-gemini";
 
 /** IDE `.msgf/keys/claude.key` — tenant Anthropic BYOK for dual-model consensus. */
 export const MSGF_BYOK_CLAUDE_HEADER = "x-msgf-byok-claude";
+
+/** CONVERGE allowance state echoed to IDE (e.g. `soft_cap_exceeded`). */
+export const MSGF_ALLOWANCE_STATE_HEADER = "x-msgf-allowance-state";
 
 export const MSGF_SMALL_BRAIN_PROVIDER_HEADER = "x-msgf-small-brain-provider";
 export const MSGF_SMALL_BRAIN_MODEL_HEADER = "x-msgf-small-brain-model";

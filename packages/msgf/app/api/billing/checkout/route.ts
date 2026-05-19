@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ */
+/**
  * POST /api/billing/checkout — initialize Stripe Checkout for Pro / Startup tiers.
  */
 
@@ -37,6 +49,7 @@ export async function POST(req: NextRequest) {
   const origin = req.nextUrl.origin;
 
   let customerEmail: string | null = null;
+  let entityId: string | null = null;
   try {
     const cookieStore = await cookies();
     const supabase = createSupabaseServerClient(cookieStore);
@@ -44,14 +57,17 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
     customerEmail = user?.email ?? null;
+    entityId = user?.id ?? null;
   } catch {
     customerEmail = null;
+    entityId = null;
   }
 
   const result = await createStripeCheckoutSession({
     planId,
     origin,
     customerEmail,
+    entityId,
     quantity: parsed.data.quantity,
   });
 

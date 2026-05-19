@@ -1,5 +1,17 @@
 /**
- * PAID_INDIVIDUAL — monthly soft-cap metering (Postgres + Redis) and billing ledger debits.
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ */
+/**
+ * INDIVIDUAL_PERPETUAL — monthly verification-slice metering (Postgres + Redis) and ledger debits.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -7,26 +19,42 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { msgfRedisKey, redisGet, redisSet } from "@/lib/redis";
 import { MSGF_CREDIT_RESERVE_CHUNK } from "@/lib/credit-reservation";
 
-/** Default monthly soft-cap for PAID_INDIVIDUAL platform CONVERGE (tokens). */
-export const MSGF_PAID_INDIVIDUAL_MONTHLY_SOFT_CAP = Number(
-  process.env.MSGF_PAID_INDIVIDUAL_MONTHLY_TOKEN_SOFT_CAP?.trim() || "1200"
+/** Default monthly soft-cap: consensus verification slices (not LLM tokens). */
+export const MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP = Number(
+  process.env.MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP?.trim() ||
+    process.env.MSGF_PAID_INDIVIDUAL_MONTHLY_TOKEN_SOFT_CAP?.trim() ||
+    "1200"
 );
+
+/** @deprecated Use {@link MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP}. */
+export const MSGF_PAID_INDIVIDUAL_MONTHLY_SOFT_CAP = MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP;
 
 /** Tokens debited per platform CONVERGE execution against the individual ledger. */
 export const MSGF_PAID_INDIVIDUAL_CONVERGE_DEBIT =
   Number(process.env.MSGF_PAID_INDIVIDUAL_CONVERGE_DEBIT?.trim()) ||
   MSGF_CREDIT_RESERVE_CHUNK;
 
-export type PaidIndividualMonthlyUsage = {
+export type PerpetualMonthlySliceUsage = {
   billingPeriod: string;
-  tokensConsumed: number;
+  slicesConsumed: number;
   softCap: number;
   withinSoftCap: boolean;
   source: "redis" | "database" | "none";
 };
 
-export const PAID_INDIVIDUAL_QUOTA_EXCEEDED_WARNING =
-  "Monthly token allowance exhausted for your PAID_INDIVIDUAL plan. Top up or upgrade to restore platform consensus, or add Gemini & Claude BYOK keys to continue on the free path." as const;
+/** @deprecated Use {@link PerpetualMonthlySliceUsage}. */
+export type PaidIndividualMonthlyUsage = PerpetualMonthlySliceUsage & {
+  tokensConsumed: number;
+};
+
+export const PERPETUAL_SOFT_CAP_EXCEEDED_MESSAGE =
+  "Monthly verification slice allowance (1,200) exceeded. Use personal BYOK keys in your IDE or workspace for dual-model consensus, or continue with single-model validation." as const;
+
+export const MANAGED_CLOUD_EXPIRED_BYPASS_WARNING =
+  "Managed cloud window expired. Please add your personal Gemini & Claude keys to continue running dual-model consensus." as const;
+
+/** @deprecated */
+export const PAID_INDIVIDUAL_QUOTA_EXCEEDED_WARNING = PERPETUAL_SOFT_CAP_EXCEEDED_MESSAGE;
 
 function currentBillingPeriod(): string {
   const now = new Date();
@@ -76,47 +104,70 @@ async function fetchMonthlyUsageFromDatabase(
 /**
  * Read monthly consumption for a PAID_INDIVIDUAL actor (Redis hot path, Postgres authoritative fallback).
  */
-export async function evaluatePaidIndividualMonthlyUsage(params: {
+export async function evaluatePerpetualMonthlySliceUsage(params: {
   adminSupabase: SupabaseClient;
   entityId: string;
-}): Promise<PaidIndividualMonthlyUsage> {
+}): Promise<PerpetualMonthlySliceUsage> {
   const entityId = params.entityId.trim();
   const billingPeriod = currentBillingPeriod();
   const softCap =
-    Number.isFinite(MSGF_PAID_INDIVIDUAL_MONTHLY_SOFT_CAP) &&
-    MSGF_PAID_INDIVIDUAL_MONTHLY_SOFT_CAP > 0
-      ? Math.floor(MSGF_PAID_INDIVIDUAL_MONTHLY_SOFT_CAP)
-      : 250_000;
+    Number.isFinite(MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP) &&
+    MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP > 0
+      ? Math.floor(MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP)
+      : 1200;
 
   const redisKey = paidIndividualRedisUsageKey(entityId, billingPeriod);
   const redisRaw = await redisGet(redisKey);
-  const redisTokens = parseTokenCount(redisRaw);
-  const dbTokens = await fetchMonthlyUsageFromDatabase(
+  const redisSlices = parseTokenCount(redisRaw);
+  const dbSlices = await fetchMonthlyUsageFromDatabase(
     params.adminSupabase,
     entityId,
     billingPeriod
   );
 
-  const tokensConsumed = Math.max(redisTokens, dbTokens);
-  const source: PaidIndividualMonthlyUsage["source"] =
-    redisTokens > 0 ? "redis" : dbTokens > 0 ? "database" : "none";
+  const slicesConsumed = Math.max(redisSlices, dbSlices);
+  const source: PerpetualMonthlySliceUsage["source"] =
+    redisSlices > 0 ? "redis" : dbSlices > 0 ? "database" : "none";
 
-  if (redisTokens < dbTokens) {
-    await redisSet(redisKey, String(dbTokens), secondsUntilUtcMonthEnd());
+  if (redisSlices < dbSlices) {
+    await redisSet(redisKey, String(dbSlices), secondsUntilUtcMonthEnd());
   }
 
   return {
     billingPeriod,
-    tokensConsumed,
+    slicesConsumed,
     softCap,
-    withinSoftCap: tokensConsumed < softCap,
+    withinSoftCap: slicesConsumed < softCap,
     source,
   };
+}
+
+/** @deprecated Use {@link evaluatePerpetualMonthlySliceUsage}. */
+export async function evaluatePaidIndividualMonthlyUsage(params: {
+  adminSupabase: SupabaseClient;
+  entityId: string;
+}): Promise<PaidIndividualMonthlyUsage> {
+  const u = await evaluatePerpetualMonthlySliceUsage(params);
+  return { ...u, tokensConsumed: u.slicesConsumed };
 }
 
 /**
  * Debit platform CONVERGE units to the individual billing ledger and roll monthly usage forward.
  */
+export async function recordPerpetualPlatformConvergeSlice(params: {
+  adminSupabase: SupabaseClient;
+  entityId: string;
+  tenantId: string;
+  idempotencyKey: string;
+  slices?: number;
+  traceId?: string;
+}): Promise<void> {
+  return recordPaidIndividualPlatformConvergeCharge({
+    ...params,
+    tokens: params.slices,
+  });
+}
+
 export async function recordPaidIndividualPlatformConvergeCharge(params: {
   adminSupabase: SupabaseClient;
   entityId: string;

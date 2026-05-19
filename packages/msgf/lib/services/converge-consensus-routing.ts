@@ -1,5 +1,17 @@
 /**
- * Step 5 (CONVERGE) — Individual Free (BYOK), PAID_INDIVIDUAL, Corporate routing.
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ */
+/**
+ * Step 5 (CONVERGE) — Individual Free, INDIVIDUAL_PERPETUAL, Corporate routing.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -15,15 +27,27 @@ import {
 } from "@/lib/services/tenant-provider-credentials";
 import type { PulseLicenseContext } from "@/lib/services/pulse-license";
 import {
-  evaluatePaidIndividualMonthlyUsage,
-  PAID_INDIVIDUAL_QUOTA_EXCEEDED_WARNING,
-  type PaidIndividualMonthlyUsage,
+  evaluateManagedCloudWindow,
+  isIndividualPerpetualLicenseType,
+  loadIndividualPerpetualProfile,
+  type ManagedCloudWindowEvaluation,
+} from "@/lib/services/individual-perpetual-license";
+import {
+  evaluatePerpetualMonthlySliceUsage,
+  MANAGED_CLOUD_EXPIRED_BYPASS_WARNING,
+  PERPETUAL_SOFT_CAP_EXCEEDED_MESSAGE,
+  type PerpetualMonthlySliceUsage,
 } from "@/lib/services/paid-individual-usage";
 
 export const CONVERGE_CONSENSUS_BYPASS_WARNING =
   "Consensus layer bypassed. Provide Gemini & Claude keys in your dashboard or project configuration to unlock premium cloud validation." as const;
 
-export type TenantCommercialSegment = "individual_free" | "paid_individual" | "corporate_paid";
+export const MSGF_ALLOWANCE_STATE_SOFT_CAP = "soft_cap_exceeded" as const;
+
+export type TenantCommercialSegment =
+  | "individual_free"
+  | "individual_perpetual"
+  | "corporate_paid";
 
 export type ResolvedByokKeys = {
   gemini: string | null;
@@ -40,34 +64,45 @@ type FreeTierConvergeRouting =
       segment: "individual_free";
       action: "run_byok_converge";
       byok: ResolvedByokKeys & { bothPresent: true };
+      managedCloudExpired?: boolean;
     }
   | {
       segment: "individual_free";
       action: "bypass_converge_baseline";
       byok: ResolvedByokKeys;
+      managedCloudExpired?: boolean;
     };
 
 export type ConvergeConsensusRouting =
   | FreeTierConvergeRouting
   | {
-      segment: "paid_individual";
-      action: "run_paid_individual_platform_converge";
+      segment: "individual_perpetual";
+      action: "run_perpetual_platform_converge";
       byok: ResolvedByokKeys;
-      monthlyUsage: PaidIndividualMonthlyUsage;
+      monthlyUsage: PerpetualMonthlySliceUsage;
+      managedWindow: ManagedCloudWindowEvaluation;
     }
   | {
-      segment: "paid_individual";
+      segment: "individual_perpetual";
       action: "run_byok_converge";
       byok: ResolvedByokKeys & { bothPresent: true };
-      monthlyUsage: PaidIndividualMonthlyUsage;
-      quotaExceeded: true;
+      monthlyUsage: PerpetualMonthlySliceUsage;
+      managedWindow: ManagedCloudWindowEvaluation;
+      allowanceState: typeof MSGF_ALLOWANCE_STATE_SOFT_CAP;
     }
   | {
-      segment: "paid_individual";
-      action: "bypass_converge_baseline";
+      segment: "individual_perpetual";
+      action: "soft_cap_exceeded_ide_degraded";
       byok: ResolvedByokKeys;
-      monthlyUsage: PaidIndividualMonthlyUsage;
-      quotaExceeded: true;
+      monthlyUsage: PerpetualMonthlySliceUsage;
+      managedWindow: ManagedCloudWindowEvaluation;
+      allowanceState: typeof MSGF_ALLOWANCE_STATE_SOFT_CAP;
+    }
+  | {
+      segment: "individual_perpetual";
+      action: "managed_cloud_expired_bypass";
+      byok: ResolvedByokKeys;
+      managedWindow: ManagedCloudWindowEvaluation;
     }
   | {
       segment: "corporate_paid";
@@ -85,11 +120,12 @@ const CORPORATE_TIER_SLUGS = new Set([
   "premium_tier",
 ]);
 
-const PAID_INDIVIDUAL_TIER_SLUGS = new Set([
+const PERPETUAL_TIER_SLUGS = new Set([
   "paid_individual",
   "individual_premium",
   "individual_pro",
   "paid_individual_tier",
+  "individual_perpetual",
 ]);
 
 export type PulseTenantCommercialContext = {
@@ -97,6 +133,8 @@ export type PulseTenantCommercialContext = {
   billingLicenseType: BillingLicenseType | null;
   companyId: string | null;
   profileFound: boolean;
+  licenseType: string | null;
+  licensePurchaseDate: string | null;
 };
 
 function normalizeTierSlug(tierId: string): string {
@@ -112,8 +150,9 @@ export function classifyTenantCommercialSegment(params: {
   license: PulseLicenseContext;
   billingLicenseType: BillingLicenseType | null;
   companyId: string | null;
+  licenseType: string | null;
 }): TenantCommercialSegment {
-  const { tenantId, license, billingLicenseType, companyId } = params;
+  const { tenantId, license, billingLicenseType, companyId, licenseType } = params;
   const tier = normalizeTierSlug(license.tierId);
 
   if (CORPORATE_TIER_SLUGS.has(tier)) {
@@ -124,15 +163,16 @@ export function classifyTenantCommercialSegment(params: {
     return "corporate_paid";
   }
 
-  if (PAID_INDIVIDUAL_TIER_SLUGS.has(tier)) {
-    return "paid_individual";
+  if (isIndividualPerpetualLicenseType(licenseType)) {
+    return "individual_perpetual";
   }
 
-  if (
-    billingLicenseType === "monthly" &&
-    (isPersonalSandboxTenant(tenantId) || tenantId.startsWith(TENANT_INDIV_PREFIX))
-  ) {
-    return "paid_individual";
+  if (PERPETUAL_TIER_SLUGS.has(tier)) {
+    return "individual_perpetual";
+  }
+
+  if (billingLicenseType === "lifetime" && !companyId) {
+    return "individual_perpetual";
   }
 
   if (isPersonalSandboxTenant(tenantId) || tenantId.startsWith(TENANT_INDIV_PREFIX)) {
@@ -147,7 +187,7 @@ export function classifyTenantCommercialSegment(params: {
     return "individual_free";
   }
 
-  if (billingLicenseType === "monthly" || billingLicenseType === "lifetime") {
+  if (billingLicenseType === "monthly") {
     return "corporate_paid";
   }
 
@@ -157,40 +197,26 @@ export function classifyTenantCommercialSegment(params: {
 export async function loadPulseTenantCommercialContext(params: {
   adminSupabase: SupabaseClient;
   entityId: string;
-}): Promise<{
-  billingLicenseType: BillingLicenseType | null;
-  companyId: string | null;
-  profileFound: boolean;
-}> {
-  const { data, error } = await params.adminSupabase
-    .from("p4_profiles")
-    .select("billing_license_type, company_id")
-    .eq("user_id", params.entityId)
-    .maybeSingle();
+}): Promise<PulseTenantCommercialContext> {
+  const profile = await loadIndividualPerpetualProfile({
+    adminSupabase: params.adminSupabase,
+    entityId: params.entityId,
+  });
 
-  if (error || !data) {
-    return {
-      billingLicenseType: null,
-      companyId: null,
-      profileFound: false,
-    };
-  }
-
-  const billingRaw = data.billing_license_type;
   const billingLicenseType =
-    billingRaw === "free" || billingRaw === "monthly" || billingRaw === "lifetime"
-      ? billingRaw
-      : null;
-
-  const companyId =
-    typeof data.company_id === "string" && data.company_id.trim()
-      ? data.company_id.trim()
+    profile.billingLicenseType === "free" ||
+    profile.billingLicenseType === "monthly" ||
+    profile.billingLicenseType === "lifetime"
+      ? profile.billingLicenseType
       : null;
 
   return {
+    segment: "individual_free",
     billingLicenseType,
-    companyId,
-    profileFound: true,
+    companyId: profile.companyId,
+    profileFound: profile.profileFound,
+    licenseType: profile.licenseType,
+    licensePurchaseDate: profile.licensePurchaseDate?.toISOString() ?? null,
   };
 }
 
@@ -248,47 +274,137 @@ export async function resolveEffectiveByokKeys(params: {
   };
 }
 
-function resolveIndividualFreeRouting(byok: ResolvedByokKeys): FreeTierConvergeRouting {
+function resolveIndividualFreeRouting(
+  byok: ResolvedByokKeys,
+  managedCloudExpired = false
+): FreeTierConvergeRouting {
   if (byok.bothPresent) {
     return {
       segment: "individual_free",
       action: "run_byok_converge",
       byok: byok as ResolvedByokKeys & { bothPresent: true },
+      managedCloudExpired,
     };
   }
   return {
     segment: "individual_free",
     action: "bypass_converge_baseline",
     byok,
+    managedCloudExpired,
   };
 }
 
-/** Public bypass / upgrade fields for pulse JSON (HTTP 200). */
-export function buildConvergeBypassResponseFields(routing: ConvergeConsensusRouting): Record<
-  string,
-  unknown
-> {
-  if (routing.action !== "bypass_converge_baseline") {
-    return {};
+function resolvePerpetualManagedYearRouting(
+  byok: ResolvedByokKeys,
+  monthlyUsage: PerpetualMonthlySliceUsage,
+  managedWindow: ManagedCloudWindowEvaluation
+): ConvergeConsensusRouting {
+  if (monthlyUsage.withinSoftCap) {
+    return {
+      segment: "individual_perpetual",
+      action: "run_perpetual_platform_converge",
+      byok,
+      monthlyUsage,
+      managedWindow,
+    };
   }
 
-  const warning =
-    routing.segment === "paid_individual" && "quotaExceeded" in routing && routing.quotaExceeded
-      ? PAID_INDIVIDUAL_QUOTA_EXCEEDED_WARNING
-      : CONVERGE_CONSENSUS_BYPASS_WARNING;
+  if (byok.bothPresent) {
+    return {
+      segment: "individual_perpetual",
+      action: "run_byok_converge",
+      byok: byok as ResolvedByokKeys & { bothPresent: true },
+      monthlyUsage,
+      managedWindow,
+      allowanceState: MSGF_ALLOWANCE_STATE_SOFT_CAP,
+    };
+  }
 
   return {
-    consensusBypassed: true,
-    consensus_layer_bypassed: true,
-    warning,
-    ...(routing.segment === "paid_individual" && "monthlyUsage" in routing
-      ? {
-          paid_individual_quota_exceeded: true,
-          monthly_tokens_consumed: routing.monthlyUsage.tokensConsumed,
-          monthly_token_soft_cap: routing.monthlyUsage.softCap,
-        }
-      : {}),
+    segment: "individual_perpetual",
+    action: "soft_cap_exceeded_ide_degraded",
+    byok,
+    monthlyUsage,
+    managedWindow,
+    allowanceState: MSGF_ALLOWANCE_STATE_SOFT_CAP,
   };
+}
+
+/** Pulse JSON fields + allowance metadata for IDE / dashboard. */
+export function buildConvergePublicResponseFields(
+  routing: ConvergeConsensusRouting
+): Record<string, unknown> {
+  const fields: Record<string, unknown> = {};
+
+  if ("allowanceState" in routing && routing.allowanceState) {
+    fields.x_msgf_allowance_state = routing.allowanceState;
+    fields.prefer_byok = true;
+    fields.validation_mode = routing.byok.bothPresent
+      ? "dual_model_byok"
+      : "single_model";
+    fields.warning = PERPETUAL_SOFT_CAP_EXCEEDED_MESSAGE;
+    if ("monthlyUsage" in routing) {
+      fields.monthly_slices_consumed = routing.monthlyUsage.slicesConsumed;
+      fields.monthly_slice_soft_cap = routing.monthlyUsage.softCap;
+    }
+  }
+
+  if (routing.action === "bypass_converge_baseline") {
+    const managedExpired =
+      "managedCloudExpired" in routing && Boolean(routing.managedCloudExpired);
+
+    fields.consensusBypassed = true;
+    fields.consensus_layer_bypassed = true;
+    fields.show_dashboard_notification = true;
+    fields.warning = managedExpired
+      ? MANAGED_CLOUD_EXPIRED_BYPASS_WARNING
+      : CONVERGE_CONSENSUS_BYPASS_WARNING;
+
+    if ("managedCloudExpired" in routing && routing.managedCloudExpired) {
+      fields.managed_cloud_expired = true;
+      fields.license_type = "INDIVIDUAL_PERPETUAL";
+    }
+  }
+
+  if (routing.action === "managed_cloud_expired_bypass") {
+    fields.consensusBypassed = true;
+    fields.consensus_layer_bypassed = true;
+    fields.show_dashboard_notification = true;
+    fields.managed_cloud_expired = true;
+    fields.license_type = "INDIVIDUAL_PERPETUAL";
+    fields.warning = MANAGED_CLOUD_EXPIRED_BYPASS_WARNING;
+    if ("managedWindow" in routing) {
+      fields.days_since_license_purchase = routing.managedWindow.daysSincePurchase;
+    }
+  }
+
+  if (routing.action === "soft_cap_exceeded_ide_degraded") {
+    fields.cloud_dual_model_skipped = true;
+    fields.show_dashboard_notification = true;
+  }
+
+  if (
+    routing.segment === "individual_perpetual" &&
+    "monthlyUsage" in routing &&
+    routing.action === "run_perpetual_platform_converge"
+  ) {
+    fields.license_type = "INDIVIDUAL_PERPETUAL";
+    fields.managed_cloud_active = true;
+    fields.monthly_slices_consumed = routing.monthlyUsage.slicesConsumed;
+    fields.monthly_slice_soft_cap = routing.monthlyUsage.softCap;
+    if ("managedWindow" in routing) {
+      fields.days_since_license_purchase = routing.managedWindow.daysSincePurchase;
+    }
+  }
+
+  return fields;
+}
+
+/** @deprecated Use {@link buildConvergePublicResponseFields}. */
+export function buildConvergeBypassResponseFields(
+  routing: ConvergeConsensusRouting
+): Record<string, unknown> {
+  return buildConvergePublicResponseFields(routing);
 }
 
 export async function resolveConvergeConsensusRouting(params: {
@@ -302,7 +418,12 @@ export async function resolveConvergeConsensusRouting(params: {
   commercial: PulseTenantCommercialContext;
   routing: ConvergeConsensusRouting;
 }> {
-  const profile = await loadPulseTenantCommercialContext({
+  const profileCtx = await loadPulseTenantCommercialContext({
+    adminSupabase: params.adminSupabase,
+    entityId: params.entityId,
+  });
+
+  const perpetualProfile = await loadIndividualPerpetualProfile({
     adminSupabase: params.adminSupabase,
     entityId: params.entityId,
   });
@@ -310,8 +431,9 @@ export async function resolveConvergeConsensusRouting(params: {
   const segment = classifyTenantCommercialSegment({
     tenantId: params.tenantId,
     license: params.license,
-    billingLicenseType: profile.billingLicenseType,
-    companyId: profile.companyId,
+    billingLicenseType: profileCtx.billingLicenseType,
+    companyId: profileCtx.companyId,
+    licenseType: perpetualProfile.licenseType,
   });
 
   const byok = await resolveEffectiveByokKeys({
@@ -322,10 +444,10 @@ export async function resolveConvergeConsensusRouting(params: {
   });
 
   const commercial: PulseTenantCommercialContext = {
+    ...profileCtx,
     segment,
-    billingLicenseType: profile.billingLicenseType,
-    companyId: profile.companyId,
-    profileFound: profile.profileFound,
+    licenseType: perpetualProfile.licenseType,
+    licensePurchaseDate: perpetualProfile.licensePurchaseDate?.toISOString() ?? null,
   };
 
   if (segment === "corporate_paid") {
@@ -340,46 +462,41 @@ export async function resolveConvergeConsensusRouting(params: {
     };
   }
 
-  if (segment === "paid_individual") {
-    const monthlyUsage = await evaluatePaidIndividualMonthlyUsage({
+  if (segment === "individual_perpetual") {
+    const managedWindow = evaluateManagedCloudWindow(perpetualProfile.licensePurchaseDate);
+
+    if (managedWindow.managedCloudExpired) {
+      if (byok.bothPresent) {
+        return {
+          commercial,
+          routing: {
+            segment: "individual_free",
+            action: "run_byok_converge",
+            byok: byok as ResolvedByokKeys & { bothPresent: true },
+            managedCloudExpired: true,
+          },
+        };
+      }
+
+      return {
+        commercial,
+        routing: {
+          segment: "individual_perpetual",
+          action: "managed_cloud_expired_bypass",
+          byok,
+          managedWindow,
+        },
+      };
+    }
+
+    const monthlyUsage = await evaluatePerpetualMonthlySliceUsage({
       adminSupabase: params.adminSupabase,
       entityId: params.entityId,
     });
 
-    if (monthlyUsage.withinSoftCap) {
-      return {
-        commercial,
-        routing: {
-          segment: "paid_individual",
-          action: "run_paid_individual_platform_converge",
-          byok,
-          monthlyUsage,
-        },
-      };
-    }
-
-    if (byok.bothPresent) {
-      return {
-        commercial,
-        routing: {
-          segment: "paid_individual",
-          action: "run_byok_converge",
-          byok: byok as ResolvedByokKeys & { bothPresent: true },
-          monthlyUsage,
-          quotaExceeded: true,
-        },
-      };
-    }
-
     return {
       commercial,
-      routing: {
-        segment: "paid_individual",
-        action: "bypass_converge_baseline",
-        byok,
-        monthlyUsage,
-        quotaExceeded: true,
-      },
+      routing: resolvePerpetualManagedYearRouting(byok, monthlyUsage, managedWindow),
     };
   }
 
@@ -389,20 +506,39 @@ export async function resolveConvergeConsensusRouting(params: {
   };
 }
 
-/** Whether local-gateway dual-model enrichment should run for this routing decision. */
 export function shouldRunLocalDualModelGateway(routing: ConvergeConsensusRouting): boolean {
-  if (routing.action === "bypass_converge_baseline") return false;
-  if (routing.action === "run_paid_individual_platform_converge") return false;
-  if (routing.segment === "individual_free" || routing.segment === "paid_individual") {
+  if (
+    routing.action === "bypass_converge_baseline" ||
+    routing.action === "soft_cap_exceeded_ide_degraded" ||
+    routing.action === "managed_cloud_expired_bypass"
+  ) {
+    return false;
+  }
+  if (routing.action === "run_perpetual_platform_converge") return false;
+  if (
+    routing.segment === "individual_free" ||
+    routing.segment === "individual_perpetual"
+  ) {
     return routing.action === "run_byok_converge";
   }
   return routing.enterpriseVaultConfigured;
 }
 
-/** True when CONVERGE should use master platform credentials (Vertex), not BYOK. */
-export function usesPlatformMasterConvergeCredentials(routing: ConvergeConsensusRouting): boolean {
+export function usesPlatformMasterConvergeCredentials(
+  routing: ConvergeConsensusRouting
+): boolean {
   return (
     routing.action === "run_corporate_system_converge" ||
-    routing.action === "run_paid_individual_platform_converge"
+    routing.action === "run_perpetual_platform_converge"
+  );
+}
+
+export function isConvergeEscalationBypassOrDegraded(
+  routing: ConvergeConsensusRouting
+): boolean {
+  return (
+    routing.action === "bypass_converge_baseline" ||
+    routing.action === "soft_cap_exceeded_ide_degraded" ||
+    routing.action === "managed_cloud_expired_bypass"
   );
 }
