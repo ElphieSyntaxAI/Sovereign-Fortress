@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
+ * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
  */
 /**
  * /products/author — "Find out more" detail page for the Author Ecosystem surface.
@@ -28,7 +28,7 @@ export default function Page() {
   const liveUrl =
     process.env.AUTHOR_APP_URL?.trim() ||
     process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
-    "https://authorecosystem.elphiesyntax.com";
+    null;
 
   return (
     <ProductDetailShell

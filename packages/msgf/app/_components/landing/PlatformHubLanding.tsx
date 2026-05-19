@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
+ * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
  */
 /**
  * `app/page.tsx` — "What are you looking for?" platform chooser hub.
@@ -50,7 +50,7 @@ type Platform = {
 const AUTHOR_HOST =
   process.env.AUTHOR_APP_URL?.trim() ||
   process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
-  "https://authorecosystem.elphiesyntax.com";
+  "";
 const SYNTAX_EDUCATES_HOST =
   process.env.EDUCATION_APP_URL?.trim() ||
   process.env.NEXT_PUBLIC_EDUCATION_APP_URL?.trim() ||
@@ -72,8 +72,8 @@ const PLATFORMS: readonly Platform[] = [
     tone: "amethyst",
     primary: {
       label: "Open Author Ecosystem",
-      href: AUTHOR_HOST,
-      external: true,
+      href: AUTHOR_HOST || "/products/author",
+      external: Boolean(AUTHOR_HOST),
     },
     learnMoreHref: "/products/author",
   },

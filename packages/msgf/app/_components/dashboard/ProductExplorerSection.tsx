@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
+ * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
  */
 /**
  * Product family explorer — primary-dashboard launchpad for the three customer-facing
@@ -39,8 +39,7 @@ type ProductCard = {
 
 const MSGF_APP_URL =
   process.env.NEXT_PUBLIC_MSGF_APP_URL || "https://elphiesgatedai.elphiesyntax.com";
-const AUTHOR_APP_URL =
-  process.env.NEXT_PUBLIC_AUTHOR_APP_URL || "https://authorecosystem.elphiesyntax.com";
+const AUTHOR_APP_URL = process.env.NEXT_PUBLIC_AUTHOR_APP_URL || null;
 const EDUCATION_APP_URL =
   process.env.NEXT_PUBLIC_EDUCATION_APP_URL || "https://syntaxeducates.elphiesyntax.com";
 

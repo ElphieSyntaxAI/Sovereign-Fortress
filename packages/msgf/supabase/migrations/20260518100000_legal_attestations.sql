@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
+-- Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
 -- =============================================================================
 -- legal_attestations: immutable-ish record of Vault Pact / legal doc signatures at registration or in-product.
 -- user_id -> public.profiles.id (same UUID as auth.users primary key in this stack).

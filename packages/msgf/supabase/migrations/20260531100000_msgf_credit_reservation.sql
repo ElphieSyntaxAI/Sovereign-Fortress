@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
+-- Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
 -- =============================================================================
 -- =============================================================================
 -- MSGF — tenant token wallet + credit_ledger reservations (402 insufficient funds).

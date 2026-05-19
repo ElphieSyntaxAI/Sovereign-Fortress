@@ -12,12 +12,28 @@ import { Link } from "react-router-dom";
  * (emerald · amethyst-violet · topaz-amber on slate / `landing-mesh` chrome).
  */
 
-const AUTHOR_HOST =
-  import.meta.env.VITE_AUTHOR_APP_URL || "https://authorecosystem.elphiesyntax.com";
+const AUTHOR_HOST = import.meta.env.VITE_AUTHOR_APP_URL || "";
 const GATED_AI_HOST =
   import.meta.env.VITE_MSGF_APP_URL || "https://elphiesgatedai.elphiesyntax.com";
 const EDUCATION_HOST =
   import.meta.env.VITE_EDUCATION_APP_URL || "https://syntaxeducates.elphiesyntax.com";
+
+function isApexHubHost() {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname.toLowerCase();
+  return host === "elphiesyntax.com" || host === "www.elphiesyntax.com";
+}
+
+function getAuthorPrimaryTarget() {
+  if (AUTHOR_HOST) {
+    return { to: AUTHOR_HOST, external: true };
+  }
+  if (isApexHubHost()) {
+    return { to: "https://authorecosystem.elphiesyntax.com", external: true };
+  }
+  // Keep Cloud Run/default test URLs on the current Author app.
+  return { to: "/sign-in", external: false };
+}
 
 const PLATFORMS = [
   {
@@ -137,22 +153,26 @@ const GLASS_PANEL_STYLE = {
 function PrimaryCta({ platform }) {
   const styles = TONE[platform.tone];
   const className = `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${styles.primary}`;
-  if (platform.primary.external) {
+  const primary =
+    platform.id === "author"
+      ? { ...platform.primary, ...getAuthorPrimaryTarget() }
+      : platform.primary;
+  if (primary.external) {
     return (
       <a
-        href={platform.primary.to}
+        href={primary.to}
         target="_blank"
         rel="noreferrer noopener"
         className={className}
       >
-        {platform.primary.label}
+        {primary.label}
         <span aria-hidden>↗</span>
       </a>
     );
   }
   return (
-    <Link to={platform.primary.to} className={className}>
-      {platform.primary.label}
+    <Link to={primary.to} className={className}>
+      {primary.label}
       <span aria-hidden>→</span>
     </Link>
   );
