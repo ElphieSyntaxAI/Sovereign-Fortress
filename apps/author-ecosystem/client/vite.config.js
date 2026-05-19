@@ -51,6 +51,11 @@ export default defineConfig(({ mode }) => {
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     env.SUPABASE_ANON_KEY ||
     "";
+  const viteAuthorBffUrl =
+    env.VITE_AUTHOR_BFF_URL ||
+    env.AUTHOR_BFF_URL ||
+    env.NEXT_PUBLIC_AUTHOR_BFF_URL ||
+    "";
 
   return {
     plugins: [tailwindcss(), react(), spaFallbackPlugin()],
@@ -58,6 +63,7 @@ export default defineConfig(({ mode }) => {
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(viteSupabaseUrl),
       "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(viteSupabaseAnon),
+      "import.meta.env.VITE_AUTHOR_BFF_URL": JSON.stringify(viteAuthorBffUrl),
     },
     resolve: {
       alias: {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../legal/vaultPactAttestation";
-import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 
 export type VaultAttestationStatus = "signed" | "unsigned" | "outdated";
 
@@ -49,7 +49,7 @@ export default function VaultProtector(props: VaultProtectorProps) {
       accept: "application/json",
       ...bffAuthHeaders(token),
     };
-    const res = await fetch("/api/legal/vault-attestation-status", {
+    const res = await fetch(bffUrl("/api/legal/vault-attestation-status"), {
       method: "GET",
       headers,
       ...bffCredentials,
@@ -101,7 +101,7 @@ export default function VaultProtector(props: VaultProtectorProps) {
     setSubmitError(null);
     try {
       const token = await resolveToken(getAccessToken);
-      const res = await fetch("/api/legal/vault-pact-attest", {
+      const res = await fetch(bffUrl("/api/legal/vault-pact-attest"), {
         method: "POST",
         headers: {
           "content-type": "application/json",

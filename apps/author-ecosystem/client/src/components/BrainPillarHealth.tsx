@@ -2,7 +2,7 @@ import { PillarStatusGrid, type PillarHealthReport } from "@elphie-syntax/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getPreferredBffBearer } from "../lib/authAccessToken";
-import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 
 export type BrainPillarHealthProps = {
   /** Poll interval while the dashboard tab is visible (default ~22s). */
@@ -30,7 +30,7 @@ export function BrainPillarHealth({
       const token = await getPreferredBffBearer();
       const qs = new URLSearchParams();
       qs.set("lookback_hours", String(lookbackHours));
-      const res = await fetch(`/api/msgf/health/pillars?${qs.toString()}`, {
+      const res = await fetch(bffUrl(`/api/msgf/health/pillars?${qs.toString()}`), {
         ...bffCredentials,
         headers: bffAuthHeaders(token),
       });

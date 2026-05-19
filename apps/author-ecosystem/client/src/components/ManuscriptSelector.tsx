@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 
 import { getPreferredBffBearer } from "../lib/authAccessToken";
-import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 import { useNarrative } from "../context/NarrativeContext";
 export type ManuscriptRow = {
   id: string;
@@ -27,7 +27,7 @@ export function ManuscriptSelector() {
     setError(null);
     try {
       const token = await getPreferredBffBearer();
-      const res = await fetch("/api/manuscripts", {
+      const res = await fetch(bffUrl("/api/manuscripts"), {
         ...bffCredentials,
         headers: { ...bffAuthHeaders(token) },
       });
@@ -76,7 +76,7 @@ export function ManuscriptSelector() {
     });
     try {
       const token = await getPreferredBffBearer();
-      await fetch(`/api/manuscripts/${encodeURIComponent(row.id)}/touch`, {
+      await fetch(bffUrl(`/api/manuscripts/${encodeURIComponent(row.id)}/touch`), {
         method: "POST",
         ...bffCredentials,
         headers: { ...bffAuthHeaders(token) },

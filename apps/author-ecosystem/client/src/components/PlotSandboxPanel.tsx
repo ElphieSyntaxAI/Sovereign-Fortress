@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 import { usePlanningSession } from "../planning/PlanningSessionContext";
 import {
   buildWikiStateText,
@@ -88,7 +88,7 @@ export function PlotSandboxPanel({ manuscriptId, tenantId, getAccessToken }: Plo
     setPlanErr(null);
     try {
       const token = await getAccessToken();
-      const u = new URL("/api/dashboard/planning", window.location.origin);
+      const u = new URL(bffUrl("/api/dashboard/planning"), window.location.origin);
       u.searchParams.set("manuscript_id", manuscriptId.trim());
       const res = await fetch(u.toString(), { ...bffCredentials, headers: bffAuthHeaders(token) });
       const json: unknown = await res.json().catch(() => ({}));
@@ -109,7 +109,7 @@ export function PlotSandboxPanel({ manuscriptId, tenantId, getAccessToken }: Plo
     if (!manuscriptId.trim()) return;
     try {
       const token = await getAccessToken();
-      const u = new URL("/api/plot-sandbox/audit-log", window.location.origin);
+      const u = new URL(bffUrl("/api/plot-sandbox/audit-log"), window.location.origin);
       u.searchParams.set("manuscript_id", manuscriptId.trim());
       const res = await fetch(u.toString(), { ...bffCredentials, headers: bffAuthHeaders(token) });
       const json = (await res.json().catch(() => ({}))) as { audits?: AuditRow[] };
@@ -148,7 +148,7 @@ export function PlotSandboxPanel({ manuscriptId, tenantId, getAccessToken }: Plo
     fields: CardFields;
   }) => {
     const token = await getAccessToken();
-    const res = await fetch("/api/hal/narrative-logic-proof", {
+    const res = await fetch(bffUrl("/api/hal/narrative-logic-proof"), {
       method: "POST",
       ...bffCredentials,
       headers: {
@@ -185,7 +185,7 @@ export function PlotSandboxPanel({ manuscriptId, tenantId, getAccessToken }: Plo
       const f = fieldsByCard[card.id] ?? emptyFields();
       const outlineSnap = String(planning?.data?.manuscript_outline ?? "").trim();
 
-      const res = await fetch("/api/plot-sandbox/simulate-impact", {
+      const res = await fetch(bffUrl("/api/plot-sandbox/simulate-impact"), {
         method: "POST",
         ...bffCredentials,
         headers: {
@@ -269,7 +269,7 @@ export function PlotSandboxPanel({ manuscriptId, tenantId, getAccessToken }: Plo
     try {
       const token = await getAccessToken();
 
-      const res = await fetch("/api/rag/chat", {
+      const res = await fetch(bffUrl("/api/rag/chat"), {
         method: "POST",
         ...bffCredentials,
         headers: {

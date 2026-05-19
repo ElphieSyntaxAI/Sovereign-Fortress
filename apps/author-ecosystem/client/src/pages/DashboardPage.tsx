@@ -7,7 +7,7 @@ import { PlanningCommandCenter } from "../components/PlanningCommandCenter";
 import { AuthorSentinelBugButton } from "../components/AuthorSentinelBugButton";
 import HALTracker from "../components/HALTracker.jsx";
 import { NarrativeProvider, useNarrative } from "../context/NarrativeContext";
-import { bffCredentials } from "../lib/bffFetch";
+import { bffCredentials, bffUrl } from "../lib/bffFetch";
 
 function DashboardInner() {
   const { selection, setSelection } = useNarrative();
@@ -37,7 +37,7 @@ function DashboardInner() {
     } catch {
       // non-blocking
     }
-    await fetch("/api/auth/logout", { method: "POST", ...bffCredentials });
+    await fetch(bffUrl("/api/auth/logout"), { method: "POST", ...bffCredentials });
     window.location.assign("/");
   };
 

@@ -57,6 +57,6 @@ app.use(recalibrationController);
 
 app.use(projectSyncController);
 app.use(plotSandboxController);
-app.listen(port, "127.0.0.1", () => {
-  console.log(`author-ecosystem server listening on http://127.0.0.1:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`author-ecosystem server listening on http://0.0.0.0:${port}`);
 });

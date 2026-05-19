@@ -1,5 +1,5 @@
 import type { NarrativeSelection } from "../context/NarrativeContext";
-import { bffAuthHeaders, bffCredentials } from "./bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "./bffFetch";
 import { mergeEditorStateSnapshot } from "./editorSnapshotRegistry";
 import { getLastKeystrokes } from "./keystrokeRingBuffer";
 
@@ -28,7 +28,7 @@ export async function buildDiagnosticSnapshot(params: {
 
   let pillar_health: Record<string, unknown> | undefined;
   try {
-    const res = await fetch("/api/msgf/health/pillars", {
+    const res = await fetch(bffUrl("/api/msgf/health/pillars"), {
       ...bffCredentials,
       headers: { Accept: "application/json", ...headers },
     });

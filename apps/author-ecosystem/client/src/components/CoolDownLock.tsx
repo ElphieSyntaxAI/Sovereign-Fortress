@@ -7,7 +7,7 @@ import {
   type RetrievalStats,
 } from "./BicameralReportDashboard";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
-import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 
 /**
  * Vault Green — Phase 2 hardening accent (see `VaultProtector.tsx` emerald family).
@@ -164,7 +164,7 @@ export function CoolDownLock(props: CoolDownLockProps) {
     setDashError(null);
     try {
       const token = await getPreferredBffBearer();
-      const res = await fetch(`/api/manuscripts/${encodeURIComponent(manuscriptId)}/revision-dashboard`, {
+      const res = await fetch(bffUrl(`/api/manuscripts/${encodeURIComponent(manuscriptId)}/revision-dashboard`), {
         ...bffCredentials,
         headers: { ...bffAuthHeaders(token) },
       });
@@ -206,7 +206,7 @@ export function CoolDownLock(props: CoolDownLockProps) {
     setSealError(null);
     try {
       const token = await getPreferredBffBearer();
-      const res = await fetch(`/api/manuscripts/${encodeURIComponent(manuscriptId)}/unlock`, {
+      const res = await fetch(bffUrl(`/api/manuscripts/${encodeURIComponent(manuscriptId)}/unlock`), {
         method: "POST",
         ...bffCredentials,
         headers: { ...bffAuthHeaders(token) },

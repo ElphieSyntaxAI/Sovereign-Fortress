@@ -15,7 +15,7 @@ import { IngestDiscoveryDashboard } from "./IngestDiscoveryDashboard";
 import { LibrarianInterviewChat } from "./LibrarianInterviewChat";
 import { PlotSandboxPanel } from "./PlotSandboxPanel";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
-import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 import { registerEditorStateProvider } from "../lib/editorSnapshotRegistry";
 import { getSupabaseBrowserClient } from "../lib/supabaseBrowser";
 
@@ -290,7 +290,7 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
   const loadView = useCallback(
     async (mode: DashboardMode): Promise<DashboardViewPayload> => {
       const token = await getToken();
-      const u = new URL("/api/dashboard/view", window.location.origin);
+      const u = new URL(bffUrl("/api/dashboard/view"), window.location.origin);
       u.searchParams.set("mode", mode);
       u.searchParams.set("manuscript_id", props.manuscriptId);
       const res = await fetch(u.toString(), {

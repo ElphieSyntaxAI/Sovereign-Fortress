@@ -27,8 +27,17 @@ export function createBffSupabaseServerClient(req: Request, res: Response) {
         return Object.entries(jar).map(([name, value]) => ({ name, value }));
       },
       setAll(cookiesToSet) {
+        const xf = req.headers["x-forwarded-host"];
+        const forwarded = Array.isArray(xf) ? xf[0] : xf;
+        const requestHost =
+          typeof forwarded === "string"
+            ? forwarded.split(",")[0]?.trim().split(":")[0]
+            : req.headers.host?.split(":")[0];
         for (const { name, value, options } of cookiesToSet) {
-          const merged = withBffSupabaseCookieOptions(options as Record<string, unknown> | undefined);
+          const merged = withBffSupabaseCookieOptions(
+            options as Record<string, unknown> | undefined,
+            requestHost
+          );
           const path = merged.path ?? "/";
           const sameSite = merged.sameSite ?? "lax";
           const secure = Boolean(merged.secure);

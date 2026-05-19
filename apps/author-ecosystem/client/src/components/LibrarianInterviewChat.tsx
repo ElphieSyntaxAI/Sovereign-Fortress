@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 import { usePlanningSession } from "../planning/PlanningSessionContext";
 
 export type ProposedLoreChunk = {
@@ -66,7 +66,7 @@ export function LibrarianInterviewChat({ projectId, getAccessToken }: LibrarianI
     try {
       const token = await getAccessToken();
 
-      const res = await fetch("/api/rag/chat", {
+      const res = await fetch(bffUrl("/api/rag/chat"), {
         method: "POST",
         ...bffCredentials,
         headers: {
@@ -134,7 +134,7 @@ export function LibrarianInterviewChat({ projectId, getAccessToken }: LibrarianI
         const { _key, ...proposed_chunk } = chunk;
         void _key;
 
-        const res = await fetch("/api/lore-git/commit", {
+        const res = await fetch(bffUrl("/api/lore-git/commit"), {
           method: "POST",
           ...bffCredentials,
           headers: {

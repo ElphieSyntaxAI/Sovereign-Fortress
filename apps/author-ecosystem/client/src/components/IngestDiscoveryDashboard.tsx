@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useDropzone } from "react-dropzone";
 
-import { bffAuthHeaders, bffCredentials } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 import { usePlanningSession } from "../planning/PlanningSessionContext";
 
 export type IdentifiedLore = {
@@ -198,7 +198,7 @@ export function IngestDiscoveryDashboard({ projectId, getAccessToken }: IngestDi
         const token = await getAccessToken();
         const fd = new FormData();
         fd.append("file", file);
-        const res = await fetch("/api/ingest/upload", {
+        const res = await fetch(bffUrl("/api/ingest/upload"), {
           method: "POST",
           ...bffCredentials,
           headers: bffAuthHeaders(token),
@@ -349,7 +349,7 @@ export function IngestDiscoveryDashboard({ projectId, getAccessToken }: IngestDi
         throw new Error("Verified excerpt too short to commit (need substantive content).");
       }
 
-      const res = await fetch("/api/lore-git/commit", {
+      const res = await fetch(bffUrl("/api/lore-git/commit"), {
         method: "POST",
         ...bffCredentials,
         headers: {

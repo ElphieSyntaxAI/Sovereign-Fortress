@@ -52,7 +52,14 @@ export function getJwtFromRequest(req: Request): string | null {
  *
  * Optional: `BFF_COOKIE_SAMESITE` (`lax` | `strict` | `none`). `none` forces `secure: true`.
  */
-export function bffCookieBaseOptions(): {
+function requestHost(req?: Request): string | undefined {
+  const xf = req?.headers["x-forwarded-host"];
+  const forwarded = Array.isArray(xf) ? xf[0] : xf;
+  const host = forwarded || req?.headers.host;
+  return typeof host === "string" ? host.split(",")[0]?.trim().split(":")[0] : undefined;
+}
+
+export function bffCookieBaseOptions(req?: Request): {
   httpOnly: boolean;
   sameSite: "lax" | "strict" | "none";
   secure: boolean;
@@ -71,13 +78,16 @@ export function bffCookieBaseOptions(): {
     process.env.MSGF_AUTH_COOKIE_SECURE === "1" ||
     process.env.NODE_ENV === "production";
 
-  const merged = withBffSupabaseCookieOptions({
-    httpOnly: true,
-    sameSite,
-    secure,
-    path: "/",
-    maxAge,
-  }) as {
+  const merged = withBffSupabaseCookieOptions(
+    {
+      httpOnly: true,
+      sameSite,
+      secure,
+      path: "/",
+      maxAge,
+    },
+    requestHost(req)
+  ) as {
     httpOnly?: boolean;
     sameSite: "lax" | "strict" | "none";
     secure: boolean;

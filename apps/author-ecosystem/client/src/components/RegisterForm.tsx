@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-import { bffCredentials } from "../lib/bffFetch";
+import { bffCredentials, bffUrl } from "../lib/bffFetch";
 import { NDA_DOCUMENTS } from "../legal/ndaRegistry";
 import { TERMS_DOCUMENTS } from "../legal/termsRegistry";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../legal/vaultPactAttestation";
@@ -68,7 +68,7 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
   const onSubmit = async (values: RegisterFormValues) => {
     props.onError(null);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(bffUrl("/api/auth/register"), {
         method: "POST",
         ...bffCredentials,
         headers: { "Content-Type": "application/json" },

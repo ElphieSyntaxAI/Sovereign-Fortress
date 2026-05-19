@@ -4,6 +4,8 @@ import type { CorsOptions } from "cors";
  * Browser + Chrome extension origins allowed to call the BFF with credentials (httpOnly cookies).
  *
  * - `BFF_ALLOWED_ORIGINS`: comma-separated exact origins (e.g. `http://localhost:5173,https://app.example.com`)
+ * - `BFF_ALLOWED_ORIGIN_REGEX`: optional JavaScript regex source for temporary deploy hosts
+ *   (e.g. `^https://.*\\.run\\.app$` while testing Cloud Run URLs).
  * - `BFF_CHROME_EXTENSION_ID`: adds `chrome-extension://<id>`
  */
 export function buildBffCorsOptions(): CorsOptions {
@@ -13,6 +15,8 @@ export function buildBffCorsOptions(): CorsOptions {
     .map((s) => s.trim())
     .filter(Boolean);
   const allowed = new Set<string>([...defaults, ...fromEnv]);
+  const regexRaw = process.env.BFF_ALLOWED_ORIGIN_REGEX?.trim();
+  const allowedRegex = regexRaw ? new RegExp(regexRaw) : null;
 
   const extId = process.env.BFF_CHROME_EXTENSION_ID?.trim();
   if (extId) {
@@ -28,6 +32,10 @@ export function buildBffCorsOptions(): CorsOptions {
         return;
       }
       if (allowList.has(origin)) {
+        callback(null, true);
+        return;
+      }
+      if (allowedRegex?.test(origin)) {
         callback(null, true);
         return;
       }

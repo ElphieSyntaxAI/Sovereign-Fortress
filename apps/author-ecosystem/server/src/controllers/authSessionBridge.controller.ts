@@ -34,10 +34,10 @@ function mapSupabaseUserToMe(user: { id: string; user_metadata?: Record<string, 
   return { id, role };
 }
 
-function mirrorAccessTokenCookie(res: Response, accessToken: string | undefined): void {
+function mirrorAccessTokenCookie(req: Request, res: Response, accessToken: string | undefined): void {
   const t = accessToken?.trim();
   if (!t) return;
-  res.cookie(BFF_AUTH_COOKIE_NAME, t, bffCookieBaseOptions());
+  res.cookie(BFF_AUTH_COOKIE_NAME, t, bffCookieBaseOptions(req));
 }
 
 /**
@@ -75,7 +75,7 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
         return;
       }
 
-      mirrorAccessTokenCookie(res, data.session.access_token);
+      mirrorAccessTokenCookie(req, res, data.session.access_token);
       const entitlement = await syncPlatformPersonaSession(res, data.user, { platform, persona });
 
       const u = mapSupabaseUserToMe(data.user);
@@ -182,7 +182,7 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
         return;
       }
 
-      mirrorAccessTokenCookie(res, sessionData.session.access_token);
+      mirrorAccessTokenCookie(req, res, sessionData.session.access_token);
 
       const entitlement = await syncPlatformPersonaSession(res, sessionData.user, {
         platform: "author",
@@ -246,7 +246,7 @@ authSessionBridgeController.post("/logout", (req: Request, res: Response) => {
     } catch (e) {
       console.error("[bff/auth/logout]", e);
     }
-    const opts = bffCookieBaseOptions();
+    const opts = bffCookieBaseOptions(req);
     res.clearCookie(BFF_AUTH_COOKIE_NAME, {
       path: opts.path,
       httpOnly: true,

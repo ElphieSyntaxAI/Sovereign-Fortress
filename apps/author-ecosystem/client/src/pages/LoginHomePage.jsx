@@ -4,7 +4,7 @@ import { PlatformLoginMatrix } from "@elphie-syntax/ui";
 import "@elphie-syntax/ui/platform-login.css";
 
 import { RegisterForm } from "../components/RegisterForm";
-import { bffCredentials } from "../lib/bffFetch";
+import { bffCredentials, bffUrl } from "../lib/bffFetch";
 
 export default function LoginHomePage() {
   const [authError, setAuthError] = useState(/** @type {string | null} */ (null));
@@ -51,7 +51,7 @@ export default function LoginHomePage() {
           subtitle="Sovereign ethical AI across Author, Education, and Gated AI"
           onSubmit={async (payload) => {
             setAuthError(null);
-            const res = await fetch("/api/auth/login", {
+            const res = await fetch(bffUrl("/api/auth/login"), {
               method: "POST",
               ...bffCredentials,
               headers: { "Content-Type": "application/json" },
