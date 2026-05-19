@@ -19,6 +19,7 @@ import { recalibrationController } from "./controllers/recalibration.controller.
 import { pactGuard } from "./middleware/pactGuard.js";
 import { revisionGateRouter } from "./middleware/RevisionGateMiddleware.js";
 import { msgfHealthController } from "./controllers/msgfHealth.controller.js";
+import { msgfPulseController } from "./controllers/msgfPulse.controller.js";
 import { msgfSelfHealController } from "./controllers/msgfSelfHeal.controller.js";
 import { rootController } from "./controllers/root.controller.js";
 import { buildBffCorsOptions } from "./lib/corsConfig.js";
@@ -47,6 +48,7 @@ app.use(p4LoreRagController);
 
 app.use(rootController);
 app.use(msgfHealthController);
+app.use(msgfPulseController);
 app.use(msgfSelfHealController);
 app.use(dashboardController);
 app.use(halController);

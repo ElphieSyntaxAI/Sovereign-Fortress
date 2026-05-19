@@ -21,6 +21,7 @@ import {
 import { P4_HAL_LEDGER, P4_HAL_LEDGER_ROLLING_AVG_5 } from "../lib/database/canonicalIdentifiers.js";
 import { assertBffManuscriptTenantSession } from "../middleware/author-gate.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
+import { forwardAuthorPulseToMsgf, latenciesToUniversalKeystrokes } from "../lib/msgfPulseBridge.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 type HalSessionBody = {
@@ -250,6 +251,27 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to persist HAL session", detail: error.message });
     }
 
+    const msgfPulse =
+      process.env.MSGF_AUTHOR_HAL_PULSE_ENABLED?.trim().toLowerCase() === "0"
+        ? {
+            ok: false,
+            configured: true,
+            status: null,
+            url: null,
+            response: null,
+            error: "Disabled by MSGF_AUTHOR_HAL_PULSE_ENABLED=0.",
+          }
+        : await forwardAuthorPulseToMsgf({
+            userId: authorUserId || sessionId,
+            tenantId,
+            body: {
+              keystrokes: latenciesToUniversalKeystrokes(latencyMs, {
+                target: `author:${manuscriptId}`,
+              }),
+            },
+            idempotencyKey: `hal:${sessionId}`,
+          });
+
     return res.status(201).json({
       ok: true,
       id: data.id,
@@ -265,6 +287,13 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
       identityRoot,
       recalibrationEvent,
       stylometric_snapshot,
+      msgf_pulse: {
+        ok: msgfPulse.ok,
+        configured: msgfPulse.configured,
+        status: msgfPulse.status,
+        error: msgfPulse.error,
+        response: msgfPulse.response,
+      },
     });
   } catch (e) {
     if (e instanceof HalValidationError) {

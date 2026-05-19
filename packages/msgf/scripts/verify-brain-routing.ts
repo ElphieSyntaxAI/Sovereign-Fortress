@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
+ * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
  */
 /**
  * Verifies Small Brain (local gateway) vs Big Brain (global CONVERGE) routing,
@@ -69,17 +69,47 @@ const VERIFY_AUTHOR_FALLBACK = "a1000000-0000-4000-8000-000000000001";
 
 async function ensureTestAuthor(admin: ReturnType<typeof createClient>): Promise<string> {
   const fromEnv = process.env.MSGF_VERIFY_AUTHOR_ID?.trim();
-  const authorId = fromEnv || VERIFY_AUTHOR_FALLBACK;
+  let authorId = fromEnv || "";
+
+  if (!authorId) {
+    const email = process.env.MSGF_VERIFY_AUTHOR_EMAIL?.trim() || "msgf-verify@elphiesyntax.local";
+    const password = process.env.MSGF_VERIFY_AUTHOR_PASSWORD?.trim() || "msgf-verify-password-123";
+    const created = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        role: "DEVELOPER",
+        msgf_verify: true,
+      },
+    });
+
+    if (created.data.user?.id) {
+      authorId = created.data.user.id;
+    } else {
+      const listed = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const match = listed.data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+      if (!match?.id) {
+        const detail = created.error?.message || listed.error?.message || "No matching verify auth user.";
+        throw new Error(`ensureTestAuthor: auth user create/list failed: ${detail}`);
+      }
+      authorId = match.id;
+    }
+  }
+
+  if (!authorId) authorId = VERIFY_AUTHOR_FALLBACK;
 
   const { data } = await admin.from("p4_profiles").select("user_id").eq("user_id", authorId).maybeSingle();
   if (!data?.user_id) {
     const { error } = await admin.from("p4_profiles").upsert(
       {
         user_id: authorId,
+        username: `verify-${authorId.slice(0, 8)}`,
         tier_id: 1,
+        user_role: "developer",
         billing_license_type: "monthly",
         stripe_subscription_status: "active",
-        credits_remaining: 100,
+        current_credits: 100,
       },
       { onConflict: "user_id" }
     );
@@ -178,7 +208,7 @@ async function main() {
   console.log(`\nUsing author_id: ${authorId}\n`);
 
   await bootstrapTenantBrain(admin, authorId);
-  await createPledgeBeat(authorId, { supabase: admin });
+  await createPledgeBeat(authorId, { tenantId: authorId, supabase: admin });
   await ensureBiometricReady(admin, authorId);
 
   const readiness = await bootstrapTenantBrain(admin, authorId);

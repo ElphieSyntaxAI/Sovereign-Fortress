@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
+ * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
  */
 /**
  * Socratic Tutor — LLM prompt wrapper (P1 Static Ledger + P6 RAG context).

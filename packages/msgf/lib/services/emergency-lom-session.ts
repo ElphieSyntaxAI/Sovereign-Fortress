@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
+ * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
  */
 /**
  * Emergency LOM session — Gemini + Claude analyze a Sentinel snapshot vs P2 Roadmap.
@@ -32,8 +32,21 @@ import {
 } from "@/lib/services/cost-runaway-guard";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
+const CLAUDE_VERTEX_LOCATION =
+  process.env.MSGF_CLAUDE_VERTEX_LOCATION?.trim() ||
+  process.env.GCP_CLAUDE_LOCATION?.trim() ||
+  "global";
 const GEMINI_MODEL_ID = process.env.MSGF_VERTEX_MODEL || "gemini-2.5-flash";
-const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-4.6-sonnet";
+const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-sonnet-4@20250514";
+
+function vertexEndpointForLocation(location: string): string {
+  return location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`;
+}
+
+function vertexEndpointForModelPath(modelPath: string): string {
+  const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
+  return vertexEndpointForLocation(location);
+}
 
 export type EmergencyLomVerdict = "ROADMAP_ALIGNED" | "ROADMAP_CONFLICT" | "INCONCLUSIVE";
 
@@ -81,7 +94,7 @@ async function runPublisherModel(
 ): Promise<EmergencyLomModelResult> {
   const client = new v1beta1.PredictionServiceClient({
     keyFilename: SERVICE_ACCOUNT_PATH,
-    apiEndpoint: `${VERTEX_LOCATION}-aiplatform.googleapis.com`,
+    apiEndpoint: vertexEndpointForModelPath(modelPath),
   });
 
   const [resp] = await runWithLlmTimeoutSimple(`emergency_lom.publisher.${modelPath.slice(-32)}`, () =>
@@ -150,7 +163,7 @@ export async function runEmergencyLomSession(params: {
 
   const projectId = getGcpProjectId();
   const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${GEMINI_MODEL_ID}`;
-  const claudePath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
+  const claudePath = `projects/${projectId}/locations/${CLAUDE_VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
 
   let gemini: EmergencyLomModelResult;
   let claude: EmergencyLomModelResult;

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
+ * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
  */
 /**
  * MSGF V3.2-ULTRA Pulse pipeline — SHARD → DEFEND → CONVERGE → PERSIST.
@@ -151,7 +151,20 @@ export const PULSE_HALT_STATE_RETRY = 3;
 const LINEAGE_INSTANCE = "1.1.1";
 const LINEAGE_CATEGORY = "P6";
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
-const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-4.6-sonnet";
+const CLAUDE_VERTEX_LOCATION =
+  process.env.MSGF_CLAUDE_VERTEX_LOCATION?.trim() ||
+  process.env.GCP_CLAUDE_LOCATION?.trim() ||
+  "global";
+const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-sonnet-4@20250514";
+
+function vertexEndpointForLocation(location: string): string {
+  return location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`;
+}
+
+function vertexEndpointForModelPath(modelPath: string): string {
+  const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
+  return vertexEndpointForLocation(location);
+}
 
 export const ERR_RECURSION_LIMIT = "ERR_RECURSION_LIMIT" as const;
 
@@ -2080,7 +2093,7 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
   ): Promise<{ verdict: ConsensusVote; reason: string }> {
     const client = new v1beta1.PredictionServiceClient({
       keyFilename: SERVICE_ACCOUNT_PATH,
-      apiEndpoint: `${VERTEX_LOCATION}-aiplatform.googleapis.com`,
+      apiEndpoint: vertexEndpointForModelPath(modelPath),
     });
 
     const [resp] = await runWithLlmTimeoutSimple("pulse.consensus.publisher_vertex", () =>
@@ -2124,7 +2137,7 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
         : await (async () => {
             const projectId = getGcpProjectId();
             const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${geminiModelId}`;
-            const claudePath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
+            const claudePath = `projects/${projectId}/locations/${CLAUDE_VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
             return Promise.all([
               this.runPublisherModel(geminiPath, prompt),
               this.runPublisherModel(claudePath, prompt),

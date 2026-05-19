@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
+ * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
  */
 /**
  * Canvas LTI 1.3 configuration (P3 Entity Profiles).

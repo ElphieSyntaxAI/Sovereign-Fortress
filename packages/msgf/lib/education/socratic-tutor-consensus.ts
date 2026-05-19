@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
+ * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
  */
 /**
  * Socratic Tutor — Gemini + Claude consensus (Vertex publishers, P2 CONVERGE).
@@ -27,8 +27,12 @@ import {
 import { LEARNING_BREAKDOWN_INDEX } from "@/lib/education/learning-breakdown-index";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
+const CLAUDE_VERTEX_LOCATION =
+  process.env.MSGF_CLAUDE_VERTEX_LOCATION?.trim() ||
+  process.env.GCP_CLAUDE_LOCATION?.trim() ||
+  "global";
 const GEMINI_MODEL_ID = process.env.MSGF_VERTEX_MODEL || "gemini-2.5-flash";
-const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-4.6-sonnet";
+const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-sonnet-4@20250514";
 
 export const SOCRATIC_CONSENSUS_THRESHOLD = 0.72;
 
@@ -121,9 +125,10 @@ export function detectP1SocraticViolation(text: string): string | null {
 }
 
 async function runPublisherModel(modelPath: string, prompt: string): Promise<string> {
+  const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
   const client = new v1beta1.PredictionServiceClient({
     keyFilename: SERVICE_ACCOUNT_PATH,
-    apiEndpoint: `${VERTEX_LOCATION}-aiplatform.googleapis.com`,
+    apiEndpoint: location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`,
   });
 
   const [resp] = await runWithLlmTimeoutSimple("socratic_tutor.publisher_vertex", () =>
@@ -195,7 +200,7 @@ export async function runSocraticTutorConsensus(
 ): Promise<Omit<SocraticConsensusResult, "p1Violation" | "p1ViolationReason">> {
   const projectId = getGcpProjectId();
   const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${GEMINI_MODEL_ID}`;
-  const claudePath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
+  const claudePath = `projects/${projectId}/locations/${CLAUDE_VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
 
   const [geminiText, claudeText] = await executeAiWave("socratic_tutor.dual_publishers", () =>
     Promise.all([

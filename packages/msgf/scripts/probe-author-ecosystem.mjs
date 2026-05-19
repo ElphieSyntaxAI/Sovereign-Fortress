@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
+ * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
  */
 /**
  * Cross-stack smoke probe: Author Ecosystem (Express) + MSGF (Next).
@@ -21,7 +21,8 @@
  *   node --env-file=.env.local scripts/probe-author-ecosystem.mjs   (JWT / Pulse cookie)
  *
  * Optional:
- *   AUTHOR_ECOSYSTEM_JWT — Bearer for POST /api/hal/session (same shape as extension would send)
+ *   AUTHOR_ECOSYSTEM_JWT — Bearer for Author BFF authenticated probes
+ *   AUTHOR_TENANT_ID — Author tenant UUID/slug for BFF -> MSGF proxy (default author_ecosystem)
  *   MSGF_PULSE_COOKIE — Supabase session Cookie header for POST /api/msgf/pulse
  */
 
@@ -33,6 +34,7 @@ const MSGF_BASE = (process.env.MSGF_BASE_URL || "http://127.0.0.1:3000").replace
   ""
 );
 const HAL_JWT = process.env.AUTHOR_ECOSYSTEM_JWT?.trim();
+const AUTHOR_TENANT_ID = process.env.AUTHOR_TENANT_ID?.trim() || "author_ecosystem";
 const PULSE_COOKIE = process.env.MSGF_PULSE_COOKIE?.trim();
 
 /** Minimal HAL-style events (see halRoutes.js) */
@@ -103,24 +105,27 @@ async function main() {
   }
 
   if (HAL_JWT) {
-    const halBody = {
-      content: "probe-author-ecosystem synthetic session",
-      keystroke_data: sampleHalKeystrokes(),
-      is_reference: false,
-    };
-    const halRes = await fetch(`${AUTHOR_BASE}/api/hal/session`, {
+    const keystrokes = halLikeToMsgfKeystrokes(sampleHalKeystrokes());
+    const bridgedPulseRes = await fetch(`${AUTHOR_BASE}/api/msgf/pulse`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${HAL_JWT}`,
       },
-      body: JSON.stringify(halBody),
+      body: JSON.stringify({
+        tenantId: AUTHOR_TENANT_ID,
+        keystrokes,
+      }),
     });
-    const halJson = await halRes.json().catch(() => ({}));
-    console.log("\nPOST /api/hal/session:", halRes.status, halJson);
+    const bridgedPulseJson = await bridgedPulseRes.json().catch(() => ({}));
+    console.log(
+      "\nPOST /api/msgf/pulse through Author BFF:",
+      bridgedPulseRes.status,
+      bridgedPulseJson
+    );
   } else {
     console.log(
-      "\n(skip) POST /api/hal/session — set AUTHOR_ECOSYSTEM_JWT to exercise HAL ledger."
+      "\n(skip) POST /api/msgf/pulse through Author BFF — set AUTHOR_ECOSYSTEM_JWT."
     );
   }
 
@@ -164,7 +169,7 @@ async function main() {
   }
 
   console.log(
-    "\nNote: Author ecosystem uses its own Postgres HAL ledger; MSGF uses Supabase + pledge/baseline gates. They are not wired together yet—this script only proves both stacks respond."
+    "\nNote: Author BFF now proxies authenticated /api/msgf/pulse calls to MSGF. HAL session writes also include msgf_pulse status when MSGF_APP_URL and MSGF_AUTHOR_PULSE_LICENSE_KEY are configured on the BFF."
   );
 }
 

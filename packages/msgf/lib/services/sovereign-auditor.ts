@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
+ * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
  */
 /**
  * SovereignAuditor — isolated Master Gemini + Anthropic (Vertex publisher paths)
@@ -22,15 +22,28 @@ import { computeConsensusAgreementScore } from "@/lib/services/consensus-output-
 import { runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
+const CLAUDE_VERTEX_LOCATION =
+  process.env.MSGF_CLAUDE_VERTEX_LOCATION?.trim() ||
+  process.env.GCP_CLAUDE_LOCATION?.trim() ||
+  "global";
 const CLAUDE_MASTER_MODEL =
   process.env.MSGF_SOVEREIGN_CLAUDE_MODEL?.trim() ||
   process.env.MSGF_CLAUDE_MODEL?.trim() ||
-  "claude-4.6-sonnet";
+  "claude-sonnet-4@20250514";
+
+function vertexEndpointForLocation(location: string): string {
+  return location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`;
+}
+
+function vertexEndpointForModelPath(modelPath: string): string {
+  const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
+  return vertexEndpointForLocation(location);
+}
 
 async function runMasterPublisherModel(modelPath: string, prompt: string): Promise<string> {
   const client = new v1beta1.PredictionServiceClient({
     keyFilename: SERVICE_ACCOUNT_PATH,
-    apiEndpoint: `${VERTEX_LOCATION}-aiplatform.googleapis.com`,
+    apiEndpoint: vertexEndpointForModelPath(modelPath),
   });
 
   const [resp] = await runWithLlmTimeoutSimple(`sovereign.publisher.${modelPath.slice(-24)}`, () =>
@@ -104,7 +117,7 @@ export async function runSovereignAuditorDualMaster(params: {
 }): Promise<SovereignAuditorResult> {
   const projectId = getGcpProjectId();
   const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${params.geminiModelId}`;
-  const claudePath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MASTER_MODEL}`;
+  const claudePath = `projects/${projectId}/locations/${CLAUDE_VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MASTER_MODEL}`;
 
   const prompt = buildSovereignPrompt(params);
 
