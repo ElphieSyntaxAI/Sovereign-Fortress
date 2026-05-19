@@ -31,6 +31,14 @@ export function buildBffCorsOptions(): CorsOptions {
         callback(null, true);
         return;
       }
+      // Unpacked Author extension (chrome-extension://…) in local dev
+      if (
+        origin.startsWith("chrome-extension://") &&
+        process.env.NODE_ENV !== "production"
+      ) {
+        callback(null, true);
+        return;
+      }
       callback(null, false);
     },
     credentials: true,

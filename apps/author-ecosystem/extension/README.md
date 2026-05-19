@@ -1,20 +1,40 @@
-## Author Ecosystem Google Docs Extension (MVP scaffold)
+## Author Ecosystem browser extension
 
-Goals:
-- Stay lightweight (no heavy DOM work, no big UI frameworks)
-- Capture HAL biometrics (keydown/keyup/paste) without slowing Google Docs
-- Provide a small side-panel to:
-  - authenticate (paste JWT from Author Ecosystem)
-  - select project
-  - push HAL session
-  - ask Lore Librarian (RAG)
+Lightweight Chrome extension for **Google Docs** and **Microsoft Word Online** (browser).
 
-This is a scaffold; wiring OAuth + Docs API text extraction comes next.
+**Not supported:** desktop Word (Windows/Mac app) — extensions cannot inject into native Office.
 
-### Load as an unpacked extension (Chrome)
+### Features
 
-1. Open `chrome://extensions` → enable **Developer mode**.
-2. **Load unpacked** → choose this folder (`apps/author-ecosystem/extension`).
-3. Open a Google Doc; use the **toolbar icon** or the **✎** FAB (bottom-left) to open the side panel.
+- HAL keystroke / paste capture (rolling buffer, no full-doc scrape)
+- ✎ FAB opens the side panel (HAL + Lore Librarian)
+- BFF session via httpOnly cookies (sign in on `http://localhost:5173` or production) or pasted Bearer JWT
+- Push HAL → `POST /api/hal/session`
+- Ask Librarian → `POST /api/rag/chat` with HUD spoiler/plot filters
+- Active manuscript from `GET /api/manuscripts/active` (set in web dashboard first)
 
-Requires Chrome with **Side Panel** support. The manifest includes the `sidePanel` permission (required for `side_panel.default_path` and `chrome.sidePanel.open`).
+### Load unpacked (Chrome)
+
+1. Run Author BFF (`:3002`) and client (`:5173`).
+2. Sign in at `http://localhost:5173` (Author tab on platform login).
+3. Open **Dashboard** and select a manuscript.
+4. `chrome://extensions` → **Developer mode** → **Load unpacked** → this folder (`apps/author-ecosystem/extension`).
+5. Optional: copy extension ID into root `.env.local` as `BFF_CHROME_EXTENSION_ID=<id>` (dev allows any `chrome-extension://` origin when `NODE_ENV` is not production).
+6. Open **Google Docs** or **Word Online** (`https://word.cloud.microsoft` or Office 365 web).
+7. Click **✎** or the toolbar icon → **Sync session** → type in the doc → **Push HAL session** or **Ask Librarian**.
+
+### Word Online notes
+
+- Editor runs inside iframes; the extension uses `all_frames` and activates only in the editable frame.
+- If the FAB is missing, reload the Word tab after installing the extension.
+- First keystrokes after reload may need a click inside the document body.
+
+### File layout
+
+| File | Role |
+|------|------|
+| `manifest.json` | MV3 manifest (required — was missing before) |
+| `src/background.js` | Side panel + FAB messaging |
+| `src/content.js` | HAL capture + FAB (module) |
+| `src/writing-surface.js` | Docs / Word URL detection |
+| `src/panel.html` / `panel.js` | Side panel UI |

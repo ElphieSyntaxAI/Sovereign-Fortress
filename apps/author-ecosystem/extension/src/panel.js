@@ -10,17 +10,42 @@ let sessionContext = {
   activeManuscript: null,
 };
 
-/** Prefer a Google Doc tab for HAL buffer capture when the side panel has focus. */
-async function resolveDocsTabId() {
+const WRITING_TAB_URLS = [
+  "https://docs.google.com/document/*",
+  "https://word.cloud.microsoft/*",
+  "https://*.officeapps.live.com/*",
+  "https://*.sharepoint.com/*",
+];
+
+function isWritingSurfaceUrl(url) {
+  if (typeof url !== "string") return false;
+  if (url.includes("://docs.google.com/document/")) return true;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    if (host === "word.cloud.microsoft") return true;
+    if (host.endsWith(".officeapps.live.com")) return true;
+    if (host.includes("sharepoint.com") && /word/i.test(u.pathname)) return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+/** Prefer Google Docs or Word Online tab for HAL buffer capture. */
+async function resolveWritingTabId() {
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (active?.id != null && active.url?.includes("://docs.google.com/document/")) {
+  if (active?.id != null && isWritingSurfaceUrl(active.url)) {
     return active.id;
   }
-  const docsTabs = await chrome.tabs.query({ url: "https://docs.google.com/document/*" });
-  if (docsTabs.length === 0) return null;
-  const sameWin =
-    active?.windowId != null ? docsTabs.find((t) => t.windowId === active.windowId) : null;
-  return (sameWin ?? docsTabs[0]).id ?? null;
+  for (const pattern of WRITING_TAB_URLS) {
+    const tabs = await chrome.tabs.query({ url: pattern });
+    if (tabs.length === 0) continue;
+    const sameWin =
+      active?.windowId != null ? tabs.find((t) => t.windowId === active.windowId) : null;
+    return (sameWin ?? tabs[0]).id ?? null;
+  }
+  return null;
 }
 
 function setOutput(obj) {
@@ -177,22 +202,25 @@ async function loadProjects() {
   setOutput({ loaded: (data.projects || []).length });
 }
 
-async function readKeystrokeBufferFromDocs() {
-  const tabId = await resolveDocsTabId();
+async function readKeystrokeBufferFromWritingTab() {
+  const tabId = await resolveWritingTabId();
   if (tabId == null) {
-    throw new Error("No tab found. Open a Google Doc tab, then try again.");
+    throw new Error(
+      "No writing tab found. Open Google Docs or Word Online in this browser, then try again."
+    );
   }
   let resp;
   try {
     resp = await chrome.tabs.sendMessage(tabId, { type: "HAL_GET_BUFFER" });
   } catch {
     throw new Error(
-      "Could not read HAL buffer from that tab. Open a Google Doc (same window), reload the tab once, then try again."
+      "Could not read HAL buffer. Open Google Docs or Word Online (same window), reload the editor tab once, then try again."
     );
   }
   const keystroke_data = resp?.keystrokes || [];
   const content = resp?.text_sample || "";
-  return { keystroke_data, content };
+  const surface = resp?.surface || "writing-surface";
+  return { keystroke_data, content, surface };
 }
 
 function keystrokeLatenciesFromBuffer(keystroke_data) {
@@ -207,7 +235,7 @@ function keystrokeLatenciesFromBuffer(keystroke_data) {
   return out.length > 0 ? out : [120];
 }
 
-function buildHalSessionBody(active, userId, content, keystroke_data) {
+function buildHalSessionBody(active, userId, content, keystroke_data, surface) {
   const manuscriptId = active.id;
   const tenantId = active.tenant_id;
   const tagLine = `[AuthorEcosystem manuscript=${manuscriptId} tenant=${tenantId}]\n`;
@@ -221,7 +249,7 @@ function buildHalSessionBody(active, userId, content, keystroke_data) {
     keystrokeDna: {
       manuscriptId,
       tenantId,
-      source: "chrome-extension-google-docs",
+      source: `chrome-extension-${surface || "writing-surface"}`,
       events: keystroke_data,
     },
   };
@@ -236,7 +264,12 @@ function halSessionIdFromResponse(result) {
   return null;
 }
 
-const DASHBOARD_WRAP_UP = "http://localhost:3000/wrap-up";
+async function resolveDashboardUrl() {
+  const { apiBase } = await chrome.storage.local.get(["apiBase"]);
+  const base = (String(apiBase ?? "").trim() || DEFAULT_API_BASE).replace(/\/+$/, "");
+  if (base.includes("elphiesyntax.com")) return "https://elphiesyntax.com/dashboard";
+  return "http://localhost:5173/dashboard";
+}
 
 async function pushHalSession() {
   await refreshSessionContext();
@@ -249,12 +282,13 @@ async function pushHalSession() {
     return;
   }
 
-  const { keystroke_data, content } = await readKeystrokeBufferFromDocs();
+  const { keystroke_data, content, surface } = await readKeystrokeBufferFromWritingTab();
   const body = buildHalSessionBody(
     sessionContext.activeManuscript,
     sessionContext.userId,
     content,
-    keystroke_data
+    keystroke_data,
+    surface
   );
   const result = await apiFetch("/api/hal/session", { method: "POST", body });
   setOutput(result);
@@ -268,11 +302,17 @@ async function endSessionAndWrapUp() {
 
   const projectId = sessionContext.activeManuscript.id;
 
-  const { keystroke_data, content } = await readKeystrokeBufferFromDocs();
+  const { keystroke_data, content, surface } = await readKeystrokeBufferFromWritingTab();
 
   const result = await apiFetch("/api/hal/session", {
     method: "POST",
-    body: buildHalSessionBody(sessionContext.activeManuscript, sessionContext.userId, content, keystroke_data),
+    body: buildHalSessionBody(
+      sessionContext.activeManuscript,
+      sessionContext.userId,
+      content,
+      keystroke_data,
+      surface
+    ),
   });
 
   const sessionId = halSessionIdFromResponse(result);
@@ -282,7 +322,7 @@ async function endSessionAndWrapUp() {
     );
   }
 
-  const u = new URL(DASHBOARD_WRAP_UP);
+  const u = new URL(await resolveDashboardUrl());
   u.searchParams.set("project_id", projectId);
   u.searchParams.set("session_id", sessionId);
 
