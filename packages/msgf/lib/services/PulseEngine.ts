@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
+ * Distribution Build ID: MSGF-5e9b050-20260519T172718Z-internal
  */
 /**
  * MSGF V3.2-ULTRA Pulse pipeline — SHARD → DEFEND → CONVERGE → PERSIST.
@@ -140,6 +140,10 @@ import {
 } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 import type { PulseHotSession } from "@/lib/services/pulse-hot-session";
+import {
+  isAnthropicPublisherModelPath,
+  runAnthropicDirectPublisherModel,
+} from "@/lib/services/anthropic-direct-fallback";
 
 const LOM_MAX_ATTEMPTS = MAX_RECURSION_DEPTH;
 /** HITL / LOM recursion ceiling — exceeding throws {@link ERR_RECURSION_LIMIT}. */
@@ -2091,6 +2095,16 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
     modelPath: string,
     prompt: string
   ): Promise<{ verdict: ConsensusVote; reason: string }> {
+    if (isAnthropicPublisherModelPath(modelPath) && process.env.ANTHROPIC_API_KEY?.trim()) {
+      const text = await runAnthropicDirectPublisherModel({
+        modelPath,
+        prompt,
+        maxTokens: 200,
+        temperature: 0.1,
+      });
+      return this.parseVote(text);
+    }
+
     const client = new v1beta1.PredictionServiceClient({
       keyFilename: SERVICE_ACCOUNT_PATH,
       apiEndpoint: vertexEndpointForModelPath(modelPath),

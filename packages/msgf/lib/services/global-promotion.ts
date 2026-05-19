@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
+ * Distribution Build ID: MSGF-5e9b050-20260519T172718Z-internal
  */
 /**
  * Admin-only promotion: `local_state_cache` → `vault_core` (MSGF_VAULT_CORE_TENANT_ID pillar_vectors).

@@ -77,6 +77,21 @@
 
 ---
 
+## 3.1) Impact vs Effort SWEEP Matrix
+
+| Finding | Impact | Effort | Non-destructive routing |
+|---|---:|---:|---|
+| Service-role exposure risk path | High | Medium | P1 Static Ledger HALT candidate; record as `1.0_AUTH -> 1.1_SERVICE_ROLE -> 1.1.1_ENV_DEGRADE` before any refactor. |
+| Hot-path route concentration | High | High | P2 Flow Sequence refactor candidate; preserve existing route behavior while extracting gate/converge/persist modules. |
+| Metadata-schema coupling | High | Medium | P6 Constraint Ledger hardening; add typed metadata tests before DB mutations. |
+| Consensus dependency fragility | High | Medium | CONVERGE resilience; require dual-provider fallback and clear HITL incident routing. |
+| Embedding fallback quality drift | Medium | Low | SHARD observability; keep fallback deterministic but match `vector(1536)` and mark degraded quality. |
+| approvedDelta provenance gap | Medium | Medium | ARBITRATE/PERSIST hardening; require operator provenance before Vault persistence. |
+
+**SWEEP guarantee:** this matrix is analysis-only. It maps risk by **Impact vs Effort** and records lineage targets without mutating source files, migrations, or tenant data.
+
+---
+
 ## 4) Hall of Hallucinations Seed List (Negative Index)
 
 Shard these as initial Hall entries (`P6`, `ledger=hall`) to block recurrence:

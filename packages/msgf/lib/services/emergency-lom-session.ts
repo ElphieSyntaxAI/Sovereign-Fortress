@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
+ * Distribution Build ID: MSGF-5e9b050-20260519T172718Z-internal
  */
 /**
  * Emergency LOM session — Gemini + Claude analyze a Sentinel snapshot vs P2 Roadmap.
@@ -30,6 +30,10 @@ import {
   isCostRunawayError,
   runWithLlmTimeoutSimple,
 } from "@/lib/services/cost-runaway-guard";
+import {
+  isAnthropicPublisherModelPath,
+  runAnthropicDirectPublisherModel,
+} from "@/lib/services/anthropic-direct-fallback";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
 const CLAUDE_VERTEX_LOCATION =
@@ -92,6 +96,16 @@ async function runPublisherModel(
   modelPath: string,
   prompt: string
 ): Promise<EmergencyLomModelResult> {
+  if (isAnthropicPublisherModelPath(modelPath) && process.env.ANTHROPIC_API_KEY?.trim()) {
+    const text = await runAnthropicDirectPublisherModel({
+      modelPath,
+      prompt,
+      maxTokens: 280,
+      temperature: 0.1,
+    });
+    return parseLomVerdict(text);
+  }
+
   const client = new v1beta1.PredictionServiceClient({
     keyFilename: SERVICE_ACCOUNT_PATH,
     apiEndpoint: vertexEndpointForModelPath(modelPath),

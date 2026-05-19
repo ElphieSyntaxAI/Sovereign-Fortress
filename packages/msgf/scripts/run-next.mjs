@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
+ * Distribution Build ID: MSGF-5e9b050-20260519T172718Z-internal
  */
 /**
  * Resolve `next` CLI for npm workspaces: hoisted to monorepo root (Docker / npm ci)
@@ -19,7 +19,7 @@
  * `next/dist/bin/next` can fail under some workspace / Node resolution paths.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -60,7 +60,16 @@ function resolveNextBin() {
 }
 
 const nextBin = resolveNextBin();
-const child = spawnSync(process.execPath, [nextBin, ...process.argv.slice(2)], {
+const args = process.argv.slice(2);
+
+if (args[0] === "build") {
+  // Next can leave generated server files that Windows/OneDrive later reports
+  // as invalid readlinks. Start each production build from a clean generated
+  // output directory; source, dist, and node_modules are untouched.
+  rmSync(path.join(pkgRoot, ".next"), { recursive: true, force: true });
+}
+
+const child = spawnSync(process.execPath, [nextBin, ...args], {
   stdio: "inherit",
 });
 process.exit(child.status ?? 1);

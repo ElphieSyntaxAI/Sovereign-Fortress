@@ -101,6 +101,8 @@
     "lint": "npm run _next -- lint",
     "test:lom-disagreement": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local tests/test-lom-disagreement.ts",
     "test:author-validation": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local tests/author-logic-validation.test.ts",
+    "test:ingest-workflow": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local tests/ingest-workflow.test.ts",
+    "test:v32-ultra": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local tests/v32-ultra-architecture.integration.test.ts",
     "verify:brain-routing": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-brain-routing.ts",
     "verify:msgf-env": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-msgf-env.mjs",
     "verify:connector-client": "node scripts/verify-connector-client.mjs",

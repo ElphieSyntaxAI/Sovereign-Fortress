@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
+ * Distribution Build ID: MSGF-5e9b050-20260519T172718Z-internal
  */
 /**
  * SWEEP ingestion — tenant-scoped `pillar_vectors` writes (metadata JSONB only).
@@ -106,6 +106,9 @@ function buildIngestMetadata(input: {
   return withMsgfMetadataScope(
     {
       ...vaultMeta,
+      // SWEEP repository shards use the canonical V3.0 engineering pillar.
+      // Vault/Hall consensus rows keep `pillar: P6` via buildVaultHallMetadata.
+      pillar: input.governancePillar,
       governance_pillar: input.governancePillar,
       is_baseline: true,
       ingest_source: "sweep",
