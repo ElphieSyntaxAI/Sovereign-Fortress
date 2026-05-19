@@ -9,7 +9,14 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "noEmit": false
+    "noEmit": false,
+    /**
+     * Resolve the `msgf` package via its `"development"` export condition so
+     * the TS compiler reads `msgf/lib/*.ts` sources directly (no built
+     * `packages/msgf/dist/` required for monorepo typecheck). Production
+     * `tsx`/`tsc` builds still emit JS that resolves via `import` / `default`.
+     */
+    "customConditions": ["development"]
   },
   "include": ["src/**/*.ts"]
 }

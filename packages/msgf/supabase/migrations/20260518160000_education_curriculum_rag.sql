@@ -1,4 +1,14 @@
 -- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
+-- =============================================================================
+-- =============================================================================
 -- Syntax Education — pgvector RAG over pillar_vectors (curriculum shards + Vault strengths)
 -- =============================================================================
 

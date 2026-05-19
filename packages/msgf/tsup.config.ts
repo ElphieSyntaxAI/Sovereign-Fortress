@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ * Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
  */
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -48,6 +48,7 @@ export const clientSdkEntries = {
   connector: "lib/connector/client.ts",
   "connector/MsgfBridge": "lib/connector/MsgfBridge.ts",
   "lib/msgf-auth-cookies": "lib/msgf-auth-cookies.ts",
+  "lib/platform-persona-auth": "lib/platform-persona-auth.ts",
   "universal/p1-hal-standard": "src/lib/universal/p1HalStandard.ts",
   ui: "ui/index.ts",
   "ide-connector": "lib/ide-connector.ts",

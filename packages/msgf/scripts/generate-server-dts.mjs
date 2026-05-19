@@ -9,6 +9,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 /**
@@ -314,27 +326,44 @@ export declare function toAdminIncidentStrategyDto(
 write(
   "onboarding.d.ts",
   `export type { MsgfProfile, EnsureMsgfProfileInput } from "./onboarding-types";
+export type PlatformId = "author" | "education" | "gatedai";
 export type CreatePledgeBeatResult = { beatId: string; created: boolean };
 export type EnsureMsgfPulseProfileInput = import("./onboarding-types").EnsureMsgfProfileInput & {
   supabase?: import("@supabase/supabase-js").SupabaseClient;
 };
 export type EnsureAuthorPulseProfileInput = EnsureMsgfPulseProfileInput & { userId: string };
+export type SyncPlatformEntitlementInput = {
+  supabase?: import("@supabase/supabase-js").SupabaseClient;
+  entityId: string;
+  platform: PlatformId;
+  persona: string;
+  username: string;
+  preferredTheme?: string;
+};
 export declare function createPledgeBeat(
   entityId: string,
   options?: { tenantId: string; supabase?: import("@supabase/supabase-js").SupabaseClient; beatText?: string }
 ): Promise<CreatePledgeBeatResult>;
 export declare function ensureMsgfPulseProfile(
   input: EnsureMsgfPulseProfileInput
-): Promise<import("./onboarding-types").MsgfProfile>;
-export declare function bootstrapTenantBrain(options: {
-  tenantId: string;
-  entityId: string;
-  supabase?: import("@supabase/supabase-js").SupabaseClient;
-}): Promise<{ readiness_score: number; brain_fully_initialized: boolean }>;
+): Promise<void>;
+export declare function syncPlatformEntitlement(
+  input: SyncPlatformEntitlementInput
+): Promise<{ provisionedLicense: boolean; tenantId: string; userRole: string }>;
+export declare function bootstrapTenantBrain(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  tenantId: string,
+  entityId?: string
+): Promise<unknown>;
+/** @deprecated Use {@link ensureMsgfPulseProfile} with \`entityId\`. */
+export declare function ensureAuthorPulseProfile(input: EnsureAuthorPulseProfileInput): Promise<void>;
 export declare const MSGF: {
   createPledgeBeat: typeof createPledgeBeat;
   ensureMsgfPulseProfile: typeof ensureMsgfPulseProfile;
+  syncPlatformEntitlement: typeof syncPlatformEntitlement;
   bootstrapTenantBrain: typeof bootstrapTenantBrain;
+  /** @deprecated */
+  ensureAuthorPulseProfile: typeof ensureAuthorPulseProfile;
 };
 `
 );
@@ -343,16 +372,27 @@ write(
   "onboarding-types.d.ts",
   `export type MsgfProfile = {
   user_id: string;
-  tenant_id?: string | null;
-  tier?: string | null;
-  current_credits?: number | null;
+  legacy_user_id?: number | null;
+  username: string;
+  tier_id: number;
+  user_role?: string;
+  preferred_theme?: string;
+  billing_license_type?: "free" | "monthly" | "lifetime";
+  license_type?: string | null;
+  license_purchase_date?: string | null;
+  stripe_subscription_status?: string | null;
+  current_credits?: number;
+  updated_at?: string;
 };
 export type EnsureMsgfProfileInput = {
-  userId: string;
-  tenantId: string;
-  tier?: string;
-  starterCredits?: number;
-  stripeStatus?: string;
+  entityId: string;
+  tierId: number;
+  username: string;
+  preferredTheme?: string;
+  /** \`p4_profiles.user_role\` slug (e.g. \`author\`, \`teacher\`, \`developer\`). */
+  userRole?: string;
+  /** Operational tenant slug — NOT necessarily a UUID. */
+  tenantId?: string;
 };
 `
 );

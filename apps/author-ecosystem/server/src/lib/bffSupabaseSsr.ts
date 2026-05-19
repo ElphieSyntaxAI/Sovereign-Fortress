@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import type { Request, Response } from "express";
+import type { CookieOptions, Request, Response } from "express";
 
 import { parseCookieHeader } from "./bffAuthCookies.js";
 import { withBffSupabaseCookieOptions } from "./bffSupabaseCookieOptions.js";
@@ -46,12 +46,12 @@ export function createBffSupabaseServerClient(req: Request, res: Response) {
             continue;
           }
           const rawMaxAge = (options as { maxAge?: number } | undefined)?.maxAge;
-          const cookieOpts: Record<string, unknown> = { ...clearOpts };
+          const cookieOpts: CookieOptions = { ...clearOpts };
           if (typeof rawMaxAge === "number" && rawMaxAge > 0) {
             // @supabase/ssr passes max-age in **seconds** (Set-Cookie); Express expects milliseconds.
             cookieOpts.maxAge = rawMaxAge * 1000;
           }
-          res.cookie(name, value, cookieOpts as Parameters<typeof res.cookie>[2]);
+          res.cookie(name, value, cookieOpts);
         }
       },
     },

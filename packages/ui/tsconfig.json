@@ -12,7 +12,14 @@
     "declarationMap": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    /**
+     * Resolve the `msgf` package via its `"development"` export condition so the
+     * TS compiler reads the raw `lib/*.ts` sources directly (no need for a
+     * built `dist/` during typecheck). Production bundlers (Next, Vite) still
+     * pick `import` / `default` and use the compiled SDK.
+     */
+    "customConditions": ["development"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

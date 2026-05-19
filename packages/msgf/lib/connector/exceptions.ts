@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ * Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
  */
 /** Shared MSGF connector error surface for any host app (browser, Node, mobile WebView). */
 

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ * Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
  */
 /**
  * MSGF onboarding — pledge `state_beats` + `p4_profiles` ({@link MsgfProfile}) for first Pulse.
@@ -42,6 +42,20 @@ export type EnsureMsgfPulseProfileInput = EnsureMsgfProfileInput & {
 /** @deprecated Use {@link EnsureMsgfPulseProfileInput}. */
 export type EnsureAuthorPulseProfileInput = EnsureMsgfPulseProfileInput & {
   userId: string;
+};
+
+/**
+ * Input for {@link syncPlatformEntitlement}. The MSGF login bridge derives both
+ * `tenant_id` and `user_role` from `platform` + `persona` (so callers do not
+ * need to supply them); username is required for the profile upsert.
+ */
+export type SyncPlatformEntitlementInput = {
+  supabase?: SupabaseClient;
+  entityId: string;
+  platform: PlatformId;
+  persona: string;
+  username: string;
+  preferredTheme?: string;
 };
 
 function resolveAdmin(supabase?: SupabaseClient): SupabaseClient {

@@ -7,6 +7,8 @@
  * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
  */
 /**
  * /products/education — "Find out more" detail page for Syntax Education.

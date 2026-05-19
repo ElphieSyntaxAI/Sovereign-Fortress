@@ -30,8 +30,8 @@
       "default": "./dist/lib/msgf-auth-cookies.js"
     },
     "./lib/platform-persona-auth": {
-      "types": "./dist/lib/platform-persona-auth.d.ts",
       "development": "./lib/platform-persona-auth.ts",
+      "types": "./dist/lib/platform-persona-auth.d.ts",
       "import": "./dist/lib/platform-persona-auth.js",
       "default": "./dist/lib/platform-persona-auth.js"
     },
@@ -100,6 +100,7 @@
     "start": "npm run _next -- start",
     "lint": "npm run _next -- lint",
     "test:lom-disagreement": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local tests/test-lom-disagreement.ts",
+    "test:author-validation": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local tests/author-logic-validation.test.ts",
     "verify:brain-routing": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-brain-routing.ts",
     "verify:msgf-env": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-msgf-env.mjs",
     "verify:connector-client": "node scripts/verify-connector-client.mjs",

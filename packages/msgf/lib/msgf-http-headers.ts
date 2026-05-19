@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ * Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
  */
 /** Client → MSGF API: project silo slug or UUID (overrides license tenant for pillar scope). */
 export const MSGF_TENANT_ID_HEADER = "x-msgf-tenant-id";

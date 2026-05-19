@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
+ * Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
  */
 import { z } from "zod";
 
@@ -38,6 +38,10 @@ export const EnsureMsgfProfileInputSchema = z.object({
   tierId: z.number().int().positive(),
   username: z.string().min(1),
   preferredTheme: z.string().optional(),
+  /** `p4_profiles.user_role` slug (e.g. `author`, `teacher`, `developer`). */
+  userRole: z.string().max(64).optional(),
+  /** Operational tenant slug — NOT necessarily a UUID (e.g. `author_ecosystem`, `syntax_education`). */
+  tenantId: z.string().max(128).optional(),
 });
 
 export type EnsureMsgfProfileInput = z.infer<typeof EnsureMsgfProfileInputSchema>;

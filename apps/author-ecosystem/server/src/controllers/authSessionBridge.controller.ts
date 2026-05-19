@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import {
   PLATFORM_COMING_SOON,
+  isPersonaValidForPlatform,
   parsePlatformLoginBody,
   resolvePostLoginRedirect,
 } from "msgf/lib/platform-persona-auth";
@@ -39,7 +40,14 @@ function mirrorAccessTokenCookie(res: Response, accessToken: string | undefined)
   res.cookie(BFF_AUTH_COOKIE_NAME, t, bffCookieBaseOptions());
 }
 
-const REGISTER_TERMS_ROLES = new Set(["author", "editor", "fan", "publisher"]);
+/**
+ * Canonical author personas (`author` / `editor` / `helper` / `publisher`).
+ * Sourced from {@link isPersonaValidForPlatform} so it never drifts from
+ * `PERSONAS_BY_PLATFORM.author` in `msgf/lib/platform-persona-auth`.
+ */
+function isRegisterAuthorPersona(persona: string): boolean {
+  return isPersonaValidForPlatform("author", persona);
+}
 
 authSessionBridgeController.post("/login", (req: Request, res: Response) => {
   void (async () => {
@@ -111,7 +119,7 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
         return;
       }
 
-      if (!REGISTER_AUTHOR_PERSONAS.has(termsRole)) {
+      if (!isRegisterAuthorPersona(termsRole)) {
         res.status(400).json({
           message: "Select a valid author persona (author, editor, helper, or publisher).",
         });
