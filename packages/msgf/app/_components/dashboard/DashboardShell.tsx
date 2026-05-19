@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
+import { ProductExplorerSection } from "@/app/_components/dashboard/ProductExplorerSection";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
 import type {
   PillarHealthReport,
@@ -319,6 +320,8 @@ export function DashboardShell({ userEmail, initialReport }: Props) {
             <span>Lookback 168h · Auto-refresh 30s</span>
           </div>
         </section>
+
+        <ProductExplorerSection />
 
         <section
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
