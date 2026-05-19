@@ -20,6 +20,10 @@
  *
  * Plus pillar_vectors / p4_state_ledger checks from V3.2 migrations.
  *
+ * Master B2B eco rollups (migration 20260604120000):
+ *   msgf_master.global_eco_rollups
+ *   public.msgf_master_increment_global_eco_rollup
+ *
  * Requires a direct Postgres URL (pooler or primary), e.g. from Supabase Dashboard → Settings → Database:
  *   postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
  *
@@ -287,6 +291,69 @@ async function main() {
       "FAIL: No GIN index on p4_state_ledger.state_blob (expected p4_state_ledger_state_blob_gin)."
     );
     ok = false;
+  }
+
+  console.log("--- Master eco rollups ---");
+
+  const ecoTable = await client.query(
+    `select c.relname
+     from pg_catalog.pg_class c
+     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'msgf_master'
+       and c.relname = 'global_eco_rollups'
+       and c.relkind = 'r'`
+  );
+
+  if (ecoTable.rowCount === 0) {
+    console.error(
+      "FAIL: msgf_master.global_eco_rollups missing. Run npm run db:push (migration 20260604120000_msgf_master_global_eco_rollups.sql)."
+    );
+    ok = false;
+  } else {
+    const ecoCols = await client.query(
+      `select column_name
+       from information_schema.columns
+       where table_schema = 'msgf_master'
+         and table_name = 'global_eco_rollups'`
+    );
+    const needEco = [
+      "tenant_id",
+      "total_tokens_saved",
+      "total_grid_compute_prevented_kwh",
+      "total_co2e_offset_lbs",
+      "total_freshwater_conserved_gallons",
+      "last_observed_at",
+      "updated_at",
+    ];
+    const ecoPresent = new Set(ecoCols.rows.map((r) => r.column_name));
+    const ecoMissing = needEco.filter((c) => !ecoPresent.has(c));
+    if (ecoMissing.length > 0) {
+      console.error(
+        `FAIL: msgf_master.global_eco_rollups missing columns: ${ecoMissing.join(", ")}.`
+      );
+      ok = false;
+    } else {
+      console.log(
+        `OK: msgf_master.global_eco_rollups exists with required columns (${needEco.length}).`
+      );
+    }
+  }
+
+  const ecoFn = await client.query(
+    `select p.proname
+     from pg_catalog.pg_proc p
+     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname = 'msgf_master_increment_global_eco_rollup'`
+  );
+
+  if (ecoFn.rowCount === 0) {
+    console.error(
+      "FAIL: public.msgf_master_increment_global_eco_rollup missing. Re-run db:push for migration 20260604120000."
+    );
+    ok = false;
+  } else {
+    console.log("OK: public.msgf_master_increment_global_eco_rollup exists.");
   }
 
   await client.end();
