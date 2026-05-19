@@ -356,6 +356,57 @@ async function main() {
     console.log("OK: public.msgf_master_increment_global_eco_rollup exists.");
   }
 
+  console.log("--- User project mappings ---");
+
+  const userProjects = await client.query(
+    `select c.relname
+     from pg_catalog.pg_class c
+     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public'
+       and c.relname = 'msgf_user_projects'
+       and c.relkind = 'r'`
+  );
+
+  if (userProjects.rowCount === 0) {
+    console.error(
+      "FAIL: public.msgf_user_projects missing. Run db:push (migration 20260605120000_user_projects_and_eco_rollups.sql)."
+    );
+    ok = false;
+  } else {
+    console.log("OK: public.msgf_user_projects exists.");
+  }
+
+  const userEco = await client.query(
+    `select c.relname
+     from pg_catalog.pg_class c
+     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'msgf_master'
+       and c.relname = 'user_project_eco_rollups'
+       and c.relkind = 'r'`
+  );
+
+  if (userEco.rowCount === 0) {
+    console.error("FAIL: msgf_master.user_project_eco_rollups missing. Re-run db:push.");
+    ok = false;
+  } else {
+    console.log("OK: msgf_master.user_project_eco_rollups exists.");
+  }
+
+  const userEcoFn = await client.query(
+    `select p.proname
+     from pg_catalog.pg_proc p
+     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname = 'msgf_master_increment_user_project_eco_rollup'`
+  );
+
+  if (userEcoFn.rowCount === 0) {
+    console.error("FAIL: public.msgf_master_increment_user_project_eco_rollup missing.");
+    ok = false;
+  } else {
+    console.log("OK: public.msgf_master_increment_user_project_eco_rollup exists.");
+  }
+
   await client.end();
 
   if (!ok) {

@@ -263,6 +263,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
 import { ProductExplorerSection } from "@/app/_components/dashboard/ProductExplorerSection";
+import { UserBlueprintEcoPanel } from "@/app/_components/dashboard/UserBlueprintEcoPanel";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
 import type {
   MasterEcoLeaderboard,
@@ -290,6 +291,9 @@ type Props = {
   initialReport: PillarHealthReport;
   authRedirectPath?: string;
   dashboardLabel?: string;
+  canAccessAdminDashboard?: boolean;
+  scopeDescription?: string;
+  showMasterEcoLeaderboard?: boolean;
 };
 
 type PillarHealthApiResponse = PillarHealthReport & { ok?: boolean; error?: string };
@@ -943,6 +947,9 @@ export function DashboardShell({
   initialReport,
   authRedirectPath = "/sign-in?next=/dashboard",
   dashboardLabel = "Governance dashboard",
+  canAccessAdminDashboard = false,
+  scopeDescription = "your mapped repositories and MSGF activity",
+  showMasterEcoLeaderboard = false,
 }: Props) {
   const [report, setReport] = useState<PillarHealthReport>(initialReport);
   const [loading, setLoading] = useState(false);
@@ -991,27 +998,40 @@ export function DashboardShell({
   }, [refresh]);
 
   const refreshDashboardStreams = useCallback(async () => {
-    const [tickerRes, reportRes, leaderboardRes] = await Promise.all([
-      fetch("/api/msgf/dashboard/ticker", { credentials: "include", cache: "no-store" }),
-      fetch("/api/msgf/dashboard/daily-report", { credentials: "include", cache: "no-store" }),
-      fetch("/api/msgf/master/eco-rollups", { credentials: "include", cache: "no-store" }),
-    ]);
+    const requests: Promise<void>[] = [
+      fetch("/api/msgf/dashboard/ticker", { credentials: "include", cache: "no-store" }).then(
+        async (tickerRes) => {
+          const tickerJson = (await tickerRes.json()) as TickerApiResponse;
+          if (tickerRes.ok && tickerJson.ok) {
+            setTickerEvents(tickerJson.events);
+          }
+        }
+      ),
+      fetch("/api/msgf/dashboard/daily-report", { credentials: "include", cache: "no-store" }).then(
+        async (reportRes) => {
+          const reportJson = (await reportRes.json()) as DailyReportApiResponse;
+          if (reportRes.ok && reportJson.ok) {
+            setDailyReport(reportJson.report);
+          }
+        }
+      ),
+    ];
 
-    const tickerJson = (await tickerRes.json()) as TickerApiResponse;
-    if (tickerRes.ok && tickerJson.ok) {
-      setTickerEvents(tickerJson.events);
+    if (showMasterEcoLeaderboard) {
+      requests.push(
+        fetch("/api/msgf/master/eco-rollups", { credentials: "include", cache: "no-store" }).then(
+          async (leaderboardRes) => {
+            const leaderboardJson = (await leaderboardRes.json()) as MasterEcoLeaderboardApiResponse;
+            if (leaderboardRes.ok && leaderboardJson.ok) {
+              setMasterLeaderboard(leaderboardJson.leaderboard);
+            }
+          }
+        )
+      );
     }
 
-    const reportJson = (await reportRes.json()) as DailyReportApiResponse;
-    if (reportRes.ok && reportJson.ok) {
-      setDailyReport(reportJson.report);
-    }
-
-    const leaderboardJson = (await leaderboardRes.json()) as MasterEcoLeaderboardApiResponse;
-    if (leaderboardRes.ok && leaderboardJson.ok) {
-      setMasterLeaderboard(leaderboardJson.leaderboard);
-    }
-  }, []);
+    await Promise.all(requests);
+  }, [showMasterEcoLeaderboard]);
 
   const refreshPillarLogs = useCallback(async (pillar: MsgfGovernancePillar) => {
     const res = await fetch(`/api/msgf/dashboard/pillar/${pillar}`, {
@@ -1094,8 +1114,7 @@ export function DashboardShell({
             </h1>
             <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
               Real-time stoplight matrix for MSGF V3.0 six-pillar governance and V3.2-ULTRA execution
-              (SHARD → PERSIST). Data refreshes every 30 seconds from{" "}
-              {report.scope.global ? "all MSGF users" : "the current dashboard scope"}.
+              (SHARD → PERSIST). Data refreshes every 30 seconds from {scopeDescription}.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1124,6 +1143,7 @@ export function DashboardShell({
 
         <GlobalNotificationTicker events={tickerEvents} />
 
+        {canAccessAdminDashboard ? (
         <section className="glass-panel rounded-2xl border border-emerald-500/15 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1150,6 +1170,7 @@ export function DashboardShell({
             </div>
           </div>
         </section>
+        ) : null}
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Platform metrics">
           <MetricCard
@@ -1186,6 +1207,8 @@ export function DashboardShell({
         </section>
 
         <ProductExplorerSection />
+
+        {!showMasterEcoLeaderboard ? <UserBlueprintEcoPanel /> : null}
 
         <section
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
@@ -1231,7 +1254,9 @@ export function DashboardShell({
           />
         ) : null}
 
-        <MasterEcoLeaderboardWidget leaderboard={masterLeaderboard} />
+        {showMasterEcoLeaderboard ? (
+          <MasterEcoLeaderboardWidget leaderboard={masterLeaderboard} />
+        ) : null}
 
         <p className="text-center text-xs text-slate-600">
           MSGF V3.2-ULTRA · Cold layer authoritative · Redis hot path when configured

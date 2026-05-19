@@ -130,6 +130,14 @@ export default function GettingStartedPage() {
         </ol>
 
         <p className="mt-12 text-center text-sm text-slate-500">
+          Map local folders or GitHub repos for scoped dashboard metrics?{" "}
+          <Link
+            href="/setup/projects"
+            className="text-cyan-400/90 underline-offset-4 hover:underline"
+          >
+            Project setup
+          </Link>
+          <span className="mx-2 text-slate-700">·</span>
           Need the full tier matrix?{" "}
           <Link href="/pricing" className="text-violet-400/90 underline-offset-4 hover:underline">
             Compare pricing

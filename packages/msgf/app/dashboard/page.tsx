@@ -14,6 +14,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/app/_components/dashboard/DashboardShell";
+import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { healthService } from "@/lib/services/HealthService";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
@@ -37,12 +38,18 @@ export default async function DashboardPage() {
   }
 
   const admin = createAdminClient();
+  const access = await resolveDashboardAccessForUser(user);
   const initialReport = await healthService.getPillarHealth(admin, {
     userId: user.id,
     lookbackHours: 168,
   });
 
   return (
-    <DashboardShell userEmail={user.email ?? "Signed in"} initialReport={initialReport} />
+    <DashboardShell
+      userEmail={user.email ?? "Signed in"}
+      initialReport={initialReport}
+      canAccessAdminDashboard={access.canAccessAdminDashboard}
+      scopeDescription="your mapped repositories and MSGF activity"
+    />
   );
 }

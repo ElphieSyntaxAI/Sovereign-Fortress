@@ -2,14 +2,9 @@
  * @msgf-license-header
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
  */
+
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 import {
@@ -18,13 +13,40 @@ import {
   validateMasterEcoBearer,
 } from "@/lib/services/EcoAggregatorClient";
 import { hasLiveDashboardDatabaseEnv } from "@/lib/services/dashboard-orchestration";
+import {
+  assertSessionOperatorIsAdmin,
+  resolveSessionDashboardOperator,
+} from "@/lib/msgf-admin-session";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient } from "@/utils/supabase/server";
 
 function masterSupabaseOrUndefined() {
   return hasLiveDashboardDatabaseEnv() ? createAdminClient() : undefined;
 }
 
 export async function GET() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const admin = createAdminClient();
+  const op = await resolveSessionDashboardOperator(admin, user);
+  try {
+    assertSessionOperatorIsAdmin(op);
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Admin operator access required." },
+      { status: 403 }
+    );
+  }
+
   try {
     const leaderboard = await ecoAggregatorClient.getLeaderboard(masterSupabaseOrUndefined());
     return NextResponse.json({ ok: true, leaderboard });

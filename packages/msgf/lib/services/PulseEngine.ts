@@ -145,6 +145,7 @@ import {
   runAnthropicDirectPublisherModel,
 } from "@/lib/services/anthropic-direct-fallback";
 import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
+import { extractProjectOriginFromPulseBody } from "@/lib/utils/pulse-eco-context";
 
 const LOM_MAX_ATTEMPTS = MAX_RECURSION_DEPTH;
 /** HITL / LOM recursion ceiling — exceeding throws {@link ERR_RECURSION_LIMIT}. */
@@ -711,7 +712,12 @@ export class PulseEngine {
 
     const p5TokensSaved = estimateP5ContextShardingTokensSaved(converged);
     if (p5TokensSaved > 0) {
-      void ecoAggregatorClient.sendGlobalTelemetryPayload(input.tenantId, p5TokensSaved);
+      const projectOrigin =
+        extractProjectOriginFromPulseBody(input.rawBody) ?? input.tenantId.trim();
+      void ecoAggregatorClient.sendGlobalTelemetryPayload(input.tenantId, p5TokensSaved, {
+        userId: input.entityId,
+        projectOrigin,
+      });
     }
 
     const remediationSummary = buildPulseRemediationSummaryGlobal({

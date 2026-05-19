@@ -63,6 +63,13 @@ export default async function AdminDashboardPage() {
       initialReport={initialReport}
       authRedirectPath="/admin/sign-in?next=/admin/dashboard"
       dashboardLabel={op.role === "GLOBAL_ADMIN" ? "Global admin dashboard" : "Company admin dashboard"}
+      canAccessAdminDashboard
+      scopeDescription={
+        op.role === "GLOBAL_ADMIN"
+          ? "all MSGF tenants and operators"
+          : "your company team and assigned repositories"
+      }
+      showMasterEcoLeaderboard
     />
   );
 }

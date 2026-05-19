@@ -71,13 +71,31 @@ export const MasterEcoPayloadBodySchema = z.object({
   tenant_id: z.string().min(1).max(160),
   tokens_saved: z.number().finite().nonnegative(),
   observed_at: z.string().datetime().optional(),
+  user_id: z.string().uuid().optional(),
+  project_origin: z.string().min(1).max(256).optional(),
 });
 
 export type MasterEcoPayloadBody = z.infer<typeof MasterEcoPayloadBodySchema>;
 
+export type EcoTelemetryContext = {
+  userId?: string;
+  projectOrigin?: string;
+};
+
 type MutableRollup = Omit<GlobalEcoRollupRow, "contribution_pct">;
 
+type MutableUserProjectRollup = {
+  user_id: string;
+  project_origin: string;
+  total_tokens_saved: number;
+  total_grid_compute_prevented_kwh: number;
+  total_co2e_offset_lbs: number;
+  total_freshwater_conserved_gallons: number;
+  last_observed_at: string;
+};
+
 const mockRollups = new Map<string, MutableRollup>();
+const mockUserProjectRollups = new Map<string, MutableUserProjectRollup>();
 
 function roundMetric(value: number): number {
   return Number.parseFloat(value.toFixed(6));
@@ -177,8 +195,46 @@ export function validateMasterEcoBearer(
   return authorizationHeader.slice(prefix.length).trim() === configuredSecurityKey;
 }
 
+function userProjectMockKey(userId: string, projectOrigin: string): string {
+  return `${userId}::${projectOrigin}`;
+}
+
+function applyPayloadToMockUserProjectRollups(
+  userId: string,
+  projectOrigin: string,
+  payload: GlobalEcoTelemetryPayload
+): void {
+  const key = userProjectMockKey(userId, projectOrigin);
+  const prior = mockUserProjectRollups.get(key);
+  mockUserProjectRollups.set(key, {
+    user_id: userId,
+    project_origin: projectOrigin,
+    total_tokens_saved: (prior?.total_tokens_saved ?? 0) + payload.tokens_saved,
+    total_grid_compute_prevented_kwh: roundMetric(
+      (prior?.total_grid_compute_prevented_kwh ?? 0) + payload.grid_compute_prevented_kwh
+    ),
+    total_co2e_offset_lbs: roundMetric(
+      (prior?.total_co2e_offset_lbs ?? 0) + payload.co2e_offset_lbs
+    ),
+    total_freshwater_conserved_gallons: roundMetric(
+      (prior?.total_freshwater_conserved_gallons ?? 0) + payload.freshwater_conserved_gallons
+    ),
+    last_observed_at: payload.observed_at,
+  });
+}
+
+function isUuidString(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value.trim()
+  );
+}
+
 export class EcoAggregatorClient {
-  async sendGlobalTelemetryPayload(tenantId: string, tokensSaved: number): Promise<void> {
+  async sendGlobalTelemetryPayload(
+    tenantId: string,
+    tokensSaved: number,
+    context?: EcoTelemetryContext
+  ): Promise<void> {
     let payload: GlobalEcoTelemetryPayload;
     try {
       payload = buildPayload(tenantId, tokensSaved);
@@ -197,7 +253,13 @@ export class EcoAggregatorClient {
     }
 
     const endpoint = new URL("/api/msgf/master/eco-rollups", baseUrl).toString();
-    void this.postTelemetry(endpoint, securityKey, payload);
+    const scopedContext =
+      context?.userId &&
+      isUuidString(context.userId) &&
+      context.projectOrigin?.trim()
+        ? { userId: context.userId.trim(), projectOrigin: context.projectOrigin.trim() }
+        : undefined;
+    void this.postTelemetry(endpoint, securityKey, payload, scopedContext);
   }
 
   async recordIncomingPayload(
@@ -208,7 +270,13 @@ export class EcoAggregatorClient {
       buildPayload(payloadBody.tenant_id, payloadBody.tokens_saved, payloadBody.observed_at ?? isoNow())
     );
 
+    const userId = payloadBody.user_id?.trim();
+    const projectOrigin = payloadBody.project_origin?.trim();
+
     if (!supabase) {
+      if (userId && projectOrigin) {
+        applyPayloadToMockUserProjectRollups(userId, projectOrigin, payload);
+      }
       return applyPayloadToMockRollups(payload);
     }
 
@@ -223,6 +291,26 @@ export class EcoAggregatorClient {
 
     if (error) {
       throw new Error(`global eco rollup increment failed: ${error.message}`);
+    }
+
+    if (userId && projectOrigin) {
+      const { error: userProjectError } = await supabase.rpc(
+        "msgf_master_increment_user_project_eco_rollup",
+        {
+          p_user_id: userId,
+          p_project_origin: projectOrigin,
+          p_tokens_saved: payload.tokens_saved,
+          p_grid_compute_prevented_kwh: payload.grid_compute_prevented_kwh,
+          p_co2e_offset_lbs: payload.co2e_offset_lbs,
+          p_freshwater_conserved_gallons: payload.freshwater_conserved_gallons,
+          p_observed_at: payload.observed_at,
+        }
+      );
+      if (userProjectError) {
+        console.warn("[EcoAggregatorClient] user project eco rollup increment failed.", {
+          message: userProjectError.message,
+        });
+      }
     }
 
     const rows = Array.isArray(data) ? data : [data];
@@ -276,7 +364,8 @@ export class EcoAggregatorClient {
   private async postTelemetry(
     endpoint: string,
     securityKey: string,
-    payload: GlobalEcoTelemetryPayload
+    payload: GlobalEcoTelemetryPayload,
+    context?: EcoTelemetryContext
   ): Promise<void> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), POST_TIMEOUT_MS);
@@ -292,6 +381,8 @@ export class EcoAggregatorClient {
           tenant_id: payload.tenant_id,
           tokens_saved: payload.tokens_saved,
           observed_at: payload.observed_at,
+          ...(context?.userId ? { user_id: context.userId } : {}),
+          ...(context?.projectOrigin ? { project_origin: context.projectOrigin } : {}),
         }),
       });
       if (!response.ok) {

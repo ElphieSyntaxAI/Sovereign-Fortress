@@ -17,6 +17,7 @@
 import type { Metadata } from "next";
 
 import { ProductDetailShell } from "@/app/_components/products/ProductDetailShell";
+import { canAccessPrelaunchProducts } from "@/lib/prelaunch-product-access";
 
 export const metadata: Metadata = {
   title: "Author Ecosystem · Elphie Syntax",
@@ -24,11 +25,13 @@ export const metadata: Metadata = {
     "Sovereign narrative infrastructure for authors — HAL Ledger biometric proof, Vault Pact zero-training NDA, Cool Down revision locks, bicameral Librarian + Critic audit, and the Publisher Hub.",
 };
 
-export default function Page() {
-  const liveUrl =
-    process.env.AUTHOR_APP_URL?.trim() ||
-    process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
-    null;
+export default async function Page() {
+  const canOpenPrelaunch = await canAccessPrelaunchProducts();
+  const liveUrl = canOpenPrelaunch
+    ? process.env.AUTHOR_APP_URL?.trim() ||
+      process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
+      null
+    : null;
 
   return (
     <ProductDetailShell

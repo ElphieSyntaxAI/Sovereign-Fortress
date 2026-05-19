@@ -26,6 +26,8 @@
  */
 import Link from "next/link";
 
+import { canAccessPrelaunchProducts } from "@/lib/prelaunch-product-access";
+
 import { LandingNav } from "./LandingNav";
 import { PublicEcoMetricsWidget } from "./PublicEcoMetricsWidget";
 
@@ -44,6 +46,7 @@ type Platform = {
   bullets: readonly string[];
   tone: ToneId;
   primary: PlatformPrimary;
+  prelaunch: boolean;
   /** `/products/{id}` on MSGF — internal route. */
   learnMoreHref: string;
 };
@@ -76,6 +79,7 @@ const PLATFORMS: readonly Platform[] = [
       href: AUTHOR_HOST || "/products/author",
       external: Boolean(AUTHOR_HOST),
     },
+    prelaunch: true,
     learnMoreHref: "/products/author",
   },
   {
@@ -96,6 +100,7 @@ const PLATFORMS: readonly Platform[] = [
       href: SYNTAX_EDUCATES_HOST,
       external: true,
     },
+    prelaunch: true,
     learnMoreHref: "/products/education",
   },
   {
@@ -116,6 +121,7 @@ const PLATFORMS: readonly Platform[] = [
       href: "/sign-in",
       external: false,
     },
+    prelaunch: false,
     learnMoreHref: "/products/msgf",
   },
 ];
@@ -168,9 +174,22 @@ const TONE: Record<
   },
 };
 
-function PrimaryCta({ platform }: { platform: Platform }) {
+function PrimaryCta({
+  platform,
+  canOpenPrelaunch,
+}: {
+  platform: Platform;
+  canOpenPrelaunch: boolean;
+}) {
   const styles = TONE[platform.tone];
   const className = `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${styles.primary}`;
+  if (platform.prelaunch && !canOpenPrelaunch) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-800/40 px-4 py-2 text-sm font-medium text-slate-400">
+        Coming soon
+      </span>
+    );
+  }
   if (platform.primary.external) {
     return (
       <a
@@ -192,7 +211,13 @@ function PrimaryCta({ platform }: { platform: Platform }) {
   );
 }
 
-function QuickCard({ platform }: { platform: Platform }) {
+function QuickCard({
+  platform,
+  canOpenPrelaunch,
+}: {
+  platform: Platform;
+  canOpenPrelaunch: boolean;
+}) {
   const styles = TONE[platform.tone];
   return (
     <article
@@ -234,13 +259,19 @@ function QuickCard({ platform }: { platform: Platform }) {
         >
           Find out more →
         </a>
-        <PrimaryCta platform={platform} />
+        <PrimaryCta platform={platform} canOpenPrelaunch={canOpenPrelaunch} />
       </div>
     </article>
   );
 }
 
-function DetailSection({ platform }: { platform: Platform }) {
+function DetailSection({
+  platform,
+  canOpenPrelaunch,
+}: {
+  platform: Platform;
+  canOpenPrelaunch: boolean;
+}) {
   const styles = TONE[platform.tone];
   return (
     <section
@@ -260,7 +291,7 @@ function DetailSection({ platform }: { platform: Platform }) {
             {platform.title}
           </h2>
         </div>
-        <PrimaryCta platform={platform} />
+        <PrimaryCta platform={platform} canOpenPrelaunch={canOpenPrelaunch} />
       </div>
 
       <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">
@@ -297,7 +328,9 @@ function DetailSection({ platform }: { platform: Platform }) {
   );
 }
 
-export function PlatformHubLanding() {
+export async function PlatformHubLanding() {
+  const canOpenPrelaunch = await canAccessPrelaunchProducts();
+
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
       <LandingNav />
@@ -322,7 +355,7 @@ export function PlatformHubLanding() {
 
         <section className="grid gap-4 lg:grid-cols-3" aria-label="Pick a platform">
           {PLATFORMS.map((p) => (
-            <QuickCard key={p.id} platform={p} />
+            <QuickCard key={p.id} platform={p} canOpenPrelaunch={canOpenPrelaunch} />
           ))}
         </section>
 
@@ -339,7 +372,7 @@ export function PlatformHubLanding() {
           </header>
 
           {PLATFORMS.map((p) => (
-            <DetailSection key={p.id} platform={p} />
+            <DetailSection key={p.id} platform={p} canOpenPrelaunch={canOpenPrelaunch} />
           ))}
         </section>
 

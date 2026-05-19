@@ -17,6 +17,7 @@
 import type { Metadata } from "next";
 
 import { ProductDetailShell } from "@/app/_components/products/ProductDetailShell";
+import { canAccessPrelaunchProducts } from "@/lib/prelaunch-product-access";
 
 export const metadata: Metadata = {
   title: "Syntax Education · Elphie Syntax",
@@ -24,11 +25,13 @@ export const metadata: Metadata = {
     "Socratic sandbox with grade-aware AI Allowance. Layered Workspace Control, Canvas LTI 1.3, Human Effort Certificate, approved curriculum slicing, and reading dependency triggers.",
 };
 
-export default function Page() {
-  const liveUrl =
-    process.env.EDUCATION_APP_URL?.trim() ||
-    process.env.NEXT_PUBLIC_EDUCATION_APP_URL?.trim() ||
-    "https://syntaxeducates.elphiesyntax.com";
+export default async function Page() {
+  const canOpenPrelaunch = await canAccessPrelaunchProducts();
+  const liveUrl = canOpenPrelaunch
+    ? process.env.EDUCATION_APP_URL?.trim() ||
+      process.env.NEXT_PUBLIC_EDUCATION_APP_URL?.trim() ||
+      "https://syntaxeducates.elphiesyntax.com"
+    : null;
 
   return (
     <ProductDetailShell

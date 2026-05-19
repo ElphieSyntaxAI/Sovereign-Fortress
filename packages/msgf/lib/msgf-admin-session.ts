@@ -127,8 +127,12 @@ export async function resolveSessionDashboardOperator(
   };
 }
 
+export function isSessionOperatorAdmin(op: DashboardOperatorContext): boolean {
+  return op.role === "GLOBAL_ADMIN" || op.role === "COMPANY_ADMIN";
+}
+
 export function assertSessionOperatorIsAdmin(op: DashboardOperatorContext): void {
-  if (op.role === "GLOBAL_ADMIN" || op.role === "COMPANY_ADMIN") return;
+  if (isSessionOperatorAdmin(op)) return;
   throw new MsgfAdminSessionError("This account is not an MSGF admin/operator.", 403);
 }
 
