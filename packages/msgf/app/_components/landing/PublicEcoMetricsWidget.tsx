@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { calculateEcoSavings, type EcoMetrics } from "@/lib/utils/ecoCalculator";
 import {
   buildEcoEquivalencyStatements,
+  CO2_LBS_PER_TREE_SEEDLING_10_YEARS,
   type EcoEquivalencyStatements,
 } from "@/lib/utils/ecoEquivalencies";
 
@@ -40,6 +41,20 @@ const FALLBACK_PAYLOAD: PublicEcoMetricsPayload = {
 
 function formatMetric(value: number, unit: string): string {
   return `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit}`;
+}
+
+function formatBillions(value: number): string {
+  const billions = value / 1_000_000_000;
+  const maximumFractionDigits = billions >= 1 ? 2 : 3;
+  return billions.toLocaleString(undefined, {
+    maximumFractionDigits,
+  });
+}
+
+function formatStatementNumber(value: number, maximumFractionDigits = 1): string {
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits,
+  });
 }
 
 function toneClasses(tone: StatCardProps["tone"]): string {
@@ -97,6 +112,7 @@ export function PublicEcoMetricsWidget() {
 
   const data = payload ?? FALLBACK_PAYLOAD;
   const generatedAt = useMemo(() => new Date(data.generated_at), [data.generated_at]);
+  const treeEquivalent = data.metrics.co2e_offset_lbs / CO2_LBS_PER_TREE_SEEDLING_10_YEARS;
 
   return (
     <section className="rounded-3xl border border-emerald-500/20 bg-slate-950/70 p-6 shadow-2xl shadow-emerald-950/20 backdrop-blur-xl sm:p-8">
@@ -111,6 +127,16 @@ export function PublicEcoMetricsWidget() {
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-slate-300 sm:text-base">
             Pillar 5 Context Sharding reduces redundant prompt overhead before it reaches the grid. These public
             network totals convert token diversion into water, carbon, and energy impact.
+          </p>
+          <p className="mt-5 max-w-xl rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm font-medium leading-relaxed text-emerald-50">
+            Our managed frameworks have successfully sharded{" "}
+            {formatBillions(data.metrics.tokens_saved)} Billion tokens locally. By stopping
+            computational waste at the source, Elphie Syntax has prevented{" "}
+            {formatStatementNumber(data.metrics.grid_compute_prevented_kwh, 2)} kWh of server
+            grid power—the equivalent of planting {formatStatementNumber(treeEquivalent, 1)}{" "}
+            trees and conserving{" "}
+            {formatStatementNumber(data.metrics.freshwater_conserved_gallons, 2)} gallons of
+            freshwater cooling.
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-400">
             <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-emerald-100">
