@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirm your Elphie Syntax account</title>
+  </head>
+  <body style="margin:0; padding:0; background:#070512; color:#e2e8f0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#070512; padding:32px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px; overflow:hidden; border-radius:28px; border:1px solid rgba(167,139,250,0.28); background:#0f172a;">
+            <tr>
+              <td style="padding:0; background:radial-gradient(circle at 20% 0%, rgba(16,185,129,0.28), transparent 36%), radial-gradient(circle at 88% 12%, rgba(168,85,247,0.32), transparent 42%), linear-gradient(135deg, #090716 0%, #111827 100%);">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td align="center" style="padding:34px 28px 22px;">
+                      <!-- If your custom domain is live, replace this URL with https://elphiesgatedai.elphiesyntax.com/brand/elphie-syntax-logo.png -->
+                      <img
+                        src="https://msgf-api-bkracxai6q-uc.a.run.app/brand/elphie-syntax-logo.png"
+                        width="92"
+                        height="92"
+                        alt="Elphie Syntax"
+                        style="display:block; width:92px; height:92px; border-radius:24px; border:1px solid rgba(52,211,153,0.35); background:rgba(16,185,129,0.12); object-fit:contain;"
+                      />
+                      <div style="margin-top:18px; font-size:11px; letter-spacing:0.26em; text-transform:uppercase; color:#6ee7b7; font-weight:700;">
+                        Welcome to Elphie Syntax
+                      </div>
+                      <h1 style="margin:12px 0 0; color:#f8fafc; font-size:30px; line-height:1.12; letter-spacing:-0.04em; font-weight:800;">
+                        Confirm your account
+                      </h1>
+                      <p style="margin:16px auto 0; max-width:460px; color:#cbd5e1; font-size:15px; line-height:1.65;">
+                        You are one step away from the MSGF glass-box dashboard: visible gates, sovereign AI, and auditable lineage.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:10px 28px 38px;">
+                      <a
+                        href="{{ .ConfirmationURL }}"
+                        style="display:inline-block; border-radius:999px; padding:15px 28px; background:linear-gradient(135deg, #059669 0%, #10b981 42%, #7c3aed 100%); color:#ffffff; text-decoration:none; font-size:15px; font-weight:800; box-shadow:0 18px 38px rgba(16,185,129,0.22);"
+                      >
+                        Confirm sign up
+                      </a>
+                      <p style="margin:20px auto 0; max-width:450px; color:#94a3b8; font-size:13px; line-height:1.55;">
+                        If the button does not work, copy and paste this link into your browser:
+                      </p>
+                      <p style="margin:8px auto 0; max-width:500px; word-break:break-all; color:#a78bfa; font-size:12px; line-height:1.55;">
+                        {{ .ConfirmationURL }}
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:22px 28px 28px; background:#0b1020; border-top:1px solid rgba(148,163,184,0.13);">
+                <p style="margin:0; color:#94a3b8; font-size:12px; line-height:1.65; text-align:center;">
+                  This confirmation link is for {{ .Email }}. If you did not create an Elphie Syntax account, you can safely ignore this email.
+                </p>
+                <p style="margin:14px 0 0; color:#64748b; font-size:11px; line-height:1.55; text-align:center;">
+                  Elphie Syntax LLC · MSGF Gated AI
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

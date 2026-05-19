@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
+-- Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
 -- =============================================================================
 -- GLOBAL_ADMIN "Absorb into Global Brain" — dedupe + audit trail for Sentinel self-heal → vault_core patterns.
 

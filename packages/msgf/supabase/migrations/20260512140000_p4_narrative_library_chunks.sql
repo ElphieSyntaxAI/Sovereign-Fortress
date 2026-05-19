@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
+-- Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
 -- =============================================================================
 -- Manuscript / bible chunks for the Librarian (HAL-adjacent semantic RAG). Embeddings: 1536 (text-embedding-3-small class).
 

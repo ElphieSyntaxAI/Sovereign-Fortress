@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
  */
 /**
@@ -145,8 +157,10 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
 
   const isSignUp = mode === "sign-up";
   const isAdmin = variant === "admin";
@@ -172,9 +186,10 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
             setError(signUpError.message);
             return;
           }
-          setMessage(
-            "Check your email to confirm your account, or sign in if confirmation is disabled."
-          );
+          setPendingConfirmationEmail(email.trim());
+          setMessage("We sent a confirmation email. Open it and click Confirm sign up.");
+          const confirmPath = `/confirm-email?email=${encodeURIComponent(email.trim())}`;
+          window.location.assign(resolveAuthRedirectUrl(confirmPath));
           return;
         }
 
@@ -233,6 +248,42 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
     [email, password, isSignUp, isAdmin, postLoginPath]
   );
 
+  const resendConfirmation = useCallback(async () => {
+    const targetEmail = pendingConfirmationEmail?.trim() || email.trim();
+    if (!targetEmail) {
+      setError("Enter your email first so we can resend confirmation.");
+      return;
+    }
+
+    setResending(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const supabase = createClient();
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: targetEmail,
+        options: { emailRedirectTo: authCallbackUrl() },
+      });
+
+      if (resendError) {
+        console.error("[AuthForm] resend confirmation failed:", resendError.message, resendError);
+        setError(resendError.message);
+        return;
+      }
+
+      setPendingConfirmationEmail(targetEmail);
+      setMessage("Confirmation email resent. Check inbox, spam, and promotions.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[AuthForm] resend confirmation error:", err);
+      setError(msg || "Could not resend confirmation email.");
+    } finally {
+      setResending(false);
+    }
+  }, [email, pendingConfirmationEmail]);
+
   return (
     <form
       className="glass-panel glass-panel-emerald space-y-4 rounded-2xl p-6 sm:p-8"
@@ -276,6 +327,16 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
         <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
           {message}
         </p>
+      ) : null}
+      {isSignUp ? (
+        <button
+          type="button"
+          onClick={() => void resendConfirmation()}
+          disabled={loading || resending}
+          className="w-full rounded-full border border-violet-500/25 bg-violet-500/10 py-2.5 text-sm font-semibold text-violet-100 transition hover:border-violet-400/40 hover:bg-violet-500/20 disabled:opacity-60"
+        >
+          {resending ? "Resending…" : "Resend confirmation email"}
+        </button>
       ) : null}
 
       <button
