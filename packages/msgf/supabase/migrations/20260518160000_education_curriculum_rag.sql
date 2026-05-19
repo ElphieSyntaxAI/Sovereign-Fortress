@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.match_education_curriculum_shards(
   p_level_1_1_1_instance TEXT DEFAULT NULL
 )
 RETURNS TABLE (
-  id UUID,
+  id TEXT,
   content TEXT,
   metadata JSONB,
   cosine_similarity DOUBLE PRECISION
@@ -21,7 +21,7 @@ STABLE
 PARALLEL SAFE
 AS $$
   SELECT
-    v.id,
+    v.id::text,
     v.content,
     v.metadata,
     (1 - (v.embedding <=> p_query_embedding))::DOUBLE PRECISION AS cosine_similarity
@@ -57,7 +57,7 @@ CREATE OR REPLACE FUNCTION public.match_student_vault_strengths(
   p_subject_domain TEXT DEFAULT NULL
 )
 RETURNS TABLE (
-  id UUID,
+  id TEXT,
   content TEXT,
   metadata JSONB,
   cosine_similarity DOUBLE PRECISION
@@ -67,7 +67,7 @@ STABLE
 PARALLEL SAFE
 AS $$
   SELECT
-    v.id,
+    v.id::text,
     v.content,
     v.metadata,
     (1 - (v.embedding <=> p_query_embedding))::DOUBLE PRECISION AS cosine_similarity

@@ -187,7 +187,7 @@ CREATE OR REPLACE FUNCTION public.match_education_curriculum_shards(
   p_page_end INT DEFAULT NULL
 )
 RETURNS TABLE (
-  id UUID,
+  id TEXT,
   content TEXT,
   metadata JSONB,
   cosine_similarity DOUBLE PRECISION
@@ -197,7 +197,7 @@ STABLE
 PARALLEL SAFE
 AS $$
   SELECT
-    v.id,
+    v.id::text,
     v.content,
     v.metadata,
     (1 - (v.embedding <=> p_query_embedding))::DOUBLE PRECISION AS cosine_similarity
@@ -288,7 +288,7 @@ AS $$
     COUNT(*)::BIGINT AS incident_count,
     MAX(created_at) AS last_seen
   FROM public.p4_narrative_logs
-  WHERE tenant_id = p_district_tenant_id
+  WHERE tenant_id::text = p_district_tenant_id
     AND metadata->>'ledger' = 'hall'
     AND created_at >= NOW() - (GREATEST(p_lookback_days, 1) || ' days')::INTERVAL
   GROUP BY 1, 2, 3
