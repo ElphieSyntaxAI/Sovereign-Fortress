@@ -79,8 +79,14 @@ COPY --from=deps /app/packages/msgf/node_modules ./packages/msgf/node_modules
 # `.env*` into this stage — pass these via `docker build --build-arg` (see `setup-cloud.sh`).
 ARG NEXT_PUBLIC_SUPABASE_URL=
 ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+ARG NEXT_PUBLIC_AUTHOR_APP_URL=
+ARG NEXT_PUBLIC_EDUCATION_APP_URL=
+ARG NEXT_PUBLIC_MSGF_APP_URL=
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
 ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+ENV NEXT_PUBLIC_AUTHOR_APP_URL=${NEXT_PUBLIC_AUTHOR_APP_URL}
+ENV NEXT_PUBLIC_EDUCATION_APP_URL=${NEXT_PUBLIC_EDUCATION_APP_URL}
+ENV NEXT_PUBLIC_MSGF_APP_URL=${NEXT_PUBLIC_MSGF_APP_URL}
 
 # MSGF: `build:sdk:prod` emits SDK under packages/msgf/dist; `next build` emits `.next/standalone`
 # with traced production dependencies only (devDependencies stay outside this artifact tree).

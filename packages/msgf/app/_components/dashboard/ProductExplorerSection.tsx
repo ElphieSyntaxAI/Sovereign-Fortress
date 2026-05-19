@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 /**
  * Product family explorer — primary-dashboard launchpad for the three customer-facing
@@ -37,6 +37,13 @@ type ProductCard = {
   tone: JewelTone;
 };
 
+const MSGF_APP_URL =
+  process.env.NEXT_PUBLIC_MSGF_APP_URL || "https://elphiesgatedai.elphiesyntax.com";
+const AUTHOR_APP_URL =
+  process.env.NEXT_PUBLIC_AUTHOR_APP_URL || "https://authorecosystem.elphiesyntax.com";
+const EDUCATION_APP_URL =
+  process.env.NEXT_PUBLIC_EDUCATION_APP_URL || "https://syntaxeducates.elphiesyntax.com";
+
 const PRODUCTS: ProductCard[] = [
   {
     id: "msgf",
@@ -51,7 +58,7 @@ const PRODUCTS: ProductCard[] = [
       "Tiered batching: RED immediate · YELLOW 6h · GREEN 24h",
     ],
     detailHref: "/products/msgf",
-    liveUrl: "https://elphiesgatedai.elphiesyntax.com",
+    liveUrl: MSGF_APP_URL,
     liveLabel: "Open MSGF console",
     tone: "emerald",
   },
@@ -68,7 +75,7 @@ const PRODUCTS: ProductCard[] = [
       "Phase 3 — Multimedia Vault, sales graphs, Personality Lore Bots",
     ],
     detailHref: "/products/author",
-    liveUrl: "https://elphiesyntax.com",
+    liveUrl: AUTHOR_APP_URL,
     liveLabel: "Open Author dashboard",
     tone: "amethyst",
   },
@@ -85,7 +92,7 @@ const PRODUCTS: ProductCard[] = [
       "Phase 3 — K–3 print hub (H.B. 273), Citation Hall, state laboratory launch",
     ],
     detailHref: "/products/education",
-    liveUrl: "https://syntaxeducates.elphiesyntax.com",
+    liveUrl: EDUCATION_APP_URL,
     liveLabel: "Open Education app",
     tone: "topaz",
   },

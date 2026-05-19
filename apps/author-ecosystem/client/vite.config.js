@@ -56,6 +56,21 @@ export default defineConfig(({ mode }) => {
     env.AUTHOR_BFF_URL ||
     env.NEXT_PUBLIC_AUTHOR_BFF_URL ||
     "";
+  const viteAuthorAppUrl =
+    env.VITE_AUTHOR_APP_URL ||
+    env.AUTHOR_APP_URL ||
+    env.NEXT_PUBLIC_AUTHOR_APP_URL ||
+    "";
+  const viteEducationAppUrl =
+    env.VITE_EDUCATION_APP_URL ||
+    env.EDUCATION_APP_URL ||
+    env.NEXT_PUBLIC_EDUCATION_APP_URL ||
+    "";
+  const viteMsgfAppUrl =
+    env.VITE_MSGF_APP_URL ||
+    env.MSGF_APP_URL ||
+    env.NEXT_PUBLIC_MSGF_APP_URL ||
+    "";
 
   return {
     plugins: [tailwindcss(), react(), spaFallbackPlugin()],
@@ -64,6 +79,9 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(viteSupabaseUrl),
       "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(viteSupabaseAnon),
       "import.meta.env.VITE_AUTHOR_BFF_URL": JSON.stringify(viteAuthorBffUrl),
+      "import.meta.env.VITE_AUTHOR_APP_URL": JSON.stringify(viteAuthorAppUrl),
+      "import.meta.env.VITE_EDUCATION_APP_URL": JSON.stringify(viteEducationAppUrl),
+      "import.meta.env.VITE_MSGF_APP_URL": JSON.stringify(viteMsgfAppUrl),
     },
     resolve: {
       alias: {

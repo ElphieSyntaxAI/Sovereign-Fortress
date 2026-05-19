@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 /**
  * Syntax Education — P2 Reading Dependency Trigger (pillars §2.2.1).

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 import { getJiraEnv, jiraBasicAuthHeader, type JiraEnv } from "@/lib/jira-env";
 import { jiraBridgeRequestHeaders } from "@/lib/jira-bridge";

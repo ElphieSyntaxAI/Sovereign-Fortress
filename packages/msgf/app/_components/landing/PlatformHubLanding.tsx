@@ -8,23 +8,21 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 /**
  * `app/page.tsx` — "What are you looking for?" platform chooser hub.
  *
  * Why this is on `/` (not /hub or /landing):
- *  - Cloud Run / `elphiesyntax.com` / `elphiesgatedai.elphiesyntax.com` all
- *    answer at the same MSGF Next surface. First-time visitors land here
- *    and pick a product before the auth wall (`/sign-in`).
+ *  - `elphiesyntax.com` is the global hub. During testing, the same hub can be
+ *    served from the default Cloud Run URL without redirecting away.
  *  - MSGF brand marketing ("Glass box sovereignty…") still lives at `/brain`
  *    (the legacy `HomeLanding`) and stays linkable from the MSGF card.
  *  - Detail pages already exist at `/products/{author,education,msgf}` and
  *    we link straight into them from each card's "Find out more".
  *
  * Twin: `apps/author-ecosystem/client/src/pages/PlatformHubPage.jsx` carries
- * the same chooser for the Author client SPA at `elphiesyntax.com`. Keep the
- * copy and tone palette aligned between the two surfaces.
+ * the same chooser for temporary/apex deployments. Keep copy and palette aligned.
  */
 import Link from "next/link";
 
@@ -49,12 +47,14 @@ type Platform = {
   learnMoreHref: string;
 };
 
-/**
- * External live surfaces (subdomain mapped via DNS — when DNS isn't ready yet,
- * Cloud Run URLs still work).
- */
-const SYNTAX_EDUCATES_HOST = "https://syntaxeducates.elphiesyntax.com";
-const AUTHOR_HOST = "https://elphiesyntax.com";
+const AUTHOR_HOST =
+  process.env.AUTHOR_APP_URL?.trim() ||
+  process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
+  "https://authorecosystem.elphiesyntax.com";
+const SYNTAX_EDUCATES_HOST =
+  process.env.EDUCATION_APP_URL?.trim() ||
+  process.env.NEXT_PUBLIC_EDUCATION_APP_URL?.trim() ||
+  "https://syntaxeducates.elphiesyntax.com";
 
 const PLATFORMS: readonly Platform[] = [
   {
@@ -303,6 +303,10 @@ export function PlatformHubLanding() {
 
       <main className="mx-auto max-w-6xl space-y-14 px-5 py-12 sm:py-16">
         <section className="text-center">
+          <p className="mb-3 text-xs text-slate-500">
+            Production map: elphiesyntax.com → global hub · authorecosystem ·
+            syntaxeducates · elphiesgatedai
+          </p>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/90">
             Welcome to Elphie Syntax
           </p>

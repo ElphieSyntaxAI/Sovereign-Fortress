@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 /**
  * /products/author — "Find out more" detail page for the Author Ecosystem surface.
@@ -25,6 +25,11 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
+  const liveUrl =
+    process.env.AUTHOR_APP_URL?.trim() ||
+    process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
+    "https://authorecosystem.elphiesyntax.com";
+
   return (
     <ProductDetailShell
       tone="amethyst"
@@ -32,7 +37,7 @@ export default function Page() {
       title="Author Ecosystem"
       tagline="From “Protecting the Work” to “Perfecting the Work.” Sovereign narrative infrastructure backed by the same MSGF brain — HAL telemetry, Vault Pact, Cool Down locks, and a bicameral audit path for publisher-grade proofs."
       vision="ElphieSyntax is a sovereign narrative infrastructure that transitions authors from protecting the work (sovereignty) to perfecting the work (professionalism). HAL Ledger captures biometric authorship proof; the Vault Pact enforces zero-training and no-human-browsing; Cool Down Locks impose professional distance; and the Bicameral Audit (Librarian + Critic) generates publisher-ready receipts."
-      liveUrl="https://elphiesyntax.com"
+      liveUrl={liveUrl}
       liveLabel="Open Author dashboard"
       roadmapDocPath="docs/AUTHOR_ECOSYSTEM_ROADMAP.md"
       metrics={[

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 /**
  * /products/msgf — "Find out more" detail page for the MSGF (Gated AI) surface.
@@ -25,6 +25,11 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
+  const liveUrl =
+    process.env.MSGF_APP_URL?.trim() ||
+    process.env.NEXT_PUBLIC_MSGF_APP_URL?.trim() ||
+    "https://elphiesgatedai.elphiesyntax.com";
+
   return (
     <ProductDetailShell
       tone="emerald"
@@ -32,7 +37,7 @@ export default function Page() {
       title="MSGF — Gated AI"
       tagline="Stateful, self-defending AI orchestration. Six isolated pillars, 1.1.1 genealogical lineage, Redis hot + Postgres cold, dual-model consensus, and human tie-breaker on RED disagreement."
       vision="MSGF 1.0 delivers a stateful, self-defending AI orchestration layer that any application can adopt. For Elphie Syntax products it is the brain behind the Author Ecosystem and Syntax Education. For the market, MSGF at elphiesgatedai.elphiesyntax.com is a standalone gated-AI product — subscribe, send keystroke or logic deltas through Pulse, ingest knowledge into pillars, and receive tiered audits without running your own consensus stack."
-      liveUrl="https://elphiesgatedai.elphiesyntax.com"
+      liveUrl={liveUrl}
       liveLabel="Open MSGF console"
       roadmapDocPath="docs/MSGF_V1_ROADMAP.md"
       metrics={[

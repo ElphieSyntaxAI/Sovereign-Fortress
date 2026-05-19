@@ -8,13 +8,14 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 import { type NextRequest, NextResponse } from "next/server";
 
 const DEFAULT_PULSE_ORIGINS = [
   "https://elphiesyntax.com",
   "https://www.elphiesyntax.com",
+  "https://authorecosystem.elphiesyntax.com",
   "https://elphiesgatedai.elphiesyntax.com",
   "https://syntaxeducates.elphiesyntax.com",
 ];

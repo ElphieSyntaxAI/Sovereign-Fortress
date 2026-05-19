@@ -326,6 +326,9 @@ ALLOWLIST_EXPORT_KEYS=(
   LOG_LEVEL
   NEXT_PUBLIC_SUPABASE_URL
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  NEXT_PUBLIC_AUTHOR_APP_URL
+  NEXT_PUBLIC_EDUCATION_APP_URL
+  NEXT_PUBLIC_MSGF_APP_URL
 )
 for key in "${ALLOWLIST_EXPORT_KEYS[@]}"; do
   eval "v=\${${key}-}"
@@ -342,6 +345,9 @@ echo "Context: ${SCRIPT_DIR}  Dockerfile: ${DOCKERFILE_PATH}"
 run_cloud_build_default_dockerfile() {
   local supa_url="${RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]:-}"
   local supa_key="${RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]:-}"
+  local author_url="${RUN_ENV[NEXT_PUBLIC_AUTHOR_APP_URL]:-}"
+  local education_url="${RUN_ENV[NEXT_PUBLIC_EDUCATION_APP_URL]:-}"
+  local msgf_url="${RUN_ENV[NEXT_PUBLIC_MSGF_APP_URL]:-}"
   if [[ -z "${supa_url}" || -z "${supa_key}" ]]; then
     echo "" >&2
     echo "Error: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be set" >&2
@@ -370,6 +376,12 @@ steps:
       - NEXT_PUBLIC_SUPABASE_URL=${supa_url}
       - --build-arg
       - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${supa_key}
+      - --build-arg
+      - NEXT_PUBLIC_AUTHOR_APP_URL=${author_url}
+      - --build-arg
+      - NEXT_PUBLIC_EDUCATION_APP_URL=${education_url}
+      - --build-arg
+      - NEXT_PUBLIC_MSGF_APP_URL=${msgf_url}
       - .
 images:
   - ${IMAGE_URI}
@@ -385,6 +397,9 @@ run_cloud_build_custom_dockerfile() {
   local cb_tmp
   local supa_url="${RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]:-}"
   local supa_key="${RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]:-}"
+  local author_url="${RUN_ENV[NEXT_PUBLIC_AUTHOR_APP_URL]:-}"
+  local education_url="${RUN_ENV[NEXT_PUBLIC_EDUCATION_APP_URL]:-}"
+  local msgf_url="${RUN_ENV[NEXT_PUBLIC_MSGF_APP_URL]:-}"
   cb_tmp="$(mktemp "${TMPDIR:-/tmp}/msgf-cloudbuild.XXXXXX")"
   trap "rm -f '${cb_tmp}'" EXIT
   if [[ -n "${supa_url}" && -n "${supa_key}" ]]; then
@@ -401,6 +416,12 @@ steps:
       - NEXT_PUBLIC_SUPABASE_URL=${supa_url}
       - --build-arg
       - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${supa_key}
+      - --build-arg
+      - NEXT_PUBLIC_AUTHOR_APP_URL=${author_url}
+      - --build-arg
+      - NEXT_PUBLIC_EDUCATION_APP_URL=${education_url}
+      - --build-arg
+      - NEXT_PUBLIC_MSGF_APP_URL=${msgf_url}
       - .
 images:
   - ${IMAGE_URI}

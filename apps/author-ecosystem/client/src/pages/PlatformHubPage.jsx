@@ -12,8 +12,12 @@ import { Link } from "react-router-dom";
  * (emerald · amethyst-violet · topaz-amber on slate / `landing-mesh` chrome).
  */
 
-const GATED_AI_HOST = "https://elphiesgatedai.elphiesyntax.com";
-const EDUCATION_HOST = "https://syntaxeducates.elphiesyntax.com";
+const AUTHOR_HOST =
+  import.meta.env.VITE_AUTHOR_APP_URL || "https://authorecosystem.elphiesyntax.com";
+const GATED_AI_HOST =
+  import.meta.env.VITE_MSGF_APP_URL || "https://elphiesgatedai.elphiesyntax.com";
+const EDUCATION_HOST =
+  import.meta.env.VITE_EDUCATION_APP_URL || "https://syntaxeducates.elphiesyntax.com";
 
 const PLATFORMS = [
   {
@@ -30,9 +34,9 @@ const PLATFORMS = [
     ],
     tone: "amethyst",
     primary: {
-      label: "Sign in to author dashboard",
-      to: "/sign-in",
-      external: false,
+      label: "Open Author Ecosystem",
+      to: AUTHOR_HOST,
+      external: true,
     },
     learnMoreHref: `${GATED_AI_HOST}/products/author`,
   },
@@ -290,6 +294,10 @@ export default function PlatformHubPage() {
 
       <main className="mx-auto max-w-6xl space-y-14 px-5 py-12 sm:py-16">
         <section className="text-center">
+          <p className="mb-3 text-xs text-slate-500">
+            Production map: elphiesyntax.com → global hub · authorecosystem ·
+            syntaxeducates · elphiesgatedai
+          </p>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/90">
             Welcome to Elphie Syntax
           </p>

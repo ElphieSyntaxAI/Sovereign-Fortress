@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 import Link from "next/link";
 
@@ -16,7 +16,10 @@ import { MarketingSection } from "@/app/_components/marketing/MarketingSection";
 import { MarketingShell } from "@/app/_components/marketing/MarketingShell";
 import { PricingCtaButton } from "@/app/_components/pricing/PricingCtaButton";
 
-const DASHBOARD_URL = "https://elphiesgatedai.elphiesyntax.com/dashboard";
+const DASHBOARD_URL =
+  process.env.MSGF_APP_URL?.trim() ||
+  process.env.NEXT_PUBLIC_MSGF_APP_URL?.trim() ||
+  "https://elphiesgatedai.elphiesyntax.com/dashboard";
 
 export const metadata = {
   title: "Getting Started | Elphie's Gated AI",

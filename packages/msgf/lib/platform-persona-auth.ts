@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 /**
  * Multi-tenant platform + persona maps for unified login (P3 Entity Profile / `p4_profiles`).
@@ -119,7 +119,14 @@ export function personaToProfileRole(platform: PlatformId, persona: string): str
 }
 
 export function resolvePostLoginRedirect(platform: PlatformId): string {
-  if (platform === "author") return "/dashboard";
+  if (platform === "author") {
+    const base =
+      process.env.AUTHOR_APP_URL?.trim() ||
+      process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
+      "";
+    if (!base) return "/dashboard";
+    return base.endsWith("/dashboard") ? base : `${base.replace(/\/$/, "")}/dashboard`;
+  }
   if (platform === "education") {
     return (
       process.env.EDUCATION_APP_URL?.trim() ||

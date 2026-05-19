@@ -8,11 +8,26 @@ import PlatformHubPage from "./pages/PlatformHubPage";
 import TermsPage from "./pages/TermsPage";
 import VaultPactPage from "./pages/VaultPactPage";
 
+function isAuthorProductHost() {
+  if (typeof window === "undefined") return false;
+  return window.location.hostname.toLowerCase() === "authorecosystem.elphiesyntax.com";
+}
+
+function HomeRoute() {
+  // The same bundle can be used for the apex/global hub during transition and
+  // for the Author product subdomain once DNS is live. Keep Cloud Run/default
+  // test URLs on the hub; make the product subdomain app-first.
+  if (isAuthorProductHost()) {
+    return <Navigate to="/sign-in" replace />;
+  }
+  return <PlatformHubPage />;
+}
+
 export default function App() {
   return (
     <Routes>
-      {/* elphiesyntax.com home — "What are you looking for?" chooser hub */}
-      <Route path="/" element={<PlatformHubPage />} />
+      {/* elphiesyntax.com/global test URLs — chooser hub; authorecosystem subdomain — app sign-in. */}
+      <Route path="/" element={<HomeRoute />} />
 
       {/* Author sign-in / register (formerly hosted at /) */}
       <Route path="/sign-in" element={<LoginHomePage />} />

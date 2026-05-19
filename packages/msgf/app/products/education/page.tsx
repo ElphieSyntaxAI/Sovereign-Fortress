@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
+ * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
  */
 /**
  * /products/education — "Find out more" detail page for Syntax Education.
@@ -25,6 +25,11 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
+  const liveUrl =
+    process.env.EDUCATION_APP_URL?.trim() ||
+    process.env.NEXT_PUBLIC_EDUCATION_APP_URL?.trim() ||
+    "https://syntaxeducates.elphiesyntax.com";
+
   return (
     <ProductDetailShell
       tone="topaz"
@@ -32,7 +37,7 @@ export default function Page() {
       title="Syntax Education"
       tagline="Layered Workspace Control: permanent grade-cohort toolbox (Layer A) plus teacher-set AI Allowance regulator (Layer B). District-approved curriculum slicing, Canvas LTI 1.3, and a Human Effort Certificate that survives the SpeedGrader handoff."
       vision="Syntax Education is an MSGF-shaped product under tenant_education. P1 owns AI Allowance + Utah S.B. 149 / H.B. 273 HALTs; P2 sequences Socratic milestones including the reading dependency trigger; P3 handles Canvas LTI 1.3 + the cryptographic privacy gate; P4 captures “The Call” telemetry with degraded modes for sandboxed hosts; P5 hosts the dual-pane sandbox; and P6 stores the genealogical 1.1.1 learning breakdown index, district curriculum shards, and the Citation Hall."
-      liveUrl="https://syntaxeducates.elphiesyntax.com"
+      liveUrl={liveUrl}
       liveLabel="Open Syntax Education"
       roadmapDocPath="docs/syntax-education/ROADMAP.md"
       metrics={[
