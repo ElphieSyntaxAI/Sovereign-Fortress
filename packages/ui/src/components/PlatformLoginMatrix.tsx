@@ -66,7 +66,7 @@ export function PlatformLoginMatrix({
   title = "Elphie Syntax",
   subtitle = "Unified access across sovereign platforms",
 }: PlatformLoginMatrixProps) {
-  const [platform, setPlatform] = useState<PlatformId>("gatedai");
+  const [platform, setPlatform] = useState<PlatformId>("author");
   const personas = PERSONAS_BY_PLATFORM[platform];
   const [persona, setPersona] = useState(personas[0]?.id ?? "");
   const comingSoon = PLATFORM_COMING_SOON[platform];

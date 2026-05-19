@@ -18,7 +18,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { CURRENT_LEGAL_VERSION } from "./msgf-legal";
 import type { EnsureMsgfProfileInput } from "@/lib/schemas/msgf-profile";
+import {
+  type PlatformId,
+  personaToProfileRole,
+  resolveOperationalTenantId,
+} from "./platform-persona-auth";
+import { bootstrapTenantBrain } from "./services/brain-readiness";
 import { createAdminClient } from "../utils/supabase/admin";
+
+export { bootstrapTenantBrain };
 
 export type { MsgfProfile, EnsureMsgfProfileInput } from "@/lib/schemas/msgf-profile";
 
@@ -162,7 +170,8 @@ export async function ensureMsgfPulseProfile(
       legacy_user_id: null,
       username: input.username.trim(),
       tier_id: tierId,
-      user_role: "msgf_entity",
+      user_role: input.userRole?.trim() || "msgf_entity",
+      tenant_id: input.tenantId?.trim() || null,
       preferred_theme: input.preferredTheme?.trim() || "Pleasure",
       billing_license_type,
       stripe_subscription_status: stripeStatus,
@@ -175,6 +184,77 @@ export async function ensureMsgfPulseProfile(
   if (error) {
     throw new Error(`ensureMsgfPulseProfile: p4_profiles upsert failed: ${error.message}`);
   }
+}
+
+function legacyTierNameForPlatform(platform: PlatformId): string {
+  if (platform === "author") return "Tier 2: Core Author";
+  return "Tier 1: Fan Access";
+}
+
+/**
+ * Login / register bridge: mint or refresh MSGF entitlement on `p4_profiles`, pledge beat, and brain baseline.
+ * Does not reset `current_credits` when a billing license already exists.
+ */
+export async function syncPlatformEntitlement(input: SyncPlatformEntitlementInput): Promise<{
+  provisionedLicense: boolean;
+  tenantId: string;
+  userRole: string;
+}> {
+  const admin = resolveAdmin(input.supabase);
+  const entityId = input.entityId.trim();
+  const tenantId = resolveOperationalTenantId(input.platform);
+  const userRole = personaToProfileRole(input.platform, input.persona);
+
+  const { data: tierRow } = await admin
+    .from("msgf_legacy_tiers")
+    .select("tier_id")
+    .eq("name", legacyTierNameForPlatform(input.platform))
+    .maybeSingle();
+  const tierId = typeof tierRow?.tier_id === "number" ? tierRow.tier_id : 1;
+
+  const { data: existing } = await admin
+    .from("p4_profiles")
+    .select("user_id, billing_license_type, current_credits")
+    .eq("user_id", entityId)
+    .maybeSingle();
+
+  let provisionedLicense = false;
+  if (!existing?.billing_license_type) {
+    await ensureMsgfPulseProfile({
+      supabase: admin,
+      entityId,
+      tierId,
+      username: input.username,
+      preferredTheme: input.preferredTheme,
+      userRole,
+      tenantId,
+    });
+    provisionedLicense = true;
+  } else {
+    const { error: patchErr } = await admin
+      .from("p4_profiles")
+      .update({
+        user_role: userRole,
+        tenant_id: tenantId,
+        username: input.username.trim(),
+        tier_id: tierId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", entityId);
+    if (patchErr) {
+      throw new Error(`syncPlatformEntitlement: profile patch failed: ${patchErr.message}`);
+    }
+  }
+
+  await createPledgeBeat(entityId, {
+    tenantId,
+    supabase: admin,
+    beatText: `Platform entitlement sync (${input.platform} · ${input.persona}).`,
+  });
+
+  await bootstrapTenantBrain(admin, tenantId, entityId);
+
+  return { provisionedLicense, tenantId, userRole };
 }
 
 /** @deprecated Use {@link ensureMsgfPulseProfile} with `entityId`. */
@@ -194,6 +274,8 @@ export async function ensureAuthorPulseProfile(
 export const MSGF = {
   createPledgeBeat,
   ensureMsgfPulseProfile,
+  syncPlatformEntitlement,
+  bootstrapTenantBrain,
   /** @deprecated Use {@link ensureMsgfPulseProfile}. */
   ensureAuthorPulseProfile,
 } as const;

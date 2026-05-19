@@ -4,10 +4,11 @@ import {
   ELPHIE_PERSONA_COOKIE,
   ELPHIE_PLATFORM_COOKIE,
   PLATFORM_COMING_SOON,
-  PLATFORM_TENANT_ID,
   personaToProfileRole,
+  resolveOperationalTenantId,
   type PlatformId,
 } from "msgf/lib/platform-persona-auth";
+import { MSGF } from "msgf/onboarding";
 
 import { bffCookieBaseOptions } from "./bffAuthCookies.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
@@ -29,57 +30,61 @@ function platformContextCookies(res: Response, platform: PlatformId, persona: st
 }
 
 /**
- * After Supabase sign-in: persist platform/persona on auth user + P3 (`p4_profiles`) and set
- * cross-subdomain context cookies when `MSGF_AUTH_COOKIE_DOMAIN=.elphiesyntax.com`.
+ * After Supabase sign-in: persist platform/persona, MSGF license on `p4_profiles` (P3),
+ * pledge beat, brain baseline, and cross-subdomain context cookies.
  */
 export async function syncPlatformPersonaSession(
   res: Response,
   user: User,
   ctx: PlatformPersonaContext
-): Promise<void> {
+): Promise<{
+  tenantId: string;
+  userRole: string;
+  provisionedLicense: boolean;
+}> {
   if (PLATFORM_COMING_SOON[ctx.platform]) {
     throw new Error("This platform is not yet available for sign-in.");
   }
 
-  const role = personaToProfileRole(ctx.platform, ctx.persona);
-  const tenantId = PLATFORM_TENANT_ID[ctx.platform];
   const admin = getSupabaseAdmin();
-
   const meta = { ...(user.user_metadata ?? {}) };
-  await admin.auth.admin.updateUserById(user.id, {
-    user_metadata: {
-      ...meta,
-      platform: ctx.platform,
-      persona: ctx.persona,
-      terms_role: role,
-      user_role: role,
-      tenant_id: tenantId,
-    },
-  });
-
   const username =
     typeof meta.username === "string" && meta.username.trim()
       ? meta.username.trim()
       : user.email?.split("@")[0] ?? "entity";
 
-  const { data: tierRow } = await admin
-    .from("msgf_legacy_tiers")
-    .select("tier_id")
-    .eq("name", "Tier 1: Fan Access")
-    .maybeSingle();
-  const tierId = typeof tierRow?.tier_id === "number" ? tierRow.tier_id : 1;
+  const { tenantId, userRole, provisionedLicense } = await MSGF.syncPlatformEntitlement({
+    supabase: admin,
+    entityId: user.id,
+    username,
+    platform: ctx.platform,
+    persona: ctx.persona,
+    preferredTheme: typeof meta.preferred_theme === "string" ? meta.preferred_theme : "Pleasure",
+  });
 
-  await admin.from("p4_profiles").upsert(
-    {
-      user_id: user.id,
-      username,
-      tier_id: tierId,
-      user_role: role,
+  await admin.auth.admin.updateUserById(user.id, {
+    user_metadata: {
+      ...meta,
+      platform: ctx.platform,
+      persona: ctx.persona,
+      terms_role: userRole,
+      user_role: userRole,
       tenant_id: tenantId,
-      preferred_theme: typeof meta.preferred_theme === "string" ? meta.preferred_theme : "Pleasure",
+      msgf_license_provisioned: provisionedLicense,
     },
-    { onConflict: "user_id" }
-  );
+  });
 
   platformContextCookies(res, ctx.platform, ctx.persona);
+
+  return { tenantId, userRole, provisionedLicense };
+}
+
+/** @deprecated Use {@link syncPlatformPersonaSession} — kept for imports that only need tenant slug. */
+export function authorOperationalTenantId(): string {
+  return resolveOperationalTenantId("author");
+}
+
+/** @deprecated */
+export function personaToAuthorRole(persona: string): string {
+  return personaToProfileRole("author", persona);
 }

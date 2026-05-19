@@ -13,7 +13,7 @@ const registerSchema = z.object({
   username: z.string().min(2, "At least 2 characters").max(64),
   email: z.string().min(1, "Required").email("Enter a valid email"),
   password: z.string().min(8, "At least 8 characters"),
-  terms_role: z.enum(["author", "editor", "fan", "publisher"], {
+  terms_role: z.enum(["author", "editor", "helper", "publisher"], {
     message: "Select your account role",
   }),
   vault_pact_signature: z
@@ -25,6 +25,17 @@ const registerSchema = z.object({
 });
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
+
+const AUTHOR_REGISTER_ROLES = [
+  { value: "author", label: "Author" },
+  { value: "editor", label: "Editor" },
+  { value: "helper", label: "Helper" },
+  { value: "publisher", label: "Publisher" },
+] as const;
+
+function legalDocSlugForRole(role: RegisterFormValues["terms_role"]): string {
+  return role === "helper" ? "editor" : role;
+}
 
 export function RegisterForm(props: { onError: (msg: string | null) => void }) {
   const navigate = useNavigate();
@@ -51,8 +62,8 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
     setValue("vault_pact_signature", "");
   }, [termsRole, setValue]);
 
-  const termsDoc = TERMS_DOCUMENTS.find((d) => d.slug === termsRole);
-  const ndaDoc = NDA_DOCUMENTS.find((d) => d.slug === termsRole);
+  const termsDoc = TERMS_DOCUMENTS.find((d) => d.slug === legalDocSlugForRole(termsRole));
+  const ndaDoc = NDA_DOCUMENTS.find((d) => d.slug === legalDocSlugForRole(termsRole));
 
   const onSubmit = async (values: RegisterFormValues) => {
     props.onError(null);
@@ -65,16 +76,24 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
           username: values.username.trim(),
           email: values.email.trim(),
           password: values.password,
+          platform: "author",
+          persona: values.terms_role,
           terms_role: values.terms_role,
           vault_pact_signature: values.vault_pact_signature.trim(),
         }),
       });
-      const json = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
+        redirectUrl?: string;
+      };
       if (!res.ok) {
         props.onError(json.message || json.error || res.statusText);
         return;
       }
-      navigate("/dashboard", { replace: true });
+      const redirect =
+        typeof json.redirectUrl === "string" ? json.redirectUrl : "/dashboard";
+      navigate(redirect.startsWith("http") ? "/dashboard" : redirect, { replace: true });
     } catch (e) {
       props.onError(e instanceof Error ? e.message : "Registration request failed");
     }
@@ -166,9 +185,9 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
             className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600"
             {...register("terms_role")}
           >
-            {TERMS_DOCUMENTS.map((d) => (
-              <option key={d.id} value={d.slug}>
-                {d.title}
+            {AUTHOR_REGISTER_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
               </option>
             ))}
           </select>
@@ -180,7 +199,7 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
           <p className="text-[11px] leading-relaxed text-zinc-500">
             Role-specific schedules:{" "}
             <Link
-              to={`/terms/${termsRole}`}
+              to={`/terms/${legalDocSlugForRole(termsRole)}`}
               className="text-violet-400 underline underline-offset-2 hover:text-violet-300"
               target="_blank"
               rel="noopener noreferrer"
@@ -189,7 +208,7 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
             </Link>
             {" · "}
             <Link
-              to={`/nda/${termsRole}`}
+              to={`/nda/${legalDocSlugForRole(termsRole)}`}
               className="text-sky-400 underline underline-offset-2 hover:text-sky-300"
               target="_blank"
               rel="noopener noreferrer"

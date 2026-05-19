@@ -2,7 +2,6 @@ import { Router, type Request, type Response } from "express";
 import {
   PLATFORM_COMING_SOON,
   parsePlatformLoginBody,
-  personaToProfileRole,
   resolvePostLoginRedirect,
 } from "msgf/lib/platform-persona-auth";
 
@@ -69,7 +68,7 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
       }
 
       mirrorAccessTokenCookie(res, data.session.access_token);
-      await syncPlatformPersonaSession(res, data.user, { platform, persona });
+      const entitlement = await syncPlatformPersonaSession(res, data.user, { platform, persona });
 
       const u = mapSupabaseUserToMe(data.user);
       res.status(200).json({
@@ -80,7 +79,9 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
           username: data.user.user_metadata?.username,
           platform,
           persona,
-          role: personaToProfileRole(platform, persona),
+          role: entitlement.userRole,
+          tenant_id: entitlement.tenantId,
+          msgf_license_provisioned: entitlement.provisionedLicense,
         },
         redirectUrl: resolvePostLoginRedirect(platform),
       });
@@ -98,12 +99,21 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
   void (async () => {
     try {
       const body = req.body as Record<string, unknown>;
-      const termsRole = String(body.terms_role ?? "").trim().toLowerCase();
+      const platformRaw = String(body.platform ?? "author").trim().toLowerCase();
+      const persona = String(body.persona ?? body.terms_role ?? "author").trim().toLowerCase();
+      const termsRole = persona;
       const vaultPactSignature = String(body.vault_pact_signature ?? "").trim();
 
-      if (!REGISTER_TERMS_ROLES.has(termsRole)) {
+      if (platformRaw !== "author") {
         res.status(400).json({
-          message: "Select a valid account role (author, editor, fan, or publisher).",
+          message: "Registration is available on Author Ecosystem only. Use sign-in for other platforms.",
+        });
+        return;
+      }
+
+      if (!REGISTER_AUTHOR_PERSONAS.has(termsRole)) {
+        res.status(400).json({
+          message: "Select a valid author persona (author, editor, helper, or publisher).",
         });
         return;
       }
@@ -124,19 +134,14 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
 
       const admin = getSupabaseAdmin();
 
-      const { data: tierRow } = await admin
-        .from("msgf_legacy_tiers")
-        .select("tier_id")
-        .eq("name", "Tier 1: Fan Access")
-        .maybeSingle();
-      const tierId = typeof tierRow?.tier_id === "number" ? tierRow.tier_id : 1;
-
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
         user_metadata: {
           username,
+          platform: "author",
+          persona: termsRole,
           terms_role: termsRole,
           user_role: termsRole,
           preferred_theme: "Pleasure",
@@ -171,26 +176,26 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
 
       mirrorAccessTokenCookie(res, sessionData.session.access_token);
 
-      const { error: profileErr } = await admin.from("p4_profiles").upsert(
-        {
-          user_id: authUserId,
-          legacy_user_id: null,
-          username,
-          tier_id: tierId,
-          user_role: termsRole,
-          preferred_theme: "Pleasure",
-        },
-        { onConflict: "user_id" }
-      );
-
-      if (profileErr) {
-        console.error("[bff/auth/register] p4_profiles upsert:", profileErr.message);
-      }
+      const entitlement = await syncPlatformPersonaSession(res, sessionData.user, {
+        platform: "author",
+        persona: termsRole,
+      });
 
       const u = mapSupabaseUserToMe(sessionData.user);
       res.status(201).json({
         message: "User registered successfully",
-        user: { id: u.id, username, email, tierId, theme: "Pleasure" },
+        user: {
+          id: u.id,
+          username,
+          email,
+          platform: "author",
+          persona: termsRole,
+          role: entitlement.userRole,
+          tenant_id: entitlement.tenantId,
+          msgf_license_provisioned: entitlement.provisionedLicense,
+          theme: "Pleasure",
+        },
+        redirectUrl: resolvePostLoginRedirect("author"),
       });
     } catch (e) {
       console.error("[bff/auth/register]", e);

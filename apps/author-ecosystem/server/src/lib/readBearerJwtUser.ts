@@ -26,7 +26,7 @@ export type BffAuthUser = {
 export function normalizeRole(raw: unknown): string {
   if (typeof raw !== "string" || !raw.trim()) return "AUTHOR";
   const u = raw.trim().toUpperCase();
-  if (u === "EDITOR" || u === "AUTHOR" || u === "FAN" || u === "PUBLISHER") return u;
+  if (u === "EDITOR" || u === "AUTHOR" || u === "FAN" || u === "PUBLISHER" || u === "HELPER") return u;
   return "AUTHOR";
 }
 

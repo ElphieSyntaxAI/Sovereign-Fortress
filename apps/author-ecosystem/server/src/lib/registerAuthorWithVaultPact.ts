@@ -151,6 +151,9 @@ export async function registerAuthorWithVaultPact(
       tierId: Number(tierId),
       username,
       preferredTheme: "Pleasure",
+      userRole: "author",
+      tenantId: AUTHOR_MSGF_TENANT_ID,
+      supabase: admin,
     });
 
     await MSGF.createPledgeBeat(userId, {

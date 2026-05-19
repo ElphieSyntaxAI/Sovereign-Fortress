@@ -24,15 +24,49 @@ export const PERSONAS_BY_PLATFORM: Record<PlatformId, PersonaOption[]> = {
   ],
 };
 
-export const PLATFORM_TENANT_ID: Record<PlatformId, string> = {
+/** CI / manifest silo labels (tenant-manifest.json). */
+export const PLATFORM_MANIFEST_TENANT: Record<PlatformId, string> = {
   author: "tenant_author",
   education: "tenant_education",
   gatedai: "tenant_gated",
 };
 
+/**
+ * Operational `tenant_id` stored on `p4_profiles`, `state_beats`, and Pulse headers.
+ * Author uses `author_ecosystem` (MSGF pulse + MsgfBridge default).
+ */
+export function resolveOperationalTenantId(platform: PlatformId): string {
+  if (platform === "author") {
+    return (
+      process.env.MSGF_AUTHOR_TENANT_ID?.trim() ||
+      process.env.NEXT_PUBLIC_MSGF_AUTHOR_TENANT_ID?.trim() ||
+      "author_ecosystem"
+    );
+  }
+  if (platform === "education") {
+    return (
+      process.env.MSGF_EDUCATION_TENANT_ID?.trim() ||
+      process.env.NEXT_PUBLIC_MSGF_EDUCATION_TENANT_ID?.trim() ||
+      "syntax_education"
+    );
+  }
+  return (
+    process.env.MSGF_GATED_TENANT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_MSGF_GATED_TENANT_ID?.trim() ||
+    "tenant_gated"
+  );
+}
+
+/** @deprecated Prefer {@link resolveOperationalTenantId} at runtime. */
+export const PLATFORM_TENANT_ID: Record<PlatformId, string> = {
+  author: "author_ecosystem",
+  education: "syntax_education",
+  gatedai: "tenant_gated",
+};
+
 /** Platforms blocked from sign-in until product launch. */
 export const PLATFORM_COMING_SOON: Record<PlatformId, boolean> = {
-  author: true,
+  author: false,
   education: true,
   gatedai: false,
 };
