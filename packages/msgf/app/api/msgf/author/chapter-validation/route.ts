@@ -3,8 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Unauthorized copying, distribution, publication, or reverse-engineering is
- * strictly prohibited without prior written consent from Elphie Syntax LLC.
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-753c05a-20260519T050509Z-internal
  */
 /**
  * POST /api/msgf/author/chapter-validation

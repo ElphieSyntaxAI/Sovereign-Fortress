@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
+-- Distribution Build ID: MSGF-753c05a-20260519T050509Z-internal
 -- =============================================================================
 -- Legacy Docker `hal_ledger` + `projects` / `content_items` field parity on Supabase `p4_*` tables.
 -- Safe idempotent adds — nullable columns for ETL / dual-write bridges; BFF continues to use primary p4 columns.
