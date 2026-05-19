@@ -1,0 +1,109 @@
+/* Jewel-tone unified login — emerald midnight / obsidian purple / neon mint / ivory */
+.platform-login-root {
+  --pl-ivory: #f5f0e8;
+  --pl-ivory-muted: #c9c4bc;
+  --pl-midnight: #02120e;
+  --pl-midnight-deep: #010a08;
+  --pl-panel: #120a21;
+  --pl-mint: #34d399;
+  --pl-mint-glow: rgba(52, 211, 153, 0.45);
+}
+
+.platform-login-root {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(16, 185, 129, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(107, 33, 168, 0.08), transparent 50%),
+    linear-gradient(180deg, var(--pl-midnight-deep) 0%, var(--pl-midnight) 45%, #030812 100%);
+  color: var(--pl-ivory);
+}
+
+.platform-login-panel {
+  background: linear-gradient(165deg, rgba(18, 10, 33, 0.98) 0%, rgba(12, 6, 22, 0.99) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.06) inset,
+    0 0 40px -12px var(--pl-mint-glow),
+    0 32px 64px -32px rgba(0, 0, 0, 0.75);
+}
+
+.platform-login-segment {
+  border: 1px solid rgba(52, 211, 153, 0.12);
+  background: rgba(2, 18, 14, 0.65);
+}
+
+.platform-login-segment-active {
+  border-color: rgba(52, 211, 153, 0.55);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(18, 10, 33, 0.9));
+  box-shadow: 0 0 24px -6px var(--pl-mint-glow);
+}
+
+.platform-login-input {
+  background: rgba(1, 10, 8, 0.85);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  color: var(--pl-ivory);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.platform-login-input::placeholder {
+  color: rgba(245, 240, 232, 0.35);
+}
+
+.platform-login-input:focus {
+  outline: none;
+  border-color: rgba(52, 211, 153, 0.65);
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.35), 0 0 20px -4px var(--pl-mint-glow);
+}
+
+.platform-login-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2334d399'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1.1rem;
+  padding-right: 2.25rem;
+}
+
+.platform-login-banner-emerald {
+  background: linear-gradient(
+    90deg,
+    rgba(2, 18, 14, 0.95) 0%,
+    rgba(6, 78, 59, 0.55) 50%,
+    rgba(2, 18, 14, 0.95) 100%
+  );
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 28px -8px rgba(16, 185, 129, 0.35);
+  color: var(--pl-ivory);
+}
+
+.platform-login-banner-purple {
+  background: linear-gradient(
+    90deg,
+    rgba(18, 10, 33, 0.98) 0%,
+    rgba(107, 33, 168, 0.45) 50%,
+    rgba(18, 10, 33, 0.98) 100%
+  );
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  box-shadow: 0 0 28px -8px rgba(168, 85, 247, 0.35);
+  color: var(--pl-ivory);
+}
+
+.platform-login-btn-emerald {
+  background: linear-gradient(135deg, #10b981 0%, #059669 55%, #047857 100%);
+  color: #02120e;
+  box-shadow: 0 0 32px -8px rgba(16, 185, 129, 0.55);
+}
+
+.platform-login-btn-purple {
+  background: linear-gradient(135deg, #c084fc 0%, #a855f7 45%, #7c3aed 100%);
+  color: #f5f0e8;
+  box-shadow: 0 0 32px -8px rgba(168, 85, 247, 0.5);
+}
+
+.platform-login-btn-mint {
+  background: linear-gradient(135deg, #6ee7b7 0%, #34d399 40%, #10b981 100%);
+  color: #02120e;
+  box-shadow: 0 0 36px -6px rgba(52, 211, 153, 0.55);
+}

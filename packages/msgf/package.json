@@ -29,6 +29,12 @@
       "import": "./dist/lib/msgf-auth-cookies.js",
       "default": "./dist/lib/msgf-auth-cookies.js"
     },
+    "./lib/platform-persona-auth": {
+      "types": "./dist/lib/platform-persona-auth.d.ts",
+      "development": "./lib/platform-persona-auth.ts",
+      "import": "./dist/lib/platform-persona-auth.js",
+      "default": "./dist/lib/platform-persona-auth.js"
+    },
     "./universal/p1-hal-standard": {
       "types": "./dist/universal/p1-hal-standard.d.ts",
       "development": "./src/lib/universal/p1HalStandard.ts",

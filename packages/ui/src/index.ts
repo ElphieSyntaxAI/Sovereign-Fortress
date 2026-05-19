@@ -22,6 +22,12 @@ export {
   type LoginFormValues,
   type LoginModuleProps,
 } from "./components/LoginModule";
+export {
+  PlatformLoginMatrix,
+  type PlatformLoginFormValues,
+  type PlatformLoginMatrixProps,
+  type PlatformLoginSubmitPayload,
+} from "./components/PlatformLoginMatrix";
 export { cn } from "./lib/cn";
 export { pillarFromLineageLabel, type PillarId } from "./lib/lineage";
 export { BugReporter, type BugReporterProps } from "./components/BugReporter";

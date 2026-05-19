@@ -1,9 +1,16 @@
 import { Router, type Request, type Response } from "express";
+import {
+  PLATFORM_COMING_SOON,
+  parsePlatformLoginBody,
+  personaToProfileRole,
+  resolvePostLoginRedirect,
+} from "msgf/lib/platform-persona-auth";
 
 import { BFF_AUTH_COOKIE_NAME, bffCookieBaseOptions } from "../lib/bffAuthCookies.js";
 import { createBffSupabaseServerClient } from "../lib/bffSupabaseSsr.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 import { readBearerUser, normalizeRole } from "../lib/readBearerJwtUser.js";
+import { syncPlatformPersonaSession } from "../lib/syncPlatformPersonaSession.js";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../lib/vaultPactAttestation.js";
 
 /**
@@ -39,12 +46,20 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
   void (async () => {
     try {
       const body = req.body as Record<string, unknown>;
-      const email = String(body.email ?? "").trim();
-      const password = String(body.password ?? "");
-      if (!email || !password) {
-        res.status(400).json({ message: "Email and password are required" });
+      const parsed = parsePlatformLoginBody(body);
+      if (!parsed) {
+        res.status(400).json({
+          message: "Email, password, platform, and persona are required.",
+        });
         return;
       }
+
+      if (PLATFORM_COMING_SOON[parsed.platform]) {
+        res.status(403).json({ message: "This platform is coming soon." });
+        return;
+      }
+
+      const { email, password, platform, persona } = parsed;
 
       const supabase = createBffSupabaseServerClient(req, res);
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -54,11 +69,20 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
       }
 
       mirrorAccessTokenCookie(res, data.session.access_token);
+      await syncPlatformPersonaSession(res, data.user, { platform, persona });
 
       const u = mapSupabaseUserToMe(data.user);
       res.status(200).json({
         message: "Login successful",
-        user: { id: u.id, email: data.user.email, username: data.user.user_metadata?.username },
+        user: {
+          id: u.id,
+          email: data.user.email,
+          username: data.user.user_metadata?.username,
+          platform,
+          persona,
+          role: personaToProfileRole(platform, persona),
+        },
+        redirectUrl: resolvePostLoginRedirect(platform),
       });
     } catch (e) {
       console.error("[bff/auth/login]", e);

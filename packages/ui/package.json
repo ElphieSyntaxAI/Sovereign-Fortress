@@ -12,7 +12,8 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./platform-login.css": "./src/platform-login.css"
   },
   "peerDependencies": {
     "msgf": "*",
