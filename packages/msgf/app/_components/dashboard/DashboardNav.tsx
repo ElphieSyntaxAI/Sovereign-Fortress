@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
  */
 /**
@@ -81,6 +93,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
+import { BrandLogo } from "@/app/_components/brand/BrandLogo";
 import { createClient } from "@/utils/supabase/client";
 
 type Props = {
@@ -107,12 +120,11 @@ export function DashboardNav({ userEmail }: Props) {
     <header className="sticky top-0 z-50 border-b border-violet-500/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-4">
         <Link href="/dashboard" className="group flex items-center gap-2.5">
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-sm font-bold text-emerald-300"
-            aria-hidden
-          >
-            E
-          </span>
+          <BrandLogo
+            size={36}
+            decorative
+            className="border border-emerald-400/30 bg-emerald-500/10"
+          />
           <div className="leading-tight">
             <span className="block text-sm font-semibold tracking-tight text-slate-100 group-hover:text-emerald-200">
               Elphie&apos;s Gated AI

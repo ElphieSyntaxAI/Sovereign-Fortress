@@ -8,21 +8,23 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
+ * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
  */
 import Link from "next/link";
+
+import { BrandLogo } from "@/app/_components/brand/BrandLogo";
 
 export function LandingNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-violet-500/10 bg-slate-950/60 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
         <Link href="/" className="group flex items-center gap-2.5">
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-sm font-bold text-emerald-300"
-            aria-hidden
-          >
-            E
-          </span>
+          <BrandLogo
+            size={36}
+            decorative
+            priority
+            className="border border-emerald-400/30 bg-emerald-500/10"
+          />
           <span className="text-sm font-semibold tracking-tight text-slate-100 group-hover:text-emerald-200">
             Elphie Syntax
           </span>

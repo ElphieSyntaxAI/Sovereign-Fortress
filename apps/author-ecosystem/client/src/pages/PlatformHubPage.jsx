@@ -265,12 +265,14 @@ export default function PlatformHubPage() {
       <header className="border-b border-violet-500/10 bg-slate-950/40 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <Link to="/" className="flex items-center gap-2.5">
-            <span
+            <img
+              src="/brand/elphie-syntax-logo.png"
+              alt=""
               aria-hidden
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-sm font-bold text-emerald-300"
-            >
-              E
-            </span>
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-xl border border-emerald-400/30 bg-emerald-500/10 object-contain"
+            />
             <span className="text-sm font-semibold tracking-tight text-slate-100">
               Elphie Syntax
             </span>

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
+ * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
  */
 import { createClient } from '@supabase/supabase-js';
 import { CognitoJwtVerifier } from "aws-jwt-verify"; // AWS Tier 1 Auth

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
+ * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
  */
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -18,6 +18,20 @@ export const metadata: Metadata = {
   title: "Elphie's Gated AI | MSGF",
   description:
     "Modular State-Gate Framework — glass-box sovereign AI with six pillars, dual-model consensus, and auditable lineage.",
+  /**
+   * Tab favicon comes from `app/icon.png` automatically (Next 15 app-router
+   * convention). Adding an `apple-touch-icon` so iOS Add to Home Screen picks
+   * up the same brand mark instead of a generated text glyph.
+   */
+  icons: {
+    apple: "/brand/elphie-syntax-logo.png",
+  },
+  openGraph: {
+    title: "Elphie's Gated AI | MSGF",
+    description:
+      "Glass-box sovereign AI — six pillars, dual-model consensus, auditable lineage.",
+    images: [{ url: "/brand/elphie-syntax-logo.png" }],
+  },
 };
 
 export default function RootLayout({
