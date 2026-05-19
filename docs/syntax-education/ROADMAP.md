@@ -94,6 +94,12 @@ Legend: **Primary** = owning pillar · **Also** = read/write or enforcement depe
 | State laboratory launch | **P1** | P3 | Compliance pack per state adapter |
 | Citation Hall Engine (`3.0_RESEARCH` root) | **P6** | P4 | Genealogical schema relaxed to accept `3.0_*` roots; new lineage `3.1.2_UNATTRIBUTED_SOURCE_STRING` (pillars §2.6.1) |
 | Trusted research domain registry | **P6** | P1 | Per-tenant allowlist surfaced via admin governance dashboard |
+| Admin curriculum catalog ingestion | **P1** | P3, P6 | Upload PDFs / LTI publisher tokens; cross-tenant guardrail per pillars §2.1.4 (masterdoc §4.1) |
+| Friction-gap recommendation engine | **P6** | P1 | Scans 1.1.1 instance hotspots → catalog keyword match (masterdoc §4.1) |
+| Teacher curriculum tree picker | **P5** | P2 | Nested Unit/Chapter/Section checkboxes (masterdoc §4.2) |
+| `resource_context_id` slicing + tokenized deep link | **P2** | P1, P3 | Junction `education_assignment_resources`; signed publisher / Supabase Storage URL |
+| Socratic boundary sync (RAG locked to slice) | **P6** | P2 | `match_education_curriculum_shards` filtered by `resource_context_id` (masterdoc §4.3) |
+| Reading dependency trigger (un-skippable focus block) | **P2** | P4, P5 | Focus-beat verified pre-composition gate (pillars §2.2.1) |
 
 ---
 
@@ -189,3 +195,4 @@ These deltas are intentional in this roadmap so Cursor indexes **one** pillar tr
 | :--- | :--- |
 | 2026-05-18 | Initial roadmap; feature–pillar matrix; HAL on P4 per MSGF SSOT |
 | 2026-05-18 | Phase 2/3 expansion: Google Workspace add-on, MS 365 add-in, focus monitor, embedded research portal, Citation Hall Engine; aligned to pillars §3 / §2.4.1 / §2.6.1 |
+| 2026-05-18 | Phase 2/3 expansion: admin curriculum catalog + recommendation engine, teacher slicing widget (`resource_context_id`), Socratic boundary sync, reading dependency trigger; aligned to masterdoc §4 + pillars §2.1.4 / §2.2.1 |

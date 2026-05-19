@@ -103,6 +103,16 @@ The LLM orchestration engine reads the assignment’s active `ai_allowance_level
 
 **Code anchors (shared):** `packages/msgf/lib/msgf-legal.ts`, `packages/msgf/lib/education/p1-static-ledger.ts`, `packages/msgf/lib/education/socratic-tutor-prompt.ts`, assignment policy rows (future `education_assignments`), P5 sandbox HUD.
 
+#### 2.1.4 Pillar 1 system update: content governance invariants
+
+The Approved Materials Pipeline (masterdoc §4) introduces durable inventory rows that must obey the same legal-HALT discipline as the rest of P1.
+
+- **The Cross-Tenant Guardrail.** Material records approved in P1 are explicitly bound to the `district_tenant_id`. **No entity** outside the validated administrative permission tree can mutate or delete core inventory configurations. Enforced via Postgres RLS on `education_district_curriculum_catalog` (admin role + tenant match) and a server-side `assertAdminForCatalogMutation()` check on every controller mutation.
+- **Persistence boundary.** Catalog rows live in `education_district_curriculum_catalog`; per-assignment slices live in `education_assignment_resources`. P1 owns the catalog row; **P2** owns the slice row. Deleting a catalog row HALTs if any active `assignment_resources` reference it (FK + custom error code `EDU_CATALOG_IN_USE`).
+- **Tokenized deep-link signing.** External publisher deep-links are signed with `EDUCATION_PRIVACY_GATE_SECRET` (P3) so the student-side iframe URL cannot be reused outside the issued assignment / session window.
+
+**Code anchors:** `packages/msgf/lib/education/curriculum-catalog.ts`, `packages/msgf/lib/education/assignment-resources.ts`, RLS in `20260518220000_education_curriculum_catalog.sql`.
+
 ---
 
 ### P2 — Flow Sequence (deployment roadmap & milestone gates)
@@ -115,6 +125,25 @@ The LLM orchestration engine reads the assignment’s active `ai_allowance_level
 | Gatekeeper | Tutor evaluation **blocked** until P2 prerequisites satisfied |
 
 **Code anchors:** Assignment `flow_state` in education schema (future); Pulse ordering in `PulseEngine` when tutor invokes MSGF.
+
+#### 2.2.1 Pillar 2 system update: material milestone gates
+
+The Approved Materials Pipeline (masterdoc §4) adds a new milestone class — *reading dependency* — that the P2 state machine must enforce before the sandbox unlocks composition / lab tooling.
+
+- **The Reading Dependency Trigger.** If the teacher checks "Require focused reading" when slicing the resource, P2 enforces an **un-skippable reading timer milestone**. The workspace prevents a student from unlocking the active text-entry box (ELA / History) or the lab calculations matrix (Math / Science) until the **P4 telemetry** logs show a verified focus block on the embedded reading link asset.
+- **Verification signal.** "Verified focus block" = a `state_beats` window of contiguous `focus_resume` → no `focus_pause` for ≥ `min_focus_block_ms` (default **120 000 ms / 2 min**) while the embedded reader pane is the active surface. Driven by `focusEvents[]` ingested via the §2.4.1 router and tagged with `pillar_extension = "P2_READING_GATE"`.
+- **Unlock contract.** When the threshold is met, the controller emits a `reading_gate_satisfied` beat (label `reading_gate_satisfied`, metadata `{ resource_context_id, focus_block_ms }`) which the P5 sandbox observes to enable the editor. Until then the editor renders read-only with a sidebar prompt: *"Read the assigned pages before composing."*
+
+| Gate | Owns | Code anchor |
+| :--- | :--- | :--- |
+| Outline / Hook (ELA) | P2 | future `flow_state` machine |
+| Reading dependency | **P2 + P4** | `packages/msgf/lib/education/reading-gate.ts`, `state_beats(label='reading_gate_satisfied')` |
+| Variable map (Math) | P2 | future |
+| Hypothesis (Science) | P2 | future |
+
+> **Privacy:** Focus beats carry only de-identified `entity_id`; the embedded reader URL is signed and short-TTL so a focus session cannot be replayed off-platform.
+
+**Code anchors:** `packages/msgf/lib/education/reading-gate.ts`, `packages/msgf/lib/services/p4-state-ledger-controller.ts` (focus beat emission), `packages/msgf/app/api/msgf/education/teacher/assignment-resources/route.ts` (`requireReadingBlock` flag).
 
 ---
 
@@ -288,3 +317,4 @@ Provides an iframe-sandboxed internet search window inside the sidebar / task pa
 | 2026-05-18 | Initial SSOT; P4/P6 split for HAL telemetry vs. score index per `MSGF_PILLAR_MAPPING_SSOT.md` |
 | 2026-05-18 | P1 §2.1.2 — two-dimensional control schema (`grade_cohort` × `ai_allowance_level` 0–4) replaces legacy L1–L3 matrix |
 | 2026-05-18 | Added §3 Universal external ecosystem integration (Google / Microsoft add-ons, focus monitor, research portal); P4 §2.4.1 `ecosystem_source` + degraded telemetry modes; P6 §2.6.1 Citation Hall Engine (`3.0_RESEARCH` root). Renumbered legacy §3 → §4 and §4 → §5. |
+| 2026-05-18 | Added §2.1.4 P1 content governance invariants (cross-tenant guardrail, catalog → assignment FK HALT) and §2.2.1 P2 material milestone gates (reading dependency trigger via §2.4.1 focus beats). |

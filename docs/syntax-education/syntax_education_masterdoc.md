@@ -134,7 +134,44 @@ Native add-on wrappers extend P4 telemetry and P6 lineage into the document host
 
 ---
 
-## 4. Out of scope for this document
+## 4. Approved materials pipeline & curriculum sharding
+
+The platform's RAG corpus is **never** a free-form internet crawl. Every shard that feeds the Socratic Tutor traces back to an admin-approved title, sliced down to a teacher-specified page range, and bound to an assignment via a `resource_context_id`.
+
+```
+[ ADMIN PORTAL ]               [ TEACHER DASHBOARD ]                  [ STUDENT SANDBOX ]
+  ├─ Ingest manifests             ├─ Browse approved catalog              ├─ Embedded reader pane
+  ├─ ISBN / Pearson / McGraw       ├─ Curriculum tree picker               │   (iframe to chopped pages)
+  ├─ LTI handshake tokens          │   (Unit ➔ Chapter ➔ Section)          ├─ Composition sandbox
+  ├─ Friction-gap recommender      ├─ Generate `resource_context_id`       └─ Socratic Tutor
+  └─ Saves to P1 inventory         └─ Saves to P2 flow_sequence                (RAG locked to resource_context_id)
+```
+
+### 4.1 Admin ingestion & recommendation engine
+
+- **The Master Inventory Vault.** District super-admins can upload local curriculum files (PDF / EPUB) **or** provision active access keys to external major publishers via automated textbook APIs — Clever, ClassLink, EdTech LTI 1.3 handshakes (Pearson, McGraw-Hill, Houghton Mifflin Harcourt).
+- **AI recommendation engine.** Evaluates historical district failure metrics stored inside the P6 Constraint Ledger's 1.1.1 genealogical tree. It scans the incoming library catalog to **automatically flag** specific textbook chapters, visual aids, or lesson modules designed to fix the district's active cognitive friction gaps. Output is rendered as a "Recommended for Active Friction Blocks" badge on the admin catalog grid.
+
+> **MSGF mapping:** Catalog persistence = **P1** (cross-tenant guardrail §2.1.4); recommendation telemetry = **P6** rollup over `pillar_vectors`.
+
+### 4.2 Teacher material slicing engine (the Scoping Widget)
+
+- **Granular extraction protocol.** When creating an assignment, teachers select a title from the admin-approved vault. The UI generates a structural tree (Units ➔ Chapters ➔ Sections ➔ Page Arrays) from the title's stored layout JSON.
+- **Context isolation.** The teacher selects specific blocks (e.g. *Chapter 4, Section 2 only*). The platform mints an explicit, isolated document reference pointer — a `resource_context_id` — and writes it into the `education_assignment_resources` junction with the chosen Unit / Chapter / Section / page bounds.
+- **Deep linking injection.** Generates a secure tokenized external link asset (publisher deep link or signed Supabase Storage URL) alongside an embedded rendering container frame inside the student's view.
+
+> **MSGF mapping:** Slicing surface = **P5** UI; assignment binding = **P2** flow sequence; tokenized link signing = **P3** privacy gate secret.
+
+### 4.3 Student resource distribution layer
+
+- **The Unified Workspace Canvas.** Students open their assignment to find the exact pages chosen by the teacher pre-loaded into their viewport, alongside the existing Layer A toolbox (§2.1.2) and the Layer B Socratic Tutor pane.
+- **The Socratic Boundary Sync.** The Socratic Tutor Assistant reads the `resource_context_id` payload on every ask. It programmatically locks its vector RAG queries *only* to the embedding shards tagged with that `resource_context_id` — preventing the AI from fetching answers from future unassigned chapters or other approved titles.
+
+> **MSGF mapping:** Reader pane = **P5**; RAG scope filter = **P6** match RPC; boundary enforcement asserted in `socratic-tutor-controller`.
+
+---
+
+## 5. Out of scope for this document
 
 - Pillar gate behavior, HALT conditions, and Redis/Postgres split → **`syntax_education_pillars.md`**
 - Sprint tasks, repo paths, and delivery status → **`ROADMAP.md`**
@@ -148,3 +185,4 @@ Native add-on wrappers extend P4 telemetry and P6 lineage into the document host
 | :--- | :--- |
 | 2026-05-18 | Initial monorepo SSOT; aligned HAL to MSGF P4 per `MSGF_PILLAR_MAPPING_SSOT.md` |
 | 2026-05-18 | Added §3.6 universal external ecosystem integration (Google Workspace add-on, MS 365 add-in, focus monitor, embedded research portal, Citation Hall Engine); cross-references pillars §3 / §2.4.1 / §2.6.1 |
+| 2026-05-18 | Added §4 Approved materials pipeline (admin ingestion + recommendation engine, teacher slicing widget, student resource distribution); renumbered legacy §4 Out of scope → §5; cross-references pillars §2.1.4 + §2.2.1 |

@@ -5,7 +5,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { generateEmbedding } from "@/lib/ai-utils";
-import { retrieveCurriculumShards } from "@/lib/education/education-curriculum-rag";
+import {
+  getAssignmentResource,
+  getAssignmentResourceForAssignment,
+} from "@/lib/education/assignment-resources";
+import {
+  retrieveCurriculumShards,
+  type CurriculumResourceScopeFilter,
+} from "@/lib/education/education-curriculum-rag";
 import { assertAiAllowanceForSocraticTutor } from "@/lib/education/p1-static-ledger";
 import { routeLlmPromptChain } from "@/lib/education/workspace/llm-routing-controller";
 import {
@@ -42,6 +49,13 @@ export const SocraticTutorAskBodySchema = z
     aiAllowanceLevel: z.number().int().min(0).max(4).optional(),
     curriculumMatchCount: z.number().int().min(1).max(12).optional(),
     strengthMatchCount: z.number().int().min(1).max(8).optional(),
+    /**
+     * Socratic Boundary Sync (masterdoc §4.3). When the student's assignment has a
+     * teacher-chopped slice (`resource_context_id`), the RAG query is locked to
+     * shards inside that slice. May be passed explicitly; otherwise it is resolved
+     * from `assignmentId` via `education_assignment_resources`.
+     */
+    resourceContextId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -68,6 +82,8 @@ export type SocraticTutorAskResult = {
     level_1_1_branch?: string;
     level_1_1_1_instance?: string;
   };
+  /** Echoed boundary filter so callers can show "Locked to Ch. 4, §2" badges. */
+  resourceScope?: CurriculumResourceScopeFilter;
   suggestedHallIndex?: ReturnType<typeof learningBreakdownForTutorViolation>;
 };
 
@@ -107,6 +123,9 @@ export async function askSocraticTutor(
       curriculumShardIds: [],
       strengthIds: [],
       lineageFilter: body.learningBreakdown,
+      resourceScope: body.resourceContextId
+        ? { resourceContextId: body.resourceContextId }
+        : undefined,
     };
   }
 
@@ -122,6 +141,14 @@ export async function askSocraticTutor(
       }
     : undefined;
 
+  const resourceScope = await resolveResourceScope({
+    supabase: input.supabase,
+    tenantId: input.tenantId,
+    entityId: input.entityId,
+    resourceContextId: body.resourceContextId,
+    assignmentId: body.assignmentId,
+  });
+
   const [curriculumShards, vaultStrengths] = await Promise.all([
     retrieveCurriculumShards({
       supabase: input.supabase,
@@ -131,6 +158,7 @@ export async function askSocraticTutor(
       lineage,
       subjectDomain: body.subjectDomain,
       queryEmbedding,
+      resourceScope,
     }),
     retrieveStudentVaultStrengths({
       supabase: input.supabase,
@@ -187,9 +215,69 @@ export async function askSocraticTutor(
     curriculumShardIds: curriculumShards.map((s) => s.id),
     strengthIds: vaultStrengths.map((s) => s.id),
     lineageFilter: lineage,
+    resourceScope,
     suggestedHallIndex: p1Violation
       ? learningBreakdownForTutorViolation()
       : undefined,
+  };
+}
+
+/**
+ * Resolve the active resource scope for this tutor turn.
+ *
+ * Order of preference:
+ *   1. `resourceContextId` on the request body (workspace canvas explicitly bound).
+ *   2. Latest `assignment_resources` row for the student's `assignmentId`.
+ *
+ * If neither is present we return `undefined` — the RAG query falls back to the
+ * district-wide curriculum corpus filtered by 1.1.1 lineage only.
+ */
+async function resolveResourceScope(params: {
+  supabase: SupabaseClient;
+  tenantId: string;
+  entityId: string;
+  resourceContextId?: string;
+  assignmentId?: string;
+}): Promise<CurriculumResourceScopeFilter | undefined> {
+  try {
+    if (params.resourceContextId) {
+      const row = await getAssignmentResource({
+        admin: params.supabase,
+        resourceContextId: params.resourceContextId,
+        entityId: params.entityId,
+        refreshSignedLink: false,
+      });
+      if (row) return assignmentResourceToScope(row);
+    }
+    if (params.assignmentId) {
+      const row = await getAssignmentResourceForAssignment({
+        admin: params.supabase,
+        assignmentId: params.assignmentId,
+        entityId: params.entityId,
+      });
+      if (row) return assignmentResourceToScope(row);
+    }
+  } catch (e) {
+    console.warn("[socratic-tutor] resource scope resolve failed:", e);
+  }
+  return undefined;
+}
+
+function assignmentResourceToScope(row: {
+  resource_context_id: string;
+  catalog_id: string;
+  slice: { unitIds: string[]; chapterIds: string[]; sectionIds: string[] };
+  page_start: number | null;
+  page_end: number | null;
+}): CurriculumResourceScopeFilter {
+  return {
+    resourceContextId: row.resource_context_id,
+    catalogId: row.catalog_id,
+    unitIds: row.slice.unitIds,
+    chapterIds: row.slice.chapterIds,
+    sectionIds: row.slice.sectionIds,
+    pageStart: row.page_start ?? undefined,
+    pageEnd: row.page_end ?? undefined,
   };
 }
 

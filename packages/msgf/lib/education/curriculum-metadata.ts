@@ -14,6 +14,25 @@ export const EDUCATION_P6_PILLAR = "P6" as const;
 export const CURRICULUM_INDEX_TYPE = "curriculum_shard" as const;
 export const STUDENT_STRENGTH_INDEX_TYPE = "student_strength" as const;
 
+/**
+ * Resource scope — addresses the slice of the approved catalog (masterdoc §4.2 / §4.3).
+ * Shards carry the leaf position they belong to; the Socratic Boundary Sync RPC filters
+ * by `resource_context_id` + (catalog_id, unit_id, chapter_id, section_id, page range).
+ */
+export const CurriculumResourceScopeSchema = z
+  .object({
+    resource_context_id: z.string().uuid().optional(),
+    catalog_id: z.string().uuid(),
+    unit_id: z.string().min(1).max(64).optional(),
+    chapter_id: z.string().min(1).max(96).optional(),
+    section_id: z.string().min(1).max(128).optional(),
+    page_start: z.number().int().min(0).optional(),
+    page_end: z.number().int().min(0).optional(),
+  })
+  .strict();
+
+export type CurriculumResourceScope = z.infer<typeof CurriculumResourceScopeSchema>;
+
 export const CurriculumShardMetadataSchema = z
   .object({
     pillar: z.literal(EDUCATION_P6_PILLAR),
@@ -29,6 +48,7 @@ export const CurriculumShardMetadataSchema = z
       .enum(["ela", "history", "math", "science", "general"])
       .optional(),
     assignment_id: z.string().uuid().optional(),
+    resource_scope: CurriculumResourceScopeSchema.optional(),
     ingested_at: z.string().optional(),
   })
   .passthrough();
@@ -59,6 +79,8 @@ export function buildCurriculumShardMetadata(input: {
   shardIndex: number;
   subjectDomain?: "ela" | "history" | "math" | "science" | "general";
   assignmentId?: string;
+  /** Resource scope so Socratic RAG can lock to teacher-chopped pages (masterdoc §4.3). */
+  resourceScope?: CurriculumResourceScope;
   scope: MsgfMetadataScope;
 }): CurriculumShardMetadata {
   const base = {
@@ -73,6 +95,7 @@ export function buildCurriculumShardMetadata(input: {
     shard_index: input.shardIndex,
     ...(input.subjectDomain ? { subject_domain: input.subjectDomain } : {}),
     ...(input.assignmentId ? { assignment_id: input.assignmentId } : {}),
+    ...(input.resourceScope ? { resource_scope: input.resourceScope } : {}),
     ingested_at: new Date().toISOString(),
   };
 

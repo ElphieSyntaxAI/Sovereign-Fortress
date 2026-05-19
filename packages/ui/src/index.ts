@@ -105,3 +105,17 @@ export {
   type UseLayerBAllowanceStreamOptions,
   type UseLayerBAllowanceStreamResult,
 } from "./education/useLayerBAllowanceStream";
+export {
+  CurriculumTreePicker,
+  type CurriculumTreePickerProps,
+  type CurriculumLayout,
+  type CatalogUnit,
+  type CatalogChapter,
+  type CatalogSection,
+  type AssignmentResourceSlice,
+} from "./education/CurriculumTreePicker";
+export {
+  ResourceReaderPane,
+  type ResourceReaderPaneProps,
+  type ResourceReaderPayload,
+} from "./education/ResourceReaderPane";
