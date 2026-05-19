@@ -24,6 +24,7 @@
     "zod": "^3.23.0"
   },
   "dependencies": {
+    "@elphie-syntax/core": "file:../core",
     "@hookform/resolvers": "^3.9.1",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.0",

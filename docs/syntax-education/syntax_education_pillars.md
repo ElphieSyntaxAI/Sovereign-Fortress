@@ -46,11 +46,62 @@
 
 | MSGF role | Education operational role |
 | :--- | :--- |
-| Immutable policy anchor | **AI Allowance Regulator** per assignment (L1 dictionary-only · L2 Socratic outline · L3 forbidden) |
+| Immutable policy anchor | **Two-Dimensional Control Schema** — `grade_cohort` (Layer A toolbox) × `ai_allowance_level` (Layer B LLM boundary) |
 | Legal HALT | **Utah S.B. 149** disclosure gate; **H.B. 273** — no auto-grade / IEP mutation without teacher sign-off |
 | Gatekeeper | Block-paste extensions, grading-script tampering → `HALT` + admin notify |
 
-**Code anchors (shared):** `packages/msgf/lib/msgf-legal.ts`, `brain-readiness` P1 baseline, education policy rows in tenant config (P5).
+#### 2.1.2 Layered workspace control schema
+
+The workspace configuration is resolved by processing two **independent** parameters: the student’s permanent **`grade_cohort`** (physical environment tooling) and the teacher’s active **`ai_allowance_level`** on the assignment (LLM prompt scaffolding boundaries). Neither parameter overrides the other.
+
+| Dimension | Source | Governs | Pillar touch |
+| :--- | :--- | :--- | :---: |
+| **Layer A** | `grade_cohort` on privacy-gated student token (P3) | Frontend toolbox assets (calculators, manipulatives, IDE) | P5 UI |
+| **Layer B** | `ai_allowance_level` on assignment (teacher config) | Whether / how the Socratic sidebar and CONVERGE run | P1 + P2 |
+
+```
+                    ┌─────────────────────────────────────┐
+                    │  P1: grade_cohort  +  ai_allowance  │
+                    │         (resolved at gate)          │
+                    └──────────────┬──────────────────────┘
+                                   │
+              ┌────────────────────┴────────────────────┐
+              ▼                                         ▼
+     ┌─────────────────┐                    ┌─────────────────┐
+     │  Layer A (P5)   │                    │  Layer B (P1/P2) │
+     │  Grade toolbox  │                    │  LLM boundaries  │
+     └─────────────────┘                    └─────────────────┘
+```
+
+##### Layer A: The permanent grade-appropriate toolbox
+
+The frontend checks the student’s de-identified token (`grade_cohort`) and injects the matching environmental assets **regardless of AI allowance level**:
+
+| `grade_cohort` | Toolbox assets (non-exhaustive) |
+| :--- | :--- |
+| **K–3** | Local audio dictionary, visual interactive number lines, virtual fraction blocks, oral read-along speech diagnostics |
+| **4–6** | Four-function calculator, interactive visual ruler, spelling / synonym popups |
+| **7–9** | Scientific calculator, unit converters (metric / imperial), coordinate graphing grid |
+| **10–12** | Graphing calculator (Desmos API sandbox), periodic table, universal formula sheets |
+| **12+** | Full IDE developer-tools sandbox, advanced financial / statistical calculation packages |
+
+> Layer A is always available when the assignment permits the workspace (even at AI Level 0). Level 1 explicitly routes students to Layer A only.
+
+##### Layer B: The teacher’s AI allowance regulator
+
+The LLM orchestration engine reads the assignment’s active `ai_allowance_level` to set the system-prompt boundary (see `p1-static-ledger.ts`, Socratic tutor CONVERGE):
+
+| Level | Name | Behavior |
+| :---: | :--- | :--- |
+| **0** | Absolute Zero | AI chat sidebar **disabled**. **The Call** telemetry streams only to verify human writing authorship (P4 → P6 HAL index). |
+| **1** | Resource Gate | AI conversation **locked**. Student may use **Layer A** toolbox features only. |
+| **2** | Scaffold Engine | AI may provide outline formats, structural blueprints, or **empty** data tables. **No** prose generation or formula calculations. |
+| **3** | Socratic Dialogue | Strength-based tutoring enabled. AI parses the draft and asks diagnostic, open-ended questions via the **1.1.1** error tree. **No** direct answers, solutions, or pre-written sentences (P1 hard rule). |
+| **4** | Open Sandbox | Full interactive co-writing / co-calculating enabled, **heavily logged** (P4 + P6). Requires explicit teacher unlock per assignment; still subject to Utah **S.B. 149** disclosure and **H.B. 273** (no auto-grade or IEP mutation without teacher sign-off). |
+
+**Resolution rule:** At runtime, `effective_workspace = layer_a(grade_cohort) ∩ layer_b(ai_allowance_level)`. Example: a grade 7 student on Level 2 receives scientific-calculator tooling (Layer A) but only structural scaffolds from the tutor (Layer B).
+
+**Code anchors (shared):** `packages/msgf/lib/msgf-legal.ts`, `packages/msgf/lib/education/p1-static-ledger.ts`, `packages/msgf/lib/education/socratic-tutor-prompt.ts`, assignment policy rows (future `education_assignments`), P5 sandbox HUD.
 
 ---
 
@@ -122,7 +173,7 @@
 
 | User action | Pillars touched |
 | :--- | :--- |
-| Student opens assignment | P3 (role) → P1 (AI level + Utah disclosure) → P2 (first gate) |
+| Student opens assignment | P3 (role + `grade_cohort`) → P1 (`ai_allowance_level` + Utah disclosure) → P5 (Layer A toolbox) → P2 (first gate) |
 | Student types in sandbox | P4 (The Call) → P5 (UI) |
 | Student asks tutor | P2 (gate check) → P4 (context) → P2 CONVERGE → P6 (Vault/Hall) |
 | Teacher views heat map | P3 (teacher scope) → P6 aggregates ← P4 telemetry |
@@ -134,7 +185,7 @@
 ## 4. Decision rules (agents & PRs)
 
 1. **Keystroke / paste / flight time** → implement and query under **P4**, cite HAL charter (`.msgf/P1_HAL.md` is a *telemetry charter*, not P1 Static Ledger).
-2. **Utah law, AI tier, auto-grade ban** → **P1** only; violations must HALT.
+2. **Utah law, `ai_allowance_level` (0–4), `grade_cohort` toolbox** → **P1** (Layer B) + **P5** (Layer A); violations must HALT.
 3. **Canvas roles, FERPA de-ID** → **P3**; never leak parent view into student draft text.
 4. **Milestone locks** → **P2** before tutor CONVERGE.
 5. **Curriculum RAG corpus & mistake taxonomy** → **P6** ingest + lineage metadata.
@@ -147,3 +198,4 @@
 | Date | Change |
 | :--- | :--- |
 | 2026-05-18 | Initial SSOT; P4/P6 split for HAL telemetry vs. score index per `MSGF_PILLAR_MAPPING_SSOT.md` |
+| 2026-05-18 | P1 §2.1.2 — two-dimensional control schema (`grade_cohort` × `ai_allowance_level` 0–4) replaces legacy L1–L3 matrix |

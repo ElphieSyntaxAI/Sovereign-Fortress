@@ -36,9 +36,9 @@ export default function App() {
               title="Educator login"
               onSubmit={(v) => console.log("login", v.email)}
             />
-          </div>
-        </div>
+          </motionless>
+        </motionless>
       )}
-    </div>
+    </motionless>
   );
 }

@@ -94,3 +94,14 @@ export {
   type HalLatencyPoint,
   type LoreBreachMarker,
 } from "./components/EditorForensicView";
+export {
+  WorkspaceCanvas,
+  type WorkspaceCanvasProps,
+} from "./education/WorkspaceCanvas";
+export { LayerAToolbox, type LayerAToolboxProps } from "./education/LayerAToolbox";
+export { LayerBChatShell, type LayerBChatShellProps } from "./education/LayerBChatShell";
+export {
+  useLayerBAllowanceStream,
+  type UseLayerBAllowanceStreamOptions,
+  type UseLayerBAllowanceStreamResult,
+} from "./education/useLayerBAllowanceStream";

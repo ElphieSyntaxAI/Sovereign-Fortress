@@ -6,10 +6,12 @@ import { z } from "zod";
 
 import { generateEmbedding } from "@/lib/ai-utils";
 import { retrieveCurriculumShards } from "@/lib/education/education-curriculum-rag";
+import { assertAiAllowanceForSocraticTutor } from "@/lib/education/p1-static-ledger";
+import { routeLlmPromptChain } from "@/lib/education/workspace/llm-routing-controller";
 import {
-  assertAiAllowanceForSocraticTutor,
-  type EducationAiAllowanceLevel,
-} from "@/lib/education/p1-static-ledger";
+  getAssignmentAllowanceLevel,
+  getStudentGradeCohort,
+} from "@/lib/education/workspace/workspace-assignment-store";
 import {
   buildSocraticRepairPrompt,
   buildSocraticTutorPrompt,
@@ -36,9 +38,8 @@ export const SocraticTutorAskBodySchema = z
     /** Active 1.1.1 learning breakdown from P4/P6 (friction point). */
     learningBreakdown: GenealogicalBugIndexSchema.optional(),
     draftExcerpt: z.string().max(8000).optional(),
-    aiAllowanceLevel: z
-      .enum(["L1_DICTIONARY", "L2_SOCRATIC", "L3_FORBIDDEN"])
-      .optional(),
+    gradeCohort: z.string().optional(),
+    aiAllowanceLevel: z.number().int().min(0).max(4).optional(),
     curriculumMatchCount: z.number().int().min(1).max(12).optional(),
     strengthMatchCount: z.number().int().min(1).max(8).optional(),
   })
@@ -75,9 +76,41 @@ export async function askSocraticTutor(
 ): Promise<SocraticTutorAskResult> {
   const body = SocraticTutorAskBodySchema.parse(input.body);
 
-  assertAiAllowanceForSocraticTutor(
-    body.aiAllowanceLevel as EducationAiAllowanceLevel | undefined
-  );
+  const gradeCohort =
+    body.gradeCohort ??
+    (await getStudentGradeCohort(input.supabase, input.entityId, input.tenantId));
+
+  const aiAllowanceLevel =
+    body.aiAllowanceLevel ??
+    (body.assignmentId
+      ? await getAssignmentAllowanceLevel(input.supabase, body.assignmentId)
+      : 3);
+
+  const routed = routeLlmPromptChain({
+    gradeCohort,
+    aiAllowanceLevel,
+    userPrompt: body.question,
+  });
+
+  if (!routed.decision.allowed) {
+    return {
+      reply:
+        routed.decision.haltMessage ??
+        "AI tutor is not available at the current allowance level.",
+      scaffoldQuestions: [],
+      consensus: {
+        agreementScore: 0,
+        selectedModel: "consensus",
+        p1Violation: true,
+        p1ViolationReason: routed.decision.haltCode,
+      },
+      curriculumShardIds: [],
+      strengthIds: [],
+      lineageFilter: body.learningBreakdown,
+    };
+  }
+
+  assertAiAllowanceForSocraticTutor(aiAllowanceLevel);
 
   const queryEmbedding = await generateEmbedding(body.question);
 
@@ -111,7 +144,7 @@ export async function askSocraticTutor(
   ]);
 
   const promptInput = {
-    studentQuestion: body.question,
+    studentQuestion: routed.prompt || body.question,
     curriculumShards,
     vaultStrengths,
     frictionBreakdown: body.learningBreakdown,

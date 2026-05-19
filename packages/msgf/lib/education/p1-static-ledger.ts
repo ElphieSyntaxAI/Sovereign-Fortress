@@ -1,9 +1,20 @@
 /**
- * P1 Static Ledger — Syntax Education hard rules (Utah + anti-cheating tutor policy).
+ * P1 Static Ledger — Syntax Education hard rules (Utah + layered workspace §2.1.2).
  */
 import { CURRENT_LEGAL_VERSION } from "@/lib/msgf-legal";
+import {
+  normalizeAiAllowanceLevel,
+  resolveLayerBFlags,
+  type AiAllowanceLevel,
+} from "@elphie-syntax/core";
 
-export type EducationAiAllowanceLevel = "L1_DICTIONARY" | "L2_SOCRATIC" | "L3_FORBIDDEN";
+export type { AiAllowanceLevel };
+
+/** @deprecated Use numeric {@link AiAllowanceLevel} 0–4. */
+export type EducationAiAllowanceLevel =
+  | "L1_DICTIONARY"
+  | "L2_SOCRATIC"
+  | "L3_FORBIDDEN";
 
 export class EducationPolicyHaltError extends Error {
   override readonly name = "EducationPolicyHaltError";
@@ -25,22 +36,41 @@ export const P1_SOCRATIC_STATIC_RULES = [
   `Legal attestation version in force: ${CURRENT_LEGAL_VERSION}. Utah S.B. 149 disclosure must have been shown before this session.`,
 ] as const;
 
+export function assertAiAllowanceForLlmOrchestration(
+  level: AiAllowanceLevel | unknown
+): void {
+  const resolved = normalizeAiAllowanceLevel(level, 3);
+  const flags = resolveLayerBFlags(resolved);
+
+  if (flags.bypassLlmOrchestration) {
+    throw new EducationPolicyHaltError(
+      resolved === 0
+        ? "AI is disabled for this assignment (Level 0 Absolute Zero). Telemetry-only mode."
+        : "AI chat is locked (Level 1 Resource Gate). Use grade-appropriate local tools only.",
+      resolved === 0 ? "P1_AI_ALLOWANCE_L0_HALT" : "P1_AI_ALLOWANCE_L1_HALT"
+    );
+  }
+}
+
+/** Level 3+ Socratic endpoints. */
 export function assertAiAllowanceForSocraticTutor(
+  level: AiAllowanceLevel | unknown
+): void {
+  const resolved = normalizeAiAllowanceLevel(level, 3);
+  assertAiAllowanceForLlmOrchestration(resolved);
+  if (resolved < 3) {
+    throw new EducationPolicyHaltError(
+      `Socratic tutor requires AI allowance Level 3 or higher (current: ${resolved}).`,
+      "P1_AI_ALLOWANCE_SOCRATIC_LEVEL_HALT"
+    );
+  }
+}
+
+/** @deprecated Use {@link assertAiAllowanceForLlmOrchestration}. */
+export function assertAiAllowanceForSocraticTutorLegacy(
   level: EducationAiAllowanceLevel | undefined
 ): void {
-  const resolved = level ?? "L2_SOCRATIC";
-  if (resolved === "L3_FORBIDDEN") {
-    throw new EducationPolicyHaltError(
-      "AI tutor is forbidden for this assignment (P1 AI Allowance L3).",
-      "P1_AI_ALLOWANCE_L3_HALT"
-    );
-  }
-  if (resolved === "L1_DICTIONARY") {
-    throw new EducationPolicyHaltError(
-      "This assignment allows dictionary-only support (L1). Socratic tutor is blocked.",
-      "P1_AI_ALLOWANCE_L1_HALT"
-    );
-  }
+  assertAiAllowanceForSocraticTutor(level);
 }
 
 export function formatP1StaticLedgerBlock(): string {
