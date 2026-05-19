@@ -6,6 +6,7 @@
 
 - MSGF 1.0 vision & release plan: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md)
 - Author product roadmap: [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md)
+- Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/syntax_education_pillars.md)
 - Implementation tracker (pillars + AUTH): [`PILLAR_PROGRESS.md`](./PILLAR_PROGRESS.md)
 
 **Last updated:** 2026-05-15
@@ -29,7 +30,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | :--- | :--- | :--- | :--- |
 | **Author Ecosystem** | **https://elphiesyntax.com** | `apps/author-ecosystem/` (BFF, Vite client, Chrome extension) | Sovereign author workflow: HAL, Vault Pact, manuscripts, revision gates, RAG librarian, publisher-facing proofs. |
 | **MSGF (Gated AI)** | **https://elphiesgatedai.elphiesyntax.com** | `packages/msgf/` (Next.js), `apps/msgf-dashboard/`, future `packages/msgf/apps/web/` | Guardrail engine + SaaS: Pulse, ingest, shadow mode, consensus, billing/credits, ops dashboard, public marketing/checkout shell. |
-| **Syntax Education** | **https://syntaxeducation.elphiesyntax.com** | `apps/syntax-educates/` | Education platform; tenant-scoped paths in `packages/msgf/config/tenant-manifest.json` (`tenant_education`). |
+| **Syntax Education** | **https://syntaxeducates.elphiesyntax.com** | `apps/syntax-educates/` | Education platform; tenant-scoped paths in `packages/msgf/config/tenant-manifest.json` (`tenant_education`). Spec: [`docs/syntax-education/`](./syntax-education/). |
 
 **Local dev defaults (typical):**
 

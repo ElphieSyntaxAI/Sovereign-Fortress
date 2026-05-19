@@ -19,9 +19,18 @@ export interface KeystrokeEvent {
   ts: number;
   key: string;
   type?: 'keydown' | 'keyup' | 'input';
-  /** Optional hint, e.g. field name or editor id */
+  /** Optional hint, e.g. field name, editor id, or `edu:ela` assignment tag */
   target?: string;
+  /** Syntax Education "The Call" — key-down dwell $D_{down}$ (ms). */
+  dwellMs?: number;
+  /** Syntax Education "The Call" — inter-key flight $I_{flight}$ (ms). */
+  flightMs?: number;
+  isBackspace?: boolean;
+  isSystemEvent?: boolean;
+  wordsPasted?: number;
 }
+
+export type P4LedgerDomain = 'author' | 'education';
 
 export interface ChunkOptions {
   /** Approximate trace “size” before flushing (default 800). */
@@ -66,6 +75,18 @@ function formatKeyToken(key: string): string {
   return `<${key}>`;
 }
 
+function rhythmSuffix(e: KeystrokeEvent): string {
+  const parts: string[] = [];
+  if (typeof e.dwellMs === 'number') parts.push(`dwell=${e.dwellMs}ms`);
+  if (typeof e.flightMs === 'number') parts.push(`flight=${e.flightMs}ms`);
+  if (e.isBackspace) parts.push('backspace');
+  if (e.isSystemEvent) parts.push('system');
+  if (typeof e.wordsPasted === 'number' && e.wordsPasted > 0) {
+    parts.push(`pasteWords=${e.wordsPasted}`);
+  }
+  return parts.length ? ` {${parts.join(' ')}}` : '';
+}
+
 function keystrokeTrace(events: KeystrokeEvent[]): string {
   if (!events.length) return '';
   const t0 = events[0].ts;
@@ -73,7 +94,7 @@ function keystrokeTrace(events: KeystrokeEvent[]): string {
     .map((e) => {
       const dt = e.ts - t0;
       const target = e.target ? ` [${e.target}]` : '';
-      return `+${dt}ms\t${formatKeyToken(e.key)}${target}`;
+      return `+${dt}ms\t${formatKeyToken(e.key)}${rhythmSuffix(e)}${target}`;
     })
     .join('\n');
 }
@@ -172,19 +193,35 @@ function parseFlowVerifyResponse(text: string): FlowVerifyResult {
   };
 }
 
-async function verifyChunkAgainstBeats(
+function buildFlowVerifyPrompt(
+  domain: P4LedgerDomain,
   chunk: KeystrokeChunk,
   previousBeats: Pick<StateBeatRow, 'beat_text' | 'sequence_index'>[]
-): Promise<FlowVerifyResult> {
-  const model = getVertexGenerativeModel();
-
+): string {
   const beatsContext = previousBeats.length
     ? previousBeats
         .map((b) => `[${b.sequence_index}] ${b.beat_text}`)
         .join('\n')
-    : '(no prior beats in ledger — first segment for this author)';
+    : domain === 'education'
+      ? '(no prior beats — first segment for this student assignment)'
+      : '(no prior beats in ledger — first segment for this author)';
 
-  const prompt = `You are MSGF P4 State Ledger. Compare a new keystroke chunk to the author's stored "beats" (prior flow intent from Supabase).
+  if (domain === 'education') {
+    return `You are MSGF P4 State Ledger for Syntax Education. Compare a student keystroke chunk (rhythm: dwell/flight, paste markers) to prior instructional "beats" (assignment milestones).
+
+PREVIOUS BEATS (oldest → newest):
+${beatsContext}
+
+NEW STUDENT KEYSTROKE CHUNK (timing + keys + rhythm):
+${chunk.traceText}
+
+Decide if the student's typing flow is consistent with continuing the same assignment work implied by the beats. Inconsistency means abrupt subject change, off-task behavior, or implausible jump — not normal pauses, backspaces, or thinking time.
+
+Reply with only valid JSON (no markdown):
+{"consistent":true,"confidence":0.92,"rationale":"short reason"}`;
+  }
+
+  return `You are MSGF P4 State Ledger. Compare a new keystroke chunk to the author's stored "beats" (prior flow intent from Supabase).
 
 PREVIOUS BEATS (oldest → newest):
 ${beatsContext}
@@ -196,6 +233,16 @@ Decide if the typing/editing flow is logically consistent with continuing the sa
 
 Reply with only valid JSON (no markdown):
 {"consistent":true,"confidence":0.92,"rationale":"short reason"}`;
+}
+
+async function verifyChunkAgainstBeats(
+  chunk: KeystrokeChunk,
+  previousBeats: Pick<StateBeatRow, 'beat_text' | 'sequence_index'>[],
+  domain: P4LedgerDomain = 'author'
+): Promise<FlowVerifyResult> {
+  const model = getVertexGenerativeModel();
+
+  const prompt = buildFlowVerifyPrompt(domain, chunk, previousBeats);
 
   const result = await runWithLlmTimeoutSimple('p4.verify_chunk_flow', () =>
     model.generateContent({
@@ -227,7 +274,8 @@ Reply with only valid JSON (no markdown):
 export class StateLedgerP4 {
   constructor(
     private readonly supabase: SupabaseClient,
-    private readonly tenantId?: string
+    private readonly tenantId?: string,
+    private readonly domain: P4LedgerDomain = 'author'
   ) {}
 
   async fetchPreviousBeats(
@@ -266,7 +314,7 @@ export class StateLedgerP4 {
     const results: FlowVerifyResult[] = [];
 
     for (const chunk of chunks) {
-      results.push(await verifyChunkAgainstBeats(chunk, beats));
+      results.push(await verifyChunkAgainstBeats(chunk, beats, this.domain));
     }
 
     return { chunks, results };
