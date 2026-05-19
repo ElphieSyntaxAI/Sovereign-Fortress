@@ -8,12 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
+ * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
  */
 import { NextResponse } from "next/server";
 
 import { msgfPostLoginPath } from "@/lib/auth-post-login";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, requestHostFromRequest } from "@/utils/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   if (code) {
     const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
+    const supabase = createClient(cookieStore, requestHostFromRequest(request));
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);

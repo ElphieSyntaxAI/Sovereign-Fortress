@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
+-- Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
 -- =============================================================================
 -- Manuscript revision lifecycle, lock tiers, and structured revision audit reports.
 

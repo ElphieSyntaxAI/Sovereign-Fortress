@@ -8,12 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
+ * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
  */
 import Link from "next/link";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 import { tenantGuard } from "@msgf/lib/guard";
 import {
   DEMO_TENANT_ACME_UUID,
@@ -34,7 +34,8 @@ type NarrativeRow = {
 
 export default async function AuditLogPage() {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const hdrs = await headers();
+  const supabase = createClient(cookieStore, requestHostFromHeaders(hdrs));
 
   const {
     data: { user },

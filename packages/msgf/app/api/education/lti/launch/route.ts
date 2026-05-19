@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
+ * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
  */
 /**
  * POST /api/education/lti/launch
@@ -52,13 +52,18 @@ export async function POST(req: NextRequest) {
     const result = await handleLtiLaunch({ idToken, state });
 
     const res = NextResponse.redirect(result.redirectUrl, 302);
+    const cookieHost =
+      req.headers.get("x-forwarded-host")?.split(",")[0]?.trim() || req.nextUrl.hostname;
     res.cookies.set(
       ELPHIE_LTI_SESSION_COOKIE,
       result.sessionToken,
-      withMsgfAuthCookieOptions({
-        httpOnly: true,
-        maxAge: 28800,
-      })
+      withMsgfAuthCookieOptions(
+        {
+          httpOnly: true,
+          maxAge: 28800,
+        },
+        cookieHost
+      )
     );
 
     return res;

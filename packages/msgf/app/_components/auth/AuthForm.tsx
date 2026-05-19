@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-2790974-20260519T053039Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
  */
 /**
@@ -64,7 +88,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { msgfPostLoginPath, resolveAuthRedirectUrl } from "@/lib/auth-post-login";
-import { msgfAuthCookieDomain } from "@/lib/msgf-auth-cookies";
+import { msgfAuthCookieDomainForHost } from "@/lib/msgf-auth-cookies";
 import { createClient } from "@/utils/supabase/client";
 
 type Mode = "sign-in" | "sign-up";
@@ -115,7 +139,7 @@ export function AuthForm({ mode, postLoginPath }: Props) {
           return;
         }
 
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -125,17 +149,22 @@ export function AuthForm({ mode, postLoginPath }: Props) {
           return;
         }
 
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.error("[AuthForm] getSession after sign-in failed:", sessionError.message, sessionError);
-          throw sessionError;
-        }
-
-        if (!sessionData.session) {
-          const cookieDomain = msgfAuthCookieDomain() ?? "(host-only)";
+        const session =
+          signInData.session ??
+          (await supabase.auth.getSession()).data.session ??
+          null;
+        if (!session) {
+          const cookieDomain =
+            msgfAuthCookieDomainForHost(
+              typeof window !== "undefined" ? window.location.hostname : undefined
+            ) ?? "(host-only)";
           const hint =
-            "Sign-in returned 200 but no session was stored. On Cloud Run set MSGF_AUTH_COOKIE_DOMAIN=host " +
-            "and NEXT_PUBLIC_MSGF_AUTH_COOKIE_DOMAIN=host in your deploy env (not .elphiesyntax.com).";
+            "Sign-in returned 200 but no session was stored. If you deploy on *.run.app, set " +
+            "MSGF_AUTH_COOKIE_DOMAIN=host and NEXT_PUBLIC_MSGF_AUTH_COOKIE_DOMAIN=host in Cloud Run " +
+            "(or remove a baked-in NEXT_PUBLIC_MSGF_AUTH_COOKIE_DOMAIN=.elphiesyntax.com from the image). " +
+            "Cookie domain in use for this host: " +
+            cookieDomain +
+            ".";
           console.error("[AuthForm] missing session after sign-in", {
             origin: window.location.origin,
             cookieDomain,

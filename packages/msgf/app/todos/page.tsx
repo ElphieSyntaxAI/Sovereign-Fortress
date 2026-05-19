@@ -8,15 +8,16 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
+ * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
  */
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
 export default async function TodosPage() {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const hdrs = await headers();
+  const supabase = createClient(cookieStore, requestHostFromHeaders(hdrs));
 
   const { data: todos, error } = await supabase.from("todos").select();
 

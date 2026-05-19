@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
+ * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
  */
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -18,7 +18,39 @@ import { withMsgfAuthCookieOptions } from "@/lib/msgf-auth-cookies";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-export const createClient = (cookieStore: Awaited<ReturnType<typeof cookies>>) => {
+/** Host for cookie `Domain=` — prefer `X-Forwarded-Host` (Cloud Run / proxies). */
+export function requestHostFromHeaders(headers: Headers): string | undefined {
+  const xf = headers.get("x-forwarded-host");
+  if (xf) {
+    const first = xf.split(",")[0]?.trim();
+    if (first) return first.split(":")[0]?.toLowerCase();
+  }
+  const host = headers.get("host");
+  if (host) return host.split(":")[0]?.toLowerCase();
+  return undefined;
+}
+
+export function requestHostFromRequest(request: Request): string | undefined {
+  const xf = request.headers.get("x-forwarded-host");
+  if (xf) {
+    const first = xf.split(",")[0]?.trim();
+    if (first) return first.split(":")[0]?.toLowerCase();
+  }
+  try {
+    return new URL(request.url).hostname.toLowerCase();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * @param requestHost — `Host` / `X-Forwarded-Host` / `URL.hostname` so `Domain=.elphiesyntax.com`
+ *   is never applied on `*.run.app` (avoids rejected cookies and “stuck” sign-in).
+ */
+export const createClient = (
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  requestHost?: string | null
+) => {
   return createServerClient(
     supabaseUrl!,
     supabaseKey!,
@@ -30,7 +62,7 @@ export const createClient = (cookieStore: Awaited<ReturnType<typeof cookies>>) =
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, withMsgfAuthCookieOptions(options))
+              cookieStore.set(name, value, withMsgfAuthCookieOptions(options, requestHost))
             );
           } catch {
             // The `setAll` method was called from a Server Component.

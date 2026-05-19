@@ -8,10 +8,16 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
+ * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
  */
-import { HomeLanding } from "@/app/_components/landing/HomeLanding";
+import { PlatformHubLanding } from "@/app/_components/landing/PlatformHubLanding";
 
+/**
+ * `/` is the platform chooser hub ("What are you looking for?"). MSGF's own
+ * marketing page (the original `HomeLanding`) now lives at `/brain` and stays
+ * linked from the MSGF card. Keeps a single deployed URL viable as the
+ * "main page" while DNS / Author client deployment catches up.
+ */
 export default function Page() {
-  return <HomeLanding />;
+  return <PlatformHubLanding />;
 }

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
+ * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
  */
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
@@ -22,6 +22,10 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
+
+  const cookieRequestHost =
+    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+    request.nextUrl.hostname;
 
   const supabase = createServerClient(
     supabaseUrl!,
@@ -42,7 +46,7 @@ export async function updateSession(request: NextRequest) {
             supabaseResponse.cookies.set(
               name,
               value,
-              withMsgfAuthCookieOptions(options)
+              withMsgfAuthCookieOptions(options, cookieRequestHost)
             )
           );
         },
