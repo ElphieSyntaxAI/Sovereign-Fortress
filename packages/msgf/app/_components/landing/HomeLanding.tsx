@@ -13,6 +13,7 @@
 import Link from "next/link";
 
 import { LandingNav } from "./LandingNav";
+import { PublicEcoMetricsWidget } from "./PublicEcoMetricsWidget";
 
 const PILLARS = [
   {
@@ -124,6 +125,10 @@ export function HomeLanding() {
               </Link>
             </div>
           </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 py-8">
+          <PublicEcoMetricsWidget />
         </section>
 
         <section className="mx-auto max-w-6xl px-5 py-8">

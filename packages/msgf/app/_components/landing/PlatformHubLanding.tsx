@@ -27,6 +27,7 @@
 import Link from "next/link";
 
 import { LandingNav } from "./LandingNav";
+import { PublicEcoMetricsWidget } from "./PublicEcoMetricsWidget";
 
 type ToneId = "emerald" | "amethyst" | "topaz";
 
@@ -324,6 +325,8 @@ export function PlatformHubLanding() {
             <QuickCard key={p.id} platform={p} />
           ))}
         </section>
+
+        <PublicEcoMetricsWidget />
 
         <section className="space-y-8" aria-label="What each platform does">
           <header className="flex flex-wrap items-baseline justify-between gap-3">

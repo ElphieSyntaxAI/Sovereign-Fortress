@@ -48,6 +48,18 @@ export type PillarHealthEntry = {
   self_healing_note: string | null;
   predicted_future_issue: boolean;
   summary: string;
+  latest_events: PillarHealthEvent[];
+};
+
+export type PillarHealthEvent = {
+  id: string;
+  kind: "incident" | "vault" | "hall" | "narrative";
+  title: string;
+  summary: string;
+  status?: string | null;
+  severity?: string | null;
+  created_at: string;
+  bug_index: GenealogicalBugIndex;
 };
 
 export const PREDICTIVE_PULSE_HORIZON = 50;
@@ -128,6 +140,8 @@ type IncidentRow = {
 type NarrativeRow = {
   id: string;
   actor_id: string | null;
+  action_type?: string | null;
+  message?: string | null;
   severity: string | null;
   created_at: string;
   metadata: unknown;
@@ -194,6 +208,15 @@ function extractDriftScore(metadata: unknown): number | null {
   if (m.ledger === "vault" && m.pulse_engine === true) return 0.12;
   if (m.beat_kind === "local_state") return 0.15;
   return null;
+}
+
+function compactBugIndexLabel(bugIndex: GenealogicalBugIndex): string {
+  return bugIndex.level_1_1_1_instance.replace(/_/g, " ");
+}
+
+function eventTimeMs(event: PillarHealthEvent): number {
+  const ms = new Date(event.created_at).getTime();
+  return Number.isFinite(ms) ? ms : 0;
 }
 
 /** Projected Brain stability from latest drift + slope over N future pulses. */
@@ -368,6 +391,7 @@ export class HealthService {
         self_healing_note: null,
         predicted_future_issue: false,
         summary: `${PILLAR_LABELS[pillar]} — no profiles in company scope.`,
+        latest_events: [],
       }));
       return {
         generated_at: now.toISOString(),
@@ -408,6 +432,7 @@ export class HealthService {
         vault: number;
         selfHealingNote: string | null;
         warnings: number;
+        events: PillarHealthEvent[];
       }
     >();
 
@@ -418,6 +443,7 @@ export class HealthService {
         vault: 0,
         selfHealingNote: null,
         warnings: 0,
+        events: [],
       });
     }
 
@@ -429,8 +455,22 @@ export class HealthService {
 
       if (incident.status === "pending") {
         state.pending += 1;
-        continue;
       }
+
+      state.events.push({
+        id: incident.id,
+        kind: "incident",
+        title:
+          incident.status === "pending"
+            ? "Pending ARBITRATE incident"
+            : `Incident ${incident.status}`,
+        summary: compactBugIndexLabel(bugIndex),
+        status: incident.status,
+        created_at: incident.updated_at || incident.created_at,
+        bug_index: bugIndex,
+      });
+
+      if (incident.status === "pending") continue;
 
       if (
         bugIndex.level_1_1_1_instance === LOM_RECURSION_INSTANCE &&
@@ -460,6 +500,29 @@ export class HealthService {
       } else if (ledger === "vault") {
         state.vault += 1;
       }
+
+      const kind =
+        ledger === "vault"
+          ? "vault"
+          : ledger === "hall"
+            ? "hall"
+            : "narrative";
+      state.events.push({
+        id: row.id,
+        kind,
+        title:
+          kind === "vault"
+            ? "Vault change"
+            : kind === "hall"
+              ? "Hall issue"
+              : row.action_type || "Narrative event",
+        summary:
+          row.message?.trim() ||
+          compactBugIndexLabel(bugIndex),
+        severity: row.severity,
+        created_at: row.created_at,
+        bug_index: bugIndex,
+      });
     }
 
     const pillars: PillarHealthEntry[] = MSGF_GOVERNANCE_PILLARS.map((pillar) => {
@@ -493,6 +556,7 @@ export class HealthService {
         predicted_future_issue:
           status === "predicted" || logicDrift.predicted_future_issue,
         summary,
+        latest_events: state.events.sort((a, b) => eventTimeMs(b) - eventTimeMs(a)).slice(0, 8),
       };
     });
 
@@ -541,7 +605,7 @@ export class HealthService {
   ): Promise<NarrativeRow[]> {
     let q = supabase
       .from("p4_narrative_logs")
-      .select("id, actor_id, severity, created_at, metadata")
+      .select("id, actor_id, action_type, message, severity, created_at, metadata")
       .gte("created_at", since.toISOString());
 
     if (filter.mode === "user") {

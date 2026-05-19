@@ -144,6 +144,7 @@ import {
   isAnthropicPublisherModelPath,
   runAnthropicDirectPublisherModel,
 } from "@/lib/services/anthropic-direct-fallback";
+import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
 
 const LOM_MAX_ATTEMPTS = MAX_RECURSION_DEPTH;
 /** HITL / LOM recursion ceiling — exceeding throws {@link ERR_RECURSION_LIMIT}. */
@@ -160,6 +161,17 @@ const CLAUDE_VERTEX_LOCATION =
   process.env.GCP_CLAUDE_LOCATION?.trim() ||
   "global";
 const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-sonnet-4@20250514";
+
+function estimateP5ContextShardingTokensSaved(ctx: PulseConvergeContext): number {
+  const shardableContextChars =
+    ctx.beatsContext.length +
+    ctx.vaultCrossRefContext.length +
+    ctx.p2FlowDirective.length +
+    ctx.defendConstraints.length;
+  const approximateContextTokens = Math.ceil(shardableContextChars / 4);
+  const hotLayerMultiplier = ctx.hotLayerHit || ctx.lineageRedisHit ? 0.72 : 0.38;
+  return Math.max(0, Math.floor(approximateContextTokens * hotLayerMultiplier));
+}
 
 function vertexEndpointForLocation(location: string): string {
   return location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`;
@@ -696,6 +708,11 @@ export class PulseEngine {
       converged,
       pulseTraceId,
     });
+
+    const p5TokensSaved = estimateP5ContextShardingTokensSaved(converged);
+    if (p5TokensSaved > 0) {
+      void ecoAggregatorClient.sendGlobalTelemetryPayload(input.tenantId, p5TokensSaved);
+    }
 
     const remediationSummary = buildPulseRemediationSummaryGlobal({
       ledger: persisted.ledger,
