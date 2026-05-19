@@ -137,10 +137,30 @@ The LLM orchestration engine reads the assignment’s active `ai_allowance_level
 | Flight recorder | **The Call** — every $D_{down}$ / $I_{flight}$ → Redis hot slice |
 | Session context | Active paragraph, equation line, or chart coordinate cached for tutor loops |
 | HAL telemetry | **Canonical MSGF home for keystroke biometrics** (not P1, not P6) |
+| External telemetry router | Tag transactions with `ecosystem_source` (`SANDBOX_NATIVE`, `GOOGLE_EDIT`, `MS_OFFICE_EDIT`) — see §2.4.1 |
 
-**Code anchors:** `packages/msgf/lib/msgf-hot-layer.ts`, `p4_hal_ledger`, `src/lib/universal/p1HalStandard.ts` (legacy filename), browser extension / sandbox hooks.
+**Code anchors:** `packages/msgf/lib/msgf-hot-layer.ts`, `packages/msgf/lib/education/the-call-telemetry.ts`, `p4_hal_ledger`, `src/lib/universal/p1HalStandard.ts` (legacy filename), browser extension / sandbox hooks.
 
 > **Correction vs. informal docs:** "The Call" ingests at **P4**. P6 stores derived scores and error lineage, not raw key events.
+
+#### 2.4.1 Pillar 4 extension: external telemetry routing
+
+When data arrives from an external application (e.g. Google Sheets, PowerPoint), the P4 ingestion router tags the transaction with an `ecosystem_source` string flag so cohort dashboards can segment authenticity per host environment:
+
+| `ecosystem_source` | Origin | Host API |
+| :--- | :--- | :--- |
+| `SANDBOX_NATIVE` | Native composition sandbox | Web `KeyboardEvent` |
+| `GOOGLE_EDIT` | Docs / Sheets / Slides add-on | Apps Script `onEdit()` / `onChange()` + HTML sidebar |
+| `MS_OFFICE_EDIT` | Word / Excel / PowerPoint add-in | Office.js `Office.context.document.addHandlerAsync` |
+
+**Keystroke optimization (sandboxed hosts).** Where true key-up / key-down microsecond latency is restricted by host API sandboxes (e.g. Google Sheets cells), the router degrades smoothly to surrogate signals that still produce a Human Effort Score:
+
+- **Cell-Mutation Velocity** — per-cell mutation count / Δt, with paste vs. mutation discrimination.
+- **Focus Duration Intervals** — `document.visibilityState` and add-in `taskpane`/`dialog` focus dwell.
+
+Both surrogates carry the same `ecosystem_source` tag plus a `telemetry_mode` flag (`KEYSTROKE` | `CELL_MUTATION` | `FOCUS_DURATION`) so P6 can normalize cross-host comparisons before persisting to the HAL score index.
+
+**Code anchors:** `packages/msgf/lib/education/the-call-telemetry.ts` (add `ecosystem_source`, `telemetry_mode`), `lib/services/p4-state-ledger-controller.ts`, future `apps/syntax-educates/addons/{google,office}/`.
 
 ---
 
@@ -164,25 +184,91 @@ The LLM orchestration engine reads the assignment’s active `ai_allowance_level
 | 1.1.1 genealogical tree | e.g. `1.0 Math → 1.2 Fractions → 1.2.1 Inverse sign error` |
 | HAL score index | **Derived** authenticity metrics from P4 telemetry (paste gaps, effort score) |
 | Socratic memory | Ongoing weakness tags for strength-based hints |
+| Research / citation hall | External research provenance + citation gap alerts (see §2.6.1) |
 
 **Code anchors:** `constraint-ledger.ts`, `pillar_vectors`, `IngestService`, curriculum PDF shard ingest.
 
+#### 2.6.1 Pillar 6 extension: research mismatch alerts
+
+The **Citation Hall Engine** tracks text blocks imported via the Embedded Research Portal (§3.2). If a student moves research material into a Google Doc, Word doc, or PowerPoint deck **without clicking the sidebar's "Generate Citation Anchor" feature**, the system logs an automatic citation-gap incident onto the genealogical tree.
+
+| Tier | Slug |
+| :--- | :--- |
+| Category | `3.0_RESEARCH` |
+| Branch | `3.1_CITATIONS` |
+| Instance | `3.1.2_UNATTRIBUTED_SOURCE_STRING` |
+
+| Trigger | Behavior |
+| :--- | :--- |
+| Pasted text matches a recent research-portal snippet | Log `Hall` incident at `3.0_RESEARCH → 3.1_CITATIONS → 3.1.2_UNATTRIBUTED_SOURCE_STRING` |
+| Snippet matches but anchor exists | Log `Vault` entry under `3.1.1_ANCHORED_SOURCE_STRING` (positive index) |
+| Snippet is from non-trusted domain | Add `domain_trust=low` metadata; surfaces in teacher heat map |
+
+**Code anchors:** `packages/msgf/lib/services/constraint-ledger.ts`, `lib/education/learning-breakdown-index.ts` (add `research.*` presets), `lib/schemas/vault-hall-metadata.ts` (genealogical schema relaxation: accept `3.0_*` / `3.1_*` / `3.1.x_*` roots in addition to the legacy `1.x` regex).
+
+> **Schema note:** The current `GenealogicalBugIndexSchema` regex enforces `1.0_` / `1.1_` / `1.1.1_` roots. Supporting `3.0_RESEARCH` requires relaxing the regex to `^\d+\.0[_A-Z0-9]+$` / `^\d+\.\d+[_A-Z0-9]+$` / `^\d+\.\d+\.\d+[_A-Z0-9]+$`. Existing 1.x rows remain valid.
+
 ---
 
-## 3. Cross-pillar education flows
+## 3. Universal external ecosystem integration
+
+Native add-on wrappers extend the same P4 ingestion + P6 lineage guarantees to documents authored **outside** the standalone composition sandbox. Layer A toolbox visibility (P5) and Layer B AI allowance (P1) still apply — the host editor only changes the telemetry source, never the gates.
+
+### 3.1 Cross-platform add-on matrix
+
+The system deploys native add-on wrappers to securely track student telemetry outside the standalone workspace sandbox.
+
+| Host suite | Hook surface | Telemetry mode | Pillars touched |
+| :--- | :--- | :--- | :--- |
+| **Google Workspace** (Docs · Sheets · Slides) | Apps Script `onEdit()` / `onChange()` event hooks + client-side HTML service sidebar triggers stream delta inputs | `KEYSTROKE` (Docs) / `CELL_MUTATION` (Sheets) / `FOCUS_DURATION` (Slides) | **P4** ingest · **P5** sidebar UI · **P6** score index |
+| **Microsoft 365** (Word · Excel · PowerPoint) | Unified Office.js JavaScript API — `Office.context.document.addHandlerAsync` logs document manipulation and slide arrangement timelines | `KEYSTROKE` (Word) / `CELL_MUTATION` (Excel) / `FOCUS_DURATION` (PowerPoint) | **P4** ingest · **P5** task-pane UI · **P6** score index |
+
+All add-on transactions enter MSGF via the P4 controller with `ecosystem_source` set per §2.4.1; no add-on may write to the Vault/Hall directly.
+
+### 3.2 Research activity & time tracking engine
+
+The workspace add-on is responsible for two compliance-relevant signals that the native sandbox already emits: **active focus** and **research provenance**.
+
+#### Active session focus monitor
+
+- Monitors browser visibility state (`document.hidden`) and application-window blur events.
+- Stalls the active-time tracker **instantly** when the student switches away from the assignment environment.
+- Resumes only after host focus returns; pauses are written as `state_beats` labels (`label = 'focus_pause'`) so the parent / teacher dashboards can render uninterrupted concentration vs. distraction zones (P5 → P6 rollup).
+
+#### Embedded research portal
+
+Provides an iframe-sandboxed internet search window inside the sidebar / task pane. When active, it tracks:
+
+| Signal | Purpose | Persisted to |
+| :--- | :--- | :--- |
+| Total reading time per query result | Distinguishes scanning vs. study behavior | P4 → P6 score index |
+| Source domain validation logs | Cross-references trusted scholarly source list | P6 (`domain_trust` metadata) |
+| Copy-pasting from research windows | Pipes text directly into the **P6 Constraint Ledger** to verify correct citation formatting (Citation Hall Engine, §2.6.1) | P6 Vault (anchored) or Hall (`3.1.2_UNATTRIBUTED_SOURCE_STRING`) |
+
+> **Privacy boundary:** Research portal queries are scoped to the de-identified `entity_id` token (P3); raw query strings are never persisted alongside legal names.
+
+**Code anchors (planned):** `apps/syntax-educates/addons/google/`, `apps/syntax-educates/addons/office/`, `packages/msgf/lib/education/research-portal.ts` (P6 citation gap detector), `lib/education/the-call-telemetry.ts` (focus pause beats).
+
+---
+
+## 4. Cross-pillar education flows
 
 | User action | Pillars touched |
 | :--- | :--- |
 | Student opens assignment | P3 (role + `grade_cohort`) → P1 (`ai_allowance_level` + Utah disclosure) → P5 (Layer A toolbox) → P2 (first gate) |
 | Student types in sandbox | P4 (The Call) → P5 (UI) |
-| Student asks tutor | P2 (gate check) → P4 (context) → P2 CONVERGE → P6 (Vault/Hall) |
+| Student types in Google Doc add-on | P4 (`ecosystem_source=GOOGLE_EDIT`) → P5 (sidebar) → P6 (score index) |
+| Student edits Excel cells | P4 (`telemetry_mode=CELL_MUTATION`) → P6 |
+| Student tabs away from assignment | P4 (focus pause beat) → P6 (focus duration aggregate) |
+| Student pastes research without anchor | P4 (`ecosystem_source` paste) → P6 Hall (`3.1.2_UNATTRIBUTED_SOURCE_STRING`) |
+| Student asks tutor | P1 (Layer B ≥ 3) → P2 (gate check) → P4 (context) → P2 CONVERGE → P6 (Vault/Hall) |
 | Teacher views heat map | P3 (teacher scope) → P6 aggregates ← P4 telemetry |
 | Parent views growth | P3 (parent-only) → de-identified P6/P4 rollups |
 | Canvas grade passback | P3 (LTI) → P6 certificate token → external LMS |
 
 ---
 
-## 4. Decision rules (agents & PRs)
+## 5. Decision rules (agents & PRs)
 
 1. **Keystroke / paste / flight time** → implement and query under **P4**, cite HAL charter (`.msgf/P1_HAL.md` is a *telemetry charter*, not P1 Static Ledger).
 2. **Utah law, `ai_allowance_level` (0–4), `grade_cohort` toolbox** → **P1** (Layer B) + **P5** (Layer A); violations must HALT.
@@ -190,6 +276,8 @@ The LLM orchestration engine reads the assignment’s active `ai_allowance_level
 4. **Milestone locks** → **P2** before tutor CONVERGE.
 5. **Curriculum RAG corpus & mistake taxonomy** → **P6** ingest + lineage metadata.
 6. **Editor font / HUD / puzzle UI** → **P5** unless it must survive session end (then P4/P6).
+7. **External add-on telemetry (Google / Microsoft)** → **P4** ingest with `ecosystem_source` tag; never bypass P1/P2 gates from inside the add-on.
+8. **Research portal pastes** → **P6** Citation Hall Engine; missing anchors HALT to `3.1.2_UNATTRIBUTED_SOURCE_STRING`.
 
 ---
 
@@ -199,3 +287,4 @@ The LLM orchestration engine reads the assignment’s active `ai_allowance_level
 | :--- | :--- |
 | 2026-05-18 | Initial SSOT; P4/P6 split for HAL telemetry vs. score index per `MSGF_PILLAR_MAPPING_SSOT.md` |
 | 2026-05-18 | P1 §2.1.2 — two-dimensional control schema (`grade_cohort` × `ai_allowance_level` 0–4) replaces legacy L1–L3 matrix |
+| 2026-05-18 | Added §3 Universal external ecosystem integration (Google / Microsoft add-ons, focus monitor, research portal); P4 §2.4.1 `ecosystem_source` + degraded telemetry modes; P6 §2.6.1 Citation Hall Engine (`3.0_RESEARCH` root). Renumbered legacy §3 → §4 and §4 → §5. |

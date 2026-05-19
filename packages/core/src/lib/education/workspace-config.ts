@@ -1,6 +1,10 @@
 import type { LayerAToolboxConfig } from "./layer-a-toolbox";
 import { mapGradeCohortToLayerAToolbox } from "./layer-a-toolbox";
-import type { LayerBRuntimeFlags, AiAllowanceLevel } from "./layer-b-allowance";
+import type {
+  AiAllowanceLevel,
+  LayerBAllowanceEvent,
+  LayerBRuntimeFlags,
+} from "./layer-b-allowance";
 import {
   normalizeAiAllowanceLevel,
   resolveLayerBFlags,

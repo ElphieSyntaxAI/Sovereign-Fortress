@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Syntax Educates</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <link rel="stylesheet" href="./taskpane.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Syntax Educates</h1>
+      <p id="hostLabel">Detecting host...</p>
+    </header>
+
+    <section id="activeSession">
+      <h2>Active session</h2>
+      <p>
+        Active time: <span id="activeTime">0s</span>
+        <span id="focusStat">focused</span>
+      </p>
+    </section>
+
+    <section id="researchPortal">
+      <h2>Embedded Research Portal</h2>
+      <label for="searchUrl">Source URL</label>
+      <input id="searchUrl" type="url" placeholder="https://scholar.google.com/scholar?q=..." />
+      <button id="openSearch">Open</button>
+      <iframe id="researchFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <section id="snippetSection">
+      <h2>Captured snippet</h2>
+      <textarea id="snippetText" placeholder="Paste the snippet you copied from the source..."></textarea>
+      <button id="anchorBtn">Generate Citation Anchor</button>
+      <button id="checkBtn">Check pasted text</button>
+      <p id="lastResult">No citation check run yet.</p>
+    </section>
+
+    <script type="module" src="./taskpane.ts"></script>
+  </body>
+</html>

@@ -21,6 +21,12 @@ import {
   TheCallIngestBodySchema,
   isEducationTenantId,
   normalizeTheCallToKeystrokes,
+  resolveEcosystemSource,
+  resolveTelemetryMode,
+  type CellMutationEvent,
+  type EcosystemSource,
+  type FocusEvent,
+  type TelemetryMode,
   type TheCallIngestBody,
 } from "@/lib/education/the-call-telemetry";
 import { CURRENT_LEGAL_VERSION } from "@/lib/msgf-legal";
@@ -47,6 +53,14 @@ export type P4StateLedgerIngestResult = {
   suggestedBreakdowns: GenealogicalBugIndex[];
   assignmentId?: string;
   subjectDomain?: string;
+  /** Pillars §2.4.1 — host environment tag. */
+  ecosystemSource: EcosystemSource;
+  /** Pillars §2.4.1 — Human Effort Score surrogate mode actually used. */
+  telemetryMode: TelemetryMode;
+  /** Focus pause / resume beats appended this ingest cycle (pillars §3.2). */
+  focusBeatsAppended: number;
+  /** Cell-mutation events processed (Sheets / Excel surrogate). */
+  cellMutationCount: number;
 };
 
 function detectPasteWithoutKeys(events: KeystrokeEvent[]): boolean {
@@ -58,8 +72,40 @@ function detectPasteWithoutKeys(events: KeystrokeEvent[]): boolean {
   );
 }
 
+function detectCellMutationPasteAnomaly(events: CellMutationEvent[]): boolean {
+  // Heuristic: any explicit paste or any single mutation inserting > 80 chars.
+  return events.some(
+    (m) => m.isPaste === true || (m.deltaChars != null && m.deltaChars > 80)
+  );
+}
+
 function resolveLedgerDomain(tenantId: string): P4LedgerDomain {
   return isEducationTenantId(tenantId) ? "education" : "author";
+}
+
+function toEpochMs(ts: string | number): number {
+  if (typeof ts === "number" && Number.isFinite(ts)) return ts;
+  const parsed = Date.parse(String(ts));
+  return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
+/**
+ * Convert cell-mutation events into pseudo-keystroke rows so existing HAL chunking +
+ * flow verification continue to work for Sheets / Excel hosts that cannot emit raw keys.
+ * Pillars §2.4.1 — "Cell-Mutation Velocity" surrogate for Human Effort Score.
+ */
+function cellMutationsToKeystrokes(
+  mutations: CellMutationEvent[],
+  baseTarget: string
+): KeystrokeEvent[] {
+  return mutations.map((m) => ({
+    ts: toEpochMs(m.ts),
+    key: m.isPaste ? "PASTE_EVENT" : `CELL_MUTATION:${m.cellRef}`,
+    type: "input" as const,
+    target: `${baseTarget} cell=${m.cellRef}`,
+    isSystemEvent: true,
+    wordsPasted: m.isPaste ? Math.max(0, Math.round((m.deltaChars ?? 0) / 5)) : undefined,
+  }));
 }
 
 /**
@@ -73,7 +119,27 @@ export async function ingestP4StateLedgerTelemetry(
 ): Promise<P4StateLedgerIngestResult> {
   const parsed = TheCallIngestBodySchema.parse(input.rawBody);
   const domain = resolveLedgerDomain(input.tenantId);
-  const events = normalizeTheCallToKeystrokes(parsed);
+  const ecosystemSource = resolveEcosystemSource(parsed);
+  const telemetryMode = resolveTelemetryMode(parsed);
+
+  const keystrokeEvents = normalizeTheCallToKeystrokes(parsed);
+  const cellMutations = parsed.cellMutations ?? [];
+  const focusEvents = parsed.focusEvents ?? [];
+
+  const cellMutationTargetTag = [
+    `edu:${parsed.subjectDomain ?? "general"}`,
+    `ecosystem=${ecosystemSource}`,
+    `mode=${telemetryMode}`,
+    parsed.assignmentId ? `assignment=${parsed.assignmentId}` : null,
+    parsed.sessionId ? `session=${parsed.sessionId}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const events: KeystrokeEvent[] = [
+    ...keystrokeEvents,
+    ...cellMutationsToKeystrokes(cellMutations, cellMutationTargetTag),
+  ];
 
   const p4 = new StateLedgerP4(input.supabase, input.tenantId, domain);
 
@@ -92,10 +158,10 @@ export async function ingestP4StateLedgerTelemetry(
     hotLayerHit = false;
   }
 
-  const { chunks, results: verifyResults } = await p4.verifyKeystrokeStream(
-    input.entityId,
-    events
-  );
+  const { chunks, results: verifyResults } =
+    events.length > 0
+      ? await p4.verifyKeystrokeStream(input.entityId, events)
+      : { chunks: [] as KeystrokeChunk[], results: [] as FlowVerifyResult[] };
 
   await setActiveSlice({
     entityId: input.entityId,
@@ -103,8 +169,19 @@ export async function ingestP4StateLedgerTelemetry(
     previousRetryCount,
   });
 
+  const focusBeatsAppended = await persistFocusBeats({
+    supabase: input.supabase,
+    tenantId: input.tenantId,
+    entityId: input.entityId,
+    focusEvents,
+    ecosystemSource,
+    telemetryMode,
+    assignmentId: parsed.assignmentId,
+    sessionId: parsed.sessionId,
+  });
+
   const suggestedBreakdowns: GenealogicalBugIndex[] = [];
-  if (detectPasteWithoutKeys(events)) {
+  if (detectPasteWithoutKeys(events) || detectCellMutationPasteAnomaly(cellMutations)) {
     suggestedBreakdowns.push(breakdownIndexForPasteAnomaly());
   }
   if (verifyResults.some((r) => !r.consistent)) {
@@ -121,7 +198,62 @@ export async function ingestP4StateLedgerTelemetry(
     suggestedBreakdowns,
     assignmentId: parsed.assignmentId,
     subjectDomain: parsed.subjectDomain,
+    ecosystemSource,
+    telemetryMode,
+    focusBeatsAppended,
+    cellMutationCount: cellMutations.length,
   };
+}
+
+/**
+ * Pillars §3.2 — active session focus monitor.
+ * Persists each `focus_pause` / `focus_resume` event as a P4 `state_beats` row tagged
+ * with the originating `ecosystem_source` + `telemetry_mode` so teacher dashboards can
+ * render concentration vs. distraction zones.
+ */
+async function persistFocusBeats(params: {
+  supabase: SupabaseClient;
+  tenantId: string;
+  entityId: string;
+  focusEvents: FocusEvent[];
+  ecosystemSource: EcosystemSource;
+  telemetryMode: TelemetryMode;
+  assignmentId?: string;
+  sessionId?: string;
+}): Promise<number> {
+  if (params.focusEvents.length === 0) return 0;
+
+  let appended = 0;
+  for (const fe of params.focusEvents) {
+    const ts = toEpochMs(fe.ts);
+    const beatText =
+      fe.type === "focus_pause"
+        ? `Active-time tracker paused (${fe.reason ?? "tab_hidden"})`
+        : `Active-time tracker resumed (${fe.reason ?? "tab_focus"})`;
+    try {
+      await appendP4InstructionalBeat({
+        supabase: params.supabase,
+        tenantId: params.tenantId,
+        entityId: params.entityId,
+        beatText,
+        label: fe.type,
+        metadata: {
+          pillar_extension: "P4_2_4_1",
+          ecosystem_source: params.ecosystemSource,
+          telemetry_mode: params.telemetryMode,
+          surface: fe.surface,
+          reason: fe.reason,
+          assignment_id: params.assignmentId,
+          session_id: params.sessionId,
+          focus_event_ts: ts,
+        },
+      });
+      appended += 1;
+    } catch {
+      // Fail-open: focus beats are best-effort observability and must not block ingest.
+    }
+  }
+  return appended;
 }
 
 /**

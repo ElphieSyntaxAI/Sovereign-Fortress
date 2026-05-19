@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Syntax Educates</title>
+    <link rel="stylesheet" href="./panel.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Syntax Educates</h1>
+      <div class="stat-row">
+        <span class="stat" id="ecosystemStat">SANDBOX_NATIVE</span>
+        <span class="stat ok" id="focusStat">focused</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>Active session</h2>
+      <p>Active time: <span id="activeTime">0s</span></p>
+      <button id="pushTelemetry">Push telemetry now</button>
+    </section>
+
+    <section>
+      <h2>Embedded Research Portal</h2>
+      <input id="searchUrl" type="url" placeholder="https://scholar.google.com/scholar?q=..." />
+      <button id="openSearch">Open</button>
+      <iframe id="researchFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <section>
+      <h2>Captured snippet</h2>
+      <textarea id="snippetText" placeholder="Paste the snippet you copied from the source..."></textarea>
+      <div class="row">
+        <button id="anchorBtn" class="primary">Generate Citation Anchor</button>
+        <button id="checkBtn">Check pasted text</button>
+      </div>
+      <p id="lastResult">No citation check run yet.</p>
+    </section>
+
+    <script type="module" src="./panel.js"></script>
+  </body>
+</html>

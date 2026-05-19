@@ -51,6 +51,32 @@ export const LEARNING_BREAKDOWN_INDEX = {
     level_1_1_branch: "1.1_FLOW",
     level_1_1_1_instance: "1.1.1_FLOW_INCONSISTENT",
   }),
+  /**
+   * Research — pasted research material with a citation anchor (Vault / positive index).
+   * See pillars §2.6.1.
+   */
+  researchAnchoredSource: buildGenealogicalBugIndex({
+    level_1_category: "3.0_RESEARCH",
+    level_1_1_branch: "3.1_CITATIONS",
+    level_1_1_1_instance: "3.1.1_ANCHORED_SOURCE_STRING",
+  }),
+  /**
+   * Research — pasted research material WITHOUT citation anchor (Hall — Citation Hall Engine).
+   * Triggered when Embedded Research Portal pastes are not accompanied by a "Generate Citation Anchor" click.
+   */
+  researchUnattributedSource: buildGenealogicalBugIndex({
+    level_1_category: "3.0_RESEARCH",
+    level_1_1_branch: "3.1_CITATIONS",
+    level_1_1_1_instance: "3.1.2_UNATTRIBUTED_SOURCE_STRING",
+  }),
+  /**
+   * Research — source domain not in trusted scholarly list (P6 domain_trust=low rollup).
+   */
+  researchUntrustedDomain: buildGenealogicalBugIndex({
+    level_1_category: "3.0_RESEARCH",
+    level_1_1_branch: "3.1_CITATIONS",
+    level_1_1_1_instance: "3.1.3_UNTRUSTED_DOMAIN",
+  }),
 } as const;
 
 export type LearningBreakdownKey = keyof typeof LEARNING_BREAKDOWN_INDEX;
@@ -68,4 +94,19 @@ export function breakdownIndexForFlowInconsistency(): GenealogicalBugIndex {
 
 export function breakdownIndexForPasteAnomaly(): GenealogicalBugIndex {
   return LEARNING_BREAKDOWN_INDEX.pasteWithoutKeystrokes;
+}
+
+/**
+ * Citation Hall Engine — pasted research material classification.
+ * - `hasAnchor=true`  → Vault (`3.1.1_ANCHORED_SOURCE_STRING`)
+ * - `hasAnchor=false` → Hall (`3.1.2_UNATTRIBUTED_SOURCE_STRING`)
+ */
+export function breakdownIndexForCitation(hasAnchor: boolean): GenealogicalBugIndex {
+  return hasAnchor
+    ? LEARNING_BREAKDOWN_INDEX.researchAnchoredSource
+    : LEARNING_BREAKDOWN_INDEX.researchUnattributedSource;
+}
+
+export function breakdownIndexForUntrustedDomain(): GenealogicalBugIndex {
+  return LEARNING_BREAKDOWN_INDEX.researchUntrustedDomain;
 }

@@ -1,16 +1,23 @@
 /**
- * POST /api/msgf/p4/state-ledger
+ * POST/PUT /api/msgf/education/research/citation-check
  *
- * P4 State Ledger ingress for Syntax Education "The Call" telemetry (and legacy keystrokes).
- * Redis hot active slice + Postgres `state_beats` verification — routing unchanged.
+ * Citation Hall Engine — pillars §2.6.1.
+ *
+ * Body: {@link CitationCheckRequestSchema}
+ *   - `pastedText`: text the student just pasted into the host doc
+ *   - `recentSnippets`: snippets the embedded research portal saw the student lift
+ *
+ * Routes the paste to Vault (`3.1.1_ANCHORED_SOURCE_STRING`) or Hall
+ * (`3.1.2_UNATTRIBUTED_SOURCE_STRING` / `3.1.3_UNTRUSTED_DOMAIN`) via the existing
+ * `persistToVault` / `persistToHall` constraint-ledger writers.
  */
 import { randomUUID } from "crypto";
 
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 
-import { createClient as createSupabaseServerClient } from "@/utils/supabase/server";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { evaluateCitationGap } from "@/lib/education/research-portal";
 import { applyPulseCorsHeaders, pulseCorsPreflightResponse } from "@/lib/msgf-cors";
 import {
   MSGF_ENTITY_ID_HEADER,
@@ -18,12 +25,11 @@ import {
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
-import { ingestP4StateLedgerTelemetry } from "@/lib/services/p4-state-ledger-controller";
-import { ZodError } from "zod";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient as createSupabaseServerClient } from "@/utils/supabase/server";
 
 function json(req: NextRequest, data: unknown, init?: ResponseInit) {
-  const res = NextResponse.json(data, init);
-  return applyPulseCorsHeaders(req, res);
+  return applyPulseCorsHeaders(req, NextResponse.json(data, init));
 }
 
 export async function OPTIONS(req: NextRequest) {
@@ -52,53 +58,49 @@ export async function POST(req: NextRequest) {
       headerTenant || String(userMetadata?.tenant_id ?? "syntax_education"),
       userMetadata
     );
-
-    const entityId =
-      req.headers.get(MSGF_ENTITY_ID_HEADER)?.trim() || user.id;
+    const entityId = req.headers.get(MSGF_ENTITY_ID_HEADER)?.trim() || user.id;
 
     const rawBody = await req.json();
-    const result = await ingestP4StateLedgerTelemetry({
+    const result = await evaluateCitationGap({
       supabase,
       tenantId,
       entityId,
-      rawBody,
+      request: rawBody,
     });
 
     return json(req, {
       ok: true,
       trace_id: traceId,
-      pillar: "P4",
+      pillar: "P6",
+      subsystems: ["P4"],
       tenant_id: tenantId,
       entity_id: entityId,
-      domain: result.domain,
-      event_count: result.eventCount,
-      chunk_count: result.chunks.length,
-      hot_layer_hit: result.hotLayerHit,
-      verify_results: result.verifyResults,
-      suggested_learning_breakdowns: result.suggestedBreakdowns,
-      assignment_id: result.assignmentId ?? null,
-      subject_domain: result.subjectDomain ?? null,
-      ecosystem_source: result.ecosystemSource,
-      telemetry_mode: result.telemetryMode,
-      focus_beats_appended: result.focusBeatsAppended,
-      cell_mutation_count: result.cellMutationCount,
+      classification: result.classification,
+      matched_snippet_id: result.matchedSnippetId ?? null,
+      match_score: result.matchScore ?? null,
+      source_url: result.sourceUrl ?? null,
+      source_domain: result.sourceDomain ?? null,
+      trusted_domain: result.trustedDomain,
+      bug_index: result.bugIndex,
+      narrative_log_id: result.persisted?.narrativeLogId ?? null,
     });
   } catch (e) {
     if (e instanceof ZodError) {
       return json(
         req,
-        { error: "Invalid telemetry payload", details: e.flatten(), trace_id: traceId },
+        { error: "Invalid request body", details: e.flatten(), trace_id: traceId },
         { status: 400 }
       );
     }
     const message = e instanceof Error ? e.message : String(e);
-    console.error("[api/msgf/p4/state-ledger]", e);
+    console.error("[api/msgf/education/research/citation-check]", e);
     return json(req, { error: message, trace_id: traceId }, { status: 500 });
   }
 }
 
 /**
- * Service-role ingest (BFF / sandbox) when `x-msgf-entity-id` + admin key present.
+ * Service-role variant for add-on BFFs that cannot use cookie auth.
+ * Requires `x-msgf-entity-id` (the de-identified entity token from the LTI privacy gate).
  */
 export async function PUT(req: NextRequest) {
   const traceId = randomUUID();
@@ -107,7 +109,7 @@ export async function PUT(req: NextRequest) {
     if (!entityId) {
       return json(
         req,
-        { error: "x-msgf-entity-id is required for service ingest.", trace_id: traceId },
+        { error: "x-msgf-entity-id is required.", trace_id: traceId },
         { status: 400 }
       );
     }
@@ -120,40 +122,37 @@ export async function PUT(req: NextRequest) {
     const tenantId = resolveTenantIdForPillars(headerTenant, null);
 
     const rawBody = await req.json();
-    const result = await ingestP4StateLedgerTelemetry({
+    const result = await evaluateCitationGap({
       supabase: adminSupabase,
       tenantId,
       entityId,
-      rawBody,
+      request: rawBody,
     });
 
     return json(req, {
       ok: true,
       trace_id: traceId,
-      pillar: "P4",
       tenant_id: tenantId,
       entity_id: entityId,
-      domain: result.domain,
-      event_count: result.eventCount,
-      chunk_count: result.chunks.length,
-      hot_layer_hit: result.hotLayerHit,
-      verify_results: result.verifyResults,
-      suggested_learning_breakdowns: result.suggestedBreakdowns,
-      ecosystem_source: result.ecosystemSource,
-      telemetry_mode: result.telemetryMode,
-      focus_beats_appended: result.focusBeatsAppended,
-      cell_mutation_count: result.cellMutationCount,
+      classification: result.classification,
+      matched_snippet_id: result.matchedSnippetId ?? null,
+      match_score: result.matchScore ?? null,
+      source_url: result.sourceUrl ?? null,
+      source_domain: result.sourceDomain ?? null,
+      trusted_domain: result.trustedDomain,
+      bug_index: result.bugIndex,
+      narrative_log_id: result.persisted?.narrativeLogId ?? null,
     });
   } catch (e) {
     if (e instanceof ZodError) {
       return json(
         req,
-        { error: "Invalid telemetry payload", details: e.flatten(), trace_id: traceId },
+        { error: "Invalid request body", details: e.flatten(), trace_id: traceId },
         { status: 400 }
       );
     }
     const message = e instanceof Error ? e.message : String(e);
-    console.error("[api/msgf/p4/state-ledger PUT]", e);
+    console.error("[api/msgf/education/research/citation-check PUT]", e);
     return json(req, { error: message, trace_id: traceId }, { status: 500 });
   }
 }

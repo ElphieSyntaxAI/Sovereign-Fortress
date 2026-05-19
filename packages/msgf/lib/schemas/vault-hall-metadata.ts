@@ -18,29 +18,52 @@ import { z } from "zod";
 
 import { withMsgfMetadataScope } from "@/lib/services/msgf-metadata-scope";
 
-/** Level 1.0 — major module / category (e.g. `1.0_PULSE`, `1.0_AUTH_GATE`). */
+/**
+ * Level 1 — major module / category.
+ *
+ * Pattern: `<root>.0_<SLUG>` where `<root>` is any positive integer.
+ * - Pulse / engineering roots: `1.0_PULSE`, `1.0_AUTH_GATE`, `1.0_ELA`
+ * - Education domain roots: `2.0_BEHAVIORAL`, `3.0_RESEARCH` (Syntax Education §2.6.1)
+ *
+ * Backward compatible: all existing `1.0_*` slugs still validate.
+ */
 export const BugIndexLevel1Schema = z
   .string()
   .min(1)
   .max(128)
   .regex(
-    /^1\.0[_A-Z0-9]+$/i,
-    "level_1_category must start with 1.0_ (genealogical category)"
+    /^\d+\.0[_A-Z0-9]+$/i,
+    "level_1_category must match <root>.0_<SLUG> (e.g. 1.0_PULSE, 3.0_RESEARCH)"
   );
 
-/** Level 1.1 — sub-module or LOM gate (e.g. `1.1_DEFEND`, `1.1_CONVERGE`). */
+/**
+ * Level 1.1 — sub-module / branch (e.g. `1.1_DEFEND`, `3.1_CITATIONS`).
+ *
+ * Pattern: `<root>.<branch>_<SLUG>` — the branch number may be any non-negative integer.
+ */
 export const BugIndexLevel11Schema = z
   .string()
   .min(1)
   .max(128)
-  .regex(/^1\.1[_A-Z0-9]+$/i, "level_1_1_branch must start with 1.1_");
+  .regex(
+    /^\d+\.\d+[_A-Z0-9]+$/i,
+    "level_1_1_branch must match <root>.<branch>_<SLUG> (e.g. 1.1_DEFEND, 3.1_CITATIONS)"
+  );
 
-/** Level 1.1.1 — discrete fix delta / instance (e.g. `1.1.1_CONSENSUS_VAULT`). */
+/**
+ * Level 1.1.1 — discrete fix delta / lineage instance.
+ *
+ * Pattern: `<root>.<branch>.<instance>_<SLUG>` — e.g. `1.1.1_CONSENSUS_VAULT`,
+ * `3.1.2_UNATTRIBUTED_SOURCE_STRING`.
+ */
 export const BugIndexLevel111Schema = z
   .string()
   .min(1)
   .max(160)
-  .regex(/^1\.1\.1[_A-Z0-9]+$/i, "level_1_1_1_instance must start with 1.1.1_");
+  .regex(
+    /^\d+\.\d+\.\d+[_A-Z0-9]+$/i,
+    "level_1_1_1_instance must match <root>.<branch>.<instance>_<SLUG>"
+  );
 
 export const GenealogicalBugIndexSchema = z
   .object({

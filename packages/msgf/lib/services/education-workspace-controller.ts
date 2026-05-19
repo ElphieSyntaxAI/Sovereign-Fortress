@@ -2,7 +2,11 @@
  * Layered workspace controller — resolves Layer A + B for API + UI.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { resolveWorkspaceConfig, type ResolvedWorkspaceConfig } from "@elphie-syntax/core";
+import {
+  normalizeAiAllowanceLevel,
+  resolveWorkspaceConfig,
+  type ResolvedWorkspaceConfig,
+} from "@elphie-syntax/core";
 
 import { educationTenantId } from "@/lib/education/lti/lti-config";
 import {
@@ -64,7 +68,7 @@ export async function updateAssignmentAllowance(input: {
   const level = await setAssignmentAllowanceLevel({
     admin,
     assignmentId: input.assignmentId,
-    aiAllowanceLevel: input.aiAllowanceLevel,
+    aiAllowanceLevel: normalizeAiAllowanceLevel(input.aiAllowanceLevel),
     updatedBy: input.updatedBy,
   });
   return resolveEducationWorkspaceConfig({

@@ -115,6 +115,23 @@ This roadmap outlines the structural implementation plan for deploying the state
 
 > **MSGF mapping:** Hard rules = **P1**; de-ID = **P3**; audit trail = **P6**.
 
+### 3.6 Universal external ecosystem integration
+
+Native add-on wrappers extend P4 telemetry and P6 lineage into the document hosts students already use. Behavioral spec lives in [`syntax_education_pillars.md` §3](./syntax_education_pillars.md#3-universal-external-ecosystem-integration); this section captures product surfaces and phase ownership.
+
+| Capability | Description |
+| :--- | :--- |
+| **Google Workspace add-on** (Docs · Sheets · Slides) | Apps Script `onEdit()` / `onChange()` + HTML service sidebar; ingests as `ecosystem_source=GOOGLE_EDIT` |
+| **Microsoft 365 add-in** (Word · Excel · PowerPoint) | Office.js `Office.context.document.addHandlerAsync`; ingests as `ecosystem_source=MS_OFFICE_EDIT` |
+| **Active session focus monitor** | `document.hidden` + window-blur events stall the active-time tracker instantly across all hosts |
+| **Embedded research portal** | Iframe-sandboxed search inside the sidebar — tracks reading time, validates source domains, and pipes copy-pasted text to the P6 Citation Hall Engine for anchor verification |
+| **Degraded telemetry modes** | `KEYSTROKE` (rich) · `CELL_MUTATION` (Sheets / Excel) · `FOCUS_DURATION` (Slides / PowerPoint) — automatically selected per host API capability |
+| **Citation Hall Engine** | Pasted research without a Generate Citation Anchor click → logged to `3.0_RESEARCH → 3.1_CITATIONS → 3.1.2_UNATTRIBUTED_SOURCE_STRING` |
+
+> **MSGF mapping:** External telemetry router = **P4** (§2.4.1); add-on UI surfaces = **P5**; citation anchors & research provenance = **P6** (§2.6.1); Layer A/B gates from **P1** still apply.
+
+> **Phase ownership:** Google Workspace add-on and Office.js add-in target **Phase 2**; Embedded Research Portal + Citation Hall Engine target **Phase 2 → Phase 3** alongside the parent dashboard.
+
 ---
 
 ## 4. Out of scope for this document
@@ -130,3 +147,4 @@ This roadmap outlines the structural implementation plan for deploying the state
 | Date | Change |
 | :--- | :--- |
 | 2026-05-18 | Initial monorepo SSOT; aligned HAL to MSGF P4 per `MSGF_PILLAR_MAPPING_SSOT.md` |
+| 2026-05-18 | Added §3.6 universal external ecosystem integration (Google Workspace add-on, MS 365 add-in, focus monitor, embedded research portal, Citation Hall Engine); cross-references pillars §3 / §2.4.1 / §2.6.1 |

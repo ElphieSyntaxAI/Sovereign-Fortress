@@ -76,6 +76,11 @@ Legend: **Primary** = owning pillar · **Also** = read/write or enforcement depe
 | Parent dashboard (Resilience / Friction) | **P5** | P3, P6 | Read-only P3 role; aggregates from P6 |
 | Subject-specific model routing | **P2** | P1 | CONVERGE profile per subject (config in P5) |
 | Teacher friction heat map | **P5** | P6 | Classroom cohort rollup |
+| Google Workspace add-on (Docs / Sheets / Slides) | **P4** | P5, P6 | Apps Script `onEdit()` / `onChange()` + HTML sidebar; `ecosystem_source=GOOGLE_EDIT` (pillars §2.4.1) |
+| Microsoft 365 add-in (Word / Excel / PowerPoint) | **P4** | P5, P6 | Office.js `addHandlerAsync`; `ecosystem_source=MS_OFFICE_EDIT` |
+| Active session focus monitor | **P4** | P6 | `document.hidden` + window blur → focus pause beats |
+| Embedded research portal | **P5** | P4, P6 | Iframe-sandboxed search; pipes copy-paste to Citation Hall Engine |
+| Degraded telemetry modes (`CELL_MUTATION` / `FOCUS_DURATION`) | **P4** | P6 | Surrogate Human Effort signals when host API blocks keystroke timing |
 
 ### Phase 3 — Scale & compliance
 
@@ -87,6 +92,8 @@ Legend: **Primary** = owning pillar · **Also** = read/write or enforcement depe
 | Universal admin settings | **P5** | P1 | Tenant-wide P5 config surfaced to super-admin |
 | Dual-model cohort analytics | **P2** | P6 | MSGF CONVERGE + ARBITRATE for emergent failures |
 | State laboratory launch | **P1** | P3 | Compliance pack per state adapter |
+| Citation Hall Engine (`3.0_RESEARCH` root) | **P6** | P4 | Genealogical schema relaxed to accept `3.0_*` roots; new lineage `3.1.2_UNATTRIBUTED_SOURCE_STRING` (pillars §2.6.1) |
+| Trusted research domain registry | **P6** | P1 | Per-tenant allowlist surfaced via admin governance dashboard |
 
 ---
 
@@ -111,6 +118,12 @@ Use this with [`syntax_education_pillars.md`](./syntax_education_pillars.md) for
 | **P6** | District curriculum ingest + 1.1.1 tree | 1 | 🔴 |
 | **P6** | Mistake hall + strength-based tutor memory | 1–2 | 🔴 |
 | **P6** | Human Effort Certificate export | 1 | 🔴 |
+| **P4** | External telemetry router (`ecosystem_source` + degraded modes) | 2 | 🔴 |
+| **P4 / P5** | Google Workspace add-on (Docs / Sheets / Slides) | 2 | 🔴 |
+| **P4 / P5** | Microsoft 365 add-in (Word / Excel / PowerPoint) | 2 | 🔴 |
+| **P4** | Active session focus monitor (`document.hidden` + blur) | 2 | 🔴 |
+| **P5 / P6** | Embedded research portal + reading-time tracker | 2–3 | 🔴 |
+| **P6** | Citation Hall Engine (`3.0_RESEARCH` lineage + schema relax) | 2–3 | 🔴 |
 
 ---
 
@@ -175,3 +188,4 @@ These deltas are intentional in this roadmap so Cursor indexes **one** pillar tr
 | Date | Change |
 | :--- | :--- |
 | 2026-05-18 | Initial roadmap; feature–pillar matrix; HAL on P4 per MSGF SSOT |
+| 2026-05-18 | Phase 2/3 expansion: Google Workspace add-on, MS 365 add-in, focus monitor, embedded research portal, Citation Hall Engine; aligned to pillars §3 / §2.4.1 / §2.6.1 |

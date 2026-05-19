@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Syntax Education — Microsoft 365 add-in (Word · Excel · PowerPoint).
+  Pillars §3.1 (cross-platform add-on matrix) and §2.4.1 (external telemetry routing).
+
+  Replace placeholder GUIDs + SourceLocation URLs before sideloading via Office Admin Center.
+-->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xsi:type="TaskPaneApp">
+
+  <Id>00000000-0000-0000-0000-000000000001</Id>
+  <Version>0.1.0</Version>
+  <ProviderName>Elphie Syntax LLC</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Syntax Educates" />
+  <Description DefaultValue="Active session focus + Embedded Research Portal + Citation Hall Engine for Syntax Education." />
+  <IconUrl DefaultValue="https://syntaxeducates.elphiesyntax.com/icon-64.png" />
+  <HighResolutionIconUrl DefaultValue="https://syntaxeducates.elphiesyntax.com/icon-128.png" />
+  <SupportUrl DefaultValue="https://syntaxeducates.elphiesyntax.com/support" />
+
+  <AppDomains>
+    <AppDomain>https://msgf.elphiesyntax.com</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Document" />
+    <Host Name="Workbook" />
+    <Host Name="Presentation" />
+  </Hosts>
+
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="AddinCommands" MinVersion="1.1" />
+    </Sets>
+  </Requirements>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://syntaxeducates.elphiesyntax.com/addons/microsoft-365/taskpane.html" />
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+</OfficeApp>
