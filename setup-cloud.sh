@@ -295,22 +295,119 @@ if [[ -z "${IMAGE_TAG// /}" ]]; then
 fi
 IMAGE_URI="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
+# --- Runtime env file (loaded BEFORE Cloud Build: Next.js inlines NEXT_PUBLIC_* at build time) ---
+declare -A RUN_ENV=()
+RUN_ENV[NODE_ENV]="production"
+RUN_ENV[NEXT_TELEMETRY_DISABLED]="1"
+
+if [[ -f "${CLOUDRUN_ENV_FILE}" ]]; then
+  echo "Loading Cloud Run / build env from ${CLOUDRUN_ENV_FILE}"
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line="${line//$'\r'/}"
+    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// /}" ]] && continue
+    if [[ "${line}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+      k="${line%%=*}"
+      v="${line#*=}"
+      # Strip inline trailing comments: KEY=value  # note
+      v="${v%%[[:space:]]#*}"
+      v="${v%"${v##*[![:space:]]}"}"
+      RUN_ENV["${k}"]="${v}"
+    fi
+  done <"${CLOUDRUN_ENV_FILE}"
+fi
+
+# Non-secret vars taken from the invoking shell when exported (use Secret Manager for keys).
+ALLOWLIST_EXPORT_KEYS=(
+  NODE_ENV
+  NEXT_TELEMETRY_DISABLED
+  HOSTNAME
+  GCP_LOCATION
+  LOG_LEVEL
+  NEXT_PUBLIC_SUPABASE_URL
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+)
+for key in "${ALLOWLIST_EXPORT_KEYS[@]}"; do
+  eval "v=\${${key}-}"
+  if [[ -n "${v}" ]]; then
+    RUN_ENV["${key}"]="${v}"
+  fi
+done
+
 # --- Build (Cloud Build: submit context + tag → Artifact Registry) ------------
 echo ""
 echo "Building and pushing: ${IMAGE_URI}"
 echo "Context: ${SCRIPT_DIR}  Dockerfile: ${DOCKERFILE_PATH}"
 
 run_cloud_build_default_dockerfile() {
-  gcloud builds submit "${SCRIPT_DIR}" \
-    --project="${GCP_PROJECT_ID}" \
-    --tag="${IMAGE_URI}"
-}
+  local supa_url="${RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]:-}"
+  local supa_key="${RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]:-}"
+  if [[ -z "${supa_url}" || -z "${supa_key}" ]]; then
+    echo "" >&2
+    echo "Error: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be set" >&2
+    echo "  in ${CLOUDRUN_ENV_FILE} (or exported in the shell) before ./setup-cloud.sh runs." >&2
+    echo "  Next.js bakes these into the browser bundle at \`npm run build\` time — setting them" >&2
+    echo "  only on Cloud Run at runtime is not enough; the Docker build must receive them as" >&2
+    echo "  \`--build-arg\` (this script does that automatically when the keys exist in ${CLOUDRUN_ENV_FILE})." >&2
+    echo "  Dashboard: https://supabase.com/dashboard/project/_/settings/api" >&2
+    echo "" >&2
+    exit 1
+  fi
 
-run_cloud_build_custom_dockerfile() {
   local cb_tmp
   cb_tmp="$(mktemp "${TMPDIR:-/tmp}/msgf-cloudbuild.XXXXXX")"
   trap "rm -f '${cb_tmp}'" EXIT
   cat >"${cb_tmp}" <<EOF
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - Dockerfile
+      - -t
+      - ${IMAGE_URI}
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_URL=${supa_url}
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${supa_key}
+      - .
+images:
+  - ${IMAGE_URI}
+EOF
+  gcloud builds submit "${SCRIPT_DIR}" \
+    --project="${GCP_PROJECT_ID}" \
+    --config="${cb_tmp}"
+  trap - EXIT
+  rm -f "${cb_tmp}"
+}
+
+run_cloud_build_custom_dockerfile() {
+  local cb_tmp
+  local supa_url="${RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]:-}"
+  local supa_key="${RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]:-}"
+  cb_tmp="$(mktemp "${TMPDIR:-/tmp}/msgf-cloudbuild.XXXXXX")"
+  trap "rm -f '${cb_tmp}'" EXIT
+  if [[ -n "${supa_url}" && -n "${supa_key}" ]]; then
+    cat >"${cb_tmp}" <<EOF
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - ${DOCKERFILE_PATH}
+      - -t
+      - ${IMAGE_URI}
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_URL=${supa_url}
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${supa_key}
+      - .
+images:
+  - ${IMAGE_URI}
+EOF
+  else
+    echo "Warning: NEXT_PUBLIC_SUPABASE_* not set — custom Dockerfile build may produce a broken browser bundle." >&2
+    cat >"${cb_tmp}" <<EOF
 steps:
   - name: gcr.io/cloud-builders/docker
     args:
@@ -323,6 +420,7 @@ steps:
 images:
   - ${IMAGE_URI}
 EOF
+  fi
   gcloud builds submit "${SCRIPT_DIR}" \
     --project="${GCP_PROJECT_ID}" \
     --config="${cb_tmp}"
@@ -337,40 +435,7 @@ else
   run_cloud_build_custom_dockerfile
 fi
 
-# --- Runtime env: defaults + optional file + allowlisted shell exports ---------
-declare -A RUN_ENV=()
-RUN_ENV[NODE_ENV]="production"
-RUN_ENV[NEXT_TELEMETRY_DISABLED]="1"
-
-if [[ -f "${CLOUDRUN_ENV_FILE}" ]]; then
-  echo "Loading extra env from ${CLOUDRUN_ENV_FILE}"
-  while IFS= read -r line || [[ -n "${line}" ]]; do
-    line="${line//$'\r'/}"
-    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
-    [[ -z "${line// /}" ]] && continue
-    if [[ "${line}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-      k="${line%%=*}"
-      v="${line#*=}"
-      RUN_ENV["${k}"]="${v}"
-    fi
-  done <"${CLOUDRUN_ENV_FILE}"
-fi
-
-# Non-secret vars taken from the invoking shell when exported (use Secret Manager for keys).
-ALLOWLIST_EXPORT_KEYS=(
-  NODE_ENV
-  NEXT_TELEMETRY_DISABLED
-  HOSTNAME
-  GCP_LOCATION
-  LOG_LEVEL
-)
-for key in "${ALLOWLIST_EXPORT_KEYS[@]}"; do
-  eval "v=\${${key}-}"
-  if [[ -n "${v}" ]]; then
-    RUN_ENV["${key}"]="${v}"
-  fi
-done
-
+# --- Cloud Run deploy env string (RUN_ENV already populated above) ------------
 UPDATE_ENV_FLAGS=()
 ENV_STRING=""
 sep=""

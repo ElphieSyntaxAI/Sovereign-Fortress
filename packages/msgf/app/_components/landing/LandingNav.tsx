@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
+ * Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
  */
 import Link from "next/link";
 
@@ -53,6 +53,12 @@ export function LandingNav() {
             className="rounded-full px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
           >
             Sign in
+          </Link>
+          <Link
+            href="/admin/sign-in"
+            className="hidden rounded-full px-3 py-2 text-sm font-medium text-violet-200 transition hover:bg-violet-500/10 hover:text-violet-100 sm:inline-block"
+          >
+            Admin
           </Link>
           <Link
             href="/sign-up"

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
+ * Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
  */
 /**
  * Single source of truth for the Elphie Syntax brand mark used in MSGF chrome
@@ -16,8 +16,8 @@
  *
  * Source PNG lives at `packages/msgf/public/brand/elphie-syntax-logo.png` so any
  * Cloud Run / Vercel deploy serves it directly from `/brand/elphie-syntax-logo.png`.
- * `next/image` keeps it sharp on Retina with `width`/`height` baked from the
- * source canvas (1024×1024 square).
+ * We use `unoptimized` so the browser loads that static URL — no dependency on the
+ * `/_next/image` optimizer (avoids extra sharp/runtime work in minimal containers).
  */
 import Image from "next/image";
 
@@ -59,6 +59,7 @@ export function BrandLogo({
         width={size}
         height={size}
         priority={priority}
+        unoptimized
         sizes={`${size}px`}
         style={{ width: size, height: size, objectFit: "contain" }}
       />

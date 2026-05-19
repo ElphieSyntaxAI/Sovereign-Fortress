@@ -75,6 +75,13 @@ COPY tools ./tools
 # no BuildKit mounts).
 COPY --from=deps /app/packages/msgf/node_modules ./packages/msgf/node_modules
 
+# --- Browser bundle: Next inlines `NEXT_PUBLIC_*` at compile time. Cloud Build does not copy
+# `.env*` into this stage — pass these via `docker build --build-arg` (see `setup-cloud.sh`).
+ARG NEXT_PUBLIC_SUPABASE_URL=
+ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+
 # MSGF: `build:sdk:prod` emits SDK under packages/msgf/dist; `next build` emits `.next/standalone`
 # with traced production dependencies only (devDependencies stay outside this artifact tree).
 # Parentheses: without them, `a && b || true` succeeds even when `a` (the build) fails.
@@ -109,8 +116,10 @@ RUN apt-get update \
 
 # Next standalone output (includes traced production node_modules / workspace copies).
 # Static chunks live outside the standalone folder and must be copied explicitly.
+# `public/` is NOT inside standalone — without it, `/_next/image` and `/brand/*` 400/404 in Cloud Run.
 COPY --from=builder --chown=node:node /app/packages/msgf/.next/standalone ./
 COPY --from=builder --chown=node:node /app/packages/msgf/.next/static ./packages/msgf/.next/static
+COPY --from=builder --chown=node:node /app/packages/msgf/public ./packages/msgf/public
 
 # Official Node.js image provides non-root user `node` (UID 1000).
 USER node

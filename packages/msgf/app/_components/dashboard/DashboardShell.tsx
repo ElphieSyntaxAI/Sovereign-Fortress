@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-463028d-20260519T145611Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
  */
 /**
@@ -102,6 +126,8 @@ import type {
 type Props = {
   userEmail: string;
   initialReport: PillarHealthReport;
+  authRedirectPath?: string;
+  dashboardLabel?: string;
 };
 
 type PillarHealthApiResponse = PillarHealthReport & { ok?: boolean; error?: string };
@@ -261,7 +287,12 @@ function PillarCard({
   );
 }
 
-export function DashboardShell({ userEmail, initialReport }: Props) {
+export function DashboardShell({
+  userEmail,
+  initialReport,
+  authRedirectPath = "/sign-in?next=/dashboard",
+  dashboardLabel = "Governance dashboard",
+}: Props) {
   const [report, setReport] = useState<PillarHealthReport>(initialReport);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -276,7 +307,7 @@ export function DashboardShell({ userEmail, initialReport }: Props) {
         cache: "no-store",
       });
       if (res.status === 401) {
-        window.location.assign("/sign-in?next=/dashboard");
+        window.location.assign(authRedirectPath);
         return;
       }
       const json = (await res.json()) as PillarHealthApiResponse;
@@ -291,7 +322,7 @@ export function DashboardShell({ userEmail, initialReport }: Props) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authRedirectPath]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -328,7 +359,7 @@ export function DashboardShell({ userEmail, initialReport }: Props) {
               Glass-box overview
             </p>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              <span className="text-gradient-jewel">Governance dashboard</span>
+              <span className="text-gradient-jewel">{dashboardLabel}</span>
             </h1>
             <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
               Real-time stoplight matrix for MSGF V3.0 six-pillar governance and V3.2-ULTRA execution

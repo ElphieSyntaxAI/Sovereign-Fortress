@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-463028d-20260519T145611Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
  */
 /**
@@ -109,13 +133,15 @@ type Props = {
   mode: Mode;
   /** Override default post-login path (e.g. from `?next=/dashboard`). */
   postLoginPath?: string;
+  /** Admin/operator mode keeps the same Supabase Auth flow but targets `/admin/dashboard`. */
+  variant?: "default" | "admin";
 };
 
 function authCallbackUrl(): string {
   return resolveAuthRedirectUrl("/auth/callback");
 }
 
-export function AuthForm({ mode, postLoginPath }: Props) {
+export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -123,6 +149,7 @@ export function AuthForm({ mode, postLoginPath }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const isSignUp = mode === "sign-up";
+  const isAdmin = variant === "admin";
 
   const submit = useCallback(
     async (e: React.FormEvent) => {
@@ -187,7 +214,11 @@ export function AuthForm({ mode, postLoginPath }: Props) {
         }
 
         const targetPath =
-          postLoginPath?.trim().startsWith("/") ? postLoginPath.trim() : msgfPostLoginPath();
+          postLoginPath?.trim().startsWith("/")
+            ? postLoginPath.trim()
+            : isAdmin
+              ? "/admin/dashboard"
+              : msgfPostLoginPath();
         const redirectUrl = resolveAuthRedirectUrl(targetPath);
         console.info("[AuthForm] sign-in OK, redirecting to", redirectUrl);
         window.location.assign(redirectUrl);
@@ -199,7 +230,7 @@ export function AuthForm({ mode, postLoginPath }: Props) {
         setLoading(false);
       }
     },
-    [email, password, isSignUp, postLoginPath]
+    [email, password, isSignUp, isAdmin, postLoginPath]
   );
 
   return (
@@ -252,11 +283,18 @@ export function AuthForm({ mode, postLoginPath }: Props) {
         disabled={loading}
         className="w-full rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-60"
       >
-        {loading ? "Please wait…" : isSignUp ? "Create account" : "Sign in"}
+        {loading ? "Please wait…" : isSignUp ? "Create account" : isAdmin ? "Sign in as admin" : "Sign in"}
       </button>
 
       <p className="text-center text-sm text-slate-500">
-        {isSignUp ? (
+        {isAdmin ? (
+          <>
+            Admin access uses your Supabase account plus MSGF operator role.{" "}
+            <Link href="/sign-in" className="font-medium text-violet-300 hover:text-violet-200">
+              Standard sign in
+            </Link>
+          </>
+        ) : isSignUp ? (
           <>
             Already have an account?{" "}
             <Link href="/sign-in" className="font-medium text-violet-300 hover:text-violet-200">

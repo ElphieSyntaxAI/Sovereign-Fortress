@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
+ * Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
  */
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -18,6 +18,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export const createClient = () => {
+  if (!supabaseUrl?.trim() || !supabaseKey?.trim()) {
+    const msg =
+      "MSGF: Supabase browser client is missing NEXT_PUBLIC_SUPABASE_URL or " +
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. These are inlined at `next build` time — " +
+      "rebuild the Docker image with --build-arg (see repo Dockerfile + setup-cloud.sh), " +
+      "or run `next dev` with a root `.env.local` containing both keys.";
+    if (typeof window !== "undefined") {
+      console.error(msg);
+    }
+    throw new Error(msg);
+  }
+
   const host =
     typeof window !== "undefined" ? window.location.hostname : undefined;
   const domain = msgfAuthCookieDomainForHost(host);

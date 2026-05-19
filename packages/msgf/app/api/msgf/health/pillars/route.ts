@@ -8,12 +8,16 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
+ * Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
+import {
+  healthOptionsForSessionOperator,
+  resolveSessionDashboardOperator,
+} from "@/lib/msgf-admin-session";
 import { MSGF_PERSONAL_SANDBOX_HEADER } from "@/lib/msgf-http-headers";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
 import {
@@ -22,7 +26,10 @@ import {
 } from "@/lib/msgf-operator-access";
 import { healthService } from "@/lib/services/HealthService";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient as createSupabaseServerClient } from "@/utils/supabase/server";
+import {
+  createClient as createSupabaseServerClient,
+  requestHostFromRequest,
+} from "@/utils/supabase/server";
 
 function healthJson(req: NextRequest, data: unknown, init?: ResponseInit) {
   const res = NextResponse.json(data, init);
@@ -119,7 +126,7 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       if (e instanceof MsgfAdminAuthError) {
         const cookieStore = await cookies();
-        const supabase = createSupabaseServerClient(cookieStore);
+        const supabase = createSupabaseServerClient(cookieStore, requestHostFromRequest(req));
         const {
           data: { user },
           error: userError,
@@ -129,11 +136,19 @@ export async function GET(req: NextRequest) {
           return healthJson(req, { ok: false, error: "Unauthorized" }, { status: 401 });
         }
         const lookbackHours = Number(req.nextUrl.searchParams.get("lookback_hours") ?? "168");
-        reportOptions = {
-          userId: user.id,
-          lookbackHours: Number.isFinite(lookbackHours) ? lookbackHours : 168,
-        };
-        global = false;
+        const lb = Number.isFinite(lookbackHours) ? lookbackHours : 168;
+        const sessionOperator = await resolveSessionDashboardOperator(admin, user);
+
+        if (sessionOperator.role === "GLOBAL_ADMIN" || sessionOperator.role === "COMPANY_ADMIN") {
+          reportOptions = await healthOptionsForSessionOperator(admin, sessionOperator, lb);
+          global = sessionOperator.role === "GLOBAL_ADMIN";
+        } else {
+          reportOptions = {
+            userId: user.id,
+            lookbackHours: lb,
+          };
+          global = false;
+        }
       } else {
         throw e;
       }
