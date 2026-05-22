@@ -406,7 +406,14 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
           <h2 className="mt-1 text-lg font-semibold text-slate-100">Connect Cursor or VS Code</h2>
           <p className="mt-2 max-w-xl text-sm text-slate-400">
             Three steps: paste settings, install the guard extension, then open your repo. Pulse uses
-            your sign-in token and personal sandbox tenant — no manual license minting.
+            your sign-in token and personal sandbox tenant — no manual license minting. Settings
+            include <code className="text-violet-200">msgf.devSession</code> for vibe-coding (save-primary
+            flush, relaxed drift during builds). Build failures can post to{" "}
+            <code className="text-violet-200">/api/msgf/dev-event</code> (Heal Cheap). Track savings on{" "}
+            <a href="/dashboard#token-savings" className="text-amber-300 hover:underline">
+              dashboard → Token savings
+            </a>
+            .
           </p>
         </div>
         <button

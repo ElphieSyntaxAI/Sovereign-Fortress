@@ -48,6 +48,8 @@ export type LogicDriftInput = {
    * @default {@link LOGIC_DRIFT_ESCALATION_THRESHOLD}
    */
   escalationThreshold?: number;
+  /** IDE dev session — optional score discounts (build active, system-heavy paste). */
+  driftScoreDiscount?: number;
 };
 
 export type LogicDriftAssessment = {
@@ -126,8 +128,9 @@ export function assessLogicDrift(input: LogicDriftInput): LogicDriftAssessment {
     text.length > 0 ? new Set(text.toLowerCase().split(/\s+/)).size / Math.max(1, text.split(/\s+/).length) : 1;
   const textEntropy = uniqueRatio < 0.35 && text.length > 120 ? 0.12 : 0;
 
+  const discount = Math.max(0, Math.min(0.35, input.driftScoreDiscount ?? 0));
   const raw =
-    vaultContradiction + shadowTier + halPenalty + biometricDrift + textEntropy;
+    vaultContradiction + shadowTier + halPenalty + biometricDrift + textEntropy - discount;
   const score = Math.max(0, Math.min(1, Math.round(raw * 100) / 100));
 
   const contradicts = vaultContradiction > 0;

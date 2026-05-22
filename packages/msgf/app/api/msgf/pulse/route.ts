@@ -32,6 +32,7 @@ import {
   getPulseIdempotencyCache,
   setPulseIdempotencyCache,
 } from "@/lib/services/pulse-idempotency";
+import { recordSavingsFeatureCount } from "@/lib/services/savings-features-stats";
 import { estimatePulseRoutingTokenSavings } from "@/lib/services/pulse-eco-savings";
 import { insertPulseAdminVaultForensic } from "@/lib/services/pulse-admin-vault";
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
@@ -66,6 +67,7 @@ import {
   inferV32FromPulseForensic,
   isRedisRequiredForPulse,
 } from "@/lib/v32-ultra-directive";
+import { parseDevSessionFromHeaders } from "@/lib/services/dev-session-profile";
 
 function pulseJson(req: NextRequest, data: unknown, init?: ResponseInit) {
   const res = NextResponse.json(data, init);
@@ -113,6 +115,7 @@ async function runPulsePipelineWithHotLayer(params: {
   byokAnthropicKey: string | null;
   isIdePulse?: boolean;
   authorHalTelemetry?: ReturnType<typeof parseAuthorHalTelemetryHeader>;
+  devSession?: ReturnType<typeof parseDevSessionFromHeaders>;
 }) {
   return pulseEngine.runFullPipeline({
     supabase: params.supabase,
@@ -131,6 +134,7 @@ async function runPulsePipelineWithHotLayer(params: {
     byokGeminiKey: params.byokGeminiKey,
     byokAnthropicKey: params.byokAnthropicKey,
     isIdePulse: params.isIdePulse,
+    devSession: params.devSession,
   });
 }
 
@@ -256,6 +260,7 @@ export async function POST(req: NextRequest) {
         idempotencyKey,
       });
       if (cached) {
+        void recordSavingsFeatureCount(tenantId, "pulse_idempotency_replay");
         const cachedRes = pulseJsonWithTrace(req, traceId, cached.body, {
           status: cached.status,
         });
@@ -275,6 +280,7 @@ export async function POST(req: NextRequest) {
         reserveAmount
       );
       if (creditStart.enabled && creditStart.insufficient) {
+        void recordSavingsFeatureCount(tenantId, "credit_reserve_denied");
         return pulseJsonWithTrace(
           req,
           traceId,
@@ -282,10 +288,17 @@ export async function POST(req: NextRequest) {
           { status: 402 }
         );
       }
+      if (creditStart.enabled && !creditStart.insufficient) {
+        void recordSavingsFeatureCount(tenantId, "credit_reserve_ok");
+      }
 
       const forceMismatch =
         req.headers.get("x-msgf-test-force-mismatch")?.toLowerCase() === "true";
       const logicDriftEscalationThreshold = parseLogicDriftThresholdFromHeaders(req.headers);
+      const devSession = parseDevSessionFromHeaders(req.headers);
+      if (devSession.devSession || idePulse) {
+        void recordSavingsFeatureCount(tenantId, "dev_session_pulse");
+      }
 
       const rawBody = await req.json();
       const pulseTextSeed = peekPulseTextSeed(rawBody);
@@ -346,6 +359,7 @@ export async function POST(req: NextRequest) {
           byokGeminiKey: byok.gemini,
           byokAnthropicKey: byok.anthropic,
           isIdePulse: idePulse,
+          devSession: idePulse || devSession.devSession ? devSession : undefined,
         });
       } catch (e) {
         if (e instanceof PulseHttpError) {

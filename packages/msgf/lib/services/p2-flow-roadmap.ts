@@ -307,8 +307,47 @@ export function buildP2RoadmapDirective(roadmap: P2RoadmapConfig): string {
   ].join("\n");
 }
 
-export function buildVaultCrossRefContext(prioritized: PrioritizedVaultLineage): string {
+function normalizeActiveFilePath(activeFilePath: string | undefined): string | null {
+  const p = activeFilePath?.trim().replace(/\\/g, "/");
+  if (!p) return null;
+  return p.toLowerCase().slice(0, 512);
+}
+
+function vaultRowMatchesActiveFile(row: VaultLineageRow, activeNorm: string | null): boolean {
+  if (!activeNorm) return false;
+  const hay = normalizeHaystack(row);
+  const base = activeNorm.split("/").pop() ?? activeNorm;
+  return hay.includes(activeNorm) || (base.length > 2 && hay.includes(base));
+}
+
+function reorderClassificationsForActiveFile<T extends VaultP2Classification>(
+  rows: T[],
+  activeNorm: string | null
+): T[] {
+  if (!activeNorm || rows.length < 2) return rows;
+  const matched: T[] = [];
+  const rest: T[] = [];
+  for (const c of rows) {
+    if (vaultRowMatchesActiveFile(c.row, activeNorm)) matched.push(c);
+    else rest.push(c);
+  }
+  return [...matched, ...rest];
+}
+
+export type BuildVaultCrossRefOptions = {
+  /** IDE workspace-relative path — matching vault rows are listed first. */
+  activeFilePath?: string | null;
+};
+
+export function buildVaultCrossRefContext(
+  prioritized: PrioritizedVaultLineage,
+  options?: BuildVaultCrossRefOptions
+): string {
+  const activeNorm = normalizeActiveFilePath(options?.activeFilePath ?? undefined);
   const lines: string[] = ["", "VAULT CROSS-REF (1.1.1 lineage, P2-prioritized):"];
+  if (activeNorm) {
+    lines.push(`- P5 shard boost: active file \`${activeNorm}\``);
+  }
 
   if (!prioritized.prioritized.length) {
     lines.push("- (no matching Vault rows for this pulse seed)");
@@ -324,8 +363,14 @@ export function buildVaultCrossRefContext(prioritized: PrioritizedVaultLineage):
     );
   };
 
-  const humanBeats = prioritized.aligned.filter(isHumanCorrectedRow);
-  const otherAligned = prioritized.aligned.filter((c) => !isHumanCorrectedRow(c));
+  const humanBeats = reorderClassificationsForActiveFile(
+    prioritized.aligned.filter(isHumanCorrectedRow),
+    activeNorm
+  );
+  const otherAligned = reorderClassificationsForActiveFile(
+    prioritized.aligned.filter((c) => !isHumanCorrectedRow(c)),
+    activeNorm
+  );
 
   for (const c of humanBeats.slice(0, 4)) {
     lines.push(

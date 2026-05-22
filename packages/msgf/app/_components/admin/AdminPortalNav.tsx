@@ -290,6 +290,7 @@ type Props = {
 const NAV_ITEMS = [
   { href: "/admin/portal", label: "Portal" },
   { href: "/admin/dashboard", label: "Ops dashboard" },
+  { href: "/admin/dashboard#token-savings", label: "Token savings" },
   { href: "/dashboard", label: "Your governance" },
   { href: "/workspace", label: "Workspace" },
 ] as const;

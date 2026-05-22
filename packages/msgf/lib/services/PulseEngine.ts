@@ -107,6 +107,15 @@ import {
   type PrioritizedVaultLineage,
 } from "@/lib/services/p2-flow-roadmap";
 import { resolvePrioritizedVaultLineageForP2 } from "@/lib/services/vault-lineage-p2-cache";
+import { applyConvergeShardableContextBudget } from "@/lib/services/converge-context-budget";
+import {
+  buildConvergeResolutionString,
+  computeConvergeAgreementScore,
+  computeConvergeContentHash,
+  getOrSetConvergeCache,
+  resolveConvergeRoutingProfile,
+  type ConvergeCachedChunk,
+} from "@/lib/services/converge-cache";
 import type { PulseLicenseContext } from "@/lib/services/pulse-license";
 import { assessLogicDrift, shouldEscalateToGlobalBrain } from "@/lib/services/logic-drift";
 import { processLocalGateway } from "@/lib/services/local-state-gateway";
@@ -256,6 +265,8 @@ export type PulseFullPipelineInput = PulseEngineInput & {
   license: PulseLicenseContext;
   /** Logic-drift sensitivity slider (0.1 strict â†’ 0.5 relaxed). Default 0.3. */
   logicDriftEscalationThreshold?: number;
+  /** IDE vibe-coding / build-active hints from Pulse HTTP headers. */
+  devSession?: import("@/lib/services/dev-session-profile").DevSessionHints;
   /** V3.2 SHARD / CROSS-REF hot session from the HTTP route (Redis fail-open). */
   hotSession?: PulseHotSession;
   /** IDE `.msgf/keys` BYOK for dual-model local gateway. */
@@ -393,7 +404,9 @@ export class PulseEngine {
 
 
   async runThroughDefend(
-    input: PulseEngineInput,
+    input: PulseEngineInput & {
+      devSession?: import("@/lib/services/dev-session-profile").DevSessionHints;
+    },
     isPillarBaselineSet = false
   ): Promise<PulsePipelineContext> {
     const gated = this.gate(input.rawBody);
@@ -404,6 +417,8 @@ export class PulseEngine {
       entityId: input.entityId,
       pulseText: gated.pulseText,
       keystrokes: gated.keystrokes,
+      activeFilePath: input.devSession?.activeFilePath ?? undefined,
+      applyContextBudget: true,
     });
     const preflight = await this.defend({
       supabase: input.supabase,
@@ -452,6 +467,7 @@ export class PulseEngine {
       geminiModelId: string;
       byokGeminiKey?: string;
       byokAnthropicKey?: string;
+      convergeRoutingProfile?: string;
     }
   ): Promise<PulseConsensusCoreResult> {
     const p4 = new StateLedgerP4(ctx.supabase, ctx.tenantId);
@@ -466,17 +482,74 @@ export class PulseEngine {
       ctx.byokGeminiKey?.trim() && ctx.byokAnthropicKey?.trim()
     );
 
-    const consensus = await Promise.all(
-      chunkForConsensus.map((c) =>
-        this.runConsensusForChunk(c, ctx.beatsContext, ctx.geminiModelId, momentumRetryForPrompt, {
-          p2FlowDirective: ctx.p2FlowDirective,
-          vaultCrossRefContext: ctx.vaultCrossRefContext,
-          defendConstraints: ctx.defendConstraints,
-          byokGeminiKey: useByokConverge ? ctx.byokGeminiKey : undefined,
-          byokAnthropicKey: useByokConverge ? ctx.byokAnthropicKey : undefined,
-        })
-      )
-    );
+    const routingProfile =
+      ctx.convergeRoutingProfile ??
+      resolveConvergeRoutingProfile(
+        useByokConverge ? "individual_byok" : "corporate_system",
+        ctx.geminiModelId
+      );
+    const contentHash = computeConvergeContentHash({
+      pulseText: ctx.pulseText,
+      beatsContext: ctx.beatsContext,
+      vaultCrossRefFingerprint: ctx.vaultCrossRefContext,
+    });
+
+    const toCached = (c: ChunkConsensus): ConvergeCachedChunk => ({
+      gemini: { verdict: c.gemini.verdict, reason: c.gemini.reason },
+      claude: { verdict: c.claude.verdict, reason: c.claude.reason },
+      agreement: c.agreement,
+      decision: c.decision,
+      halScore: c.halScore,
+    });
+
+    const fromCached = (c: ConvergeCachedChunk): ChunkConsensus => ({
+      gemini: {
+        verdict: c.gemini.verdict as ConsensusVote,
+        reason: c.gemini.reason,
+      },
+      claude: {
+        verdict: c.claude.verdict as ConsensusVote,
+        reason: c.claude.reason,
+      },
+      agreement: c.agreement,
+      decision: c.decision as ChunkConsensus["decision"],
+      halScore: c.halScore,
+    });
+
+    const cacheResult = await getOrSetConvergeCache({
+      tenantId: ctx.tenantId,
+      contentHash,
+      routingProfile,
+      entityId: ctx.entityId,
+      projectOrigin: ctx.tenantId,
+      packetCount: chunkForConsensus.length,
+      runConverge: async () => {
+        const freshConsensus = await Promise.all(
+          chunkForConsensus.map((c) =>
+            this.runConsensusForChunk(c, ctx.beatsContext, ctx.geminiModelId, momentumRetryForPrompt, {
+              p2FlowDirective: ctx.p2FlowDirective,
+              vaultCrossRefContext: ctx.vaultCrossRefContext,
+              defendConstraints: ctx.defendConstraints,
+              byokGeminiKey: useByokConverge ? ctx.byokGeminiKey : undefined,
+              byokAnthropicKey: useByokConverge ? ctx.byokAnthropicKey : undefined,
+            })
+          )
+        );
+        const cachedChunks = freshConsensus.map(toCached);
+        return {
+          resolution: buildConvergeResolutionString(cachedChunks),
+          agreementScore: computeConvergeAgreementScore(cachedChunks),
+          consensus: cachedChunks,
+        };
+      },
+    });
+
+    const consensus = cacheResult.consensus.map(fromCached);
+    if (cacheResult.cacheHit) {
+      console.info(
+        `[converge-cache] HIT tenant=${ctx.tenantId} profile=${routingProfile} agreement=${cacheResult.agreementScore.toFixed(2)}`
+      );
+    }
 
     const allHumanConfirmed = consensus.every((c) => c.decision === "HUMAN_CONFIRMED");
     const geminiVerdict = aggregateVerdict(consensus.map((c) => c.gemini.verdict));
@@ -770,7 +843,13 @@ export class PulseEngine {
       byokAnthropicKey?: string;
     }
   ): Promise<PulseConvergeContext> {
-    const core = await this.runConsensusCore(ctx);
+    const core = await this.runConsensusCore({
+      ...ctx,
+      convergeRoutingProfile: resolveConvergeRoutingProfile(
+        ctx.convergeCredentialMode,
+        ctx.geminiModelId
+      ),
+    });
     return this.runArbitratePhase(ctx, core);
   }
 
@@ -1376,6 +1455,8 @@ export class PulseEngine {
     pulseText: string;
     keystrokes: KeystrokeEvent[];
     documentId?: string;
+    activeFilePath?: string;
+    applyContextBudget?: boolean;
   }): Promise<{
     previousBeats: StateBeatRow[];
     previousRetryCount: number;
@@ -1409,11 +1490,16 @@ export class PulseEngine {
     const p2FlowDirective =
       buildP2RoadmapDirective(p2Roadmap) + formatGlobalMitigationsDirective(globalMitigations);
 
+    const lineageDocumentId =
+      params.activeFilePath?.trim() ||
+      params.documentId?.trim() ||
+      undefined;
+
     const lineage = await resolvePrioritizedVaultLineageForP2({
       supabase,
       tenantId,
       pulseText,
-      documentId: params.documentId,
+      documentId: lineageDocumentId,
       p2Roadmap,
       rulesSupabase: rulesClient,
     });
@@ -1421,22 +1507,40 @@ export class PulseEngine {
     const lineageRedisHit = lineage.cacheHit;
     const vaultP2Prioritized = lineage.prioritized;
     const vaultLineage = vaultP2Prioritized.prioritized;
-    const vaultCrossRefContext = buildVaultCrossRefContext(vaultP2Prioritized);
+    let vaultCrossRefContext = buildVaultCrossRefContext(vaultP2Prioritized, {
+      activeFilePath: params.activeFilePath,
+    });
+    let beatsContext = "";
+    let p2Flow = p2FlowDirective;
+    let defend = defendConstraints;
 
     const activeSlice = await getActiveSlice(entityId);
     if (activeSlice) {
+      beatsContext = activeSlice.beatsContext;
+      if (params.applyContextBudget) {
+        const budgeted = applyConvergeShardableContextBudget({
+          vaultCrossRefContext,
+          beatsContext,
+          p2FlowDirective: p2Flow,
+          defendConstraints: defend,
+        });
+        vaultCrossRefContext = budgeted.vaultCrossRefContext;
+        beatsContext = budgeted.beatsContext;
+        p2Flow = budgeted.p2FlowDirective;
+        defend = budgeted.defendConstraints;
+      }
       return {
         previousBeats: activeSlice.previousBeats,
         previousRetryCount: activeSlice.previousRetryCount,
-        beatsContext: activeSlice.beatsContext,
+        beatsContext,
         hotLayerHit: true,
         vaultLineage,
         lineageRedisHit,
         p2Roadmap,
         vaultP2Prioritized,
-        p2FlowDirective,
+        p2FlowDirective: p2Flow,
         vaultCrossRefContext,
-        defendConstraints,
+        defendConstraints: defend,
         globalMitigations,
       };
     }
@@ -1448,9 +1552,22 @@ export class PulseEngine {
       typeof latestBeat?.metadata?.retry_count === "number"
         ? (latestBeat.metadata.retry_count as number)
         : 0;
-    const beatsContext = previousBeats.length
+    beatsContext = previousBeats.length
       ? previousBeats.map((b) => `[${b.sequence_index}] ${b.beat_text}`).join("\n")
       : "(no prior beats)";
+
+    if (params.applyContextBudget) {
+      const budgeted = applyConvergeShardableContextBudget({
+        vaultCrossRefContext,
+        beatsContext,
+        p2FlowDirective: p2Flow,
+        defendConstraints: defend,
+      });
+      vaultCrossRefContext = budgeted.vaultCrossRefContext;
+      beatsContext = budgeted.beatsContext;
+      p2Flow = budgeted.p2FlowDirective;
+      defend = budgeted.defendConstraints;
+    }
 
     await setActiveSlice({
       entityId,
@@ -1467,9 +1584,9 @@ export class PulseEngine {
       lineageRedisHit,
       p2Roadmap,
       vaultP2Prioritized,
-      p2FlowDirective,
+      p2FlowDirective: p2Flow,
       vaultCrossRefContext,
-      defendConstraints,
+      defendConstraints: defend,
       globalMitigations,
     };
   }

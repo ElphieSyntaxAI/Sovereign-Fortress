@@ -51,6 +51,7 @@ import {
   partitionIngestFilesByContentHash,
   updateIngestHashesAfterSweep,
 } from "@/lib/services/ingest-hash-cache";
+import { recordSavingsFeatureCount } from "@/lib/services/savings-features-stats";
 import { isCostRunawayError, runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 import { preFlightCheck } from "@/lib/msgf-shadow";
@@ -216,6 +217,14 @@ export async function POST(req: NextRequest) {
         ? await partitionIngestFilesByContentHash(tenantId, ingestFiles)
         : { changed: [], unchanged: [], skipped_paths: [] };
 
+    if (hashPartition.skipped_paths.length > 0) {
+      void recordSavingsFeatureCount(
+        tenantId,
+        "ingest_hash_files_skipped",
+        hashPartition.skipped_paths.length
+      );
+    }
+
     const filesToSweep = hashPartition.changed;
     const runGeminiAudit =
       filesToSweep.length > 0 ||
@@ -239,7 +248,11 @@ export async function POST(req: NextRequest) {
         reserveAmount
       );
       if (creditStart.enabled && creditStart.insufficient) {
+        void recordSavingsFeatureCount(tenantId, "credit_reserve_denied");
         return NextResponse.json({ error: "INSUFFICIENT_FUNDS" }, { status: 402 });
+      }
+      if (creditStart.enabled && !creditStart.insufficient) {
+        void recordSavingsFeatureCount(tenantId, "credit_reserve_ok");
       }
     }
 

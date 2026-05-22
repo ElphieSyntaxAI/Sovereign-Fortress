@@ -48,10 +48,15 @@ export async function GET() {
 
   const apiUrl = resolveMsgfAppOrigin(requestHost);
   const tenantKey = resolveIdeTenantKey(session.user.id, firstOrigin);
+  const devSessionDefault =
+    process.env.MSGF_DEV_SESSION_DEFAULT?.trim().toLowerCase() !== "0" &&
+    process.env.MSGF_DEV_SESSION_DEFAULT?.trim().toLowerCase() !== "false";
+
   const settings = buildIdeWorkspaceSettings({
     apiUrl,
     tenantKey,
     authToken: session.access_token,
+    devSession: devSessionDefault,
   });
 
   return NextResponse.json({

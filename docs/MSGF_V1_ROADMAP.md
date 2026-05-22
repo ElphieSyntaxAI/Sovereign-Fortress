@@ -13,7 +13,7 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-05-23 (HAL portable bridge; next-steps §10; **Stripe deferred until post-test signoff**)
+**Last updated:** 2026-05-20 (token savings layer UI + docs; HAL portable bridge; **Stripe deferred until post-test signoff**)
 
 **Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf`
 
@@ -343,6 +343,31 @@ Verify locally (see [`MSGF_TESTING.md`](./MSGF_TESTING.md)):
 | `lib/schemas/remediation-state.ts` (client-safe) | ✅ | Breaks `node:async_hooks` leak into browser bundle via heal-queue Zod |
 | Production `next build` gate | ✅ | `npm run validate:deployment` — Supabase query types narrowed in heal-queue + remediation circuit |
 
+### 7.6 Token savings & efficiency layer (1.0)
+
+Model-based estimates and Redis counters — **not** Stripe billing truth. Full env table: [`packages/msgf/README.md`](../packages/msgf/README.md).
+
+| Feature | Status | Implementation | Dashboard / admin UI |
+| :--- | :---: | :--- | :--- |
+| **Pulse routing mix** | ✅ | `lib/services/pulse-routing-stats.ts` · `GET /api/msgf/dashboard/pulse-routing` | Pulse routing panel (24h local/bypass vs global CONVERGE) |
+| **CONVERGE result cache** | ✅ | `lib/services/converge-cache.ts` · Redis SHA256 key · eco hit on replay | Token savings panel · counter `converge_cache_hits` |
+| **IDE dev-event (Heal Cheap)** | ✅ | `POST /api/msgf/dev-event` · vault-first · bypasses biometric Pulse | Token savings panel · `dev_event` / vault hit counters |
+| **IDE dev-session** | ✅ | `lib/services/dev-session-profile.ts` · relaxed drift · build-active discount | Catalog on token savings panel · `x-msgf-dev-session` headers |
+| **Pulse idempotency** | ✅ | `lib/services/pulse-idempotency.ts` | Catalog + `pulse_idempotency_replays` counter |
+| **Ingest content-hash skip** | ✅ | `lib/services/ingest-hash-cache.ts` | Catalog + `ingest_hash_files_skipped` counter |
+| **usage_monitor** | ✅ | `lib/usage-monitor.ts` · `msgf_usage_monitor_add` RPC | Catalog (Postgres cumulative; no per-row UI in 1.0) |
+| **Credit reservation** | ✅ | `lib/credit-reservation.ts` · 402 on insufficient | Catalog + reserve / denied counters |
+| **CONVERGE context budget** | ✅ | `lib/services/converge-context-budget.ts` · `MSGF_CONVERGE_MAX_CONTEXT_TOKENS` | Catalog (env cap; wired in `PulseEngine`) |
+
+**Web surfaces**
+
+| Audience | URL | API |
+| :--- | :--- | :--- |
+| Tenant / buyer | `/dashboard#token-savings` | `GET /api/msgf/dashboard/savings-features?tenant_id=` |
+| Operator (GLOBAL / COMPANY admin) | `/admin/dashboard#token-savings` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` |
+
+**QA:** `npm run test:savings -w msgf` (includes checkpoints 18–19: dev-event routing + CONVERGE cache in `tests/savings-qa-checkpoints.test.ts`).
+
 ### 7.4 Deployment & release path
 
 | Step | Command | Who |
@@ -378,7 +403,10 @@ Verify locally (see [`MSGF_TESTING.md`](./MSGF_TESTING.md)):
 | `MSGF_BILLING_SOFT_CAP_USD`, `MSGF_CREDIT_GUARD_DISABLED` | Ops caps |
 | `MSGF_ENABLE_LOM_TEST` | Staging LOM harness |
 | `MSGF_OPS_CRON_SECRET` | **Required** for `POST /api/msgf/ops/v32-heartbeat` (Bearer or `X-MSGF-Ops-Cron-Secret`; admin key not accepted) |
-| `REDIS_URL` (or project Redis env) | V3.2 hot layer — P4 active slices |
+| `REDIS_URL` (or project Redis env) | V3.2 hot layer — P4 active slices · Pulse routing + savings counters |
+| `MSGF_CONVERGE_CACHE_*` · `MSGF_PULSE_IDEMPOTENCY_*` · `MSGF_INGEST_HASH_*` | Token savings layer (see §7.6) |
+| `MSGF_CREDIT_RESERVATION_*` · `MSGF_USAGE_MONITOR_WRITE` | Credit reserve + usage_monitor |
+| `MSGF_DEV_SESSION_*` · `POST /api/msgf/dev-event` | IDE vibe-coding + build_failed Heal Cheap |
 | GitHub `MSGF_APP_URL` + `MSGF_OPS_CRON_SECRET` | `.github/workflows/msgf-tier-heartbeat.yml` — tier + scheduled heals + purge |
 
 **DNS (production):**

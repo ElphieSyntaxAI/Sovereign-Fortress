@@ -50,6 +50,18 @@ export const MSGF_ENTITY_ID_HEADER = "x-msgf-entity-id";
 /** Marks a contract-license Pulse from {@link IdeConnector} (no browser session). */
 export const MSGF_IDE_PULSE_HEADER = "x-msgf-ide-pulse";
 
+/** Dev / vibe-coding profile — relaxed drift, save-primary flush from extension. */
+export const MSGF_DEV_SESSION_HEADER = "x-msgf-dev-session";
+
+/** `1` while `npm run build` / test runner is active (still allows pulse; relaxes drift). */
+export const MSGF_BUILD_ACTIVE_HEADER = "x-msgf-build-active";
+
+/** URI-encoded workspace-relative file path for P5 vault shard boost. */
+export const MSGF_ACTIVE_FILE_HEADER = "x-msgf-active-file";
+
+/** `save` | `debounce` | `build_end` | `manual` — how the IDE flushed buffered keys. */
+export const MSGF_FLUSH_REASON_HEADER = "x-msgf-flush-reason";
+
 /** Dashboard / BFF: Supabase `auth.users` id of the human operator (RBAC + audit). */
 export const MSGF_OPERATOR_USER_ID_HEADER = "x-msgf-operator-user-id";
 

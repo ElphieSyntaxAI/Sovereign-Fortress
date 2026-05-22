@@ -41,6 +41,23 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | `MSGF_PULSE_LOCAL_RESERVE_CHUNK` / `MSGF_INGEST_LIGHT_RESERVE_CHUNK` | Smaller reserves for Author HAL / hash-skipped ingest |
 | `MSGF_INGEST_HASH_SKIP` / `MSGF_INGEST_SKIP_AUDIT_ON_HASH_HIT` | Skip SWEEP/audit when file content hash unchanged |
 | `MSGF_NAIVE_DUAL_CONVERGE_TOKENS` / `MSGF_LOCAL_GATEWAY_BASE_TOKENS` | Token savings estimates (Pulse API + dashboard routing panel) |
+| `MSGF_CONVERGE_MAX_CONTEXT_TOKENS` | Cap vault + beats + P2 + DEFEND blocks before global CONVERGE (default 2400) |
+| `MSGF_DEV_SESSION_DEFAULT` / `MSGF_DEV_SESSION_DRIFT_RELAX` | IDE vibe-coding: relaxed logic drift, save-primary flush |
+| `x-msgf-dev-session`, `x-msgf-build-active`, `x-msgf-active-file`, `x-msgf-flush-reason` | IDE Pulse headers (see `IdeConnector`) |
+| `POST /api/msgf/dev-event` | IDE `build_failed` — vault-first Heal Cheap, no keystroke/biometric pipeline |
+| `MSGF_DEV_EVENT_VAULT_MATCH_MIN` / `MSGF_DEV_EVENT_GEMINI_MODEL` | Vault-only resolve threshold; Flash model (default `gemini-2.0-flash`) |
+| `MSGF_CONVERGE_CACHE_ENABLED` / `MSGF_CONVERGE_CACHE_TTL_SEC` | Redis replay of global dual-model CONVERGE (default 600s); eco rollup on cache hit |
+
+### Dashboard — token savings UI
+
+| Audience | Page | API |
+| :--- | :--- | :--- |
+| Signed-in tenant | `/dashboard#token-savings` | `GET /api/msgf/dashboard/savings-features?tenant_id=` |
+| GLOBAL / COMPANY admin | `/admin/dashboard#token-savings` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` |
+
+The **Token savings layer** panel lists 24h Redis counters (CONVERGE cache, dev-event, idempotency, ingest hash, credit reserve, dev-session) and an expandable **feature catalog** (env on/off). Pulse routing mix remains in its own panel above.
+
+**Tests:** `npm run test:savings` · QA checkpoints 18–19 in `tests/savings-qa-checkpoints.test.ts`.
 
 ### 2. Vertex AI credentials
 
@@ -220,7 +237,7 @@ npm run test:unit -w msgf
 
 | Role | What to run |
 | :--- | :--- |
-| **Admin — fast offline** | `npm run test:unit -w msgf` (heal-queue, ops-cron, crossref-db, remediation-circuit, human-arbitration, ingest-metadata) |
+| **Admin — fast offline** | `npm run test:unit -w msgf` · `npm run test:savings -w msgf` (token savings + dev-event + CONVERGE cache) |
 | **Admin — env / DB** | `npm run verify:msgf-env -w msgf` · `npm run verify:db-schema -w msgf` |
 | **Admin — integration** | `npm run test:integration -w msgf` (needs `.env`; optional `test:lom-disagreement` with dev server) |
 | **User** | Sign in → dashboard healing drawer; Pulse; IDE extension — no npm |
@@ -248,6 +265,7 @@ Use separate terminal commands (not PowerShell `&&` chains) when running multipl
 | `npm run probe:author-ecosystem -w msgf` | Cross-stack smoke (post–integration) |
 | `npm run security:prancer-pillars -w msgf` | Static security scan |
 | `npm run test:v32-ultra -w msgf` | V3.2-ULTRA integration harness (Vault/Hall, purge, directive) |
+| `npm run test:savings -w msgf` | Token savings bundle (routing, idempotency, ingest hash, dev-event, CONVERGE cache, QA 18–19) |
 | `GET /health` | Liveness + V3.2 SHARD (Redis) checklist |
 | `POST /api/msgf/ops/v32-heartbeat` | Cron: tier batches + **`6h`/`nightly`** scheduled heals (LOM consensus + Vault) + Hall purge — **`MSGF_OPS_CRON_SECRET` only** |
 | `GET/POST /api/msgf/heal-queue` | Remediation queue; `human_arbitration_packages` on GET; `POST .../human-arbitration` for APPROVE/DENY |

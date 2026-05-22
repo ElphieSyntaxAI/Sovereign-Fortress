@@ -2,7 +2,7 @@
 
 **Audience:** Operators / engineers (admin). End users validate MSGF through the web app, Pulse API, and IDE extension — not these npm scripts.
 
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-20
 
 **Companion:** [`packages/msgf/README.md`](../packages/msgf/README.md) (Phase 0 smoke) · [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) (third-party / solo API) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md)
 
@@ -46,6 +46,7 @@ No live Supabase or Vertex required. Safe for CI and local dev on any OS.
 | `npm run test:remediation-circuit -w msgf` | `PENDING_HUMAN_ARBITRATION` circuit breaker (max 3 failures) |
 | `npm run test:human-arbitration -w msgf` | Human arbitration packages from strategy matrix |
 | `npm run test:ingest-metadata -w msgf` | Ingest metadata / lineage Zod |
+| `npm run test:savings -w msgf` | Token savings bundle (routing, idempotency, ingest hash, dev-event, CONVERGE cache, QA checkpoints 18–19) |
 
 **Recommended admin smoke (fast):**
 

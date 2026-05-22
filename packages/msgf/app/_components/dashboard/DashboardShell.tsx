@@ -301,6 +301,7 @@ import {
   PostIngestHealingConsole,
   type HealConsoleStatus,
 } from "@/app/_components/dashboard/PostIngestHealingConsole";
+import { TokenSavingsFeaturesPanel } from "@/app/_components/dashboard/TokenSavingsFeaturesPanel";
 import { UserBlueprintEcoPanel } from "@/app/_components/dashboard/UserBlueprintEcoPanel";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
 import {
@@ -1518,6 +1519,11 @@ export function DashboardShell({
 
         <PulseRoutingMixPanel tenantId={healQueueTenantId} />
 
+        <TokenSavingsFeaturesPanel
+          tenantId={healQueueTenantId}
+          operatorView={embeddedInAdminPortal}
+        />
+
         {dailyReport ? (
           <EnvironmentalMitigationSummaryCard
             metrics={dailyReport.financial_overhead_summary.eco_metrics}
@@ -1545,6 +1551,7 @@ export function DashboardShell({
       <DashboardNav
         userEmail={userEmail}
         showAdminPortalLink={canAccessAdminDashboard}
+        tokenSavingsHref="/dashboard#token-savings"
       />
       {content}
     </div>

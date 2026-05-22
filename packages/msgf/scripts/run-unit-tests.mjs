@@ -301,6 +301,10 @@ const UNIT_TESTS = [
   { label: "test:ingest-hash-cache", args: ["--test", "tests/ingest-hash-cache.test.ts"] },
   { label: "test:pulse-idempotency", args: ["--test", "tests/pulse-idempotency.test.ts"] },
   { label: "test:usage-monitor", args: ["--test", "tests/usage-monitor.test.ts"] },
+  { label: "test:converge-context-budget", args: ["--test", "tests/converge-context-budget.test.ts"] },
+  { label: "test:dev-session-profile", args: ["--test", "tests/dev-session-profile.test.ts"] },
+  { label: "test:vault-active-file-shard", args: ["--test", "tests/vault-active-file-shard.test.ts"] },
+  { label: "test:converge-cache", args: ["--test", "tests/converge-cache.test.ts"] },
 ];
 
 function resolveTsxCli() {

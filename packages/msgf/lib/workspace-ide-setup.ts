@@ -40,6 +40,10 @@ export type IdeWorkspaceSettings = {
   "msgf.tenantKey": string;
   "msgf.authToken": string;
   "msgf.role": string;
+  /** Vibe-coding profile: save-primary pulse flush + build-active drift relax. */
+  "msgf.devSession"?: boolean;
+  /** Brain sensitivity 0.1 (strict) → 0.5 (relaxed). */
+  "msgf.brainSensitivity"?: number;
 };
 
 export function buildIdeWorkspaceSettings(input: {
@@ -47,13 +51,20 @@ export function buildIdeWorkspaceSettings(input: {
   tenantKey: string;
   authToken: string;
   role?: string;
+  devSession?: boolean;
+  brainSensitivity?: number;
 }): IdeWorkspaceSettings {
-  return {
+  const settings: IdeWorkspaceSettings = {
     "msgf.apiUrl": input.apiUrl.replace(/\/$/, ""),
     "msgf.tenantKey": input.tenantKey,
     "msgf.authToken": input.authToken,
     "msgf.role": input.role ?? "dev",
   };
+  if (input.devSession === true) settings["msgf.devSession"] = true;
+  if (input.brainSensitivity != null && Number.isFinite(input.brainSensitivity)) {
+    settings["msgf.brainSensitivity"] = input.brainSensitivity;
+  }
+  return settings;
 }
 
 export function formatIdeSettingsJson(settings: IdeWorkspaceSettings): string {

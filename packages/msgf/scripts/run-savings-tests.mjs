@@ -18,6 +18,12 @@ const SAVINGS_TESTS = [
   "test:pulse-idempotency",
   "test:usage-monitor",
   "test:heal-queue",
+  "test:converge-context-budget",
+  "test:dev-session-profile",
+  "test:vault-active-file-shard",
+  "test:dev-event",
+  "test:converge-cache",
+  "test:savings-qa-checkpoints",
 ];
 
 function resolveTsxCli() {

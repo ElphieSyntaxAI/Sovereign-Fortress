@@ -26,10 +26,18 @@ import {
 } from "@/lib/connector/brain-sensitivity";
 import { normalizeConnectorTenantId } from "@/lib/connector/tenant";
 import {
+  MSGF_ACTIVE_FILE_HEADER,
+  MSGF_BUILD_ACTIVE_HEADER,
+  MSGF_DEV_SESSION_HEADER,
   MSGF_ENTITY_ID_HEADER,
+  MSGF_FLUSH_REASON_HEADER,
   MSGF_IDE_PULSE_HEADER,
   MSGF_TENANT_ID_HEADER,
 } from "@/lib/msgf-http-headers";
+import {
+  defaultIdeConnectorDevSession,
+  type IdeFlushReason,
+} from "@/lib/services/dev-session-profile";
 import { licenseBearerHeaders } from "@/lib/connector/bearer-auth";
 import { assertTenantId } from "@/lib/errors/sovereign-violation";
 
@@ -40,6 +48,11 @@ export type IdePulseBufferOptions = {
   maxBufferedEvents?: number;
   /** Minimum events required before a debounced flush (default 1). */
   minEventsToFlush?: number;
+  /**
+   * Dev session: debounce for unsaved typing; use {@link IdeConnector.notifyFileSaved} for primary flush.
+   * Default follows `MSGF_DEV_SESSION_DEFAULT` when omitted.
+   */
+  devSession?: boolean;
 };
 
 export type IdeConnectorConfig = {
@@ -53,6 +66,8 @@ export type IdeConnectorConfig = {
   /** Brain sensitivity 0.1 (strict) → 0.5 (relaxed). */
   brainSensitivity?: number;
   buffer?: IdePulseBufferOptions;
+  /** Enable dev session profile (save-primary flush + build-active headers). */
+  devSession?: boolean;
 };
 
 export type IdeStatusRouting =
@@ -195,9 +210,12 @@ export class IdeConnector {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly brainSensitivity: number | undefined;
-  private readonly bufferOpts: Required<IdePulseBufferOptions>;
+  private readonly bufferOpts: Required<IdePulseBufferOptions> & { devSession: boolean };
+  private readonly devSessionEnabled: boolean;
 
   private readonly events: UniversalP1KeystrokeEvent[] = [];
+  private activeFilePath: string | null = null;
+  private buildActive = false;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private inFlight: Promise<IdeBufferedPulseResult> | null = null;
   private pendingFlush = false;
@@ -237,7 +255,76 @@ export class IdeConnector {
       config.brainSensitivity != null
         ? resolveBrainSensitivityHeader(config.brainSensitivity)
         : undefined;
-    this.bufferOpts = { ...DEFAULT_BUFFER, ...config.buffer };
+    const devSession =
+      config.devSession ??
+      config.buffer?.devSession ??
+      defaultIdeConnectorDevSession();
+    this.devSessionEnabled = devSession;
+    this.bufferOpts = { ...DEFAULT_BUFFER, ...config.buffer, devSession };
+  }
+
+  /** Workspace-relative path for P5 vault shard boost + lineage cache scope. */
+  setActiveFile(path: string | null): void {
+    const p = path?.trim().replace(/\\/g, "/");
+    this.activeFilePath = p ? p.slice(0, 512) : null;
+  }
+
+  /** While true, pulses include build-active header (relaxed logic drift). */
+  setBuildActive(active: boolean): void {
+    this.buildActive = active;
+  }
+
+  getBuildActive(): boolean {
+    return this.buildActive;
+  }
+
+  /**
+   * Primary flush for dev session — call on editor save / file close.
+   */
+  notifyFileSaved(): Promise<IdeBufferedPulseResult> {
+    return this.flush("save");
+  }
+
+  /** Flush after build/test completes (optional). */
+  notifyBuildEnded(): Promise<IdeBufferedPulseResult> {
+    this.buildActive = false;
+    return this.flush("build_end");
+  }
+
+  /**
+   * POST structured build failure (no keystroke / biometric pipeline).
+   * Requires `MSGF_CONTRACT_LICENSE_KEY` or config license on connector.
+   */
+  async postBuildFailedEvent(params: {
+    excerpt: string;
+    exitCode: number;
+    activeFile?: string;
+  }): Promise<{ ok: boolean; raw: Record<string, unknown> }> {
+    const url = `${this.baseUrl}/api/msgf/dev-event`;
+    const activeFile = (params.activeFile ?? this.activeFilePath ?? "build.log").replace(/\\/g, "/");
+    const body = {
+      kind: "build_failed" as const,
+      activeFile,
+      excerpt: params.excerpt.slice(0, 12_000),
+      exitCode: params.exitCode,
+      tenantId: this.tenantId,
+    };
+
+    const res = await this.fetchImpl(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...licenseBearerHeaders(this.licenseKey, {
+          [MSGF_ENTITY_ID_HEADER]: this.entityId,
+          [MSGF_TENANT_ID_HEADER]: this.tenantId,
+          ...(this.devSessionEnabled ? { [MSGF_DEV_SESSION_HEADER]: "1" } : {}),
+        }),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    return { ok: res.ok && raw.ok !== false, raw };
   }
 
   /** Latest status-bar snapshot (updated after each successful flush). */
@@ -265,11 +352,13 @@ export class IdeConnector {
     };
 
     if (this.events.length >= this.bufferOpts.maxBufferedEvents) {
-      void this.flush();
+      void this.flush(this.devSessionEnabled ? "debounce" : undefined);
       return;
     }
 
-    this.scheduleDebouncedFlush();
+    if (!this.devSessionEnabled || this.bufferOpts.debounceMs > 0) {
+      this.scheduleDebouncedFlush();
+    }
   }
 
   pushKeystrokes(events: UniversalP1KeystrokeEvent[]): void {
@@ -282,14 +371,14 @@ export class IdeConnector {
     }
     this.debounceTimer = setTimeout(() => {
       this.debounceTimer = null;
-      void this.flush();
+      void this.flush(this.devSessionEnabled ? "debounce" : undefined);
     }, this.bufferOpts.debounceMs);
   }
 
   /**
    * Sends buffered keystrokes to `POST /api/msgf/pulse` and returns logic drift for the status bar.
    */
-  async flush(): Promise<IdeBufferedPulseResult> {
+  async flush(reason?: IdeFlushReason): Promise<IdeBufferedPulseResult> {
     assertTenantId(this.tenantId, "IdeConnector.flush");
     if (this.disposed) {
       return {
@@ -318,7 +407,7 @@ export class IdeConnector {
 
     this.lastStatus = emptyStatus("pending", 0);
 
-    this.inFlight = this.dispatchBuffered(batch)
+    this.inFlight = this.dispatchBuffered(batch, reason ?? (this.devSessionEnabled ? "debounce" : "manual"))
       .then((result) => {
         this.lastStatus = result;
         return result;
@@ -337,7 +426,8 @@ export class IdeConnector {
   }
 
   private async dispatchBuffered(
-    keystrokes: UniversalP1KeystrokeEvent[]
+    keystrokes: UniversalP1KeystrokeEvent[],
+    flushReason: IdeFlushReason
   ): Promise<IdeBufferedPulseResult> {
     const url = `${this.baseUrl}/api/msgf/pulse`;
     const payload: P1Standard = {
@@ -360,6 +450,18 @@ export class IdeConnector {
             [MSGF_IDE_PULSE_HEADER]: "1",
             [MSGF_ENTITY_ID_HEADER]: this.entityId,
             [MSGF_TENANT_ID_HEADER]: this.tenantId,
+            ...(this.devSessionEnabled
+              ? {
+                  [MSGF_DEV_SESSION_HEADER]: "1",
+                  [MSGF_FLUSH_REASON_HEADER]: flushReason,
+                  ...(this.buildActive ? { [MSGF_BUILD_ACTIVE_HEADER]: "1" } : {}),
+                  ...(this.activeFilePath
+                    ? {
+                        [MSGF_ACTIVE_FILE_HEADER]: encodeURIComponent(this.activeFilePath),
+                      }
+                    : {}),
+                }
+              : {}),
             ...(sensitivityHeader
               ? { [MSGF_BRAIN_SENSITIVITY_HEADER]: sensitivityHeader }
               : {}),

@@ -543,9 +543,14 @@ import { createClient } from "@/utils/supabase/client";
 type Props = {
   userEmail: string;
   showAdminPortalLink?: boolean;
+  tokenSavingsHref?: string;
 };
 
-export function DashboardNav({ userEmail, showAdminPortalLink = false }: Props) {
+export function DashboardNav({
+  userEmail,
+  showAdminPortalLink = false,
+  tokenSavingsHref = "/dashboard#token-savings",
+}: Props) {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -598,6 +603,12 @@ export function DashboardNav({ userEmail, showAdminPortalLink = false }: Props) 
             className="hidden rounded-full px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/5 hover:text-slate-200 md:inline"
           >
             Pillar guide
+          </Link>
+          <Link
+            href={tokenSavingsHref}
+            className="hidden rounded-full px-3 py-1.5 text-sm text-amber-400/90 transition hover:bg-amber-500/10 hover:text-amber-200 sm:inline"
+          >
+            Token savings
           </Link>
           <Link
             href="/workspace"

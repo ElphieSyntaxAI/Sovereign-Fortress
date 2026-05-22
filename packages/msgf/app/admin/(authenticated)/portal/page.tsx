@@ -55,6 +55,24 @@ export default async function AdminPortalPage() {
 
       <AdminProductLauncher surfaces={surfaces} />
 
+      <section className="glass-panel rounded-2xl border border-amber-500/25 p-5 text-sm text-slate-300">
+        <h2 className="text-base font-semibold text-amber-100">Token savings & efficiency (1.0)</h2>
+        <p className="mt-2 text-slate-400">
+          Operators see all savings features on the{" "}
+          <Link href="/admin/dashboard#token-savings" className="text-amber-300 hover:underline">
+            ops dashboard
+          </Link>
+          : CONVERGE cache, IDE dev-event Heal Cheap, Pulse idempotency, ingest hash skip, credit
+          reservation, dev-session, and routing mix. Counters require Redis; catalog shows env on/off
+          for each feature.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          API: <code className="text-violet-300">GET /api/msgf/admin/dashboard/savings-features</code>{" "}
+          · Docs: <code className="text-violet-300">packages/msgf/README.md</code> · Tests:{" "}
+          <code className="text-violet-300">npm run test:savings -w msgf</code>
+        </p>
+      </section>
+
       <section className="glass-panel rounded-2xl border border-slate-600/30 p-5 text-sm text-slate-400">
         <h2 className="text-base font-semibold text-slate-200">Local stack checklist</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5">

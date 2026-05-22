@@ -25,6 +25,12 @@ import {
   isTenantPillarBaselineSet,
 } from "@/lib/services/pillar-baseline";
 import { assessLogicDrift } from "@/lib/services/logic-drift";
+import {
+  computeSystemEventRatio,
+  devSessionDriftAdjustments,
+  resolveDevSessionEscalationThreshold,
+  systemHeavyDriftDiscount,
+} from "@/lib/services/dev-session-profile";
 import { getBiometricProfile, calculateBiometricScore } from "@/lib/msgf-consensus";
 import { resolveConvergeConsensusRouting } from "@/lib/services/converge-consensus-routing";
 import type { ConvergeConsensusRouting } from "@/lib/services/converge-consensus-routing";
@@ -90,7 +96,10 @@ export async function runGatePhase(
     );
   }
 
-  const defended = await engine.runThroughDefend(input, isPillarBaselineSet);
+  const defended = await engine.runThroughDefend(
+    { ...input, devSession: input.devSession },
+    isPillarBaselineSet
+  );
 
   const biometricProfile = await getBiometricProfile(input.supabase, input.entityId);
   const biometric = calculateBiometricScore({
@@ -99,13 +108,28 @@ export async function runGatePhase(
     authorHal: input.authorHalTelemetry ?? null,
   });
 
+  const devHints = input.devSession;
+  const escalationThreshold = resolveDevSessionEscalationThreshold(
+    input.logicDriftEscalationThreshold,
+    devHints ?? { devSession: false, buildActive: false, flushReason: null, activeFilePath: null }
+  );
+  const driftAdj = devSessionDriftAdjustments(
+    devHints ?? { devSession: false, buildActive: false, flushReason: null, activeFilePath: null }
+  );
+  const systemRatio = computeSystemEventRatio(defended.keystrokes);
+  const driftScoreDiscount =
+    driftAdj.buildActiveDiscount +
+    driftAdj.systemHeavyDiscount +
+    systemHeavyDriftDiscount(systemRatio, devHints ?? { devSession: false, buildActive: false, flushReason: null, activeFilePath: null });
+
   const logicDrift = assessLogicDrift({
     pulseText: defended.pulseText,
     halScore: biometric.score,
     biometricDeltaOver30: biometric.deltaOver30Percent,
     vaultP2Prioritized: defended.vaultP2Prioritized,
     preflight: defended.preflight,
-    escalationThreshold: input.logicDriftEscalationThreshold,
+    escalationThreshold,
+    driftScoreDiscount,
   });
 
   const forceGlobal =
