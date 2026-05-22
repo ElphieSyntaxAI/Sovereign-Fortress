@@ -26,9 +26,11 @@ const withEnv = args.has("--with-env");
 const IGNORE_LINE =
   /^(npm warn|npm notice)|\bdeprecated\b|Serializing big strings|webpack\.cache|PackFileCacheStrategy|Next\.js telemetry|license-header\]|\[obfuscate-dist\]|\[verify-sdk-dist\]|\[generate-server-dts\]|CLI Building entry|ESM dist\\|ESM ⚡|DTS Build|How would you like to configure ESLint|next lint` is deprecated|⚠ If you set up ESLint|❯\s+Strict|Experiments \(use with caution\)|Environments: \.env|Creating an optimized production build/i;
 
-/** Lines that always count as code failures. */
+/** Lines that always count as code failures (import traces alone are not failures). */
 const CODE_FAIL =
-  /Failed to compile|Type error:|error TS\d+|Module not found|Cannot find module|UnhandledSchemeError|SyntaxError:|Build failed because of webpack|ELIFECYCLE Command failed|not handled by plugins|Import trace for requested module/i;
+  /Failed to compile|Type error:|error TS\d+|Module not found|Cannot find module|UnhandledSchemeError|SyntaxError:|Build failed because of webpack|ELIFECYCLE Command failed|not handled by plugins/i;
+
+const IMPORT_TRACE = /Import trace for requested module/i;
 
 /** Our source roots in output. */
 const OUR_PATH =
@@ -68,14 +70,26 @@ function filterOutput(text) {
   const other = [];
   let suppressed = 0;
   let inTrace = false;
+  let sawCompileFailure = false;
 
   for (const line of text.split(/\r?\n/)) {
     const t = line.trimEnd();
     if (!t) continue;
 
-    if (/Import trace for requested module/i.test(t)) {
-      inTrace = true;
+    if (CODE_FAIL.test(t) || (/\berror\b/i.test(t) && OUR_PATH.test(t))) {
+      sawCompileFailure = true;
       critical.push(t);
+      if (IMPORT_TRACE.test(t)) inTrace = true;
+      continue;
+    }
+
+    if (IMPORT_TRACE.test(t)) {
+      if (sawCompileFailure) {
+        inTrace = true;
+        critical.push(t);
+      } else {
+        suppressed++;
+      }
       continue;
     }
     if (inTrace) {
@@ -84,11 +98,6 @@ function filterOutput(text) {
         continue;
       }
       inTrace = false;
-    }
-
-    if (CODE_FAIL.test(t) || (/\berror\b/i.test(t) && OUR_PATH.test(t))) {
-      critical.push(t);
-      continue;
     }
 
     if (IGNORE_LINE.test(t)) {

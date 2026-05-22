@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
+ * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
  */
 /**
  * Reusable "Find out more" detail shell for the three customer-facing surfaces

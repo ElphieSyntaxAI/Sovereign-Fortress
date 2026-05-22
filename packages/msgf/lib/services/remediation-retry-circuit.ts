@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
+ * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -99,12 +99,28 @@ async function findPillarVectorRow(params: {
     }
   }
 
-  const { data, error } = await applyPillarVectorsTenantFilter(
-    fromPillarVectors(params.admin, params.tenantId)
-      .select("id, metadata, remediation_state, remediation_attempt_count")
-      .limit(20),
+  type CircuitRow = {
+    id: string;
+    metadata: Record<string, unknown> | null;
+    remediation_state: string | null;
+    remediation_attempt_count: number | null;
+  };
+  type CircuitQuery = {
+    limit: (n: number) => Promise<{
+      data: CircuitRow[] | null;
+      error: { message: string } | null;
+    }>;
+  };
+
+  let circuitQuery = fromPillarVectors(params.admin, params.tenantId).select(
+    "id, metadata, remediation_state, remediation_attempt_count"
+  ) as unknown as CircuitQuery;
+  circuitQuery = applyPillarVectorsTenantFilter(
+    circuitQuery as unknown as Parameters<typeof applyPillarVectorsTenantFilter>[0],
     params.tenantId
-  );
+  ) as unknown as CircuitQuery;
+
+  const { data, error } = await circuitQuery.limit(20);
   if (error) {
     throw new Error(`remediation circuit lookup failed: ${error.message}`);
   }

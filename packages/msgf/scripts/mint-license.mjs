@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
+ * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
  */
 /**
  * Mint a contract-based MSGF license key (shown once; only the SHA-256 hash is stored).

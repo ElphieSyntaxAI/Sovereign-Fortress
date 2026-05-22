@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
+ * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
  */
 /**
  * Heal queue — list remediation tasks and execute BULK / INDIVIDUAL / SCHEDULED actions.
@@ -146,10 +146,27 @@ async function fetchPillarVectorTasks(
   admin: SupabaseClient,
   tenantId: string
 ): Promise<RemediationTask[]> {
+  type HealQueuePillarRow = {
+    id: string;
+    metadata: Record<string, unknown> | null;
+    scheduling_tier: string | null;
+    remediation_state: string | null;
+    remediation_attempt_count: number | null;
+  };
+  type HealQueuePillarQuery = {
+    limit: (n: number) => Promise<{
+      data: HealQueuePillarRow[] | null;
+      error: { message: string } | null;
+    }>;
+  };
+
   let query = fromPillarVectors(admin, tenantId).select(
     "id, metadata, scheduling_tier, remediation_state, remediation_attempt_count"
-  );
-  query = applyPillarVectorsTenantFilter(query, tenantId);
+  ) as unknown as HealQueuePillarQuery;
+  query = applyPillarVectorsTenantFilter(
+    query as unknown as Parameters<typeof applyPillarVectorsTenantFilter>[0],
+    tenantId
+  ) as unknown as HealQueuePillarQuery;
 
   const { data, error } = await query.limit(500);
   if (error) {
