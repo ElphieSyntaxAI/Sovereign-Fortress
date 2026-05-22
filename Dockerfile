@@ -88,6 +88,9 @@ ENV NEXT_PUBLIC_AUTHOR_APP_URL=${NEXT_PUBLIC_AUTHOR_APP_URL}
 ENV NEXT_PUBLIC_EDUCATION_APP_URL=${NEXT_PUBLIC_EDUCATION_APP_URL}
 ENV NEXT_PUBLIC_MSGF_APP_URL=${NEXT_PUBLIC_MSGF_APP_URL}
 
+# Pulse Guard .vsix for /api/downloads/pulse-guard and /downloads/msgf-pulse-guard.vsix (Cloud Run public/).
+RUN node tools/package-pulse-guard.js
+
 # MSGF: `build:sdk:prod` emits SDK under packages/msgf/dist; `next build` emits `.next/standalone`
 # with traced production dependencies only (devDependencies stay outside this artifact tree).
 # Parentheses: without them, `a && b || true` succeeds even when `a` (the build) fails.

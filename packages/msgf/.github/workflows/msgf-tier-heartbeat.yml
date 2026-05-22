@@ -33,9 +33,21 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
-      - name: Run MSGF Tier Processor
-        run: node scripts/msgf-tier-processor.js
+      # Legacy JS worker (YELLOW/GREEN beats). Prefer v32-heartbeat API in production.
+      - name: Run MSGF Tier Processor (legacy)
+        run: node packages/msgf/scripts/msgf-tier-processor.js
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Run V3.2 ops heartbeat (tier + Hall 30d purge)
+        if: ${{ secrets.MSGF_OPS_CRON_SECRET != '' && vars.MSGF_APP_URL != '' }}
+        run: |
+          curl -sfS -X POST "${MSGF_APP_URL%/}/api/msgf/ops/v32-heartbeat" \
+            -H "Authorization: Bearer ${MSGF_OPS_CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d '{"skip_tier_batches":false}'
+        env:
+          MSGF_APP_URL: ${{ vars.MSGF_APP_URL }}
+          MSGF_OPS_CRON_SECRET: ${{ secrets.MSGF_OPS_CRON_SECRET }}
 

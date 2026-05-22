@@ -24,7 +24,7 @@ export default async function AdminSignInPage({ searchParams }: Props) {
   const postLoginPath =
     typeof next === "string" && next.startsWith("/") && !next.startsWith("//")
       ? next
-      : "/admin/dashboard";
+      : "/admin/portal";
 
   return (
     <div className="landing-mesh min-h-screen text-slate-100">

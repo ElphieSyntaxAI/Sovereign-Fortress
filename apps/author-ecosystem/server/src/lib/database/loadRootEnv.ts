@@ -55,15 +55,19 @@ export function getMonorepoRootDir(): string {
 let rootEnvLoaded = false;
 
 /**
- * Loads root `.env` then `.env.local` (override) so `SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`,
- * `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, etc. match MSGF / root workspace configuration.
+ * Loads env in the same order as `packages/msgf/next.config.ts`:
+ * monorepo root `.env` / `.env.local`, then `packages/msgf/.env` / `.env.local` (override).
  *
- * Paths are absolute (`resolve(getMonorepoRootDir(), …)`) so scripts work no matter the current working directory.
+ * Many teams keep Supabase keys only under `packages/msgf/.env.local`; Author BFF must see those too.
  */
 export function loadMonorepoRootEnv(): void {
   if (rootEnvLoaded) return;
   rootEnvLoaded = true;
   const root = resolve(getMonorepoRootDir());
+  const msgfPkg = join(root, "packages", "msgf");
+
   dotenv.config({ path: join(root, ".env") });
   dotenv.config({ path: join(root, ".env.local"), override: true });
+  dotenv.config({ path: join(msgfPkg, ".env") });
+  dotenv.config({ path: join(msgfPkg, ".env.local"), override: true });
 }

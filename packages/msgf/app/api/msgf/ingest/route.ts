@@ -39,6 +39,7 @@ import {
 } from "@/lib/credit-reservation";
 import { isCostRunawayError, runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
+import { preFlightCheck } from "@/lib/msgf-shadow";
 
 type IngestFile = { path: string; content: string };
 
@@ -214,6 +215,34 @@ export async function POST(req: NextRequest) {
       const projectOrigin = deriveProjectOrigin(ingestFiles, body.project_origin);
 
       if (normalizedPaths.length > 0) {
+        const ingestPreview = ingestFiles
+          .map((f) => f.content)
+          .join("\n")
+          .slice(0, 12_000);
+        const shadow = await preFlightCheck(
+          admin,
+          { text: ingestPreview || "(empty ingest batch)" },
+          { tenantId }
+        );
+        if (shadow.blocked) {
+          return NextResponse.json(
+            {
+              error: "INGEST_DEFEND_BLOCKED",
+              tier: shadow.tier,
+              reason: shadow.reason,
+              v32_directive: {
+                sweep: "pre_ingestion_audit_ref",
+                defend: { tier: shadow.tier, blocked: true },
+                cross_ref: {
+                  vault_match: Boolean(shadow.vaultMatch),
+                  hall_match: Boolean(shadow.hallMatch),
+                },
+              },
+            },
+            { status: 403 }
+          );
+        }
+
         const sweep = await sweepAndIngest({
           files: ingestFiles,
           tenantId,

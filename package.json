@@ -3,6 +3,9 @@
   "scripts": {
     "dev": "npm run dev -w msgf",
     "dev:msgf": "npm run dev -w msgf",
+    "dev:author-bff": "npm run dev -w @elphie-syntax/author-ecosystem-server",
+    "dev:author-client": "npm run dev -w @elphie-syntax/author-ecosystem-client",
+    "dev:education": "npm run dev -w syntax-educates",
     "dev:dashboard": "npm run dev -w msgf-dashboard",
     "clean:artifacts": "node tools/clean-artifacts.js",
     "consolidate:locks": "node tools/remove-nested-package-locks.js && npm install",
@@ -13,7 +16,8 @@
     "security:prancer-pillars": "node packages/msgf/scripts/security-primer-pillars.mjs",
     "verify:supabase-schema": "npm run verify:db-schema -w msgf",
     "db:push": "npm run db:push -w msgf",
-    "db:push:verify": "npm run db:push && npm run verify:supabase-schema"
+    "db:push:verify": "npm run db:push && npm run verify:supabase-schema",
+    "package:pulse-guard": "node tools/package-pulse-guard.js"
   },
   "workspaces": [
     "packages/*",
@@ -21,7 +25,8 @@
     "apps/client-vortex/web",
     "apps/client-vortex/server",
     "apps/author-ecosystem/client",
-    "apps/author-ecosystem/server"
+    "apps/author-ecosystem/server",
+    "apps/syntax-educates"
   ],
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",

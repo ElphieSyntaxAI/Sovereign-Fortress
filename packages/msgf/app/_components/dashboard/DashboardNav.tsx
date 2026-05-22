@@ -266,9 +266,10 @@ import { createClient } from "@/utils/supabase/client";
 
 type Props = {
   userEmail: string;
+  showAdminPortalLink?: boolean;
 };
 
-export function DashboardNav({ userEmail }: Props) {
+export function DashboardNav({ userEmail, showAdminPortalLink = false }: Props) {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -302,6 +303,32 @@ export function DashboardNav({ userEmail }: Props) {
         </Link>
 
         <nav className="flex flex-wrap items-center gap-2 sm:gap-3" aria-label="Dashboard">
+          {showAdminPortalLink ? (
+            <Link
+              href="/admin/portal"
+              className="rounded-full px-3 py-1.5 text-sm text-violet-400/90 transition hover:bg-violet-500/10 hover:text-violet-200"
+            >
+              Admin portal
+            </Link>
+          ) : null}
+          <Link
+            href="/workspace"
+            className="rounded-full px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/5 hover:text-slate-200"
+          >
+            Workspace
+          </Link>
+          <Link
+            href="/setup/projects"
+            className="rounded-full px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/5 hover:text-slate-200"
+          >
+            Projects
+          </Link>
+          <Link
+            href="/workspace#ide-setup"
+            className="hidden rounded-full px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/5 hover:text-slate-200 sm:inline"
+          >
+            IDE setup
+          </Link>
           <Link
             href="/status"
             className="rounded-full px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/5 hover:text-slate-200"

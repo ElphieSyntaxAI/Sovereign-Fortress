@@ -1,0 +1,58 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ */
+
+import { cookies, headers } from "next/headers";
+
+import { DashboardShell } from "@/app/_components/dashboard/DashboardShell";
+import {
+  healthOptionsForSessionOperator,
+  resolveSessionDashboardOperator,
+} from "@/lib/msgf-admin-session";
+import { healthService } from "@/lib/services/HealthService";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
+
+/**
+ * Operator pillar health + incident lens (global or company rollup).
+ * Product launch links live in {@link AdminProductLauncher} above the shell.
+ */
+export default async function AdminDashboardPage() {
+  const cookieStore = await cookies();
+  const hdrs = await headers();
+  const supabase = createClient(cookieStore, requestHostFromHeaders(hdrs));
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const admin = createAdminClient();
+  const op = await resolveSessionDashboardOperator(admin, user!);
+  const initialReport = await healthService.getPillarHealth(
+    admin,
+    await healthOptionsForSessionOperator(admin, op, 168)
+  );
+
+  return (
+      <DashboardShell
+        userEmail={user?.email ?? "Signed in"}
+        initialReport={initialReport}
+        authRedirectPath="/admin/sign-in?next=/admin/dashboard"
+        healthScope="operator"
+        embeddedInAdminPortal
+        dashboardLabel={
+          op.role === "GLOBAL_ADMIN" ? "Global admin dashboard" : "Company admin dashboard"
+        }
+        canAccessAdminDashboard
+        scopeDescription={
+          op.role === "GLOBAL_ADMIN"
+            ? "all MSGF tenants and operators"
+            : "your company team and assigned repositories"
+        }
+        showMasterEcoLeaderboard
+        showNetworkStreams
+      />
+  );
+}

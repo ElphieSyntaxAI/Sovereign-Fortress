@@ -53,6 +53,10 @@ import {
   pulseHotLayerDiagnostics,
   type PulseHotSession,
 } from "@/lib/services/pulse-hot-session";
+import {
+  inferV32FromPulseForensic,
+  isRedisRequiredForPulse,
+} from "@/lib/v32-ultra-directive";
 
 function pulseJson(req: NextRequest, data: unknown, init?: ResponseInit) {
   const res = NextResponse.json(data, init);
@@ -266,6 +270,21 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      if (isRedisRequiredForPulse() && hotSession.mode !== "hot") {
+        await hotSession.release();
+        return pulseJsonWithTrace(
+          req,
+          traceId,
+          {
+            error: "REDIS_REQUIRED",
+            detail:
+              "MSGF_REQUIRE_REDIS is set but the hot layer is unavailable. Configure REDIS_HOST or REDIS_URL.",
+            hot_layer: pulseHotLayerDiagnostics(hotSession),
+          },
+          { status: 503 }
+        );
+      }
+
       const byok = extractPulseByokFromRequest(req);
 
       let pipelineResult;
@@ -297,10 +316,21 @@ export async function POST(req: NextRequest) {
         await hotSession.release();
       }
 
-      const withHotLayer = (payload: Record<string, unknown>) => ({
-        ...payload,
-        hot_layer: pulseHotLayerDiagnostics(hotSession),
-      });
+      const withHotLayer = (
+        payload: Record<string, unknown>,
+        result: typeof pipelineResult
+      ) => {
+        const forensic =
+          result.kind === "ok" || result.kind === "baseline_required"
+            ? (result.forensic as Record<string, unknown>)
+            : undefined;
+        const v32_directive = inferV32FromPulseForensic(forensic, hotSession);
+        return {
+          ...payload,
+          hot_layer: pulseHotLayerDiagnostics(hotSession),
+          ...(v32_directive ? { v32_directive } : {}),
+        };
+      };
 
       if (pipelineResult.kind === "baseline_required") {
         void insertPulseAdminVaultForensic({
@@ -313,7 +343,7 @@ export async function POST(req: NextRequest) {
         const res202 = pulseJsonWithTrace(
           req,
           traceId,
-          withHotLayer(pipelineResult.public as Record<string, unknown>),
+          withHotLayer(pipelineResult.public as Record<string, unknown>, pipelineResult),
           { status: 202 }
         );
         await endTenantCreditReservation(adminSupabase, creditStart, res202.status);
@@ -329,7 +359,8 @@ export async function POST(req: NextRequest) {
       });
 
       const publicPayload = withHotLayer(
-        pipelineResult.public as Record<string, unknown>
+        pipelineResult.public as Record<string, unknown>,
+        pipelineResult
       ) as Record<string, unknown>;
       const res200 = pulseJsonWithTrace(req, traceId, publicPayload);
       const allowance = publicPayload.x_msgf_allowance_state;

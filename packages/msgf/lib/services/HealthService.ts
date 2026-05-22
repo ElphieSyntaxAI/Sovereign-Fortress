@@ -85,6 +85,8 @@ export type PillarHealthReport = {
     dashboard_view?: "tenant_health" | "team_overview";
     company_id?: string | null;
     team_member_count?: number;
+    /** When set, telemetry is limited to these `project_origin` tags (mapped repos). */
+    project_origins?: string[];
   };
   logic_drift: LogicDriftTrendReport;
   pillars: PillarHealthEntry[];
@@ -106,6 +108,8 @@ export type HealthServiceOptions = {
   selfHealingHours?: number;
   /** Pulse samples for drift trend (default 10). */
   driftSampleSize?: number;
+  /** Limit rows to these mapped repository tags (personal dashboard). */
+  projectOrigins?: string[];
 };
 
 const PILLAR_LABELS: Record<MsgfGovernancePillar, string> = {
@@ -132,6 +136,7 @@ type IncidentRow = {
   user_id: string;
   status: string;
   bug_index: unknown;
+  metadata?: unknown;
   resolution_note: string | null;
   created_at: string;
   updated_at: string;
@@ -156,6 +161,21 @@ type BeatRow = {
 function parseBugIndex(raw: unknown): GenealogicalBugIndex | null {
   const parsed = GenealogicalBugIndexSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
+}
+
+function readProjectOrigin(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const po = (metadata as Record<string, unknown>).project_origin;
+  return typeof po === "string" && po.trim() ? po.trim() : null;
+}
+
+function rowMatchesProjectOrigins(
+  metadata: unknown,
+  origins: Set<string> | null
+): boolean {
+  if (!origins || origins.size === 0) return true;
+  const po = readProjectOrigin(metadata);
+  return po != null && origins.has(po);
 }
 
 /**
@@ -344,6 +364,9 @@ export class HealthService {
     const driftSampleSize = options.driftSampleSize ?? 10;
     const companyId = options.companyId?.trim() || null;
     const dashboardView = options.dashboardView;
+    const projectOriginsRaw = options.projectOrigins?.map((o) => o.trim()).filter(Boolean) ?? [];
+    const projectOriginSet =
+      projectOriginsRaw.length > 0 ? new Set(projectOriginsRaw) : null;
 
     const now = new Date();
     const lookbackFrom = new Date(now.getTime() - lookbackHours * 60 * 60 * 1000);
@@ -368,6 +391,9 @@ export class HealthService {
         global: false,
         dashboard_view: dashboardView,
         company_id: companyId,
+        ...(projectOriginsRaw.length > 0
+          ? { project_origins: projectOriginsRaw }
+          : {}),
       };
     } else {
       scopeFilter = { mode: "global" };
@@ -404,11 +430,17 @@ export class HealthService {
 
     const beatLimit = scopeFilter.mode === "team" ? Math.max(driftSampleSize * 8, 64) : driftSampleSize;
 
-    const [incidents, narratives, beats] = await Promise.all([
+    let [incidents, narratives, beats] = await Promise.all([
       this.fetchIncidentsScoped(supabase, scopeFilter, lookbackFrom),
       this.fetchNarrativesScoped(supabase, scopeFilter, lookbackFrom),
       this.fetchPulseBeatsScoped(supabase, scopeFilter, beatLimit),
     ]);
+
+    if (projectOriginSet) {
+      incidents = incidents.filter((row) => rowMatchesProjectOrigins(row.metadata, projectOriginSet));
+      narratives = narratives.filter((row) => rowMatchesProjectOrigins(row.metadata, projectOriginSet));
+      beats = beats.filter((row) => rowMatchesProjectOrigins(row.metadata, projectOriginSet));
+    }
 
     const driftScores: number[] = [];
     for (const beat of beats) {
@@ -581,7 +613,7 @@ export class HealthService {
   ): Promise<IncidentRow[]> {
     let q = supabase
       .from("msgf_incidents")
-      .select("id, user_id, status, bug_index, resolution_note, created_at, updated_at")
+      .select("id, user_id, status, bug_index, metadata, resolution_note, created_at, updated_at")
       .gte("updated_at", since.toISOString());
 
     if (filter.mode === "user") {

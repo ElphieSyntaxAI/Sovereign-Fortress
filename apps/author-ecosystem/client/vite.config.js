@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import dotenv from "dotenv";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
@@ -40,6 +41,15 @@ function spaFallbackPlugin() {
 }
 
 export default defineConfig(({ mode }) => {
+  // Match packages/msgf/next.config.ts — keys often live in packages/msgf/.env.local only.
+  dotenv.config({ path: path.join(monorepoRoot, ".env") });
+  dotenv.config({ path: path.join(monorepoRoot, ".env.local"), override: true });
+  dotenv.config({ path: path.join(monorepoRoot, "packages", "msgf", ".env") });
+  dotenv.config({
+    path: path.join(monorepoRoot, "packages", "msgf", ".env.local"),
+    override: true,
+  });
+
   const env = loadEnv(mode, monorepoRoot, "");
   const viteSupabaseUrl =
     env.VITE_SUPABASE_URL ||
@@ -85,6 +95,11 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
+        /**
+         * `msgf` workspace package uses `@/` imports; map them when Vite prebundles msgf from
+         * `packages/msgf` (Author client does not use `@/` for its own sources).
+         */
+        "@": path.resolve(monorepoRoot, "packages/msgf"),
         /** Canonical terms folder: `apps/author-ecosystem/terms` (single source for web + BFF). */
         "@terms": path.resolve(__dirname, "../terms"),
         /** Canonical NDAs: `apps/author-ecosystem/nda` */
@@ -92,6 +107,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      port: 5173,
+      strictPort: true,
       proxy: {
         "/api": {
           target: "http://localhost:3002", // This must match your server port

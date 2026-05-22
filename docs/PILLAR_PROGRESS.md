@@ -8,7 +8,7 @@
 
 **MSGF platform SSOT (1.0 release, V3 master spec, three production domains):** [`docs/MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md)
 
-**Last reviewed:** 2026-05-15
+**Last reviewed:** 2026-05-21
 
 ---
 
@@ -32,7 +32,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 | Pillar | Status | Primary evidence (examples) |
 |--------|--------|-------------------------------|
 | HAL | Partial | `apps/author-ecosystem/extension/src/content.js`, `packages/msgf/lib/P4.ts`, pulse route, `p4_hal_ledger` migrations |
-| MSGF | Partial | `packages/msgf/app/api/msgf/pulse/route.ts`, `lib/msgf-shadow.ts`, `lib/msgf-consensus.ts`, `pillar_vectors` migrations |
+| MSGF | Partial → strong (V3.2 ops) | `pulse/route.ts`, `PulseEngine.runThroughDefend`, `lib/v32-ultra-directive.ts`, `POST /api/msgf/ops/v32-heartbeat`, `hall-purge-protocol.ts`, dashboard arbitrate (session + service admin) |
 | Stylometric fingerprint | Partial | `packages/msgf/supabase/migrations/*hal_ledger*rolling*`, `apps/author-ecosystem/server/src/lib/forensics/`, `packages/core/src/lib/forensics/` |
 | Revision gates | Partial → strong | `apps/author-ecosystem/server/src/lib/RevisionLockService.ts`, `20260515180000_p4_manuscripts_revision_p4_revision_reports.sql` |
 | Immutable audit | Partial | `p4_narrative_logs`, `packages/msgf/lib/pov-logger.ts`, `ContractAutomationService.ts`, `p4_legal_contracts` migration |
@@ -92,6 +92,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 
 | Date | Change |
 |------|--------|
+| 2026-05-21 | **V3.2-ULTRA §2.6 closure:** `v32_directive` on Pulse responses; `MSGF_REQUIRE_REDIS` + `/health` SHARD probe; ingest DEFEND (`preFlightCheck`); signed-in dashboard Human Arbitrate; `POST /api/msgf/ops/v32-heartbeat` (tier batches + 30d Hall purge); live checklist on `/status`. |
 | 2026-05-15 | **MSGF V3.2-ULTRA:** `docs/references/MSGF_v3_2_masterdoc.pdf` + roadmap §2.0–2.6 (hot/cold, Vault/Hall, SWEEP→PERSIST acceptance). |
 | 2026-05-15 | **MSGF 1.0 SSOT:** Added `docs/MSGF_V1_ROADMAP.md` (V3 master spec → 1.0 plan) and `docs/MONOREPO_PRODUCTS.md` (three domains: elphiesyntax.com, elphiesgatedai.elphiesyntax.com, syntaxeducation.elphiesyntax.com). |
 | 2026-05-13 | **Author Ecosystem SSOT:** Added `docs/AUTHOR_ECOSYSTEM_ROADMAP.md` (vision, lexicon, phases 1–3, five tiers + publisher key levels, MSGF `STATE_*` targets); linked from this tracker and Vision summary. |

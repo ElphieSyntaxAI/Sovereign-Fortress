@@ -1,245 +1,4 @@
 "use client";
-
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-dde0b5b-20260519T184945Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-5e9b050-20260519T172718Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-5e9b050-20260519T172603Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-5e9b050-20260519T172046Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-5e9b050-20260519T171532Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-5e9b050-20260519T171416Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-5e9b050-20260519T170819Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-b4602b0-20260519T165710Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-6d594fa-20260519T162432Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-2b663b7-20260519T155850Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-81e8259-20260519T153428Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-463028d-20260519T150411Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-463028d-20260519T145611Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-853c3b6-20260519T054901Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-2790974-20260519T053954Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-2790974-20260519T053039Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-753c05a-20260519T051006Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-753c05a-20260519T050509Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-f70c13c-20260519T044237Z-internal
- */
 /**
  * @msgf-license-header
  * Proprietary and Confidential
@@ -262,7 +21,6 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
-import { ProductExplorerSection } from "@/app/_components/dashboard/ProductExplorerSection";
 import { UserBlueprintEcoPanel } from "@/app/_components/dashboard/UserBlueprintEcoPanel";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
 import type {
@@ -285,15 +43,27 @@ import type {
   PillarStoplightStatus,
 } from "@/lib/services/HealthService";
 import type { MsgfGovernancePillar } from "@/lib/services/pillar-baseline";
+import {
+  healthPillarsQuery,
+  type DashboardHealthScopeMode,
+} from "@/lib/dashboard-health-scope";
 
 type Props = {
   userEmail: string;
   initialReport: PillarHealthReport;
   authRedirectPath?: string;
   dashboardLabel?: string;
+  /** `personal` = signed-in user only; `operator` = admin/company rollup. */
+  healthScope?: DashboardHealthScopeMode;
   canAccessAdminDashboard?: boolean;
   scopeDescription?: string;
   showMasterEcoLeaderboard?: boolean;
+  /** Network ticker + daily digest (operator / platform view). */
+  showNetworkStreams?: boolean;
+  /** When true, omit duplicate nav/chrome (parent uses AdminPortalNav). */
+  embeddedInAdminPortal?: boolean;
+  /** Elphie Syntax product family cards (pass from a server page, e.g. ProductExplorerSection). */
+  productExplorer?: ReactNode;
 };
 
 type PillarHealthApiResponse = PillarHealthReport & { ok?: boolean; error?: string };
@@ -947,9 +717,13 @@ export function DashboardShell({
   initialReport,
   authRedirectPath = "/sign-in?next=/dashboard",
   dashboardLabel = "Governance dashboard",
+  healthScope = "personal",
   canAccessAdminDashboard = false,
   scopeDescription = "your mapped repositories and MSGF activity",
   showMasterEcoLeaderboard = false,
+  showNetworkStreams = false,
+  embeddedInAdminPortal = false,
+  productExplorer = null,
 }: Props) {
   const [report, setReport] = useState<PillarHealthReport>(initialReport);
   const [loading, setLoading] = useState(false);
@@ -968,7 +742,7 @@ export function DashboardShell({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/msgf/health/pillars?lookback_hours=168", {
+      const res = await fetch(healthPillarsQuery(healthScope, 168), {
         credentials: "include",
         cache: "no-store",
       });
@@ -988,7 +762,7 @@ export function DashboardShell({
     } finally {
       setLoading(false);
     }
-  }, [authRedirectPath]);
+  }, [authRedirectPath, healthScope]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -998,6 +772,8 @@ export function DashboardShell({
   }, [refresh]);
 
   const refreshDashboardStreams = useCallback(async () => {
+    if (!showNetworkStreams) return;
+
     const requests: Promise<void>[] = [
       fetch("/api/msgf/dashboard/ticker", { credentials: "include", cache: "no-store" }).then(
         async (tickerRes) => {
@@ -1045,8 +821,11 @@ export function DashboardShell({
   }, []);
 
   useEffect(() => {
+    if (!showNetworkStreams && !showMasterEcoLeaderboard) return;
     void refreshDashboardStreams();
-  }, [refreshDashboardStreams]);
+    const id = window.setInterval(() => void refreshDashboardStreams(), REFRESH_MS);
+    return () => window.clearInterval(id);
+  }, [refreshDashboardStreams, showNetworkStreams, showMasterEcoLeaderboard]);
 
   useEffect(() => {
     setActionResult(null);
@@ -1099,10 +878,7 @@ export function DashboardShell({
 
   const overallStyles = statusStyles(report.overall_status);
 
-  return (
-    <div className="landing-mesh min-h-screen text-slate-100">
-      <DashboardNav userEmail={userEmail} />
-
+  const content = (
       <main className="mx-auto max-w-6xl space-y-8 px-5 py-8 sm:py-10">
         <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -1141,7 +917,25 @@ export function DashboardShell({
           </div>
         ) : null}
 
-        <GlobalNotificationTicker events={tickerEvents} />
+        {showNetworkStreams ? <GlobalNotificationTicker events={tickerEvents} /> : null}
+
+        {healthScope === "personal" ? (
+          <section className="glass-panel rounded-2xl border border-cyan-500/15 p-4">
+            <p className="text-sm text-slate-300">
+              Showing <strong className="text-cyan-100">your</strong> pillar health
+              {report.scope.project_origins?.length
+                ? ` for ${report.scope.project_origins.length} mapped project(s).`
+                : " for your account."}{" "}
+              <Link href="/workspace#ide-setup" className="text-cyan-300 hover:underline">
+                IDE setup
+              </Link>{" "}
+              ·{" "}
+              <Link href="/setup/projects" className="text-cyan-300 hover:underline">
+                Map projects
+              </Link>
+            </p>
+          </section>
+        ) : null}
 
         {canAccessAdminDashboard ? (
         <section className="glass-panel rounded-2xl border border-emerald-500/15 p-4">
@@ -1156,16 +950,22 @@ export function DashboardShell({
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
+                href="/admin/portal"
+                className="rounded-full border border-violet-500/25 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/20"
+              >
+                Admin portal
+              </Link>
+              <Link
                 href="/dashboard"
                 className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/20"
               >
-                Governance dashboard
+                Your governance
               </Link>
               <Link
                 href="/admin/dashboard"
                 className="rounded-full border border-violet-500/25 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/20"
               >
-                Global admin dashboard
+                Ops dashboard
               </Link>
             </div>
           </div>
@@ -1206,7 +1006,7 @@ export function DashboardShell({
           </div>
         </section>
 
-        <ProductExplorerSection />
+        {productExplorer}
 
         {!showMasterEcoLeaderboard ? <UserBlueprintEcoPanel /> : null}
 
@@ -1262,6 +1062,19 @@ export function DashboardShell({
           MSGF V3.2-ULTRA · Cold layer authoritative · Redis hot path when configured
         </p>
       </main>
+  );
+
+  if (embeddedInAdminPortal) {
+    return content;
+  }
+
+  return (
+    <div className="landing-mesh min-h-screen text-slate-100">
+      <DashboardNav
+        userEmail={userEmail}
+        showAdminPortalLink={canAccessAdminDashboard}
+      />
+      {content}
     </div>
   );
 }

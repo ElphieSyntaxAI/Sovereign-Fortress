@@ -14,7 +14,9 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/app/_components/dashboard/DashboardShell";
+import { ProductExplorerSection } from "@/app/_components/dashboard/ProductExplorerSection";
 import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
+import { resolveHealthOptionsForDashboardRequest } from "@/lib/dashboard-health-scope";
 import { healthService } from "@/lib/services/HealthService";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
@@ -39,17 +41,27 @@ export default async function DashboardPage() {
 
   const admin = createAdminClient();
   const access = await resolveDashboardAccessForUser(user);
-  const initialReport = await healthService.getPillarHealth(admin, {
-    userId: user.id,
+  const healthOptions = await resolveHealthOptionsForDashboardRequest(admin, user, {
     lookbackHours: 168,
+    scope: "personal",
   });
+  const initialReport = await healthService.getPillarHealth(admin, healthOptions);
+
+  const mappedCount = initialReport.scope.project_origins?.length ?? 0;
+  const scopeDescription =
+    mappedCount > 0
+      ? `your account and ${mappedCount} mapped project${mappedCount === 1 ? "" : "s"}`
+      : "your account (map projects in Workspace to scope by repository)";
 
   return (
     <DashboardShell
       userEmail={user.email ?? "Signed in"}
       initialReport={initialReport}
+      healthScope="personal"
       canAccessAdminDashboard={access.canAccessAdminDashboard}
-      scopeDescription="your mapped repositories and MSGF activity"
+      scopeDescription={scopeDescription}
+      dashboardLabel="Your governance dashboard"
+      productExplorer={<ProductExplorerSection />}
     />
   );
 }

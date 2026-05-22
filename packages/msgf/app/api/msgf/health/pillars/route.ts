@@ -18,6 +18,10 @@ import {
   healthOptionsForSessionOperator,
   resolveSessionDashboardOperator,
 } from "@/lib/msgf-admin-session";
+import {
+  parseDashboardHealthScope,
+  resolveHealthOptionsForDashboardRequest,
+} from "@/lib/dashboard-health-scope";
 import { MSGF_PERSONAL_SANDBOX_HEADER } from "@/lib/msgf-http-headers";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
 import {
@@ -137,18 +141,14 @@ export async function GET(req: NextRequest) {
         }
         const lookbackHours = Number(req.nextUrl.searchParams.get("lookback_hours") ?? "168");
         const lb = Number.isFinite(lookbackHours) ? lookbackHours : 168;
-        const sessionOperator = await resolveSessionDashboardOperator(admin, user);
-
-        if (sessionOperator.role === "GLOBAL_ADMIN" || sessionOperator.role === "COMPANY_ADMIN") {
-          reportOptions = await healthOptionsForSessionOperator(admin, sessionOperator, lb);
-          global = sessionOperator.role === "GLOBAL_ADMIN";
-        } else {
-          reportOptions = {
-            userId: user.id,
-            lookbackHours: lb,
-          };
-          global = false;
-        }
+        const scope = parseDashboardHealthScope(req.nextUrl.searchParams.get("scope"));
+        reportOptions = await resolveHealthOptionsForDashboardRequest(admin, user, {
+          lookbackHours: lb,
+          scope,
+        });
+        global =
+          scope === "operator" &&
+          (await resolveSessionDashboardOperator(admin, user)).role === "GLOBAL_ADMIN";
       } else {
         throw e;
       }

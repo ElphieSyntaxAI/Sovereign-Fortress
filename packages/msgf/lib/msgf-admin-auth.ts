@@ -43,10 +43,12 @@ export function assertMsgfServiceAdmin(request: NextRequest): void {
 
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const adminKey = process.env.MSGF_ADMIN_API_KEY?.trim();
+  const cronSecret = process.env.MSGF_OPS_CRON_SECRET?.trim();
 
   const allowed = new Set<string>();
   if (serviceRole) allowed.add(serviceRole);
   if (adminKey) allowed.add(adminKey);
+  if (cronSecret) allowed.add(cronSecret);
 
   if (!allowed.size) {
     throw new MsgfAdminAuthError(

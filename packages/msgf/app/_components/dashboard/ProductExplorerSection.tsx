@@ -22,6 +22,9 @@
  */
 import Link from "next/link";
 
+import { canAccessPrelaunchProducts } from "@/lib/prelaunch-product-access";
+import { getAdminProductSurfaces } from "@/lib/admin-product-surfaces";
+
 type JewelTone = "emerald" | "amethyst" | "topaz";
 
 type ProductCard = {
@@ -34,14 +37,21 @@ type ProductCard = {
   detailHref: string;
   liveUrl: string | null;
   liveLabel: string;
+  localTestUrl?: string | null;
+  localTestLabel?: string;
   tone: JewelTone;
 };
 
 const MSGF_APP_URL =
   process.env.NEXT_PUBLIC_MSGF_APP_URL || "https://elphiesgatedai.elphiesyntax.com";
-const AUTHOR_APP_URL = process.env.NEXT_PUBLIC_AUTHOR_APP_URL || null;
+const AUTHOR_APP_URL =
+  process.env.NEXT_PUBLIC_AUTHOR_APP_URL ||
+  process.env.AUTHOR_APP_URL?.trim() ||
+  null;
 const EDUCATION_APP_URL =
-  process.env.NEXT_PUBLIC_EDUCATION_APP_URL || "https://syntaxeducates.elphiesyntax.com";
+  process.env.NEXT_PUBLIC_EDUCATION_APP_URL ||
+  process.env.EDUCATION_APP_URL?.trim() ||
+  "https://syntaxeducates.elphiesyntax.com";
 
 const PRODUCTS: ProductCard[] = [
   {
@@ -186,30 +196,68 @@ function ProductCardTile({ product }: { product: ProductCard }) {
         ))}
       </ul>
 
-      <footer className="relative mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+      <footer className="relative mt-auto flex flex-col gap-2 pt-1">
+        {product.liveUrl ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <a
+              href={product.liveUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold transition ${tone.primaryButton}`}
+            >
+              {product.liveLabel}
+              <span aria-hidden>↗</span>
+            </a>
+            {product.localTestUrl ? (
+              <a
+                href={product.localTestUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className={`inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-600/50 px-4 py-2 text-sm font-medium transition hover:bg-white/5 ${tone.secondaryButton}`}
+              >
+                {product.localTestLabel ?? "Local dev"} ↗
+              </a>
+            ) : null}
+          </div>
+        ) : null}
         <Link
           href={product.detailHref}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${tone.primaryButton}`}
+          className="text-xs text-slate-500 hover:text-slate-300 hover:underline"
         >
-          Find out more
-          <span aria-hidden>→</span>
+          Find out more →
         </Link>
-        {product.liveUrl ? (
-          <a
-            href={product.liveUrl}
-            target="_blank"
-            rel="noreferrer noopener"
-            className={`text-xs font-medium underline-offset-4 hover:underline ${tone.secondaryButton}`}
-          >
-            {product.liveLabel} ↗
-          </a>
-        ) : null}
       </footer>
     </article>
   );
 }
 
-export function ProductExplorerSection() {
+function productsForExplorer(canLaunch: boolean): ProductCard[] {
+  if (!canLaunch) {
+    return PRODUCTS.map((p) =>
+      p.id === "author" ? { ...p, liveUrl: null, localTestUrl: null } : p
+    );
+  }
+
+  const surfaces = getAdminProductSurfaces();
+  const byId = new Map(surfaces.map((s) => [s.id, s]));
+
+  return PRODUCTS.map((p) => {
+    const surface = byId.get(p.id);
+    if (!surface) return p;
+    return {
+      ...p,
+      liveUrl: surface.testLaunch.href,
+      liveLabel: surface.testLaunch.label,
+      localTestUrl: surface.localTestLaunch?.href ?? null,
+      localTestLabel: surface.localTestLaunch?.label,
+    };
+  });
+}
+
+export async function ProductExplorerSection() {
+  const canLaunch = await canAccessPrelaunchProducts();
+  const products = productsForExplorer(canLaunch);
+
   return (
     <section
       aria-label="Elphie Syntax product family"
@@ -224,8 +272,9 @@ export function ProductExplorerSection() {
             <span className="text-gradient-jewel">Explore each surface</span>
           </h2>
           <p className="text-sm text-slate-400">
-            One brain (MSGF) powers the Author Ecosystem and Syntax Education. Open any
-            product&apos;s roadmap detail page below, or jump straight to its live dashboard.
+            {canLaunch
+              ? "Operator access: use Open buttons to test Author and Syntax Education. Everyone else sees roadmap details only."
+              : "One brain (MSGF) powers the Author Ecosystem and Syntax Education. Open any product roadmap below."}
           </p>
         </div>
         <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500 sm:inline">
@@ -234,7 +283,7 @@ export function ProductExplorerSection() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        {PRODUCTS.map((p) => (
+        {products.map((p) => (
           <ProductCardTile key={p.id} product={p} />
         ))}
       </div>

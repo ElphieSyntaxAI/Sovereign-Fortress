@@ -205,6 +205,11 @@ When all pass, Phase 0 is complete — proceed to Phase 1 (SHARD/DEFEND) in [`do
 | `npm run test:lom-disagreement -w msgf` | LOM / recursion harness |
 | `npm run probe:author-ecosystem -w msgf` | Cross-stack smoke (post–integration) |
 | `npm run security:prancer-pillars -w msgf` | Static security scan |
+| `npm run test:v32-ultra -w msgf` | V3.2-ULTRA integration harness (Vault/Hall, purge, directive) |
+| `GET /health` | Liveness + V3.2 SHARD (Redis) checklist |
+| `POST /api/msgf/ops/v32-heartbeat` | Cron: YELLOW/GREEN tier reports + 30d Hall purge (Bearer `MSGF_OPS_CRON_SECRET`) |
+
+**Production Redis (SHARD):** set `REDIS_HOST` (Memorystore) or `REDIS_URL`; optional `MSGF_REQUIRE_REDIS=1` to reject Pulse when hot layer is down.
 
 ---
 

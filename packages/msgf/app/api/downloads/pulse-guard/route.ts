@@ -19,34 +19,32 @@ import path from "path";
 
 import { NextResponse } from "next/server";
 
+function downloadSearchRoots(cwd: string): string[] {
+  const roots = [
+    path.join(cwd, "public", "downloads"),
+    path.join(cwd, "packages", "msgf", "public", "downloads"),
+    path.join(cwd, "..", "msgf-pulse-guard"),
+    path.join(cwd, "..", "..", "packages", "msgf-pulse-guard"),
+  ];
+  return [...new Set(roots)];
+}
+
 function findExtensionArtifact(): { filePath: string; fileName: string; mime: string } | null {
   const cwd = process.cwd();
 
-  const staticCandidates = [
-    { filePath: path.join(cwd, "public", "downloads", "msgf-pulse-guard.zip"), fileName: "msgf-pulse-guard.zip", mime: "application/zip" },
-    { filePath: path.join(cwd, "public", "downloads", "msgf-pulse-guard.vsix"), fileName: "msgf-pulse-guard.vsix", mime: "application/vsix" },
-    {
-      filePath: path.join(cwd, "..", "msgf-pulse-guard", "msgf-pulse-guard.vsix"),
-      fileName: "msgf-pulse-guard.vsix",
-      mime: "application/vsix",
-    },
-    {
-      filePath: path.join(cwd, "..", "..", "packages", "msgf-pulse-guard", "msgf-pulse-guard.vsix"),
-      fileName: "msgf-pulse-guard.vsix",
-      mime: "application/vsix",
-    },
-  ];
+  const staticCandidates: { filePath: string; fileName: string; mime: string }[] = [];
+  for (const dir of downloadSearchRoots(cwd)) {
+    staticCandidates.push(
+      { filePath: path.join(dir, "msgf-pulse-guard.zip"), fileName: "msgf-pulse-guard.zip", mime: "application/zip" },
+      { filePath: path.join(dir, "msgf-pulse-guard.vsix"), fileName: "msgf-pulse-guard.vsix", mime: "application/vsix" }
+    );
+  }
 
   for (const c of staticCandidates) {
     if (existsSync(c.filePath)) return c;
   }
 
-  const vsixDirs = [
-    path.join(cwd, "..", "msgf-pulse-guard"),
-    path.join(cwd, "..", "..", "packages", "msgf-pulse-guard"),
-  ];
-
-  for (const dir of vsixDirs) {
+  for (const dir of downloadSearchRoots(cwd)) {
     if (!existsSync(dir)) continue;
     try {
       const vsix = readdirSync(dir)
@@ -56,7 +54,7 @@ function findExtensionArtifact(): { filePath: string; fileName: string; mime: st
       if (vsix) {
         return {
           filePath: path.join(dir, vsix),
-          fileName: vsix,
+          fileName: vsix.endsWith("msgf-pulse-guard.vsix") ? vsix : "msgf-pulse-guard.vsix",
           mime: "application/vsix",
         };
       }
@@ -75,7 +73,7 @@ export async function GET() {
     return NextResponse.json(
       {
         error:
-          "Extension package not found. Build with: npm run compile -w msgf-pulse-guard && npx vsce package -o packages/msgf/public/downloads/",
+          "Extension package not found. Build with: npm run package:pulse-guard (or redeploy so Docker runs tools/package-pulse-guard.js).",
         code: "EXTENSION_ARTIFACT_MISSING",
       },
       { status: 404 }
