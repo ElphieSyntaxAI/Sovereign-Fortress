@@ -96,6 +96,7 @@ export async function runGatePhase(
   const biometric = calculateBiometricScore({
     keystrokes: defended.keystrokes,
     profile: biometricProfile,
+    authorHal: input.authorHalTelemetry ?? null,
   });
 
   const logicDrift = assessLogicDrift({

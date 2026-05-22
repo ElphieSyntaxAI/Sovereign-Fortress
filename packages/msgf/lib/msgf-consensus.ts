@@ -12,6 +12,10 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { KeystrokeEvent, StateBeatRow } from "@/lib/P4";
+import {
+  mergeTrustedAuthorHalBiometric,
+  type AuthorHalTelemetrySnapshot,
+} from "@/lib/hal-author-telemetry";
 
 export type ModelVerdict = "HUMAN" | "NON_HUMAN" | "INCONCLUSIVE";
 
@@ -21,6 +25,8 @@ export interface BiometricInput {
   /** Optional raw text chunk (if available client-side after anonymization). */
   textSample?: string;
   profile?: BiometricProfileRow | null;
+  /** Trusted Author BFF rhythm scores (no manuscript / RAG). */
+  authorHal?: AuthorHalTelemetrySnapshot | null;
 }
 
 export interface LinguisticInput {
@@ -111,14 +117,24 @@ function estimateTypingStats(keystrokes: KeystrokeEvent[]) {
   const sorted = [...keystrokes].sort((a, b) => a.ts - b.ts);
   const start = sorted[0].ts;
   const end = sorted[sorted.length - 1].ts;
-  const durationMs = Math.max(1, end - start);
+  let durationMs = Math.max(1, end - start);
 
   let chars = 0;
   let largePasteDetected = false;
   for (const e of sorted) {
+    if (e.isSystemEvent === true || e.key === "PASTE_EVENT") {
+      largePasteDetected = true;
+      if (typeof e.wordsPasted === "number" && e.wordsPasted > 8) {
+        largePasteDetected = true;
+      }
+      continue;
+    }
     if (e.key.length > 24) largePasteDetected = true;
     if (e.key.length === 1) chars += 1;
     else if (e.key === "Enter") chars += 1;
+    if (typeof e.flightMs === "number" && e.flightMs > 0 && chars > 0) {
+      durationMs = Math.max(durationMs, e.flightMs);
+    }
   }
 
   const charsPerSecond = chars / (durationMs / 1000);
@@ -201,14 +217,17 @@ export function calculateBiometricScore(input: BiometricInput): {
     }
   }
 
+  const baseScore = clamp100(score);
+  const mergedScore = mergeTrustedAuthorHalBiometric(baseScore, input.authorHal);
+
   return {
-    score: clamp100(score),
+    score: mergedScore,
     largePasteDetected: stats.largePasteDetected,
     mechanicalTypingDetected,
     deltaOver30Percent,
     adaptiveSensitivityApplied,
     baselineTrainingActive,
-    rationale: `Biometric: cps=${stats.charsPerSecond.toFixed(2)}, chars=${stats.chars}, paste=${stats.largePasteDetected}, adaptive=${adaptiveSensitivityApplied}`,
+    rationale: `Biometric: cps=${stats.charsPerSecond.toFixed(2)}, chars=${stats.chars}, paste=${stats.largePasteDetected}, adaptive=${adaptiveSensitivityApplied}${input.authorHal ? ", author_hal=1" : ""}`,
   };
 }
 

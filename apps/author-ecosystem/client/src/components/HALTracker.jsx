@@ -9,12 +9,18 @@ const HALTracker = () => {
   const [text, setText] = useState("");
   const [keystrokes, setKeystrokes] = useState([]);
   const [isReference, setIsReference] = useState(false);
+  const [activeManuscript, setActiveManuscript] = useState(null);
+  const [lastChunkIndex, setLastChunkIndex] = useState(-1);
   const lastKeyTime = useRef(performance.now());
   const keyDepths = useRef({}); // Buffer for Dwell Time calculation
 
   // --- 2. LIFECYCLE ---
   useEffect(() => {
     lastKeyTime.current = performance.now();
+    axios
+      .get("/api/manuscripts/active", { withCredentials: true })
+      .then((r) => setActiveManuscript(r.data?.manuscript ?? r.data ?? null))
+      .catch(() => setActiveManuscript(null));
   }, []);
 
   useEffect(() => {
@@ -95,21 +101,37 @@ const HALTracker = () => {
 
   // --- 4. API ACTIONS ---
 
+  const keystrokeLatenciesFromEvents = () =>
+    keystrokes
+      .filter((k) => !k.isSystemEvent && k.key !== "PASTE_EVENT")
+      .map((k) => Math.max(0, Number(k.flightTime) || 0));
+
   const saveToLedger = async () => {
     if (!text.trim()) return alert("Please enter text before saving.");
+    if (!activeManuscript?.id || !activeManuscript?.tenant_id) {
+      return alert("Select an active manuscript in the dashboard first.");
+    }
 
     try {
-      await axios.post(
+      const res = await axios.post(
         "/api/hal/session",
         {
-          content: text,
-          keystroke_data: keystrokes,
-          is_reference: isReference,
+          tenantId: activeManuscript.tenant_id,
+          manuscriptId: activeManuscript.id,
+          contentDelta: text,
+          keystrokeLatencies: keystrokeLatenciesFromEvents(),
+          keystrokeDna: { events: keystrokes },
+          identityRoot: isReference,
+          locale: "en",
+          lastSyncedChunkIndex: lastChunkIndex,
         },
-        { headers: { "x-tenant-id": "author-ecosystem-main" } }
+        { withCredentials: true }
       );
 
-      alert("Authorship Verified & Ledgered!");
+      const idx = res.data?.msgf_pulse?.last_chunk_index;
+      if (typeof idx === "number") setLastChunkIndex(idx);
+
+      alert("Authorship verified and ledgered.");
       setText("");
       setKeystrokes([]);
     } catch (err) {

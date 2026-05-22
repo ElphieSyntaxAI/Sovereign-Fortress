@@ -43,7 +43,9 @@ import {
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
   MSGF_ALLOWANCE_STATE_HEADER,
+  MSGF_AUTHOR_HAL_HEADER,
 } from "@/lib/msgf-http-headers";
+import { parseAuthorHalTelemetryHeader } from "@/lib/hal-author-telemetry";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
 import { extractPulseByokFromRequest } from "@/lib/services/pulse-byok-from-request";
 import { runWithPulseTrace } from "@/lib/runtime/pulse-trace-context";
@@ -103,6 +105,7 @@ async function runPulsePipelineWithHotLayer(params: {
   byokGeminiKey: string | null;
   byokAnthropicKey: string | null;
   isIdePulse?: boolean;
+  authorHalTelemetry?: ReturnType<typeof parseAuthorHalTelemetryHeader>;
 }) {
   return pulseEngine.runFullPipeline({
     supabase: params.supabase,
@@ -111,6 +114,7 @@ async function runPulsePipelineWithHotLayer(params: {
     tenantId: params.tenantId,
     traceId: params.traceId,
     rawBody: params.rawBody,
+    authorHalTelemetry: params.authorHalTelemetry ?? null,
     geminiModelId: params.geminiModelId,
     forceLomMismatch: params.forceLomMismatch,
     lomHarnessEnabled: params.lomHarnessEnabled,
@@ -288,6 +292,9 @@ export async function POST(req: NextRequest) {
       }
 
       const byok = extractPulseByokFromRequest(req);
+      const authorHalTelemetry = parseAuthorHalTelemetryHeader(
+        req.headers.get(MSGF_AUTHOR_HAL_HEADER)
+      );
 
       let pipelineResult;
       try {
@@ -299,6 +306,7 @@ export async function POST(req: NextRequest) {
           tenantId,
           traceId,
           rawBody,
+          authorHalTelemetry,
           geminiModelId,
           forceLomMismatch: forceMismatch,
           lomHarnessEnabled: lomTestHarnessEnabled(),

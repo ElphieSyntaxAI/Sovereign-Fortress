@@ -27,6 +27,11 @@ export type UniversalP1KeystrokeEvent = {
   type?: "keydown" | "keyup" | "input";
   /** Optional opaque editor surface id — never a book title. */
   target?: string;
+  dwellMs?: number;
+  flightMs?: number;
+  isBackspace?: boolean;
+  isSystemEvent?: boolean;
+  wordsPasted?: number;
 };
 
 /** Keys that must never appear on payloads forwarded into MSGF universal verification. */

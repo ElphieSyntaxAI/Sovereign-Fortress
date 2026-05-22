@@ -220,6 +220,11 @@ const KeystrokeEventSchema = z.object({
   key: z.string().min(1),
   type: z.enum(["keydown", "keyup", "input"]).optional(),
   target: z.string().optional(),
+  dwellMs: z.number().finite().optional(),
+  flightMs: z.number().finite().optional(),
+  isBackspace: z.boolean().optional(),
+  isSystemEvent: z.boolean().optional(),
+  wordsPasted: z.number().int().min(0).optional(),
 });
 
 const PulseBodySchema = z
@@ -240,6 +245,8 @@ export type PulseEngineInput = {
   /** Correlate logs + Hall/Vault metadata with IDE Pulse (generated in HTTP route if omitted). */
   traceId?: string;
   rawBody: unknown;
+  /** Trusted Author BFF rhythm snapshot (no RAG / grammar payload). */
+  authorHalTelemetry?: import("@/lib/hal-author-telemetry").AuthorHalTelemetrySnapshot | null;
   forceLomMismatch: boolean;
   lomHarnessEnabled: boolean;
 };
@@ -1908,6 +1915,11 @@ ${pulseText.slice(0, 1800)}
         key: safeKey,
         type: k.type,
         target: safeTarget,
+        ...(typeof k.dwellMs === "number" ? { dwellMs: k.dwellMs } : {}),
+        ...(typeof k.flightMs === "number" ? { flightMs: k.flightMs } : {}),
+        ...(k.isBackspace === true ? { isBackspace: true } : {}),
+        ...(k.isSystemEvent === true ? { isSystemEvent: true } : {}),
+        ...(typeof k.wordsPasted === "number" ? { wordsPasted: k.wordsPasted } : {}),
       };
     });
   }

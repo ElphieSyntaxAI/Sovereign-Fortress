@@ -21,7 +21,8 @@ import {
 import { P4_HAL_LEDGER, P4_HAL_LEDGER_ROLLING_AVG_5 } from "../lib/database/canonicalIdentifiers.js";
 import { assertBffManuscriptTenantSession } from "../middleware/author-gate.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
-import { forwardAuthorPulseToMsgf, latenciesToUniversalKeystrokes } from "../lib/msgfPulseBridge.js";
+import type { AuthorHalDnaEvent } from "../lib/msgfPulseBridge.js";
+import { syncAuthorHalChunksToMsgf } from "../lib/authorHalMsgfSync.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 type HalSessionBody = {
@@ -46,11 +47,147 @@ type HalSessionBody = {
   committedBlockLatenciesMs?: unknown;
   /** Alternative: array of per-key flight arrays, one per IME commitment; summed into block latencies. */
   compositionBlocks?: unknown;
+  /** Skip MSGF packets already sent (incremental chunk sync). */
+  lastSyncedChunkIndex?: unknown;
+  /** When false, persist ledger only (no MSGF Pulse). */
+  syncMsgf?: unknown;
 };
 
 export const halController = Router();
 
 const linguisticAnalyzer = new LinguisticAnalyzer();
+
+function extractHalDnaEvents(
+  keystrokeDna: Record<string, unknown> | null,
+  fallbackLatencies: number[]
+): AuthorHalDnaEvent[] {
+  const raw = keystrokeDna?.events;
+  if (Array.isArray(raw)) {
+    const out: AuthorHalDnaEvent[] = [];
+    for (const e of raw) {
+      if (!e || typeof e !== "object") continue;
+      const row = e as Record<string, unknown>;
+      if (typeof row.key !== "string") continue;
+      out.push({
+        key: row.key,
+        timestamp: row.timestamp as string | number | undefined,
+        flightTime: Number(row.flightTime ?? row.flightMs) || undefined,
+        dwellTime: Number(row.dwellTime ?? row.dwellMs) || undefined,
+        isBackspace: row.isBackspace === true,
+        isSystemEvent: row.isSystemEvent === true,
+        wordsPasted:
+          typeof row.wordsPasted === "number" ? row.wordsPasted : undefined,
+      });
+    }
+    if (out.length > 0) return out;
+  }
+  return fallbackLatencies.map((n) => ({ key: "AuthorHAL", flightTime: n }));
+}
+
+/** Lightweight incremental MSGF sync (175-word packets) without full ledger write. */
+halController.post("/api/hal/chunk-pulse", async (req: Request, res: Response) => {
+  try {
+    const body = req.body as HalSessionBody;
+    if (!body || typeof body !== "object") {
+      return res.status(400).json({ error: "JSON body required" });
+    }
+
+    const tenantId = assertUuid(String(body.tenantId ?? ""), "tenantId");
+    const manuscriptId = String(body.manuscriptId ?? "").trim();
+    if (!manuscriptId) {
+      return res.status(400).json({ error: "manuscriptId is required" });
+    }
+
+    const contentDelta =
+      typeof body.contentDelta === "string"
+        ? body.contentDelta
+        : body.contentDelta != null
+          ? JSON.stringify(body.contentDelta)
+          : "";
+
+    if (!contentDelta.trim()) {
+      return res.status(400).json({ error: "contentDelta is required for chunk sync" });
+    }
+
+    const locale = parseHalLocale(body.locale);
+    const style = stylometricFromContentDelta(contentDelta, locale);
+
+    let authorUserId: string | null = null;
+    if (body.authorUserId != null && String(body.authorUserId).trim() !== "") {
+      authorUserId = assertUuid(String(body.authorUserId), "authorUserId");
+    }
+
+    const keystrokeDna =
+      body.keystrokeDna != null && typeof body.keystrokeDna === "object"
+        ? (body.keystrokeDna as Record<string, unknown>)
+        : null;
+
+    const rawLatencies: number[] = Array.isArray(body.keystrokeLatencies)
+      ? body.keystrokeLatencies.map((x) => Number(x)).filter((n) => Number.isFinite(n))
+      : [];
+
+    const rhythm = resolveHalImeRhythm({
+      keystrokeLatencies: rawLatencies,
+      isImeSession: body.isImeSession === true,
+      compositionEvents: body.compositionEvents,
+      committedBlockLatenciesMs: body.committedBlockLatenciesMs,
+      compositionBlocks: body.compositionBlocks,
+    });
+
+    const typingScore = computeHalScore(
+      rhythm.rhythmUnitCount,
+      style.word_count,
+      rhythm.latencyMsForRhythm,
+      locale,
+      { isImeSession: rhythm.isImeSession }
+    );
+
+    const lastSynced =
+      typeof body.lastSyncedChunkIndex === "number"
+        ? body.lastSyncedChunkIndex
+        : body.lastSyncedChunkIndex != null
+          ? Number(body.lastSyncedChunkIndex)
+          : null;
+
+    if (process.env.MSGF_AUTHOR_HAL_PULSE_ENABLED?.trim().toLowerCase() === "0") {
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+        reason: "MSGF_AUTHOR_HAL_PULSE_ENABLED=0",
+      });
+    }
+
+    const sync = await syncAuthorHalChunksToMsgf({
+      userId: authorUserId || tenantId,
+      tenantId,
+      manuscriptId,
+      contentDelta,
+      events: extractHalDnaEvents(keystrokeDna, rhythm.rawKeystrokeLatencyMs),
+      halScore: typingScore,
+      typingScore,
+      locale,
+      isImeSession: rhythm.isImeSession,
+      rhythmUnitCount: rhythm.rhythmUnitCount,
+      wordCount: style.word_count,
+      lastSyncedChunkIndex: Number.isFinite(lastSynced) ? lastSynced : null,
+    });
+
+    return res.status(200).json({
+      ok: sync.errors.length === 0,
+      packets_sent: sync.packetsSent,
+      last_chunk_index: sync.lastChunkIndex,
+      errors: sync.errors,
+    });
+  } catch (e) {
+    if (e instanceof HalValidationError) {
+      return res.status(400).json({ error: e.message });
+    }
+    console.error("[hal/chunk-pulse]", e);
+    return res.status(500).json({
+      error: e instanceof Error ? e.message : "Internal error",
+    });
+  }
+});
 
 halController.post("/api/hal/session", async (req: Request, res: Response) => {
   try {
@@ -251,26 +388,41 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to persist HAL session", detail: error.message });
     }
 
-    const msgfPulse =
-      process.env.MSGF_AUTHOR_HAL_PULSE_ENABLED?.trim().toLowerCase() === "0"
-        ? {
-            ok: false,
-            configured: true,
-            status: null,
-            url: null,
-            response: null,
-            error: "Disabled by MSGF_AUTHOR_HAL_PULSE_ENABLED=0.",
-          }
-        : await forwardAuthorPulseToMsgf({
-            userId: authorUserId || sessionId,
-            tenantId,
-            body: {
-              keystrokes: latenciesToUniversalKeystrokes(latencyMs, {
-                target: `author:${manuscriptId}`,
-              }),
-            },
-            idempotencyKey: `hal:${sessionId}`,
-          });
+    const dnaEvents = extractHalDnaEvents(keystrokeDna, rhythm.rawKeystrokeLatencyMs);
+    const syncMsgf =
+      body.syncMsgf !== false &&
+      process.env.MSGF_AUTHOR_HAL_PULSE_ENABLED?.trim().toLowerCase() !== "0";
+
+    const lastSynced =
+      typeof body.lastSyncedChunkIndex === "number"
+        ? body.lastSyncedChunkIndex
+        : body.lastSyncedChunkIndex != null
+          ? Number(body.lastSyncedChunkIndex)
+          : null;
+
+    const msgfPulse = !syncMsgf
+      ? {
+          packetsSent: 0,
+          lastChunkIndex: Number.isFinite(lastSynced) ? lastSynced : null,
+          results: [],
+          errors: ["MSGF sync disabled."],
+        }
+      : await syncAuthorHalChunksToMsgf({
+          userId: authorUserId || sessionId,
+          tenantId,
+          manuscriptId,
+          contentDelta,
+          events: dnaEvents,
+          halScore: halScoreFinal,
+          typingScore,
+          locale,
+          isImeSession: rhythm.isImeSession,
+          rhythmUnitCount: manualKeystrokes,
+          wordCount: totalWords,
+          isTrainingPhase,
+          sessionId,
+          lastSyncedChunkIndex: Number.isFinite(lastSynced) ? lastSynced : null,
+        });
 
     return res.status(201).json({
       ok: true,
@@ -288,11 +440,11 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
       recalibrationEvent,
       stylometric_snapshot,
       msgf_pulse: {
-        ok: msgfPulse.ok,
-        configured: msgfPulse.configured,
-        status: msgfPulse.status,
-        error: msgfPulse.error,
-        response: msgfPulse.response,
+        ok: syncMsgf && msgfPulse.errors.length === 0,
+        configured: syncMsgf,
+        packets_sent: msgfPulse.packetsSent,
+        last_chunk_index: msgfPulse.lastChunkIndex,
+        errors: msgfPulse.errors,
       },
     });
   } catch (e) {

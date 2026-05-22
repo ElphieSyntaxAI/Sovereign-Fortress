@@ -53,4 +53,7 @@ export const MSGF_IDE_PULSE_HEADER = "x-msgf-ide-pulse";
 /** Dashboard / BFF: Supabase `auth.users` id of the human operator (RBAC + audit). */
 export const MSGF_OPERATOR_USER_ID_HEADER = "x-msgf-operator-user-id";
 
+/** Trusted Author BFF HAL snapshot JSON ({@link AuthorHalTelemetrySnapshot}) — rhythm only, no RAG. */
+export const MSGF_AUTHOR_HAL_HEADER = "x-msgf-author-hal";
+
 export { MSGF_WRITE_TARGET_HEADER } from "@/lib/msgf-tenant-governance";

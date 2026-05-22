@@ -1,5 +1,16 @@
-import type { UniversalP1KeystrokeEvent, UniversalP1PulseBody } from "msgf/universal/p1-hal-standard";
+import type { UniversalP1PulseBody } from "msgf/universal/p1-hal-standard";
 import { toUniversalP1PulseBody } from "msgf/universal/p1-hal-standard";
+import {
+  authorHalEventsToUniversalKeystrokes,
+  type AuthorHalDnaEvent,
+} from "msgf/hal-author-bridge";
+import {
+  MSGF_AUTHOR_HAL_HEADER,
+  serializeAuthorHalTelemetry,
+  type AuthorHalTelemetrySnapshot,
+} from "msgf/hal-author-bridge";
+
+export type { AuthorHalDnaEvent, AuthorHalTelemetrySnapshot };
 
 export type AuthorMsgfPulseResult = {
   ok: boolean;
@@ -15,6 +26,7 @@ type ForwardAuthorPulseInput = {
   tenantId?: string | null;
   body: unknown;
   idempotencyKey?: string | null;
+  authorHal?: AuthorHalTelemetrySnapshot | null;
 };
 
 function trimEnv(name: string): string {
@@ -44,7 +56,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function normalizeKeystrokeEvent(value: unknown): UniversalP1KeystrokeEvent | null {
+function normalizeKeystrokeEvent(value: unknown): import("msgf/universal/p1-hal-standard").UniversalP1KeystrokeEvent | null {
   if (!isRecord(value)) return null;
   const ts = typeof value.ts === "number" ? value.ts : Number(value.ts);
   if (!Number.isFinite(ts)) return null;
@@ -58,7 +70,17 @@ function normalizeKeystrokeEvent(value: unknown): UniversalP1KeystrokeEvent | nu
     typeof value.target === "string" && value.target.trim()
       ? value.target.trim().slice(0, 120)
       : undefined;
-  return { ts, key, type, ...(target ? { target } : {}) };
+  return {
+    ts,
+    key,
+    type,
+    ...(target ? { target } : {}),
+    ...(typeof value.dwellMs === "number" ? { dwellMs: value.dwellMs } : {}),
+    ...(typeof value.flightMs === "number" ? { flightMs: value.flightMs } : {}),
+    ...(value.isBackspace === true ? { isBackspace: true } : {}),
+    ...(value.isSystemEvent === true ? { isSystemEvent: true } : {}),
+    ...(typeof value.wordsPasted === "number" ? { wordsPasted: value.wordsPasted } : {}),
+  };
 }
 
 export function normalizeUniversalPulseBody(input: unknown): UniversalP1PulseBody {
@@ -67,7 +89,7 @@ export function normalizeUniversalPulseBody(input: unknown): UniversalP1PulseBod
   }
   const keystrokes = input.keystrokes
     .map(normalizeKeystrokeEvent)
-    .filter((event): event is UniversalP1KeystrokeEvent => event !== null);
+    .filter((event): event is NonNullable<typeof event> => event !== null);
   if (keystrokes.length === 0) {
     throw new Error("keystrokes must include at least one valid event.");
   }
@@ -77,28 +99,21 @@ export function normalizeUniversalPulseBody(input: unknown): UniversalP1PulseBod
   });
 }
 
+/** @deprecated Prefer {@link authorHalEventsToUniversalKeystrokes} from msgf/hal-author-bridge */
 export function latenciesToUniversalKeystrokes(
   latencies: readonly number[],
   opts?: { startTs?: number; target?: string }
-): UniversalP1KeystrokeEvent[] {
-  const startTs = opts?.startTs ?? Date.now();
-  let cursor = startTs;
-  return latencies
-    .map((latency) => {
-      const n = Number(latency);
-      if (!Number.isFinite(n) || n < 0) return null;
-      cursor += Math.max(1, Math.round(n));
-      return {
-        ts: cursor,
-        key: "AuthorHAL",
-        type: "input" as const,
-        ...(opts?.target ? { target: opts.target.slice(0, 120) } : {}),
-      };
-    })
-    .filter(Boolean) as UniversalP1KeystrokeEvent[];
+): import("msgf/universal/p1-hal-standard").UniversalP1KeystrokeEvent[] {
+  const events: AuthorHalDnaEvent[] = latencies.map((n) => ({
+    key: "AuthorHAL",
+    flightTime: n,
+  }));
+  return authorHalEventsToUniversalKeystrokes(events, opts);
 }
 
-export async function forwardAuthorPulseToMsgf(input: ForwardAuthorPulseInput): Promise<AuthorMsgfPulseResult> {
+export async function forwardAuthorPulseToMsgf(
+  input: ForwardAuthorPulseInput
+): Promise<AuthorMsgfPulseResult> {
   const baseUrl = resolveMsgfBaseUrl();
   const licenseKey = resolveMsgfPulseLicenseKey();
   if (!baseUrl || !licenseKey) {
@@ -129,6 +144,9 @@ export async function forwardAuthorPulseToMsgf(input: ForwardAuthorPulseInput): 
   };
   if (input.idempotencyKey?.trim()) {
     headers["Idempotency-Key"] = input.idempotencyKey.trim();
+  }
+  if (input.authorHal) {
+    headers[MSGF_AUTHOR_HAL_HEADER] = serializeAuthorHalTelemetry(input.authorHal);
   }
 
   try {

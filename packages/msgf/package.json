@@ -82,6 +82,12 @@
       "development": "./lib/ide-connector.ts",
       "import": "./dist/ide-connector.js",
       "default": "./dist/ide-connector.js"
+    },
+    "./hal-author-bridge": {
+      "types": "./dist/hal-author-bridge.d.ts",
+      "development": "./lib/hal-author-bridge.ts",
+      "import": "./dist/hal-author-bridge.js",
+      "default": "./dist/hal-author-bridge.js"
     }
   },
   "scripts": {
@@ -109,6 +115,7 @@
     "test:crossref-db": "tsx --test tests/crossref-db-enum-mirror.test.ts",
     "test:remediation-circuit": "tsx --test tests/remediation-retry-circuit.test.ts",
     "test:human-arbitration": "tsx --test tests/human-arbitration.test.ts",
+    "test:hal-word-chunk": "tsx --test tests/hal-word-chunk-packet.test.ts",
     "test:unit": "node scripts/run-unit-tests.mjs",
     "test:integration": "node scripts/run-integration-tests.mjs",
     "validate:deployment": "node ../../scripts/validate-deployment.mjs",

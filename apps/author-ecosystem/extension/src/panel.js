@@ -235,7 +235,38 @@ function keystrokeLatenciesFromBuffer(keystroke_data) {
   return out.length > 0 ? out : [120];
 }
 
-function buildHalSessionBody(active, userId, content, keystroke_data, surface) {
+const HAL_CHUNK_WORDS = 175;
+const HAL_CHUNK_OVERLAP = 10;
+
+async function readHalChunkCursor() {
+  const stored = await chrome.storage.local.get([
+    "lastHalChunkWordCount",
+    "lastSyncedChunkIndex",
+  ]);
+  return {
+    lastHalChunkWordCount: Number(stored.lastHalChunkWordCount) || 0,
+    lastSyncedChunkIndex:
+      typeof stored.lastSyncedChunkIndex === "number"
+        ? stored.lastSyncedChunkIndex
+        : -1,
+  };
+}
+
+async function writeHalChunkCursor(wordCount, lastSyncedChunkIndex) {
+  await chrome.storage.local.set({
+    lastHalChunkWordCount: wordCount,
+    lastSyncedChunkIndex,
+  });
+}
+
+function buildHalSessionBody(
+  active,
+  userId,
+  content,
+  keystroke_data,
+  surface,
+  lastSyncedChunkIndex = -1
+) {
   const manuscriptId = active.id;
   const tenantId = active.tenant_id;
   const tagLine = `[AuthorEcosystem manuscript=${manuscriptId} tenant=${tenantId}]\n`;
@@ -252,7 +283,38 @@ function buildHalSessionBody(active, userId, content, keystroke_data, surface) {
       source: `chrome-extension-${surface || "writing-surface"}`,
       events: keystroke_data,
     },
+    lastSyncedChunkIndex,
   };
+}
+
+/** Incremental MSGF rhythm packets (175 words / 10 overlap) — no RAG payload. */
+async function maybeFlushChunkPulse(active, userId, content, keystroke_data, surface) {
+  const words = String(content ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const { lastHalChunkWordCount, lastSyncedChunkIndex } = await readHalChunkCursor();
+  if (words.length - lastHalChunkWordCount < HAL_CHUNK_WORDS) {
+    return null;
+  }
+
+  const body = buildHalSessionBody(
+    active,
+    userId,
+    content,
+    keystroke_data,
+    surface,
+    lastSyncedChunkIndex
+  );
+
+  const result = await apiFetch("/api/hal/chunk-pulse", { method: "POST", body });
+  const nextIndex =
+    typeof result?.last_chunk_index === "number"
+      ? result.last_chunk_index
+      : lastSyncedChunkIndex;
+
+  await writeHalChunkCursor(words.length, nextIndex);
+  return result;
 }
 
 function halSessionIdFromResponse(result) {
@@ -283,12 +345,21 @@ async function pushHalSession() {
   }
 
   const { keystroke_data, content, surface } = await readKeystrokeBufferFromWritingTab();
-  const body = buildHalSessionBody(
+  const { lastSyncedChunkIndex } = await readHalChunkCursor();
+  await maybeFlushChunkPulse(
     sessionContext.activeManuscript,
     sessionContext.userId,
     content,
     keystroke_data,
     surface
+  );
+  const body = buildHalSessionBody(
+    sessionContext.activeManuscript,
+    sessionContext.userId,
+    content,
+    keystroke_data,
+    surface,
+    lastSyncedChunkIndex
   );
   const result = await apiFetch("/api/hal/session", { method: "POST", body });
   setOutput(result);

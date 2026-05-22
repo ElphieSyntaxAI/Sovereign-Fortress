@@ -59,6 +59,7 @@ export const serverSdkEntries = {
   "connector/server": "lib/connector/server.ts",
   onboarding: "lib/msgf-onboarding.ts",
   remediation: "lib/services/RemediationEngine.ts",
+  "hal-author-bridge": "lib/hal-author-bridge.ts",
 } as const;
 
 const allSdkEntries = { ...clientSdkEntries, ...serverSdkEntries };
