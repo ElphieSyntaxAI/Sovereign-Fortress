@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
+-- Distribution Build ID: MSGF-e98bd4c-20260522T053721Z-internal
 -- =============================================================================
 -- Tenant sovereign RLS for MSGF cold layer + incidents + profiles.
 -- Access requires auth.uid() ownership and/or a tenant_id that matches the active silo

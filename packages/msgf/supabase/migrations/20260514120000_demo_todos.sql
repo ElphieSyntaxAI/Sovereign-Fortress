@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
+-- Distribution Build ID: MSGF-e98bd4c-20260522T053721Z-internal
 -- =============================================================================
 -- Demo table for MSGF /todos SSR example. Tighten RLS before production.
 create table if not exists public.todos (

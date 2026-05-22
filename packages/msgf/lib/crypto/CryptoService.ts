@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
+ * Distribution Build ID: MSGF-e98bd4c-20260522T053721Z-internal
  */
 /**
  * Tenant BYOK / provider API keys: AES-256-GCM envelope locally (CRYPTO_SECRET_KEY),

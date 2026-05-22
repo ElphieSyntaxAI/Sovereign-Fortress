@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
+ * Distribution Build ID: MSGF-e98bd4c-20260522T053721Z-internal
  */
 /**
  * Shared cookie domain for Supabase auth across elphiesyntax.com subdomains (and the author BFF).
@@ -76,10 +76,17 @@ export function msgfAuthCookieDomain(): string | undefined {
   return msgfAuthCookieDomainForHost(undefined);
 }
 
+export type MsgfAuthCookieOptions = {
+  path: string;
+  sameSite: "lax" | "strict" | "none";
+  secure: boolean;
+  domain?: string;
+};
+
 export function withMsgfAuthCookieOptions<T extends Record<string, unknown> | undefined>(
   options?: T,
   requestHost?: string | null
-): T & { path: string; sameSite: "lax" | "strict" | "none"; secure: boolean } {
+): T & MsgfAuthCookieOptions {
   const domain = msgfAuthCookieDomainForHost(requestHost ?? undefined);
   const base = (options ?? {}) as Record<string, unknown>;
   return {
@@ -92,5 +99,5 @@ export function withMsgfAuthCookieOptions<T extends Record<string, unknown> | un
       (process.env.NODE_ENV === "production" ||
         process.env.MSGF_AUTH_COOKIE_SECURE === "1" ||
         process.env.NEXT_PUBLIC_MSGF_AUTH_COOKIE_SECURE === "1"),
-  } as T & { path: string; sameSite: "lax" | "strict" | "none"; secure: boolean };
+  } as T & MsgfAuthCookieOptions;
 }
