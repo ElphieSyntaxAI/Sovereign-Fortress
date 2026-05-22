@@ -12,7 +12,12 @@ import {
   type GenealogicalBugIndex,
 } from "@/lib/schemas/vault-hall-metadata";
 import type { DevEventBody } from "@/lib/schemas/dev-event";
+import {
+  DEV_EVENT_LOGIC_DELTA_SOURCE,
+  MSGF_BRAIN_SMALL,
+} from "@/lib/services/brain-routing-policy";
 import { persistToVault } from "@/lib/services/constraint-ledger";
+import { pulseEngine } from "@/lib/services/PulseEngine";
 import {
   estimateHealTaskIndividualTokens,
   HEAL_INEXPENSIVE_LLM_OVERHEAD,
@@ -48,6 +53,8 @@ export type DevEventHealResult = {
   ok: true;
   resolved: boolean;
   resolution_source: DevEventResolutionSource;
+  brain_tier: typeof MSGF_BRAIN_SMALL;
+  global_promotion_status?: string;
   genealogical_bug_index: GenealogicalBugIndex;
   fix_summary: string | null;
   vault_match_id: string | null;
@@ -302,27 +309,56 @@ export async function runDevEventBuildHeal(params: {
 
   let narrative_log_id: string | undefined;
 
+  let global_promotion_status: string | undefined;
+
   if (resolved && fix_summary) {
-    const persisted = await persistToVault({
-      supabase: params.adminSupabase,
+    const gateResult = await pulseEngine.persistLogicDeltaWithGate({
+      adminSupabase: params.adminSupabase,
       entityId: params.entityId,
       tenantId,
-      content: fix_summary,
-      bugIndex,
-      summaryBeat: `IDE build_failed healed (exit ${params.body.exitCode})`,
-      legalVersion: CURRENT_LEGAL_VERSION,
-      halScore: 88,
-      actionType: "DEV_EVENT_BUILD_HEAL",
-      narrativeExtra: {
-        dev_event_kind: params.body.kind,
-        active_file: params.body.activeFile,
-        exit_code: params.body.exitCode,
-        resolution_source,
-        vault_match_id,
-        logic_drift_bypassed: true,
+      isAdmin: false,
+      globalize: false,
+      delta: {
+        tenantId,
+        entityId: params.entityId,
+        content: fix_summary,
+        summaryBeat: `IDE build_failed healed (exit ${params.body.exitCode})`,
+        bugIndex,
+        source: DEV_EVENT_LOGIC_DELTA_SOURCE,
+        globalize: false,
+        metadata: {
+          brain_tier: MSGF_BRAIN_SMALL,
+          dev_event_kind: params.body.kind,
+          active_file: params.body.activeFile,
+          exit_code: params.body.exitCode,
+          resolution_source,
+          vault_match_id,
+        },
       },
+      vaultPersist: () =>
+        persistToVault({
+          supabase: params.adminSupabase,
+          entityId: params.entityId,
+          tenantId,
+          content: fix_summary,
+          bugIndex,
+          summaryBeat: `IDE build_failed healed (exit ${params.body.exitCode})`,
+          legalVersion: CURRENT_LEGAL_VERSION,
+          halScore: 88,
+          actionType: "DEV_EVENT_BUILD_HEAL",
+          narrativeExtra: {
+            dev_event_kind: params.body.kind,
+            active_file: params.body.activeFile,
+            exit_code: params.body.exitCode,
+            resolution_source,
+            vault_match_id,
+            logic_drift_bypassed: true,
+            brain_tier: MSGF_BRAIN_SMALL,
+          },
+        }),
     });
-    narrative_log_id = persisted.narrativeLogId;
+    global_promotion_status = gateResult.promotion_status;
+    narrative_log_id = gateResult.vaultNarrativeLogId;
   }
 
   const token_usage_estimate = tokenEstimate(resolved, resolution_source);
@@ -341,6 +377,8 @@ export async function runDevEventBuildHeal(params: {
     ok: true,
     resolved,
     resolution_source,
+    brain_tier: MSGF_BRAIN_SMALL,
+    global_promotion_status,
     genealogical_bug_index: bugIndex,
     fix_summary,
     vault_match_id,

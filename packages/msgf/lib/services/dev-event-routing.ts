@@ -1,8 +1,12 @@
 /**
- * Dev-event routing — bypasses Pulse biometric / keystroke pipeline; Heal Cheap only.
+ * Dev-event routing — Small Brain only; bypasses Pulse biometric / Big Brain CONVERGE.
  */
 
 import type { DevEventBody } from "@/lib/schemas/dev-event";
+import {
+  MSGF_BRAIN_SMALL,
+  type MsgfBrainTier,
+} from "@/lib/services/brain-routing-policy";
 
 export const DEV_EVENT_EXECUTION_TIER = "CHEAP" as const;
 export const DEV_EVENT_HEAL_PATHWAY = "heal_cheap" as const;
@@ -10,8 +14,11 @@ export const DEV_EVENT_HEAL_PATHWAY = "heal_cheap" as const;
 export type DevEventRoutingDecision = {
   execution_tier: typeof DEV_EVENT_EXECUTION_TIER;
   heal_pathway: typeof DEV_EVENT_HEAL_PATHWAY;
+  brain_tier: MsgfBrainTier;
   biometric_evaluation_skipped: true;
   pulse_pipeline_skipped: true;
+  /** Tenant Vault / local cache only until admin promotes to global DNA. */
+  global_admin_approval_required: false;
 };
 
 /**
@@ -24,7 +31,9 @@ export function routeDevEventBuildFailure(body: DevEventBody): DevEventRoutingDe
   return {
     execution_tier: DEV_EVENT_EXECUTION_TIER,
     heal_pathway: DEV_EVENT_HEAL_PATHWAY,
+    brain_tier: MSGF_BRAIN_SMALL,
     biometric_evaluation_skipped: true,
     pulse_pipeline_skipped: true,
+    global_admin_approval_required: false,
   };
 }

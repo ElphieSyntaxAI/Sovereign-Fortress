@@ -343,7 +343,16 @@ Verify locally (see [`MSGF_TESTING.md`](./MSGF_TESTING.md)):
 | `lib/schemas/remediation-state.ts` (client-safe) | ✅ | Breaks `node:async_hooks` leak into browser bundle via heal-queue Zod |
 | Production `next build` gate | ✅ | `npm run validate:deployment` — Supabase query types narrowed in heal-queue + remediation circuit |
 
-### 7.6 Token savings & efficiency layer (1.0)
+### 7.6 Small Brain vs Big Brain + token savings (1.0)
+
+**SSoT:** [`packages/msgf/lib/services/brain-routing-policy.ts`](../packages/msgf/lib/services/brain-routing-policy.ts) · [`global-approval-gate.ts`](../packages/msgf/lib/services/global-approval-gate.ts)
+
+| Brain | Who controls it | What runs | Global DNA (`msgf_rules`, `vault_core`) |
+| :--- | :--- | :--- | :--- |
+| **Small Brain** | Tenant / developer locally | `local_gateway`, `converge_bypass`, dev-session, dev-event Heal Cheap, ingest hash skip, CONVERGE cache replay, tenant `pillar_vectors` Vault | Writes stay in **tenant silo** unless user explicitly globalizes |
+| **Big Brain** | MSGF platform + operators | `global_converge` (dual-model), corporate/perpetual cloud CONVERGE | **`assertGlobalWriteAllowed`** — non-admin globalize → `LOCAL_SUCCESS_GLOBAL_PENDING` until admin promotes |
+
+**Routing rule:** `assessLogicDrift` in [`logic-drift.ts`](../packages/msgf/lib/services/logic-drift.ts) escalates to Big Brain only when drift exceeds `x-msgf-brain-sensitivity` (default 0.3) or P2 roadmap contradiction. IDE **dev-event** and **dev-session** never invoke the Pulse biometric → CONVERGE chain.
 
 Model-based estimates and Redis counters — **not** Stripe billing truth. Full env table: [`packages/msgf/README.md`](../packages/msgf/README.md).
 

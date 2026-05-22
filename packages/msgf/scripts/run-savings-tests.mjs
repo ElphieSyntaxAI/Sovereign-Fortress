@@ -24,6 +24,7 @@ const SAVINGS_TESTS = [
   "test:dev-event",
   "test:converge-cache",
   "test:savings-qa-checkpoints",
+  "test:brain-routing",
 ];
 
 function resolveTsxCli() {

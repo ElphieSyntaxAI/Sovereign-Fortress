@@ -18,6 +18,7 @@ import {
   type ConvergeCacheEntry,
   type ConvergeCachedChunk,
 } from "../lib/services/converge-cache.js";
+import { MSGF_BRAIN_SMALL } from "../lib/services/brain-routing-policy.js";
 import { routeDevEventBuildFailure } from "../lib/services/dev-event-routing.js";
 import { runDevEventBuildHeal } from "../lib/services/dev-event-build-heal.js";
 import { FakeSupabase, devTestVaultRow } from "./helpers/fake-supabase.js";
@@ -52,6 +53,8 @@ describe("savings QA checkpoints", () => {
     assert.equal(routing.heal_pathway, "heal_cheap");
     assert.equal(routing.biometric_evaluation_skipped, true);
     assert.equal(routing.pulse_pipeline_skipped, true);
+    assert.equal(routing.brain_tier, MSGF_BRAIN_SMALL);
+    assert.equal(routing.global_admin_approval_required, false);
 
     const supabase = new FakeSupabase({
       [MSGF_PILLAR_TABLE_SANDBOX]: [
@@ -69,6 +72,7 @@ describe("savings QA checkpoints", () => {
     });
 
     assert.equal(heal.resolution_source, "vault_cache");
+    assert.equal(heal.brain_tier, MSGF_BRAIN_SMALL);
     assert.equal(heal.resolved, true);
     assert.ok(heal.vault_match_id);
     assert.equal(heal.token_usage_estimate.with_msgf, 0);

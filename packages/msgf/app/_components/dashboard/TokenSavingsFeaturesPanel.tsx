@@ -69,7 +69,10 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
         Efficiency features {operatorView ? "(operator)" : ""}
       </h2>
       <p className="mt-2 text-sm text-slate-400">
-        24h counters from Redis. Estimates are model-based — not Stripe billing truth.
+        <strong className="text-cyan-300/90">Small Brain</strong> keeps logic in your tenant silo
+        (local gateway, Vault, Redis). <strong className="text-violet-300/90">Big Brain</strong> runs
+        global dual-model CONVERGE; changes to system DNA require admin approval. Counters are
+        model-based — not Stripe billing truth.
         {!hasActivity ? " Activity appears after Pulse, ingest, IDE dev-events, or CONVERGE runs." : null}
       </p>
 
@@ -134,6 +137,20 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
               >
                 {entry.enabled ? "on" : "off"}
               </span>
+              <span
+                className={
+                  entry.brain_tier === "big_brain"
+                    ? "rounded bg-violet-500/15 px-1.5 py-0.5 text-violet-300"
+                    : "rounded bg-cyan-500/15 px-1.5 py-0.5 text-cyan-300"
+                }
+              >
+                {entry.brain_tier === "big_brain" ? "Big Brain" : "Small Brain"}
+              </span>
+              {entry.requires_admin_for_global ? (
+                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-200">
+                  admin gate
+                </span>
+              ) : null}
               <span className="font-medium text-slate-200">{entry.label}</span>
               <span className="text-slate-500">— {entry.description}</span>
               <code className="text-[10px] text-violet-300/90">{entry.api_or_env}</code>

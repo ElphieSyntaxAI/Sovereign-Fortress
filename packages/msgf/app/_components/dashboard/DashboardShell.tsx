@@ -826,11 +826,11 @@ function PulseRoutingMixPanel({ tenantId }: { tenantId: string }) {
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300/90">
         Pulse routing (24h)
       </p>
-      <h2 className="mt-1 text-lg font-semibold text-slate-50">With vs without MSGF</h2>
+      <h2 className="mt-1 text-lg font-semibold text-slate-50">Small Brain vs Big Brain (24h)</h2>
       <p className="mt-2 text-sm text-slate-300">
-        <strong className="text-emerald-300">{mix.local_or_bypass_pct}%</strong> of pulses used
-        local gateway or bypass ({mix.local_gateway + mix.converge_bypass} of {mix.total_pulses}).
-        Global CONVERGE: {mix.global_converge}. Estimated tokens saved vs naive dual-cloud:{" "}
+        <strong className="text-cyan-300">{mix.local_or_bypass_pct}%</strong> stayed on Small Brain
+        (local gateway or bypass: {mix.local_gateway + mix.converge_bypass} of {mix.total_pulses}).
+        Big Brain global CONVERGE: {mix.global_converge}. Tokens saved vs naive dual-cloud:{" "}
         <strong>{mix.estimated_tokens_saved_vs_naive.toLocaleString()}</strong>.
       </p>
       <p className="mt-2 text-[10px] text-slate-500">

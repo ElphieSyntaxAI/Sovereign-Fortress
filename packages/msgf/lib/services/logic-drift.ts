@@ -11,7 +11,8 @@
  * Distribution Build ID: MSGF-e98bd4c-20260522T053721Z-internal
  */
 /**
- * Logic drift scoring — routes routine pulses to Local Gateway vs Global MSGF Brain (CONVERGE).
+ * Logic drift scoring — Small Brain (local gateway) vs Big Brain (global CONVERGE).
+ * See {@link ./brain-routing-policy.ts} for feature taxonomy.
  */
 
 import type { PrioritizedVaultLineage } from "@/lib/services/p2-flow-roadmap";

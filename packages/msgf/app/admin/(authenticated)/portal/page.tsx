@@ -58,13 +58,13 @@ export default async function AdminPortalPage() {
       <section className="glass-panel rounded-2xl border border-amber-500/25 p-5 text-sm text-slate-300">
         <h2 className="text-base font-semibold text-amber-100">Token savings & efficiency (1.0)</h2>
         <p className="mt-2 text-slate-400">
-          Operators see all savings features on the{" "}
+          Operators see <strong className="text-cyan-300/90">Small Brain</strong> vs{" "}
+          <strong className="text-violet-300/90">Big Brain</strong> on the{" "}
           <Link href="/admin/dashboard#token-savings" className="text-amber-300 hover:underline">
             ops dashboard
           </Link>
-          : CONVERGE cache, IDE dev-event Heal Cheap, Pulse idempotency, ingest hash skip, credit
-          reservation, dev-session, and routing mix. Counters require Redis; catalog shows env on/off
-          for each feature.
+          . Tenants keep local logic (Vault, bypass, dev-event, cache replay); global CONVERGE and
+          DNA promotion require admin approval via the Global Approval Gate.
         </p>
         <p className="mt-2 text-xs text-slate-500">
           API: <code className="text-violet-300">GET /api/msgf/admin/dashboard/savings-features</code>{" "}

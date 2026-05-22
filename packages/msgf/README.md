@@ -48,6 +48,15 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | `MSGF_DEV_EVENT_VAULT_MATCH_MIN` / `MSGF_DEV_EVENT_GEMINI_MODEL` | Vault-only resolve threshold; Flash model (default `gemini-2.0-flash`) |
 | `MSGF_CONVERGE_CACHE_ENABLED` / `MSGF_CONVERGE_CACHE_TTL_SEC` | Redis replay of global dual-model CONVERGE (default 600s); eco rollup on cache hit |
 
+### Small Brain vs Big Brain
+
+| Tier | Meaning |
+| :--- | :--- |
+| **Small Brain** | Local control — tenant Vault, `state_beats`, Redis hot layer, Heal Cheap / bypass paths. No global DNA without admin. |
+| **Big Brain** | Global dual-model CONVERGE when logic drift warrants it. Promotions to `msgf_rules` / `vault_core` require operator approval. |
+
+Policy module: `lib/services/brain-routing-policy.ts` · Gate: `lib/services/global-approval-gate.ts` · Verify: `npm run verify:brain-routing -w msgf`
+
 ### Dashboard — token savings UI
 
 | Audience | Page | API |

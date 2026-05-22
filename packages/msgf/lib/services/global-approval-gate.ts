@@ -44,7 +44,8 @@ export type LogicDeltaSource =
   | "pulse_converge"
   | "arbitration"
   | "globalize"
-  | "local_gateway";
+  | "local_gateway"
+  | "dev_event";
 
 export type LogicDelta = {
   tenantId: string;

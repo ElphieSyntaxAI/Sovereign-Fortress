@@ -12,6 +12,13 @@ import {
   type PulseRoutingMix,
 } from "@/lib/services/pulse-routing-stats";
 import { isUsageMonitorWriteEnabled } from "@/lib/usage-monitor";
+import {
+  BRAIN_FEATURE_CATALOG,
+  MSGF_BRAIN_BIG,
+  MSGF_BRAIN_SMALL,
+  savingsCatalogFeatureIdToBrainId,
+  type MsgfBrainTier,
+} from "@/lib/services/brain-routing-policy";
 
 const WINDOW_SEC = 86_400;
 
@@ -32,6 +39,8 @@ export type SavingsFeatureCatalogEntry = {
   enabled: boolean;
   api_or_env: string;
   admin_visible: boolean;
+  brain_tier: MsgfBrainTier;
+  requires_admin_for_global: boolean;
 };
 
 export type SavingsFeatureCounters = {
@@ -61,81 +70,117 @@ async function readCounter(key: string): Promise<number> {
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
 }
 
+function catalogRow(
+  id: string,
+  label: string,
+  description: string,
+  enabled: boolean,
+  api_or_env: string
+): SavingsFeatureCatalogEntry {
+  const brainId = savingsCatalogFeatureIdToBrainId(id);
+  const brain = brainId
+    ? BRAIN_FEATURE_CATALOG.find((f) => f.id === brainId)
+    : undefined;
+  return {
+    id,
+    label,
+    description,
+    enabled,
+    api_or_env,
+    admin_visible: true,
+    brain_tier: brain?.tier ?? MSGF_BRAIN_SMALL,
+    requires_admin_for_global: brain?.requires_admin_for_global ?? false,
+  };
+}
+
 export function buildSavingsFeatureCatalog(): SavingsFeatureCatalogEntry[] {
   const convergeCtxCap =
     Number(process.env.MSGF_CONVERGE_MAX_CONTEXT_TOKENS?.trim()) || 2400;
   return [
+    catalogRow(
+      "pulse_routing",
+      "Pulse routing mix",
+      "Small Brain (local gateway / bypass) vs Big Brain (global CONVERGE). Global DNA writes need admin when globalize is requested.",
+      true,
+      "GET /api/msgf/dashboard/pulse-routing · logic-drift threshold"
+    ),
+    catalogRow(
+      "converge_cache",
+      "CONVERGE result cache",
+      "Small Brain replay of a prior Big Brain verdict — tenant Redis only.",
+      isConvergeCacheEnabled(),
+      "MSGF_CONVERGE_CACHE_ENABLED · MSGF_CONVERGE_CACHE_TTL_SEC"
+    ),
+    catalogRow(
+      "dev_event",
+      "IDE dev-event (Heal Cheap)",
+      "Small Brain only — tenant Vault / Flash heal; never escalates to global CONVERGE.",
+      true,
+      "POST /api/msgf/dev-event · MSGF_DEV_EVENT_*"
+    ),
+    catalogRow(
+      "dev_session",
+      "IDE dev-session",
+      "Keeps routine typing on Small Brain longer (relaxed drift, save-primary flush).",
+      true,
+      "x-msgf-dev-session · MSGF_DEV_SESSION_*"
+    ),
+    catalogRow(
+      "pulse_idempotency",
+      "Pulse idempotency",
+      "Small Brain — cached Pulse response for duplicate keys.",
+      isPulseIdempotencyEnabled(),
+      "MSGF_PULSE_IDEMPOTENCY_ENABLED"
+    ),
+    catalogRow(
+      "ingest_hash",
+      "Ingest content-hash skip",
+      "Small Brain — skip unchanged files in tenant silo.",
+      isIngestHashSkipEnabled(),
+      "MSGF_INGEST_HASH_SKIP"
+    ),
+    catalogRow(
+      "usage_monitor",
+      "usage_monitor",
+      "Per-actor token accounting — does not promote logic globally.",
+      isUsageMonitorWriteEnabled(),
+      "MSGF_USAGE_MONITOR_WRITE · msgf_usage_monitor_add"
+    ),
+    catalogRow(
+      "credit_reservation",
+      "Credit reservation",
+      "Guards spend before optional Big Brain CONVERGE.",
+      isCreditReservationEnabled(),
+      "MSGF_CREDIT_RESERVATION_ENABLED"
+    ),
+    catalogRow(
+      "converge_context_budget",
+      "CONVERGE context budget",
+      "Reduces unnecessary Big Brain context before escalation.",
+      convergeCtxCap > 0,
+      `MSGF_CONVERGE_MAX_CONTEXT_TOKENS (${convergeCtxCap})`
+    ),
     {
-      id: "pulse_routing",
-      label: "Pulse routing mix",
-      description: "Local gateway vs global CONVERGE — estimated tokens saved vs naive dual-cloud.",
+      id: "big_brain_global_converge",
+      label: "Big Brain — global CONVERGE",
+      description:
+        "Dual-model path when logic drift exceeds threshold. Vault/globalize uses Global Approval Gate.",
       enabled: true,
-      api_or_env: "GET /api/msgf/dashboard/pulse-routing",
+      api_or_env: "Pulse pipeline CONVERGE phase · assertGlobalWriteAllowed",
       admin_visible: true,
+      brain_tier: MSGF_BRAIN_BIG,
+      requires_admin_for_global: true,
     },
     {
-      id: "converge_cache",
-      label: "CONVERGE result cache",
-      description: "Redis replay of identical content hashes — skips dual-model orchestration on hit.",
-      enabled: isConvergeCacheEnabled(),
-      api_or_env: "MSGF_CONVERGE_CACHE_ENABLED · MSGF_CONVERGE_CACHE_TTL_SEC",
-      admin_visible: true,
-    },
-    {
-      id: "dev_event",
-      label: "IDE dev-event (Heal Cheap)",
-      description: "POST /api/msgf/dev-event build_failed — vault-first, no biometric Pulse pipeline.",
+      id: "big_brain_admin_promotion",
+      label: "Big Brain — admin promotion",
+      description:
+        "Rule submissions, human arbitration (scope global), and vault_core/msgf_rules writes.",
       enabled: true,
-      api_or_env: "POST /api/msgf/dev-event · MSGF_DEV_EVENT_*",
+      api_or_env: "GET /api/msgf/admin/rule-submissions · global-approval-gate",
       admin_visible: true,
-    },
-    {
-      id: "dev_session",
-      label: "IDE dev-session",
-      description: "Relaxed logic drift during vibe coding; save-primary flush and build-active discount.",
-      enabled: true,
-      api_or_env: "x-msgf-dev-session · MSGF_DEV_SESSION_*",
-      admin_visible: true,
-    },
-    {
-      id: "pulse_idempotency",
-      label: "Pulse idempotency",
-      description: "Duplicate Idempotency-Key within TTL returns cached Pulse JSON.",
-      enabled: isPulseIdempotencyEnabled(),
-      api_or_env: "MSGF_PULSE_IDEMPOTENCY_ENABLED",
-      admin_visible: true,
-    },
-    {
-      id: "ingest_hash",
-      label: "Ingest content-hash skip",
-      description: "Skip SWEEP re-ingest when file SHA unchanged.",
-      enabled: isIngestHashSkipEnabled(),
-      api_or_env: "MSGF_INGEST_HASH_SKIP",
-      admin_visible: true,
-    },
-    {
-      id: "usage_monitor",
-      label: "usage_monitor",
-      description: "Cumulative estimated tokens per actor (aligns with credit guard cap).",
-      enabled: isUsageMonitorWriteEnabled(),
-      api_or_env: "MSGF_USAGE_MONITOR_WRITE · msgf_usage_monitor_add",
-      admin_visible: true,
-    },
-    {
-      id: "credit_reservation",
-      label: "Credit reservation",
-      description: "Reserve credits before Pulse/ingest LLM work; 402 when insufficient.",
-      enabled: isCreditReservationEnabled(),
-      api_or_env: "MSGF_CREDIT_RESERVATION_ENABLED",
-      admin_visible: true,
-    },
-    {
-      id: "converge_context_budget",
-      label: "CONVERGE context budget",
-      description: "Caps vault + beats + P2 + DEFEND blocks before global CONVERGE.",
-      enabled: convergeCtxCap > 0,
-      api_or_env: `MSGF_CONVERGE_MAX_CONTEXT_TOKENS (${convergeCtxCap})`,
-      admin_visible: true,
+      brain_tier: MSGF_BRAIN_BIG,
+      requires_admin_for_global: true,
     },
   ];
 }

@@ -129,6 +129,7 @@
     "test:dev-event": "tsx --test tests/dev-event-build-heal.test.ts",
     "test:converge-cache": "tsx --test tests/converge-cache.test.ts",
     "test:savings-qa-checkpoints": "tsx --test tests/savings-qa-checkpoints.test.ts",
+    "test:brain-routing": "tsx --test tests/brain-routing-policy.test.ts",
     "test:savings": "node scripts/run-savings-tests.mjs",
     "test:unit": "node scripts/run-unit-tests.mjs",
     "test:integration": "node scripts/run-integration-tests.mjs",
