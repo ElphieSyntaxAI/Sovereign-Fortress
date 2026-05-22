@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-e356216-20260522T181226Z-internal
+-- Distribution Build ID: MSGF-92d026a-20260522T181651Z-internal
 -- =============================================================================
 -- Dashboard filter for Sentinel / operator-reported incidents.
 -- Runs before 20260528120000_msgf_incidents.sql on timestamp order; no-op until table exists.
