@@ -15,6 +15,7 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | [`docs/MONOREPO_PRODUCTS.md`](../../docs/MONOREPO_PRODUCTS.md) | Three web apps & domains |
 | [`docs/MSGF_BRAIN_ROUTING.md`](../../docs/MSGF_BRAIN_ROUTING.md) | **Small Brain / Big Brain** — audience routing, heal queue, monorepo workspaces |
 | [`docs/MSGF_RC_CHECKLIST.md`](../../docs/MSGF_RC_CHECKLIST.md) | **MSGF 1.0 RC** — MSGF-only completion checklist (Stripe excluded) |
+| [`supabase/email-templates/README.md`](./supabase/email-templates/README.md) | **Branded auth emails** — logo + jewel aesthetic; `npm run email:templates:build -w msgf` |
 | [`pre_ingestion_audit.md`](./pre_ingestion_audit.md) | Day-zero audit (SWEEP) & CONVERGE backlog |
 | [`docs/PILLAR_PROGRESS.md`](../../docs/PILLAR_PROGRESS.md) | Pillar/AUTH implementation tracker |
 
