@@ -132,3 +132,4 @@ MSGF can RC without these; include if your gate requires M5:
 | Date | Note |
 | :--- | :--- |
 | 2026-05-20 | Initial MSGF-only RC checklist (P0–P2). |
+| 2026-05-20 | Build fixes: `ide-connector` devSession default, `PostIngestHealingConsole` null queue, `PulseRoutingKind` alias, `heal-queue-audience` RemediationTask types. |

@@ -1,0 +1,78 @@
+#!/usr/bin/env node
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-e356216-20260522T181226Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-e356216-20260522T180310Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-e356216-20260522T175544Z-internal
+ */
+/** Reload PostgREST schema cache after migrations (Supabase). */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+import pg from "pg";
+
+import { resolveDatabaseUrl } from "./lib/normalize-database-url.mjs";
+
+const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+for (const rel of ["../../.env", "../../.env.local", ".env", ".env.local"]) {
+  const p = path.resolve(pkgRoot, rel);
+  if (fs.existsSync(p)) dotenv.config({ path: p, override: true });
+}
+
+const resolved = resolveDatabaseUrl(process.env);
+const url = typeof resolved === "string" ? resolved : resolved?.url;
+if (!url || typeof url !== "string") {
+  console.error("DATABASE_URL or SUPABASE_DATABASE_URL required.");
+  process.exit(1);
+}
+if (resolved?.warnings?.length) {
+  for (const w of resolved.warnings) console.warn(`WARN: ${w}`);
+}
+
+const client = new pg.Client({ connectionString: url });
+await client.connect();
+const col = await client.query(
+  `SELECT 1 FROM information_schema.columns
+   WHERE table_schema = 'public' AND table_name = 'pillar_vectors' AND column_name = 'constraint_ledger'`
+);
+console.log(
+  col.rowCount
+    ? "OK: pillar_vectors.constraint_ledger exists in Postgres"
+    : "MISSING: pillar_vectors.constraint_ledger — run npm run db:push -w msgf"
+);
+if (col.rowCount) {
+  await client.query(`NOTIFY pgrst, 'reload schema'`);
+  console.log("Sent NOTIFY pgrst, 'reload schema' — wait ~10s then retry ingest tests.");
+}
+await client.end();

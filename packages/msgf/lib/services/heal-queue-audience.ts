@@ -8,20 +8,19 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
+ * Distribution Build ID: MSGF-e356216-20260522T181226Z-internal
  */
 /**
  * Split heal-queue responses: Small Brain tasks for users, Big Brain arbitration for admins.
  */
 
-import type { HealQueueGetResponse } from "@/lib/schemas/heal-queue";
+import type { HealQueueGetResponse, RemediationTask } from "@/lib/schemas/heal-queue";
 import { REMEDIATION_STATE } from "@/lib/schemas/remediation-state";
 import type { BrainAudience } from "@/lib/services/brain-routing-policy";
 
-function isBigBrainRemediationTask(task: {
-  remediation_state?: string;
-  circuit_breaker_open?: boolean;
-}): boolean {
+function isBigBrainRemediationTask(
+  task: Pick<RemediationTask, "remediation_state" | "circuit_breaker_open">
+): boolean {
   return (
     task.remediation_state === REMEDIATION_STATE.PENDING_HUMAN_ARBITRATION ||
     task.circuit_breaker_open === true

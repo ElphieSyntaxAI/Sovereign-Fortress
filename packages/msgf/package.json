@@ -143,6 +143,7 @@
     "daily-report": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/daily-report.mjs",
     "ops:purge-hall": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/ops-purge-hall.mjs",
     "verify:db-schema": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-supabase-schema.mjs",
+    "db:reload-schema-cache": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/reload-postgrest-schema.mjs",
     "db:push": "node scripts/supabase-db-push.mjs",
     "db:push:verify": "node scripts/supabase-db-push.mjs && npm run verify:db-schema",
     "security:prancer-pillars": "node scripts/security-primer-pillars.mjs",

@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
+-- Distribution Build ID: MSGF-e356216-20260522T181226Z-internal
 -- =============================================================================
 -- V3.2-ULTRA: normalize all pgvector columns to vector(1536) (OpenAI / Gemini class).
 --

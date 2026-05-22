@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
+ * Distribution Build ID: MSGF-e356216-20260522T181226Z-internal
  */
 /**
  * P2 Vault lineage — Redis cache (`msgf:lineage:{tenantId}:{documentId}:dual-lawbook`, 300s TTL).

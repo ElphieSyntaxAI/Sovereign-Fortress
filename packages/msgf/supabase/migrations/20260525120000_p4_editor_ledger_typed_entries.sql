@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
+-- Distribution Build ID: MSGF-e356216-20260522T181226Z-internal
 -- =============================================================================
 -- Typed ledger entries for publisher-facing reports (COMMENT | SUGGESTION | STRUCTURAL_NOTE).
 -- Retains legacy columns: tenant_id, event_kind, payload, created_at.

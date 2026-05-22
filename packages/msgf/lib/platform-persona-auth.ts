@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
+ * Distribution Build ID: MSGF-e356216-20260522T181226Z-internal
  */
 /**
  * Multi-tenant platform + persona maps for unified login (P3 Entity Profile / `p4_profiles`).

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
+ * Distribution Build ID: MSGF-e356216-20260522T181226Z-internal
  */
 /**
  * Universal **P1 — HAL** contract (telemetry-only). Normative human doc: `../../.msgf/P1_HAL.md`.
