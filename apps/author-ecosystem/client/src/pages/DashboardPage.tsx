@@ -5,6 +5,7 @@ import { CoolDownLock, type CoolDownManuscriptState } from "../components/CoolDo
 import { ManuscriptSelector } from "../components/ManuscriptSelector";
 import { PlanningCommandCenter } from "../components/PlanningCommandCenter";
 import { AuthorSentinelBugButton } from "../components/AuthorSentinelBugButton";
+import { MsgfConnectionStatus } from "../components/MsgfConnectionStatus";
 import HALTracker from "../components/HALTracker.jsx";
 import { NarrativeProvider, useNarrative } from "../context/NarrativeContext";
 import { bffCredentials, bffUrl } from "../lib/bffFetch";
@@ -74,6 +75,8 @@ function DashboardInner() {
             Sign out
           </button>
         </header>
+
+        <MsgfConnectionStatus />
 
         <ManuscriptSelector />
 

@@ -284,8 +284,11 @@ import {
   postHealQueueRemediation,
 } from "@/lib/heal-queue-web-client";
 import type {
+  HealActionTokenReportDto,
   HealQueueGetResponse,
   HealQueuePresetInterval,
+  HealQueueActionType,
+  HealQueueTokenSummaryDto,
   HumanArbitrationAction,
   HumanArbitrationComparisonPair,
   HumanArbitrationPackage,
@@ -454,6 +457,45 @@ function HumanArbitrationPanel({
   );
 }
 
+function formatHealBeforeNotice(beforeTokens: number, itemCount: number): string {
+  return `Estimated ~${beforeTokens.toLocaleString()} tokens without MSGF batching (${itemCount} item${itemCount === 1 ? "" : "s"}).`;
+}
+
+function formatHealAfterNotice(report: HealActionTokenReportDto): string {
+  return `Used ~${report.after_msgf_tokens.toLocaleString()} tokens with MSGF (~${report.tokens_saved.toLocaleString()} saved, ${report.savings_pct}%). ${report.note}`;
+}
+
+function HealTokenSummaryPanel({ summary }: { summary: HealQueueTokenSummaryDto }) {
+  if (summary.healable_item_count === 0) return null;
+  return (
+    <section className="mb-4 rounded-xl border border-cyan-500/25 bg-cyan-950/20 px-3 py-3 text-xs text-slate-200">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200/90">
+        Token estimate (auto-heal)
+      </p>
+      <p className="mt-2 leading-relaxed text-slate-300">
+        Without MSGF (separate heals):{" "}
+        <strong className="text-amber-200">
+          ~{summary.without_msgf_total.toLocaleString()}
+        </strong>{" "}
+        · With MSGF batch:{" "}
+        <strong className="text-emerald-300">
+          ~{summary.with_msgf_batch_total.toLocaleString()}
+        </strong>{" "}
+        ({summary.savings_pct}% saved)
+      </p>
+      <p className="mt-1 text-[10px] text-slate-500">
+        {summary.expensive_count} expensive · {summary.inexpensive_count} inexpensive
+        {summary.arbitration_blocked_count > 0
+          ? ` · ${summary.arbitration_blocked_count} blocked (HITL)`
+          : ""}
+      </p>
+      <p className="mt-2 text-[10px] text-slate-500">
+        Account-wide Pulse savings appear in your Blueprint eco panel on the dashboard.
+      </p>
+    </section>
+  );
+}
+
 function statusBannerClass(tone: HealConsoleStatusTone): string {
   switch (tone) {
     case "processing":
@@ -532,17 +574,48 @@ export function PostIngestHealingConsole({
   }, []);
 
   const runAction = useCallback(
-    async (action_type: "BULK" | "INDIVIDUAL" | "SCHEDULED", paths?: string[]) => {
+    async (action_type: HealQueueActionType, paths?: string[]) => {
       setSubmitting(true);
       const optimisticTone: HealConsoleStatusTone =
         action_type === "SCHEDULED" ? "scheduled" : "processing";
-      const optimisticMessage =
-        action_type === "BULK"
-          ? "Processing ⚡ — batch healing all pillars…"
-          : action_type === "SCHEDULED"
-            ? `Scheduled ⏳ — ${PRESET_OPTIONS.find((o) => o.value === preset)?.label ?? preset} for ${paths?.length ?? 0} file(s)`
-            : `Processing ⚡ — healing ${paths?.length ?? 0} selected file(s)…`;
-      onStatusChange({ tone: optimisticTone, message: optimisticMessage });
+
+      let beforeTokens = 0;
+      let beforeItems = 0;
+      if (tokenSummary) {
+        if (action_type === "BULK") {
+          beforeTokens = tokenSummary.without_msgf_total;
+          beforeItems = tokenSummary.healable_item_count;
+        } else if (action_type === "BULK_EXPENSIVE") {
+          beforeTokens = tokenSummary.expensive_subset.without_msgf_total;
+          beforeItems = tokenSummary.expensive_count;
+        } else if (action_type === "BULK_INEXPENSIVE") {
+          beforeTokens = tokenSummary.inexpensive_subset.without_msgf_total;
+          beforeItems = tokenSummary.inexpensive_count;
+        } else if (action_type === "INDIVIDUAL" && paths?.length) {
+          for (const p of paths) {
+            const t = tasks.find((x) => x.file_path === p);
+            if (t?.token_estimate) {
+              beforeTokens += t.token_estimate.tokens_without_msgf;
+              beforeItems += 1;
+            }
+          }
+        }
+      }
+
+      const beforeNotice =
+        beforeItems > 0
+          ? formatHealBeforeNotice(beforeTokens, beforeItems)
+          : action_type === "BULK"
+            ? "Processing ⚡ — batch healing all pillars…"
+            : action_type === "BULK_EXPENSIVE"
+              ? "Processing ⚡ — batch healing expensive fixes…"
+              : action_type === "BULK_INEXPENSIVE"
+                ? "Processing ⚡ — batch healing inexpensive fixes…"
+                : action_type === "SCHEDULED"
+                  ? `Scheduled ⏳ — ${PRESET_OPTIONS.find((o) => o.value === preset)?.label ?? preset} for ${paths?.length ?? 0} file(s)`
+                  : `Processing ⚡ — healing ${paths?.length ?? 0} selected file(s)…`;
+
+      onStatusChange({ tone: optimisticTone, message: beforeNotice });
 
       try {
         const body = buildHealQueuePostBody({
@@ -558,10 +631,13 @@ export function PostIngestHealingConsole({
           return;
         }
 
+        const report = result.data.token_usage_report as HealActionTokenReportDto | undefined;
         const label =
           action_type === "SCHEDULED"
             ? "Scheduled ⏳ — auto-remediation queued"
-            : "Processing ⚡ — complete";
+            : report
+              ? formatHealAfterNotice(report)
+              : "Processing ⚡ — complete";
         onStatusChange({ tone: "success", message: label });
         setSelectedPaths(new Set());
         onQueueRefresh();
@@ -574,7 +650,7 @@ export function PostIngestHealingConsole({
         setSubmitting(false);
       }
     },
-    [onQueueRefresh, onStatusChange, preset, tenantId]
+    [onQueueRefresh, onStatusChange, preset, tasks, tenantId, tokenSummary]
   );
 
   const runHumanArbitration = useCallback(
@@ -626,6 +702,16 @@ export function PostIngestHealingConsole({
     : "All pillars";
 
   const brain = queue?.brain_readiness;
+  const tokenSummary = queue?.heal_token_summary;
+
+  const expensiveHealable = useMemo(
+    () => tasks.filter((t) => t.token_estimate?.cost_tier === "expensive"),
+    [tasks]
+  );
+  const inexpensiveHealable = useMemo(
+    () => tasks.filter((t) => t.token_estimate?.cost_tier === "inexpensive"),
+    [tasks]
+  );
 
   return (
     <>
@@ -674,6 +760,8 @@ export function PostIngestHealingConsole({
                 : " · baseline complete"}
             </p>
           ) : null}
+
+          {tokenSummary ? <HealTokenSummaryPanel summary={tokenSummary} /> : null}
 
           {externalStatus ? (
             <div
@@ -793,6 +881,22 @@ export function PostIngestHealingConsole({
                                 <code className="mt-1 inline-block rounded bg-black/30 px-1.5 py-0.5 text-[10px] text-amber-200/90">
                                   {task.bug_index.level_1_1_1_instance}
                                 </code>
+                                {task.token_estimate ? (
+                                  <span className="mt-1.5 block text-[10px] tabular-nums text-cyan-200/80">
+                                    ~{task.token_estimate.tokens_without_msgf.toLocaleString()} w/o
+                                    MSGF · ~{task.token_estimate.tokens_with_msgf.toLocaleString()}{" "}
+                                    batched
+                                    <span
+                                      className={
+                                        task.token_estimate.cost_tier === "expensive"
+                                          ? " ml-1 text-rose-300/90"
+                                          : " ml-1 text-emerald-300/90"
+                                      }
+                                    >
+                                      ({task.token_estimate.cost_tier})
+                                    </span>
+                                  </span>
+                                ) : null}
                               </span>
                             </label>
                           </li>
@@ -821,6 +925,41 @@ export function PostIngestHealingConsole({
           >
             Heal All Now
           </button>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              disabled={
+                submitting || expensiveHealable.length === 0 || Boolean(activeArbitration)
+              }
+              onClick={() => void runAction("BULK_EXPENSIVE")}
+              title={
+                tokenSummary
+                  ? `~${tokenSummary.expensive_subset.without_msgf_total.toLocaleString()} tokens without MSGF`
+                  : undefined
+              }
+              className="rounded-lg border border-rose-400/45 bg-gradient-to-b from-rose-900/70 to-rose-950/90 px-3 py-2.5 text-xs font-bold text-rose-50 transition hover:border-rose-300/50 disabled:cursor-wait disabled:opacity-50"
+            >
+              Heal all expensive fix
+              {expensiveHealable.length > 0 ? ` (${expensiveHealable.length})` : ""}
+            </button>
+            <button
+              type="button"
+              disabled={
+                submitting || inexpensiveHealable.length === 0 || Boolean(activeArbitration)
+              }
+              onClick={() => void runAction("BULK_INEXPENSIVE")}
+              title={
+                tokenSummary
+                  ? `~${tokenSummary.inexpensive_subset.without_msgf_total.toLocaleString()} tokens without MSGF`
+                  : undefined
+              }
+              className="rounded-lg border border-emerald-400/40 bg-gradient-to-b from-emerald-900/60 to-emerald-950/90 px-3 py-2.5 text-xs font-bold text-emerald-50 transition hover:border-emerald-300/50 disabled:cursor-wait disabled:opacity-50"
+            >
+              Heal all inexpensive fix
+              {inexpensiveHealable.length > 0 ? ` (${inexpensiveHealable.length})` : ""}
+            </button>
+          </div>
 
           <button
             type="button"

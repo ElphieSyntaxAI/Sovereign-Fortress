@@ -157,7 +157,7 @@ export async function GET(req: NextRequest) {
     );
     const { admin, entityId } = await resolveHealQueueActor(req, tenantId);
 
-    const { brain_readiness, remediation_tasks, human_arbitration_packages } =
+    const { brain_readiness, remediation_tasks, human_arbitration_packages, heal_token_summary } =
       await listHealQueueRemediationTasks(admin, tenantId, entityId);
 
     const payload = HealQueueGetResponseSchema.parse({
@@ -173,6 +173,7 @@ export async function GET(req: NextRequest) {
       },
       remediation_tasks,
       human_arbitration_packages,
+      heal_token_summary,
     });
 
     return healJson(req, payload);

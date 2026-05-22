@@ -60,6 +60,12 @@ import {
 import { persistSelfHealReport } from "@/lib/services/self-heal-report";
 import type { SelfHealReportBody } from "@/lib/schemas/diagnostic-snapshot";
 import { buildTenantSentinelSelfHealBody } from "@/lib/services/tenant-sentinel-response";
+import {
+  buildHealActionTokenReport,
+  buildHealQueueTokenSummary,
+  filterTasksByHealCostTier,
+  type HealQueueTokenSummary,
+} from "@/lib/services/heal-token-estimate";
 
 const BASELINE_GAP_BUG_INDEX = buildGenealogicalBugIndex({
   level_1_category: "1.0_PULSE",
@@ -260,6 +266,28 @@ async function fetchPillarVectorTasks(
   return tasks;
 }
 
+function enrichTasksWithTokenEstimates(
+  tasks: RemediationTask[],
+  summary: ReturnType<typeof buildHealQueueTokenSummary>
+): RemediationTask[] {
+  const byPath = new Map(summary.per_item.map((i) => [i.file_path, i]));
+  return tasks.map((task) => {
+    const est = byPath.get(task.file_path);
+    if (!est) return task;
+    return RemediationTaskSchema.parse({
+      ...task,
+      token_estimate: {
+        cost_tier: est.cost_tier,
+        strategy_scope: est.strategy_scope,
+        consequence_score: est.consequence_score,
+        tokens_without_msgf: est.tokens_without_msgf,
+        tokens_with_msgf: est.tokens_with_msgf,
+        tokens_saved: est.tokens_saved,
+      },
+    });
+  });
+}
+
 export async function listHealQueueRemediationTasks(
   admin: SupabaseClient,
   tenantId: string,
@@ -268,6 +296,7 @@ export async function listHealQueueRemediationTasks(
   brain_readiness: Awaited<ReturnType<typeof computeBrainReadiness>>;
   remediation_tasks: RemediationTask[];
   human_arbitration_packages: HumanArbitrationPackage[];
+  heal_token_summary: HealQueueTokenSummary;
 }> {
   const brain = await computeBrainReadiness(admin, tenantId, entityId);
   const fromBrain = tasksFromBrainReadiness(
@@ -292,7 +321,15 @@ export async function listHealQueueRemediationTasks(
     HumanArbitrationPackageSchema.parse(pkg)
   );
 
-  return { brain_readiness: brain, remediation_tasks, human_arbitration_packages };
+  const heal_token_summary = buildHealQueueTokenSummary(remediation_tasks);
+  const enriched_tasks = enrichTasksWithTokenEstimates(remediation_tasks, heal_token_summary);
+
+  return {
+    brain_readiness: brain,
+    remediation_tasks: enriched_tasks,
+    human_arbitration_packages,
+    heal_token_summary,
+  };
 }
 
 export async function executeHealQueueHumanArbitration(params: {
@@ -351,11 +388,12 @@ function buildSelfHealBodyForPath(params: {
 export type HealQueuePostResult =
   | {
       ok: true;
-      action_type: "BULK";
+      action_type: "BULK" | "BULK_EXPENSIVE" | "BULK_INEXPENSIVE";
       batch_plan: BulkRemediationBatchPlan;
       applied_count: number;
       healed_pillars: { pillar: string; label: string }[];
       token_estimate?: ApplyBulkHealResult["token_estimate"];
+      token_usage_report?: ReturnType<typeof buildHealActionTokenReport>;
       row_ids_cleared?: string[];
     }
   | {
@@ -367,6 +405,7 @@ export type HealQueuePostResult =
         user_resume_message?: string;
         error?: string;
       }>;
+      token_usage_report?: ReturnType<typeof buildHealActionTokenReport>;
     }
   | {
       ok: true;
@@ -386,30 +425,46 @@ export async function executeHealQueueRemediation(params: {
   const { admin, entityId, body } = params;
   const tenantId = body.tenant_id;
 
-  if (body.action_type === "BULK") {
+  if (
+    body.action_type === "BULK" ||
+    body.action_type === "BULK_EXPENSIVE" ||
+    body.action_type === "BULK_INEXPENSIVE"
+  ) {
     const listed = await listHealQueueRemediationTasks(admin, tenantId, entityId);
-    const tasks = (params.tasksForBulk ?? listed.remediation_tasks).filter(
+    let tasks = (params.tasksForBulk ?? listed.remediation_tasks).filter(
       (t) => !t.circuit_breaker_open
     );
+
+    if (body.action_type === "BULK_EXPENSIVE") {
+      tasks = filterTasksByHealCostTier(tasks, "expensive");
+    } else if (body.action_type === "BULK_INEXPENSIVE") {
+      tasks = filterTasksByHealCostTier(tasks, "inexpensive");
+    }
 
     const heal = await applyBulkHealForTasks({
       admin,
       tenantId,
       tasks,
-      cronNote: "heal-queue BULK",
+      cronNote: `heal-queue ${body.action_type}`,
     });
 
     const healed_pillars = [
       ...new Set(tasks.map((t) => t.governance_pillar)),
     ].map((pillar) => ({ pillar, label: pillar }));
 
+    const token_usage_report = buildHealActionTokenReport({
+      tasks,
+      batchTokenEstimate: heal.token_estimate,
+    });
+
     return {
       ok: true,
-      action_type: "BULK",
+      action_type: body.action_type,
       batch_plan: heal.batch_plan,
       applied_count: tasks.length,
       healed_pillars,
       token_estimate: heal.token_estimate,
+      token_usage_report,
       row_ids_cleared: heal.row_ids_cleared,
     };
   }
@@ -516,7 +571,10 @@ export async function executeHealQueueRemediation(params: {
       }
     }
 
-    return { ok: true, action_type: "INDIVIDUAL", results };
+    const selectedTasks = listed.remediation_tasks.filter((t) => paths.includes(t.file_path));
+    const token_usage_report = buildHealActionTokenReport({ tasks: selectedTasks });
+
+    return { ok: true, action_type: "INDIVIDUAL", results, token_usage_report };
   }
 
   const preset = body.preset_interval!;

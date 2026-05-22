@@ -11,6 +11,7 @@ const HALTracker = () => {
   const [isReference, setIsReference] = useState(false);
   const [activeManuscript, setActiveManuscript] = useState(null);
   const [lastChunkIndex, setLastChunkIndex] = useState(-1);
+  const [msgfSync, setMsgfSync] = useState(null);
   const lastKeyTime = useRef(performance.now());
   const keyDepths = useRef({}); // Buffer for Dwell Time calculation
 
@@ -128,15 +129,29 @@ const HALTracker = () => {
         { withCredentials: true }
       );
 
-      const idx = res.data?.msgf_pulse?.last_chunk_index;
+      const pulse = res.data?.msgf_pulse;
+      const idx = pulse?.last_chunk_index;
       if (typeof idx === "number") setLastChunkIndex(idx);
+      setMsgfSync({
+        ok: pulse?.ok !== false,
+        packets: pulse?.packets_sent ?? 0,
+        errors: pulse?.errors ?? [],
+      });
 
-      alert("Authorship verified and ledgered.");
+      const msgfNote =
+        pulse?.packets_sent > 0
+          ? ` MSGF synced ${pulse.packets_sent} chunk packet(s).`
+          : pulse?.configured === false
+            ? " MSGF bridge not configured on server."
+            : "";
+      alert(`Authorship verified and ledgered.${msgfNote}`);
       setText("");
       setKeystrokes([]);
     } catch (err) {
       console.error("Ledger Save Error:", err.response?.data || err.message);
-      alert("Failed to sync with the Ledger.");
+      const detail = err.response?.data?.msgf_pulse?.errors?.[0] || err.response?.data?.error;
+      alert(detail ? `Ledger sync failed: ${detail}` : "Failed to sync with the Ledger.");
+      setMsgfSync({ ok: false, packets: 0, errors: [String(detail || err.message)] });
     }
   };
 
@@ -164,7 +179,6 @@ const HALTracker = () => {
         <button onClick={saveToLedger} style={styles.button}>
           Sign & Push to Ledger
         </button>
-        <div style={styles.stats}>{keystrokes.length} events logged</div>
         <label style={{ fontSize: "14px", cursor: "pointer" }}>
           <input
             type="checkbox"
@@ -176,6 +190,20 @@ const HALTracker = () => {
 
         <div style={styles.stats}>{keystrokes.length} events logged</div>
       </div>
+
+      {msgfSync ? (
+        <p
+          style={{
+            fontSize: "12px",
+            marginTop: "8px",
+            color: msgfSync.ok ? "#2ecc71" : "#e67e22",
+          }}
+        >
+          {msgfSync.ok
+            ? `MSGF rhythm sync OK (${msgfSync.packets} packet${msgfSync.packets === 1 ? "" : "s"} this save).`
+            : `MSGF sync issue: ${msgfSync.errors[0] || "see server logs"}`}
+        </p>
+      ) : null}
 
       <div style={styles.monitorContainer}>
         <p style={styles.monitorLabel}>Live Rhythm Monitor (Dwell / Flight):</p>

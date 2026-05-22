@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from "express";
 
+import { getAuthorMsgfMappingStatus } from "../lib/authorMsgfMapping.js";
+
 /**
  * Root HTTP surface: health and status for probes (MSGF `probe-author-ecosystem.mjs`).
  */
@@ -10,11 +12,13 @@ rootController.get("/api/ping", (_req: Request, res: Response) => {
 });
 
 rootController.get("/api/status", (_req: Request, res: Response) => {
+  const msgf = getAuthorMsgfMappingStatus();
   res.json({
     ok: true,
     service: "author-ecosystem",
     version: "0.1.0",
     uptime_s: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
+    msgf_mapping: msgf,
   });
 });

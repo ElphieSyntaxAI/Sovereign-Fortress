@@ -59,6 +59,19 @@ describe("IngestRemediationActionSchema", () => {
     assert.equal(body.action_type, "BULK");
   });
 
+  test("accepts BULK_EXPENSIVE and BULK_INEXPENSIVE", () => {
+    const expensive = parseIngestRemediationAction({
+      tenant_id: TENANT,
+      action_type: "BULK_EXPENSIVE",
+    });
+    const inexpensive = parseIngestRemediationAction({
+      tenant_id: TENANT,
+      action_type: "BULK_INEXPENSIVE",
+    });
+    assert.equal(expensive.action_type, "BULK_EXPENSIVE");
+    assert.equal(inexpensive.action_type, "BULK_INEXPENSIVE");
+  });
+
   test("maps preset intervals to scheduling tiers", () => {
     assert.equal(PRESET_INTERVAL_TO_SCHEDULING_TIER.immediate, "RED");
     assert.equal(PRESET_INTERVAL_TO_SCHEDULING_TIER.nightly, "GREEN");

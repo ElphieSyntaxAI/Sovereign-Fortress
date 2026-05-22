@@ -96,7 +96,17 @@ async function main() {
     error: e.message,
   }));
   if (status.ok) {
-    console.log("GET /api/status:", await status.json());
+    const statusJson = await status.json();
+    console.log("GET /api/status:", statusJson);
+    const map = statusJson?.msgf_mapping;
+    if (map) {
+      console.log(
+        "\nMSGF mapping:",
+        map.ready ? "ready" : "incomplete",
+        map.ready ? "" : `(missing: ${(map.missing || []).join(", ")})`,
+        `tenant=${map.tenant_id}`
+      );
+    }
   } else {
     console.error(
       "GET /api/status failed:",
@@ -169,7 +179,10 @@ async function main() {
   }
 
   console.log(
-    "\nNote: Author BFF now proxies authenticated /api/msgf/pulse calls to MSGF. HAL session writes also include msgf_pulse status when MSGF_APP_URL and MSGF_AUTHOR_PULSE_LICENSE_KEY are configured on the BFF."
+    "\nNote: Author BFF proxies /api/msgf/pulse → MSGF (tenant author_ecosystem). HAL sessions include msgf_pulse when MSGF_APP_URL + MSGF_AUTHOR_PULSE_LICENSE_KEY are set."
+  );
+  console.log(
+    "Token savings report: npm run track:author-tokens -w msgf  (or track:author-tokens:live with BFF + JWT running)"
   );
 }
 

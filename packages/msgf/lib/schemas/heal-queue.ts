@@ -31,7 +31,13 @@ export const RemediationStateSchema = z.enum([
 ]);
 export type RemediationState = z.infer<typeof RemediationStateSchema>;
 
-export const HealQueueActionTypeSchema = z.enum(["BULK", "INDIVIDUAL", "SCHEDULED"]);
+export const HealQueueActionTypeSchema = z.enum([
+  "BULK",
+  "BULK_EXPENSIVE",
+  "BULK_INEXPENSIVE",
+  "INDIVIDUAL",
+  "SCHEDULED",
+]);
 export type HealQueueActionType = z.infer<typeof HealQueueActionTypeSchema>;
 
 export const HealQueuePresetIntervalSchema = z.enum(["immediate", "1h", "6h", "nightly"]);
@@ -92,6 +98,55 @@ export const HealQueueTenantQuerySchema = z
   })
   .strict();
 
+export const HealTaskTokenEstimateSchema = z
+  .object({
+    cost_tier: z.enum(["expensive", "inexpensive"]),
+    strategy_scope: z.enum(["global", "local", "unknown"]),
+    consequence_score: z.number().int().min(0).max(100),
+    tokens_without_msgf: z.number().int().min(0),
+    tokens_with_msgf: z.number().int().min(0),
+    tokens_saved: z.number().int().min(0),
+  })
+  .strict();
+
+export type HealTaskTokenEstimateDto = z.infer<typeof HealTaskTokenEstimateSchema>;
+
+export const HealQueueTokenSummarySchema = z
+  .object({
+    healable_item_count: z.number().int().min(0),
+    expensive_count: z.number().int().min(0),
+    inexpensive_count: z.number().int().min(0),
+    arbitration_blocked_count: z.number().int().min(0),
+    without_msgf_total: z.number().int().min(0),
+    with_msgf_batch_total: z.number().int().min(0),
+    tokens_saved_vs_naive: z.number().int().min(0),
+    savings_pct: z.number().min(0).max(100),
+    expensive_subset: z.object({
+      without_msgf_total: z.number().int().min(0),
+      with_msgf_batch_total: z.number().int().min(0),
+      tokens_saved: z.number().int().min(0),
+    }),
+    inexpensive_subset: z.object({
+      without_msgf_total: z.number().int().min(0),
+      with_msgf_batch_total: z.number().int().min(0),
+      tokens_saved: z.number().int().min(0),
+    }),
+  })
+  .strict();
+
+export type HealQueueTokenSummaryDto = z.infer<typeof HealQueueTokenSummarySchema>;
+
+export const HealActionTokenReportSchema = z
+  .object({
+    before_msgf_tokens: z.number().int().min(0),
+    after_msgf_tokens: z.number().int().min(0),
+    tokens_saved: z.number().int().min(0),
+    savings_pct: z.number().min(0).max(100),
+    items_targeted: z.number().int().min(0),
+    note: z.string().min(1),
+  })
+  .strict();
+
 export const RemediationTaskSchema = z
   .object({
     task_id: z.string().uuid(),
@@ -106,6 +161,7 @@ export const RemediationTaskSchema = z
     remediation_state: RemediationStateSchema.nullable().optional(),
     consecutive_failure_count: z.number().int().min(0).max(32).optional(),
     circuit_breaker_open: z.boolean().optional(),
+    token_estimate: HealTaskTokenEstimateSchema.optional(),
   })
   .strict();
 
@@ -184,6 +240,7 @@ export const HealQueueGetResponseSchema = z
     }),
     remediation_tasks: z.array(RemediationTaskSchema),
     human_arbitration_packages: z.array(HumanArbitrationPackageSchema),
+    heal_token_summary: HealQueueTokenSummarySchema,
   })
   .strict();
 
@@ -207,6 +264,7 @@ export const HealQueuePostOkSchema = z
   .object({
     ok: z.literal(true),
     action_type: HealQueueActionTypeSchema,
+    token_usage_report: HealActionTokenReportSchema.optional(),
   })
   .passthrough();
 
