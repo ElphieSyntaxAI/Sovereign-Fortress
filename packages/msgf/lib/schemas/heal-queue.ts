@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 /**
  * Strict Zod contracts for GET/POST /api/msgf/heal-queue.
@@ -41,9 +41,16 @@ export type HealQueuePresetInterval = z.infer<typeof HealQueuePresetIntervalSche
 export const HealQueueSchedulingTierSchema = MsgfSchedulingTierSchema;
 export type HealQueueSchedulingTier = z.infer<typeof HealQueueSchedulingTierSchema>;
 
+/** License silo slug (e.g. `integration_sandbox`) or legacy UUID tenant id. */
+export const MsgfHealQueueTenantIdSchema = z
+  .string()
+  .trim()
+  .min(1, "tenant_id is required")
+  .max(128);
+
 export const IngestRemediationActionSchema = z
   .object({
-    tenant_id: z.string().uuid(),
+    tenant_id: MsgfHealQueueTenantIdSchema,
     action_type: HealQueueActionTypeSchema,
     file_paths: z.array(z.string().min(1).max(512)).optional(),
     preset_interval: HealQueuePresetIntervalSchema.optional(),
@@ -81,7 +88,7 @@ export type IngestRemediationAction = z.infer<typeof IngestRemediationActionSche
 
 export const HealQueueTenantQuerySchema = z
   .object({
-    tenant_id: z.string().uuid(),
+    tenant_id: MsgfHealQueueTenantIdSchema,
   })
   .strict();
 
@@ -154,7 +161,7 @@ export type HumanArbitrationAction = z.infer<typeof HumanArbitrationActionSchema
 
 export const HealQueueHumanArbitrationBodySchema = z
   .object({
-    tenant_id: z.string().uuid(),
+    tenant_id: MsgfHealQueueTenantIdSchema,
     file_path: z.string().min(1).max(512),
     action: HumanArbitrationActionSchema,
     operator_note: z.string().max(2000).optional(),
@@ -166,7 +173,7 @@ export type HealQueueHumanArbitrationBody = z.infer<typeof HealQueueHumanArbitra
 export const HealQueueGetResponseSchema = z
   .object({
     ok: z.literal(true),
-    tenant_id: z.string().uuid(),
+    tenant_id: MsgfHealQueueTenantIdSchema,
     brain_readiness: z.object({
       readiness_score: z.number().int().min(0).max(100),
       missing_pillars: z.array(MsgfGovernancePillarSchema),

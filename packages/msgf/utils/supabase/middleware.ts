@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
@@ -54,6 +54,8 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Refresh session cookies before validating the user (keeps navigation signed in).
+  await supabase.auth.getSession();
   await supabase.auth.getUser();
 
   return supabaseResponse;

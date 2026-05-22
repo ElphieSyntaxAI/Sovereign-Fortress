@@ -10,6 +10,8 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | :--- | :--- |
 | [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) | **1.0 vision & release plan** (MSGF V3.2-ULTRA) |
 | [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
+| [`docs/MSGF_SOLO_INTEGRATION.md`](../../docs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |
+| [`docs/MSGF_BUYER_WALKTHROUGH.md`](../../docs/MSGF_BUYER_WALKTHROUGH.md) | **Buyer / SaaS** — new user sign-up, pricing, session Pulse (not integrator license) |
 | [`docs/MONOREPO_PRODUCTS.md`](../../docs/MONOREPO_PRODUCTS.md) | Three web apps & domains |
 | [`pre_ingestion_audit.md`](./pre_ingestion_audit.md) | Day-zero audit (SWEEP) & CONVERGE backlog |
 | [`docs/PILLAR_PROGRESS.md`](../../docs/PILLAR_PROGRESS.md) | Pillar/AUTH implementation tracker |

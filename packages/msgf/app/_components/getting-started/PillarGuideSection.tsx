@@ -1,0 +1,93 @@
+import Link from "next/link";
+
+import { PILLAR_GUIDE_ENTRIES, V32_PIPELINE_STEPS } from "@/lib/pillar-guide-copy";
+
+export function PillarGuideSection() {
+  return (
+    <div id="six-pillars" className="scroll-mt-24 space-y-10">
+      <header className="space-y-3 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-300/90">
+          Governance reference
+        </p>
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          How the <span className="text-gradient-jewel">six pillars</span> work
+        </h2>
+        <p className="mx-auto max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base">
+          MSGF V3.0 defines what each pillar means; V3.2-ULTRA runs them through SWEEP → PERSIST.
+          Use this guide when wiring Pulse, ingest, or reading your dashboard stoplights.
+        </p>
+      </header>
+
+      <section
+        className="glass-panel rounded-2xl border border-emerald-500/15 p-5 sm:p-6"
+        aria-label="V3.2 execution pipeline"
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300/85">
+          V3.2-ULTRA pipeline
+        </p>
+        <ol className="mt-4 flex flex-wrap justify-center gap-2">
+          {V32_PIPELINE_STEPS.map((item, i) => (
+            <li
+              key={item.step}
+              className="rounded-full border border-slate-700/80 bg-slate-900/50 px-3 py-1.5 text-xs text-slate-300"
+              title={item.blurb}
+            >
+              <span className="font-semibold text-emerald-200/90">{item.step}</span>
+              {i < V32_PIPELINE_STEPS.length - 1 ? (
+                <span className="ml-1 text-slate-600" aria-hidden>
+                  →
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        {PILLAR_GUIDE_ENTRIES.map((entry) => (
+          <article
+            key={entry.pillar}
+            className="glass-panel rounded-2xl border border-violet-500/12 p-5 sm:p-6"
+          >
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-200">
+                {entry.pillar}
+              </span>
+              <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                {entry.v32Step}
+              </span>
+            </div>
+            <h3 className="mt-2 text-lg font-semibold text-slate-50">{entry.title}</h3>
+            <p className="text-sm text-slate-400">{entry.subtitle}</p>
+
+            <dl className="mt-4 space-y-3 text-sm">
+              <div>
+                <dt className="font-medium text-violet-200/90">What it does</dt>
+                <dd className="mt-1 leading-relaxed text-slate-400">{entry.whatItDoes}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-cyan-200/90">In your product</dt>
+                <dd className="mt-1 leading-relaxed text-slate-400">{entry.inYourProduct}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-emerald-200/90">How to use it</dt>
+                <dd className="mt-1 leading-relaxed text-slate-400">{entry.howToUse}</dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
+
+      <p className="text-center text-sm text-slate-500">
+        Full engineering map:{" "}
+        <Link href="/products/msgf" className="text-emerald-400/90 underline-offset-4 hover:underline">
+          MSGF product overview
+        </Link>
+        {" · "}
+        <Link href="/dashboard" className="text-violet-400/90 underline-offset-4 hover:underline">
+          Open governance dashboard
+        </Link>
+      </p>
+    </div>
+  );
+}

@@ -13,9 +13,9 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-05-23 (Deployment gate; ARBITRATE/heal-queue hardening; production build fixes)
+**Last updated:** 2026-05-23 (HAL portable bridge; next-steps §10; **Stripe deferred until post-test signoff**)
 
-**Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) — admin npm scripts (cross-platform) vs end-user flows · `npm run validate:deployment` (local Docker/Cloud Build gate)
+**Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf`
 
 ---
 
@@ -147,6 +147,8 @@ flowchart TB
 | **Standalone SaaS** | Customers sign up on gatedai; Pulse + dashboard + billing | Marketing/checkout shell + Stripe entitlements |
 | **BYOK / multi-software** | Third parties use API keys + tenant IDs (`lib/api-key-tenant.ts`) | Tenant manifest + silo enforcement; public API docs |
 
+**Platform vs product “secret sauce”:** MSGF ships the **engine** (Pulse, ingest, heal, multi-tenant gates, `msgf/hal-author-bridge`). [Author Ecosystem](https://elphiesyntax.com) keeps **product-only** depth (manuscript ledger, Docs/Word capture, linguistic baseline, RAG/librarian, revision locks). Third-party integrators call MSGF for typing/guardrail heavy lifting and add their own sauce on their BFF — they do not need Author installed.
+
 ---
 
 ## 4. Release scope — MSGF 1.0
@@ -165,7 +167,7 @@ flowchart TB
 | **Ops cron** | `POST /api/msgf/ops/v32-heartbeat` — strict `MSGF_OPS_CRON_SECRET`; tier batches; **`6h`/`nightly`** scheduled heals via `RemediationEngine` LOM consensus (Vault persist); Hall cold + Redis purge |
 | **Human arbitration** | Circuit breaker `PENDING_HUMAN_ARBITRATION`; `GET` heal-queue packages + `POST /api/msgf/heal-queue/human-arbitration` (APPROVE_BYPASS / DENY_PURGE); web + IDE drawer |
 | **Public shell** | `packages/msgf/apps/web` — marketing, pricing, Stripe Checkout return URLs |
-| **Billing** | Stripe Checkout + webhook → `p4_profiles` / P3 tier + update credits (see §5) |
+| **Billing** | Stripe Checkout + webhook → `p4_profiles` / P3 tier + update credits — **deferred until after test signoff** (see §10) |
 | **Security** | `security:prancer-pillars` on PR; service account + secrets documented |
 | **Author integration** | Author BFF documented path to Pulse/ingest; shared cookie domain option |
 
@@ -202,13 +204,13 @@ Aligned with `packages/msgf/.cursorrules`:
 | **M0** | Platform truth | This doc + [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md); root `.env.example` MSGF block; `npm run verify:msgf-env -w msgf`; Phase 0 smoke in [`packages/msgf/README.md`](../packages/msgf/README.md) | **Done** |
 | **M1** | Engine hardening (V3.2) | SHARD hot/cold wiring; split Pulse into SWEEP→PERSIST handlers; Zod metadata; ARBITRATE/recursion in CI | **Partial** — SHARD/DEFEND/ingest + `pulse-pipeline/` done; strict Pulse metadata enums + full route thin-handler pass → 1.1 |
 | **M2** | Standalone surface | Public marketing, pricing, workspace, admin portal on gatedai | **Partial** — lives in `packages/msgf` Next app; `packages/msgf/apps/web` package still **not started** |
-| **M3** | Commercial gates | Checkout API, webhook → tier/credits, entitlement middleware | **Partial** — routes exist; live Stripe + webhook → `p4_profiles` **not production** |
-| **M4** | Multi-tenant ops | Dashboard live data; RED→HITL; tier cron; Hall purge; heal queue + human arbitration | **Partial** — heal queue + circuit breaker + arbitration drawer **Done**; production `MSGF_OPS_CRON_SECRET` + `validate:deployment` on release path |
-| **M5** | Ecosystem wiring | Author + Education smoke: register → pledge → Pulse | **Partial** — MSGF on Cloud Run; **IDE extension** heal console wired; Author BFF **local-only** deploy path; HAL→Pulse thin |
+| **M3** | Commercial gates | Checkout API, webhook → tier/credits, entitlement middleware | **Deferred (post-test)** — skeleton routes + mock entitlements ON; **do not block** RC on live Stripe |
+| **M4** | Multi-tenant ops | Dashboard live data; RED→HITL; tier cron; Hall purge; heal queue + human arbitration | **Partial** — heal queue + arbitration **Done**; confirm prod `MSGF_OPS_CRON_SECRET` + live dashboard (not mocks) |
+| **M5** | Ecosystem wiring | Author + Education smoke: register → pledge → Pulse | **Partial** — `msgf/hal-author-bridge` (175w/10 overlap, lossless rhythm, `x-msgf-author-hal`); Author `chunk-pulse` + extension flush; **prod Author deploy + probe green** open |
 | **M4b** | IDE remediation UX | `msgf-pulse-guard` stoplight + shadow scan → healing console | **Done** — pillar-grouped checkboxes; Heal All / Approve Selected / Schedule presets; optimistic status |
 | **M6** | 1.0 RC | §2.6 all green in staging; load test; Prancer; runbook | **Partial** — `npm run validate:deployment` (unit + `npm run build -w msgf`); Cloud deploy via `./deploy.sh` / `setup-cloud.sh` |
 
-**Suggested gate for tag `msgf-v1.0.0`:** M1–M5 complete in staging; M6 sign-off with green `validate:deployment` and staging smoke.
+**Suggested gate for tag `msgf-v1.0.0`:** M1, M4, M4b, M5 (staging), M6 sign-off with green `validate:deployment` + staging smoke. **M3 (Stripe)** follows immediately after test signoff — not a prerequisite for first RC tag unless product requires paid-only launch.
 
 ---
 
@@ -225,6 +227,8 @@ Aligned with `packages/msgf/.cursorrules`:
 | Remediation circuit breaker | `lib/services/remediation-retry-circuit.ts`, migration `20260523140000_remediation_circuit_breaker.sql` |
 | Scheduled heal cron | `lib/services/heal-queue-cron-batch.ts` (invoked from `v32-ops-heartbeat`) |
 | Deployment gate script | `scripts/validate-deployment.mjs` (repo root) |
+| HAL portable bridge (BYOK / Author pattern) | `packages/msgf/lib/hal-author-bridge.ts`, `hal-word-chunk-packet.ts`, export `msgf/hal-author-bridge` |
+| Author chunked MSGF sync | `apps/author-ecosystem/server/src/lib/authorHalMsgfSync.ts`, `POST /api/hal/chunk-pulse` |
 | Web healing console | `packages/msgf/app/_components/dashboard/PostIngestHealingConsole.tsx`, `DashboardShell.tsx` |
 | IDE healing console | `packages/msgf-pulse-guard/` (`healQueueClient.ts`, `healingConsoleHtml.ts`, `msgfDashboardProvider.ts`) |
 | Ops heartbeat | `packages/msgf/app/api/msgf/ops/v32-heartbeat/route.ts`, `.github/workflows/msgf-tier-heartbeat.yml` |
@@ -265,9 +269,11 @@ Aligned with `packages/msgf/.cursorrules`:
 | CONVERGE — dual-model consensus | **Partial** — `pulse-pipeline/` modular phases; Pulse route still delegates to `PulseEngine` |
 | ARBITRATE — HITL / retry > 3 | **Partial** — dashboard drawer + heal-queue human arbitration packages; Pulse `runArbitratePhase`; max-3 circuit → `PENDING_HUMAN_ARBITRATION` |
 | PERSIST — Vault writes + Hall purge | **Done** (ops) — writes OK; `v32-heartbeat` + GH Actions when secrets configured |
-| Stripe billing | **Deferred** (per product) — mock entitlements default ON |
+| Stripe billing | **Deferred (post-test)** — mock entitlements default ON; finish webhook → `p4_profiles` after test signoff |
 | Public gatedai site | **Partial** — Next app: landing, pricing, workspace, `/status`, extension download |
-| Author ↔ Pulse integration | **Partial** — BFF proxy + shared Supabase; IDE extension heal loop complete; Author web popout → Author 1.x |
+| HAL portable API (`msgf/hal-author-bridge`) | **Done** — universal keystrokes + 175w/10 overlap packets + trusted `x-msgf-author-hal` header |
+| Author ↔ Pulse integration | **Partial** — chunked sync + lossless rhythm; **prod** BFF env + `probe:author-ecosystem` on staging URLs still open |
+| Education ↔ Pulse | **Not started** — tenant smoke only; add-ons / `ecosystem_source` per Education roadmap |
 
 ### 7.1 Mock / dead-end APIs (hallucination risk)
 
@@ -351,6 +357,14 @@ Verify locally (see [`MSGF_TESTING.md`](./MSGF_TESTING.md)):
 
 **Users (authors/tenants)** do not run these scripts; they use dashboard, Pulse, and Pulse Guard (see [`MSGF_TESTING.md`](./MSGF_TESTING.md) §6).
 
+### 7.5 HAL integration (portable — no Author required)
+
+| Consumer | Entry | Notes |
+| :--- | :--- | :--- |
+| **Any SaaS / employer app** | `MsgfBridge` or `POST /api/msgf/pulse` + license + tenant | MSGF biometric + consensus; add your BFF “sauce” locally |
+| **Author Ecosystem** | `POST /api/hal/session` · `POST /api/hal/chunk-pulse` → MSGF | Author forensic ledger + chunked rhythm; no RAG/cadence on Pulse path |
+| **IDE** | `msgf-pulse-guard` | Direct MSGF heal queue |
+
 ---
 
 ## 8. Environment & domains (1.0 checklist)
@@ -388,7 +402,67 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 ---
 
+## 10. What’s left & recommended next steps
+
+*Stripe integration intentionally **after** testing signoff — keep `MSGF_CREDIT_GUARD_DISABLED` / mock entitlements until then.*
+
+### A. Finish now (testing gate — blocks RC)
+
+| # | Work | Verify |
+| :---: | :--- | :--- |
+| 1 | **Offline unit suite** | `npm run test:unit -w msgf` |
+| 2 | **Solo deep-test gate** | `npm run deep-test:solo` (unit + build); `npm run deep-test:solo:live` with dev server |
+| 3 | **Solo integrator bootstrap** | `npm run bootstrap:solo -w msgf` → `npm run probe:solo -w msgf` — see [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) |
+| 4 | **HAL bridge** | `npm run test:hal-word-chunk -w msgf` |
+| 5 | **Heal / arbitration / circuit** | `npm run test:heal-queue -w msgf` · `test:human-arbitration` · `test:remediation-circuit` |
+| 6 | **Integration (Supabase)** | `npm run test:integration -w msgf` · `test:ingest-workflow` · `test:v32-ultra` |
+| 7 | **Env + schema** | `npm run verify:msgf-env -w msgf` · `npm run db:push:verify -w msgf` |
+| 8 | **Manual staging smoke** | Pledge → Pulse (license or cookie) → ingest → heal-queue → `v32-heartbeat` dry-run |
+
+### B. Finish before `msgf-v1.0.0` tag (engine + ops — Stripe excluded)
+
+| Area | Open items |
+| :--- | :--- |
+| **CROSS-REF** | Pulse route thin-handler pass; strict metadata on live path end-to-end |
+| **CONVERGE** | Full modular handler split (optional for 1.0; minimum: staging RED path green) |
+| **ARBITRATE** | E2E heal-queue on **live** Cloud Run; dashboard on **live** data (§7.1 mocks gated off) |
+| **M4 ops** | Prod `MSGF_OPS_CRON_SECRET` + GH `msgf-tier-heartbeat.yml`; Redis + Supabase on deploy |
+| **M5 Author** | Deploy Author BFF with `MSGF_APP_URL` + license key; `npm run probe:author-ecosystem -w msgf` on staging; retire port **3003** legacy |
+| **M5 Education** | One tenant smoke: Pulse with `tenant_education` (no full Education 1.0) |
+| **M6 RC** | Runbook, load smoke, Prancer green on PR |
+
+### C. After test signoff (commercial — your queue)
+
+| Area | Work |
+| :--- | :--- |
+| **M3 Stripe** | Live keys, Checkout, webhook → `p4_profiles`, tier/credits, turn off mock entitlements in staging then prod |
+| **M2 polish** | Optional split `packages/msgf/apps/web` or keep routes in main Next app |
+
+### D. Post–1.0 (explicitly later)
+
+- Hot-layer primary read / nanosecond SLO (1.1)
+- Author healing popout in marketplace BFF (Author 1.x)
+- Education Google/Office add-ons
+- Prancer Cloud policy packs
+
+### Readiness snapshot
+
+| Bucket | ~% | Notes |
+| :--- | :---: | :--- |
+| **Engine (§2.6)** | **~85%** | SWEEP, SHARD, DEFEND, PERSIST done; CROSS-REF, CONVERGE, ARBITRATE partial |
+| **Ops / heal / IDE** | **~90%** | Heal queue + arbitration + cron largely done |
+| **Solo / BYOK integrators** | **~70%** | `bootstrap:solo` + `probe:solo` + `MSGF_SOLO_INTEGRATION.md`; prod license + staging probe open |
+| **Ecosystem wiring** | **~55%** | Author prod deploy + probe still open |
+| **Commercial (Stripe)** | **~20%** | Deferred by product decision until post-test |
+| **Overall toward 1.0 RC** | **~75%** | RC viable without Stripe; paid launch needs M3 |
+
+---
+
 ## Changelog (SSoT only)
+
+| Date | Change |
+| :--- | :--- |
+| 2026-05-23 | **Solo deep-test:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md), `bootstrap:solo`, `probe:solo`, `deep-test:solo`. **§10** + Stripe deferred post-test. **HAL portable:** `msgf/hal-author-bridge`, §7.5. |
 
 | Date | Change |
 | :--- | :--- |

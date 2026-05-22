@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 /** Live Redis/ops checks — do not statically cache (stale SHARD after deploy). */
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ import Link from "next/link";
 
 import { getSystemConnectionStatus } from "@msgf/lib/system-connection-status";
 
-import { LandingNav } from "@/app/_components/landing/LandingNav";
+import { AuthLandingNav } from "@/app/_components/landing/AuthLandingNav";
 import { evaluateV32RuntimeStatus } from "@/lib/v32-ultra-directive";
 
 function StatusRow({ ok, label, detail }: { ok: boolean; label: string; detail: string }) {
@@ -68,7 +68,7 @@ export default async function StatusPage() {
 
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
-      <LandingNav />
+      <AuthLandingNav />
       <main className="mx-auto max-w-xl space-y-8 px-5 py-10">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight">System status</h1>

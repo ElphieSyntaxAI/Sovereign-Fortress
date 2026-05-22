@@ -8,12 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { LandingNav } from "@/app/_components/landing/LandingNav";
+import { AuthLandingNav } from "@/app/_components/landing/AuthLandingNav";
 
 type Props = {
   children: ReactNode;
@@ -23,7 +23,7 @@ type Props = {
 export function MarketingShell({ children, className = "" }: Props) {
   return (
     <div className={`landing-mesh min-h-screen text-slate-100 ${className}`}>
-      <LandingNav />
+      <AuthLandingNav />
       {children}
       <MarketingFooter />
     </div>

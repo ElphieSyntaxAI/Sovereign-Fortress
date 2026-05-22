@@ -8,17 +8,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/app/_components/dashboard/DashboardShell";
-import { ProductExplorerSection } from "@/app/_components/dashboard/ProductExplorerSection";
 import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { resolveHealthOptionsForDashboardRequest } from "@/lib/dashboard-health-scope";
 import { resolveHealQueueTenantIdForUser } from "@/lib/heal-queue-tenant";
+import { ensureGatedAiBuyerAccount } from "@/lib/msgf-onboarding";
 import { healthService } from "@/lib/services/HealthService";
+import { listUserProjects } from "@/lib/services/user-projects";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
@@ -41,7 +42,31 @@ export default async function DashboardPage() {
   }
 
   const admin = createAdminClient();
+
+  try {
+    await ensureGatedAiBuyerAccount({
+      supabase: admin,
+      entityId: user.id,
+      username: user.email?.split("@")[0]?.trim() || "buyer",
+    });
+  } catch (e) {
+    console.warn("[dashboard] buyer account setup:", e);
+  }
+
+  const projects = await listUserProjects(admin, user.id).catch(() => []);
+  const showGovernanceMatrix = projects.length > 0;
+
   const access = await resolveDashboardAccessForUser(user);
+
+  const { data: buyerProfile } = await admin
+    .from("p4_profiles")
+    .select("tenant_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const healQueueTenantId =
+    (typeof buyerProfile?.tenant_id === "string" && buyerProfile.tenant_id.trim()) ||
+    resolveHealQueueTenantIdForUser(user);
+
   const healthOptions = await resolveHealthOptionsForDashboardRequest(admin, user, {
     lookbackHours: 168,
     scope: "personal",
@@ -58,12 +83,12 @@ export default async function DashboardPage() {
     <DashboardShell
       userEmail={user.email ?? "Signed in"}
       initialReport={initialReport}
-      healQueueTenantId={resolveHealQueueTenantIdForUser(user)}
+      healQueueTenantId={healQueueTenantId}
       healthScope="personal"
       canAccessAdminDashboard={access.canAccessAdminDashboard}
       scopeDescription={scopeDescription}
       dashboardLabel="Your governance dashboard"
-      productExplorer={<ProductExplorerSection />}
+      showGovernanceMatrix={showGovernanceMatrix}
     />
   );
 }

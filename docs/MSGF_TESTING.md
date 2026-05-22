@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-23
 
-**Companion:** [`packages/msgf/README.md`](../packages/msgf/README.md) (Phase 0 smoke) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) (release status)
+**Companion:** [`packages/msgf/README.md`](../packages/msgf/README.md) (Phase 0 smoke) · [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) (third-party / solo API) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md)
 
 ---
 
@@ -169,6 +169,22 @@ Operator-owned checks that user flows work:
 
 ---
 
+## 6b. Solo service (third-party / deep test without Author)
+
+Use when MSGF runs as a **standalone API** for Education, custom BFFs, or staging probes — not the Author monorepo.
+
+| Step | Command |
+| :--- | :--- |
+| DB + schema | `npm run db:push:verify -w msgf` |
+| Bootstrap tenant + license | `npm run bootstrap:solo -w msgf` (prints env block) |
+| Offline gate | `npm run deep-test:solo` (unit + production build) |
+| Live gate | Start `npm run dev -w msgf`, then `npm run deep-test:solo:live` |
+| HTTP probe only | `npm run probe:solo -w msgf` |
+
+Full contract, env vars, and BFF examples: [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md).
+
+---
+
 ## 7. IDE extension (build only)
 
 ```bash
@@ -194,4 +210,5 @@ npm run compile -w msgf-pulse-guard
 
 | Date | Change |
 | :--- | :--- |
+| 2026-05-23 | Solo deep-test: `bootstrap:solo`, `probe:solo`, `deep-test:solo`, [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md). Heal-queue accepts license + silo `tenant_id`. |
 | 2026-05-23 | Initial SSoT: admin vs user, `test:unit` / `test:integration`, strict `v32-heartbeat`, heal-queue human arbitration, cross-platform runners. |

@@ -8,7 +8,7 @@
 
 **MSGF platform SSOT (1.0 release, V3 master spec, three production domains):** [`docs/MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md)
 
-**Last reviewed:** 2026-05-22
+**Last reviewed:** 2026-05-23
 
 ---
 
@@ -32,7 +32,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 | Pillar | Status | Primary evidence (examples) |
 |--------|--------|-------------------------------|
 | HAL | Partial | `apps/author-ecosystem/extension/src/content.js`, `packages/msgf/lib/P4.ts`, pulse route, `p4_hal_ledger` migrations |
-| MSGF | **Partial (~75% V3.2 1.0)** | §2.6 in [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md): SWEEP/SHARD/DEFEND **done**; ingest + `preFlightCheck`; Cloud Run + Upstash; CROSS-REF/CONVERGE/ARBITRATE cron **partial**; §7.1 mock API registry |
+| MSGF | **Partial (~75% toward RC)** | [`MSGF_V1_ROADMAP.md` §10](./MSGF_V1_ROADMAP.md#10-whats-left--recommended-next-steps): engine ~85%; Stripe **deferred post-test**; HAL bridge **done** |
 | Stylometric fingerprint | Partial | `packages/msgf/supabase/migrations/*hal_ledger*rolling*`, `apps/author-ecosystem/server/src/lib/forensics/`, `packages/core/src/lib/forensics/` |
 | Revision gates | Partial → strong | `apps/author-ecosystem/server/src/lib/RevisionLockService.ts`, `20260515180000_p4_manuscripts_revision_p4_revision_reports.sql` |
 | Immutable audit | Partial | `p4_narrative_logs`, `packages/msgf/lib/pov-logger.ts`, `ContractAutomationService.ts`, `p4_legal_contracts` migration |
@@ -91,7 +91,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 | CONVERGE | **Partial** |
 | ARBITRATE | **Partial** |
 | PERSIST (scheduled purge) | **Partial** |
-| Stripe / entitlements | **Deferred** |
+| Stripe / entitlements | **Deferred (post-test signoff)** |
 
 **Hallucination-risk surfaces:** see [`MSGF_V1_ROADMAP.md` §7.1](./MSGF_V1_ROADMAP.md#71-mock--dead-end-apis-hallucination-risk).
 

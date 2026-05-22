@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 /**
  * Contract license gate for MSGF Brain (msgf_licenses table).
@@ -57,8 +57,11 @@ export function extractLicenseKeyFromRequest(request: NextRequest): string | nul
   const bearer = extractBearerTokenFromRequest(request);
   if (bearer?.startsWith("msgf_live_")) return bearer;
 
-  const envKey = process.env.MSGF_CONTRACT_LICENSE_KEY?.trim();
-  if (envKey?.startsWith("msgf_live_")) return envKey;
+  // Server env contract key is for IDE/integrator probes only — not browser SaaS buyers.
+  if (isIdePulseRequest(request)) {
+    const envKey = process.env.MSGF_CONTRACT_LICENSE_KEY?.trim();
+    if (envKey?.startsWith("msgf_live_")) return envKey;
+  }
 
   return null;
 }
@@ -110,9 +113,49 @@ function sha256HexUtf8(value: string): string {
 /**
  * Validates an active contract license row (service_role). Throws {@link PulseHttpError} on failure.
  */
+async function resolveSessionPulseLicense(
+  adminSupabase: SupabaseClient,
+  entityId: string
+): Promise<PulseLicenseContext> {
+  const eid = entityId.trim();
+  const { data, error } = await adminSupabase
+    .from("p4_profiles")
+    .select("tenant_id, tier_id")
+    .eq("user_id", eid)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[pulse-license] p4_profiles read failed:", error.message);
+    throw new PulseHttpError(500, { error: "Unable to verify account entitlement." });
+  }
+
+  if (!data) {
+    throw new PulseHttpError(403, {
+      error: "Complete account setup (sign in to the dashboard once) before Pulse.",
+      code: "ERR_PROFILE_MISSING",
+    });
+  }
+
+  const tenantId =
+    (typeof data.tenant_id === "string" && data.tenant_id.trim()) ||
+    process.env.MSGF_GATED_TENANT_ID?.trim() ||
+    "tenant_gated";
+
+  return {
+    licenseId: `session-${eid.slice(0, 8)}`,
+    tenantId,
+    tierId:
+      typeof data.tier_id === "number"
+        ? String(data.tier_id)
+        : process.env.MSGF_PULSE_LICENSE_TIER?.trim() || "brain_contract",
+  };
+}
+
 export async function assertPulseLicense(params: {
   adminSupabase: SupabaseClient;
   request: NextRequest;
+  /** Signed-in SaaS user (cookie session) — uses `p4_profiles`, not `msgf_licenses`. */
+  sessionEntityId?: string | null;
 }): Promise<PulseLicenseContext> {
   if (licenseGuardDisabled()) {
     return {
@@ -129,6 +172,9 @@ export async function assertPulseLicense(params: {
 
   const plainKey = extractLicenseKeyFromRequest(params.request);
   if (!plainKey) {
+    if (params.sessionEntityId?.trim()) {
+      return resolveSessionPulseLicense(params.adminSupabase, params.sessionEntityId);
+    }
     throw new PulseHttpError(403, {
       error: "Insufficient privileges for this tenant scope.",
       code: "ERR_LICENSE_MISSING",

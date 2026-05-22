@@ -8,11 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 import { createBrowserClient } from "@supabase/ssr";
 
-import { msgfAuthCookieDomainForHost } from "@/lib/msgf-auth-cookies";
+import { withMsgfAuthCookieOptions } from "@/lib/msgf-auth-cookies";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -32,15 +32,13 @@ export const createClient = () => {
 
   const host =
     typeof window !== "undefined" ? window.location.hostname : undefined;
-  const domain = msgfAuthCookieDomainForHost(host);
+  const cookieOptions = withMsgfAuthCookieOptions({ path: "/" }, host);
   return createBrowserClient(supabaseUrl!, supabaseKey!, {
     cookieOptions: {
-      ...(domain ? { domain } : {}),
-      path: "/",
-      sameSite: "lax",
-      secure:
-        process.env.NODE_ENV === "production" ||
-        process.env.MSGF_AUTH_COOKIE_SECURE === "1",
+      ...(cookieOptions.domain ? { domain: cookieOptions.domain } : {}),
+      path: cookieOptions.path,
+      sameSite: cookieOptions.sameSite,
+      secure: cookieOptions.secure,
     },
   });
 };

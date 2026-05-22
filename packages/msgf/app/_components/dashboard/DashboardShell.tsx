@@ -9,6 +9,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-44d0906-20260522T041400Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
  */
 /**
@@ -311,10 +335,10 @@ type Props = {
   showNetworkStreams?: boolean;
   /** When true, omit duplicate nav/chrome (parent uses AdminPortalNav). */
   embeddedInAdminPortal?: boolean;
-  /** Elphie Syntax product family cards (pass from a server page, e.g. ProductExplorerSection). */
-  productExplorer?: ReactNode;
   /** UUID tenant silo for GET/POST /api/msgf/heal-queue (from signed-in user). */
   healQueueTenantId: string;
+  /** False for new accounts with no mapped projects — show onboarding empty state. */
+  showGovernanceMatrix?: boolean;
 };
 
 type PillarHealthApiResponse = PillarHealthReport & { ok?: boolean; error?: string };
@@ -995,8 +1019,8 @@ export function DashboardShell({
   showMasterEcoLeaderboard = false,
   showNetworkStreams = false,
   embeddedInAdminPortal = false,
-  productExplorer = null,
   healQueueTenantId,
+  showGovernanceMatrix = true,
 }: Props) {
   const [report, setReport] = useState<PillarHealthReport>(initialReport);
   const [loading, setLoading] = useState(false);
@@ -1188,7 +1212,13 @@ export function DashboardShell({
             </h1>
             <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
               Real-time stoplight matrix for MSGF V3.0 six-pillar governance and V3.2-ULTRA execution
-              (SHARD → PERSIST). Data refreshes every 30 seconds from {scopeDescription}.
+              (SHARD → PERSIST). Data refreshes every 30 seconds from {scopeDescription}.{" "}
+              <Link
+                href="/getting-started#six-pillars"
+                className="text-emerald-400/90 underline-offset-4 hover:underline"
+              >
+                How each pillar works
+              </Link>
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1270,89 +1300,130 @@ export function DashboardShell({
         </section>
         ) : null}
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Platform metrics">
-          <MetricCard
-            label="Incident queue"
-            value={pendingTotal}
-            hint="Pending ARBITRATE items across pillars"
-            accent={pendingTotal > 0 ? "amber" : "emerald"}
-          />
-          <MetricCard
-            label="Hall events (7d)"
-            value={hallTotal}
-            hint="Recent failure / constraint signals"
-            accent={hallTotal > 5 ? "rose" : "violet"}
-          />
-          <MetricCard
-            label="Logic drift"
-            value={report.logic_drift.trend}
-            hint={`Slope ${report.logic_drift.slope.toFixed(3)} · ${report.logic_drift.sample_count} samples`}
-            accent="violet"
-          />
-          <MetricCard
-            label="Stability forecast"
-            value={`${report.logic_drift.predicted_stability_pct}%`}
-            hint={`Next ${report.logic_drift.predictive_pulse_horizon} pulses`}
-            accent={report.logic_drift.predicted_future_issue ? "amber" : "emerald"}
-          />
-        </section>
+        {showGovernanceMatrix ? (
+          <>
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Platform metrics">
+              <MetricCard
+                label="Incident queue"
+                value={pendingTotal}
+                hint="Pending ARBITRATE items across pillars"
+                accent={pendingTotal > 0 ? "amber" : "emerald"}
+              />
+              <MetricCard
+                label="Hall events (7d)"
+                value={hallTotal}
+                hint="Recent failure / constraint signals"
+                accent={hallTotal > 5 ? "rose" : "violet"}
+              />
+              <MetricCard
+                label="Logic drift"
+                value={report.logic_drift.trend}
+                hint={`Slope ${report.logic_drift.slope.toFixed(3)} · ${report.logic_drift.sample_count} samples`}
+                accent="violet"
+              />
+              <MetricCard
+                label="Stability forecast"
+                value={`${report.logic_drift.predicted_stability_pct}%`}
+                hint={`Next ${report.logic_drift.predictive_pulse_horizon} pulses`}
+                accent={report.logic_drift.predicted_future_issue ? "amber" : "emerald"}
+              />
+            </section>
 
-        <section className="glass-panel rounded-2xl border border-violet-500/15 p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <span>Last updated {new Date(lastRefresh).toLocaleString()}</span>
-            <span>Lookback 168h · Auto-refresh 30s</span>
-          </div>
-        </section>
-
-        {productExplorer}
+            <section className="glass-panel rounded-2xl border border-violet-500/15 p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                <span>Last updated {new Date(lastRefresh).toLocaleString()}</span>
+                <span>Lookback 168h · Auto-refresh 30s</span>
+              </div>
+            </section>
+          </>
+        ) : null}
 
         {!showMasterEcoLeaderboard ? <UserBlueprintEcoPanel /> : null}
 
-        <section
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          aria-label="Six governance pillars"
-        >
-          {healQueueFetchError ? (
-            <p className="col-span-full text-sm text-amber-200/90">{healQueueFetchError}</p>
-          ) : null}
-          {GOVERNANCE_PILLAR_CARDS.map((copy) => {
-            const live = pillarById.get(copy.pillar);
-            const healCount = healCountByPillar[copy.pillar];
-            return (
-              <PillarCard
-                key={copy.pillar}
-                pillarId={copy.pillar}
-                title={copy.title}
-                subtitle={copy.subtitle}
-                v32Step={copy.v32Step}
-                status={live?.status ?? "green"}
-                statusLabel={live?.status_label ?? "Green"}
-                pending={live?.pending_incidents ?? 0}
-                hall={live?.recent_hall_events ?? 0}
-                vault={live?.recent_vault_events ?? 0}
-                summary={live?.summary ?? "No telemetry in lookback window."}
-                selected={selectedPillarId === copy.pillar}
-                healMisalignmentCount={healCount}
-                healConsoleOpen={healingConsoleOpen && healConsolePillar === copy.pillar}
-                onSelect={() => {
-                  if (healCount > 0) {
-                    if (healingConsoleOpen && healConsolePillar === copy.pillar) {
+        {showGovernanceMatrix ? (
+          <section
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            aria-label="Six governance pillars"
+          >
+            {healQueueFetchError ? (
+              <p className="col-span-full text-sm text-amber-200/90">{healQueueFetchError}</p>
+            ) : null}
+            {GOVERNANCE_PILLAR_CARDS.map((copy) => {
+              const live = pillarById.get(copy.pillar);
+              const healCount = healCountByPillar[copy.pillar];
+              return (
+                <PillarCard
+                  key={copy.pillar}
+                  pillarId={copy.pillar}
+                  title={copy.title}
+                  subtitle={copy.subtitle}
+                  v32Step={copy.v32Step}
+                  status={live?.status ?? "green"}
+                  statusLabel={live?.status_label ?? "Green"}
+                  pending={live?.pending_incidents ?? 0}
+                  hall={live?.recent_hall_events ?? 0}
+                  vault={live?.recent_vault_events ?? 0}
+                  summary={live?.summary ?? "No telemetry in lookback window."}
+                  selected={selectedPillarId === copy.pillar}
+                  healMisalignmentCount={healCount}
+                  healConsoleOpen={healingConsoleOpen && healConsolePillar === copy.pillar}
+                  onSelect={() => {
+                    if (healCount > 0) {
+                      if (healingConsoleOpen && healConsolePillar === copy.pillar) {
+                        setHealingConsoleOpen(false);
+                        setHealConsolePillar(null);
+                      } else {
+                        setHealConsolePillar(copy.pillar);
+                        setHealingConsoleOpen(true);
+                      }
+                    } else {
                       setHealingConsoleOpen(false);
                       setHealConsolePillar(null);
-                    } else {
-                      setHealConsolePillar(copy.pillar);
-                      setHealingConsoleOpen(true);
+                      setSelectedPillarId(copy.pillar);
                     }
-                  } else {
-                    setHealingConsoleOpen(false);
-                    setHealConsolePillar(null);
-                    setSelectedPillarId(copy.pillar);
-                  }
-                }}
-              />
-            );
-          })}
-        </section>
+                  }}
+                />
+              );
+            })}
+          </section>
+        ) : (
+          <section
+            className="glass-panel col-span-full rounded-2xl border border-dashed border-emerald-500/25 bg-emerald-500/5 px-6 py-14 text-center sm:px-10"
+            aria-label="Start your first project"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
+              New account
+            </p>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">
+              Start your first project
+            </h2>
+            <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-slate-400 sm:text-base">
+              Your six-pillar governance matrix stays empty until you map a repository. No demo
+              data is loaded for new sign-ups — add a project, run the IDE extension, and pillars
+              will light up from your real activity.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/setup/projects"
+                className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:from-emerald-500 hover:to-violet-500"
+              >
+                Add your first project
+              </Link>
+              <Link
+                href="/getting-started#six-pillars"
+                className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-6 py-2.5 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+              >
+                How pillars work
+              </Link>
+              <Link
+                href="/workspace"
+                className="rounded-full border border-slate-600/50 px-6 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+              >
+                Workspace & IDE setup
+              </Link>
+            </div>
+          </section>
+        )}
 
         <PostIngestHealingConsole
           open={healingConsoleOpen}

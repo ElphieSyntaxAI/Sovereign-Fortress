@@ -8,10 +8,10 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 /**
- * GET  /api/msgf/heal-queue?tenant_id=<uuid> — list remediation_tasks (brain + pillar_vectors)
+ * GET  /api/msgf/heal-queue?tenant_id=<silo|uuid> — list remediation_tasks (brain + pillar_vectors)
  * POST /api/msgf/heal-queue — BULK | INDIVIDUAL | SCHEDULED remediation actions
  */
 
@@ -24,6 +24,12 @@ import {
   resolveTenantIdFromApiKey,
 } from "@/lib/api-key-tenant";
 import { logIdentityViolation } from "@/lib/identity-violation-log";
+import { MSGF_ENTITY_ID_HEADER } from "@/lib/msgf-http-headers";
+import {
+  assertPulseLicense,
+  extractLicenseKeyFromRequest,
+} from "@/lib/services/pulse-license";
+import { PulseHttpError } from "@/lib/services/pulse-http-error";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
 import {
   HealQueueGetResponseSchema,
@@ -58,6 +64,41 @@ async function resolveHealQueueActor(
   tenantId: string
 ): Promise<{ admin: ReturnType<typeof createAdminClient>; entityId: string }> {
   const admin = createAdminClient();
+
+  const contractLicense = extractLicenseKeyFromRequest(req);
+  if (contractLicense?.startsWith("msgf_live_")) {
+    try {
+      const license = await assertPulseLicense({ adminSupabase: admin, request: req });
+      if (license.tenantId.trim() !== tenantId.trim()) {
+        await logIdentityViolation({
+          source: "heal_queue_api",
+          reason: "license_tenant_mismatch",
+          claimed_tenant_id: tenantId,
+          resolved_tenant_id: license.tenantId,
+        });
+        throw new HealQueueValidationError(
+          "Identity violation: tenant_id does not match contract license.",
+          [{ path: "tenant_id", message: "License tenant mismatch" }],
+          403
+        );
+      }
+      const entityId =
+        req.headers.get(MSGF_ENTITY_ID_HEADER)?.trim() ||
+        process.env.MSGF_SOLO_ENTITY_ID?.trim() ||
+        tenantId;
+      return { admin, entityId };
+    } catch (e) {
+      if (e instanceof HealQueueValidationError) throw e;
+      if (e instanceof PulseHttpError) {
+        throw new HealQueueValidationError(
+          e.message,
+          [{ path: "authorization", message: String(e.body.error ?? e.message) }],
+          e.status
+        );
+      }
+      throw e;
+    }
+  }
 
   const apiKey = getApiKey(req);
   if (isTenantApiKeyConfigured() && apiKey) {

@@ -8,17 +8,17 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 import Link from "next/link";
 
 import { AuthForm } from "@/app/_components/auth/AuthForm";
-import { LandingNav } from "@/app/_components/landing/LandingNav";
+import { AuthLandingNav } from "@/app/_components/landing/AuthLandingNav";
 
 export default function SignUpPage() {
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
-      <LandingNav />
+      <AuthLandingNav />
       <main className="mx-auto flex max-w-md flex-col gap-6 px-5 py-12 sm:py-16">
         <div className="space-y-2 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/90">

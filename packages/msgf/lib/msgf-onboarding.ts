@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 /**
  * MSGF onboarding — pledge `state_beats` + `p4_profiles` ({@link MsgfProfile}) for first Pulse.
@@ -271,6 +271,55 @@ export async function syncPlatformEntitlement(input: SyncPlatformEntitlementInpu
   return { provisionedLicense, tenantId, userRole };
 }
 
+/**
+ * SaaS buyer account — `p4_profiles` + pledge only. Does not seed P1–P6 baseline rows;
+ * pillars stay empty until the user maps a project and runs ingest / Pulse.
+ */
+export async function ensureGatedAiBuyerAccount(input: {
+  supabase?: SupabaseClient;
+  entityId: string;
+  username: string;
+}): Promise<{ tenantId: string; provisionedLicense: boolean }> {
+  const admin = resolveAdmin(input.supabase);
+  const entityId = input.entityId.trim();
+  const tenantId = resolveOperationalTenantId("gatedai");
+  const userRole = personaToProfileRole("gatedai", "developer");
+
+  const { data: tierRow } = await admin
+    .from("msgf_legacy_tiers")
+    .select("tier_id")
+    .eq("name", "Tier 1: Fan Access")
+    .maybeSingle();
+  const tierId = typeof tierRow?.tier_id === "number" ? tierRow.tier_id : 1;
+
+  const { data: existing } = await admin
+    .from("p4_profiles")
+    .select("user_id, billing_license_type")
+    .eq("user_id", entityId)
+    .maybeSingle();
+
+  let provisionedLicense = false;
+  if (!existing?.billing_license_type) {
+    await ensureMsgfPulseProfile({
+      supabase: admin,
+      entityId,
+      tierId,
+      username: input.username,
+      userRole,
+      tenantId,
+    });
+    provisionedLicense = true;
+  }
+
+  await createPledgeBeat(entityId, {
+    tenantId,
+    supabase: admin,
+    beatText: `No-AI-Training Pledge accepted at registration (Vault Pact). Legal version: ${CURRENT_LEGAL_VERSION}.`,
+  });
+
+  return { provisionedLicense, tenantId };
+}
+
 /** @deprecated Use {@link ensureMsgfPulseProfile} with `entityId`. */
 export async function ensureAuthorPulseProfile(
   input: EnsureAuthorPulseProfileInput
@@ -288,6 +337,7 @@ export async function ensureAuthorPulseProfile(
 export const MSGF = {
   createPledgeBeat,
   ensureMsgfPulseProfile,
+  ensureGatedAiBuyerAccount,
   syncPlatformEntitlement,
   bootstrapTenantBrain,
   /** @deprecated Use {@link ensureMsgfPulseProfile}. */

@@ -8,11 +8,13 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 import { NextResponse } from "next/server";
 
 import { msgfPostLoginPath } from "@/lib/auth-post-login";
+import { ensureGatedAiBuyerAccount } from "@/lib/msgf-onboarding";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromRequest } from "@/utils/supabase/server";
 
 export async function GET(request: Request) {
@@ -26,6 +28,21 @@ export async function GET(request: Request) {
     const supabase = createClient(cookieStore, requestHostFromRequest(request));
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        try {
+          const admin = createAdminClient();
+          await ensureGatedAiBuyerAccount({
+            supabase: admin,
+            entityId: user.id,
+            username: user.email?.split("@")[0]?.trim() || "buyer",
+          });
+        } catch (e) {
+          console.warn("[auth/callback] buyer account setup:", e);
+        }
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

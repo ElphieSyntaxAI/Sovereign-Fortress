@@ -131,6 +131,12 @@
     "db:push:verify": "node scripts/supabase-db-push.mjs && npm run verify:db-schema",
     "security:prancer-pillars": "node scripts/security-primer-pillars.mjs",
     "probe:author-ecosystem": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-author-ecosystem.mjs",
+    "bootstrap:solo": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/bootstrap-solo-deep-test.ts",
+    "probe:solo": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-msgf-solo.mjs",
+    "deep-test:solo": "node scripts/deep-test-solo.mjs",
+    "deep-test:solo:live": "node scripts/deep-test-solo.mjs --live",
+    "create:buyer-user": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-buyer-test-user.mjs",
+    "probe:buyer": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-buyer-session.mjs",
     "test:jira": "node scripts/test-jira.js"
   },
   "dependencies": {

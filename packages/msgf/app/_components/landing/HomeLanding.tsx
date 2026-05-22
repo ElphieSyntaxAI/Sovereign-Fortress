@@ -8,11 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 import Link from "next/link";
 
-import { LandingNav } from "./LandingNav";
+import { AuthLandingNav } from "./AuthLandingNav";
 import { PublicEcoMetricsWidget } from "./PublicEcoMetricsWidget";
 
 const PILLARS = [
@@ -92,7 +92,7 @@ function accentBadge(accent: "emerald" | "purple") {
 export function HomeLanding() {
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
-      <LandingNav />
+      <AuthLandingNav />
 
       <main>
         <section className="mx-auto max-w-6xl px-5 pb-16 pt-12 sm:pt-20">

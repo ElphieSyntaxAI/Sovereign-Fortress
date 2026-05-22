@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e3b90d5-20260522T030006Z-internal
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
  */
 /**
  * Product family explorer — primary-dashboard launchpad for the three customer-facing
@@ -254,9 +254,19 @@ function productsForExplorer(canLaunch: boolean): ProductCard[] {
   });
 }
 
-export async function ProductExplorerSection() {
+export type ProductExplorerFilter = "all" | "sibling_products";
+
+export async function ProductExplorerSection({
+  filter = "all",
+}: {
+  /** `sibling_products` = Author + Education only (MSGF dashboard stays focused). */
+  filter?: ProductExplorerFilter;
+} = {}) {
   const canLaunch = await canAccessPrelaunchProducts();
-  const products = productsForExplorer(canLaunch);
+  let products = productsForExplorer(canLaunch);
+  if (filter === "sibling_products") {
+    products = products.filter((p) => p.id !== "msgf");
+  }
 
   return (
     <section
@@ -269,12 +279,16 @@ export async function ProductExplorerSection() {
             Elphie Syntax · Product family
           </p>
           <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-            <span className="text-gradient-jewel">Explore each surface</span>
+            <span className="text-gradient-jewel">
+              {filter === "sibling_products" ? "Other Elphie Syntax products" : "Explore each surface"}
+            </span>
           </h2>
           <p className="text-sm text-slate-400">
-            {canLaunch
-              ? "Operator access: use Open buttons to test Author and Syntax Education. Everyone else sees roadmap details only."
-              : "One brain (MSGF) powers the Author Ecosystem and Syntax Education. Open any product roadmap below."}
+            {filter === "sibling_products"
+              ? "MSGF is your governance engine on this dashboard. Author and Syntax Education are separate surfaces powered by the same brain."
+              : canLaunch
+                ? "Operator access: use Open buttons to test Author and Syntax Education. Everyone else sees roadmap details only."
+                : "One brain (MSGF) powers the Author Ecosystem and Syntax Education. Open any product roadmap below."}
           </p>
         </div>
         <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500 sm:inline">

@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-44d0906-20260522T043912Z-internal
+ */
+/**
  * Author HAL → MSGF universal Pulse bridge (lossless rhythm, word-chunked packets).
  * Excludes Author RAG, cadence, grammar, and manuscript narrative pipelines.
  */
