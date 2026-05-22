@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * MSGF V3.2-ULTRA architecture integration suite.
@@ -525,6 +525,26 @@ describe("MSGF V3.2-ULTRA 16-point architecture suite", () => {
     const pillarResult = result.tables.find((row) => row.table === "pillar_vectors");
     assert.equal(pillarResult?.wouldDelete, 1);
     assert.equal(pillarResult?.retained, 1);
+  });
+
+  test("17. v32-heartbeat route uses ops cron auth and isolated maintenance routines", () => {
+    const route = readRepo("packages/msgf/app/api/msgf/ops/v32-heartbeat/route.ts");
+    const heartbeat = readRepo("packages/msgf/lib/services/v32-ops-heartbeat.ts");
+    const redisPurge = readRepo("packages/msgf/lib/services/hall-redis-purge.ts");
+    const adminAuth = readRepo("packages/msgf/lib/msgf-admin-auth.ts");
+
+    assert.match(route, /assertMsgfOpsCron\(req\)/);
+    assert.doesNotMatch(route, /allowAdminKey/);
+    assert.match(route, /runV32OpsHeartbeat/);
+    assert.match(route, /X-MSGF-Ops-Cron-Secret/);
+    assert.match(heartbeat, /runV32TierMaintenance/);
+    assert.match(heartbeat, /runHallPurgeProtocol/);
+    assert.match(heartbeat, /runHallRedisPurge/);
+    assert.match(heartbeat, /scheduled_heal_batch/);
+    assert.match(heartbeat, /runCronScheduledHealBatches/);
+    assert.match(redisPurge, /upstashRedisScanKeys|scanStream/);
+    assert.match(adminAuth, /msgfSecureSecretEqual/);
+    assert.match(adminAuth, /MSGF_OPS_CRON_SECRET/);
   });
 });
 

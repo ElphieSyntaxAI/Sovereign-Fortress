@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * Modular MSGF Redis client (ioredis).
@@ -16,10 +16,11 @@
  * **Connection**
  * - **Preferred (GCP Memorystore / Docker Compose service names):** `REDIS_HOST`, optional
  *   `REDIS_PORT` (default `6379`), optional `REDIS_PASSWORD`.
+ * - **Upstash Redis REST (serverless):** `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
+ *   (HTTP — no VPC; ideal for Cloud Run). Checked before TCP clients when set.
  * - **Legacy / local:** `REDIS_URL` (e.g. `redis://127.0.0.1:6379`, `rediss://…` for TLS URL mode).
  *
- * When `REDIS_HOST` is set, it wins over `REDIS_URL` so production can pin the VPC private IP
- * without reshaping deployment scripts.
+ * When `REDIS_HOST` is set (and Upstash is not), it wins over `REDIS_URL` for Memorystore.
  *
  * **TLS**
  * - URL scheme `rediss://` enables TLS automatically (ioredis).
@@ -32,6 +33,18 @@
 import type { ConnectionOptions } from "node:tls";
 import Redis from "ioredis";
 import type { RedisOptions } from "ioredis";
+
+import {
+  isUpstashRedisConfigured,
+  upstashRedisDel,
+  upstashRedisGet,
+  upstashRedisIncrWithWindow,
+  upstashRedisPing,
+  upstashRedisPingWithTimeout,
+  upstashRedisSet,
+  upstashRedisSetNx,
+  __resetUpstashRedisForTests,
+} from "@/lib/upstash-redis-client";
 
 let client: Redis | null = null;
 /** Guards stale singleton if env-derived wiring changes without calling reset. */
@@ -180,8 +193,16 @@ function createRedisFromEnv(): Redis | null {
   return instance;
 }
 
+export type RedisBackend = "upstash" | "ioredis" | null;
+
+export function activeRedisBackend(): RedisBackend {
+  if (isUpstashRedisConfigured()) return "upstash";
+  if (redisConfigFingerprint() !== null) return "ioredis";
+  return null;
+}
+
 export function isRedisConfigured(): boolean {
-  return redisConfigFingerprint() !== null;
+  return activeRedisBackend() !== null;
 }
 
 /**
@@ -214,6 +235,11 @@ async function disconnectClientQuietly(r: Redis): Promise<void> {
 
 /** Await ready state with exponential backoff (VPC / scale-up cold starts). */
 export async function ensureRedisConnected(): Promise<Redis | null> {
+  if (isUpstashRedisConfigured()) {
+    const ok = await upstashRedisPing();
+    return ok ? ({ status: "ready" } as Redis) : null;
+  }
+
   const redis = getRedisClient();
   if (!redis) return null;
   if (redis.status === "ready") return redis;
@@ -239,6 +265,7 @@ export async function ensureRedisConnected(): Promise<Redis | null> {
 }
 
 export async function redisGet(key: string): Promise<string | null> {
+  if (isUpstashRedisConfigured()) return upstashRedisGet(key);
   const redis = getRedisClient();
   if (!redis) return null;
   try {
@@ -254,6 +281,7 @@ export async function redisSet(
   value: string,
   ttlSeconds?: number
 ): Promise<boolean> {
+  if (isUpstashRedisConfigured()) return upstashRedisSet(key, value, ttlSeconds);
   const redis = getRedisClient();
   if (!redis) return false;
   try {
@@ -270,6 +298,10 @@ export async function redisSet(
 }
 
 export async function redisDel(key: string): Promise<void> {
+  if (isUpstashRedisConfigured()) {
+    await upstashRedisDel(key);
+    return;
+  }
   const redis = getRedisClient();
   if (!redis) return;
   try {
@@ -286,6 +318,11 @@ export async function ensureRedisConnectedWithTimeout(
   timeoutMs = Number(process.env.MSGF_REDIS_CONNECT_TIMEOUT_MS || 3_000)
 ): Promise<Redis | null> {
   if (!isRedisConfigured()) return null;
+
+  if (isUpstashRedisConfigured()) {
+    const ok = await upstashRedisPingWithTimeout(timeoutMs);
+    return ok ? ({ status: "ready" } as Redis) : null;
+  }
 
   const bounded = Math.max(500, Math.min(timeoutMs, 30_000));
 
@@ -307,6 +344,7 @@ export async function redisSetNx(
   value: string,
   ttlSeconds?: number
 ): Promise<boolean> {
+  if (isUpstashRedisConfigured()) return upstashRedisSetNx(key, value, ttlSeconds);
   const redis = getRedisClient();
   if (!redis) return false;
   try {
@@ -326,6 +364,7 @@ export async function redisIncrWithWindow(
   key: string,
   windowSeconds: number
 ): Promise<number | null> {
+  if (isUpstashRedisConfigured()) return upstashRedisIncrWithWindow(key, windowSeconds);
   const redis = getRedisClient();
   if (!redis) return null;
   try {
@@ -342,6 +381,7 @@ export async function redisIncrWithWindow(
 
 /** Test-only: disconnect and clear singleton. */
 export async function __resetRedisClientForTests(): Promise<void> {
+  __resetUpstashRedisForTests();
   if (client) {
     await disconnectClientQuietly(client);
   }

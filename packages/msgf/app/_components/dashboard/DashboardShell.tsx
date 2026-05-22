@@ -9,6 +9,150 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T021802Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T021523Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T020901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T020416Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015948Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015504Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015202Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014746Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014449Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014202Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T013808Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 /**
@@ -21,8 +165,17 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
+import {
+  PostIngestHealingConsole,
+  type HealConsoleStatus,
+} from "@/app/_components/dashboard/PostIngestHealingConsole";
 import { UserBlueprintEcoPanel } from "@/app/_components/dashboard/UserBlueprintEcoPanel";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
+import {
+  fetchHealQueueForTenant,
+  misalignmentCountByPillar,
+} from "@/lib/heal-queue-web-client";
+import type { HealQueueGetResponse } from "@/lib/schemas/heal-queue";
 import type {
   MasterEcoLeaderboard,
 } from "@/lib/services/EcoAggregatorClient";
@@ -64,6 +217,8 @@ type Props = {
   embeddedInAdminPortal?: boolean;
   /** Elphie Syntax product family cards (pass from a server page, e.g. ProductExplorerSection). */
   productExplorer?: ReactNode;
+  /** UUID tenant silo for GET/POST /api/msgf/heal-queue (from signed-in user). */
+  healQueueTenantId: string;
 };
 
 type PillarHealthApiResponse = PillarHealthReport & { ok?: boolean; error?: string };
@@ -236,6 +391,8 @@ function PillarCard({
   vault,
   summary,
   selected,
+  healMisalignmentCount,
+  healConsoleOpen,
   onSelect,
 }: {
   pillarId: string;
@@ -249,19 +406,38 @@ function PillarCard({
   vault: number;
   summary: string;
   selected: boolean;
+  healMisalignmentCount: number;
+  healConsoleOpen: boolean;
   onSelect: () => void;
 }) {
   const styles = statusStyles(status);
+  const healActive = healMisalignmentCount > 0;
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      aria-pressed={selected}
-      className={`glass-panel glass-panel-emerald flex h-full flex-col gap-4 rounded-2xl border p-5 text-left transition hover:border-violet-400/40 hover:bg-white/[0.03] focus:outline-none focus:ring-2 focus:ring-violet-400/40 ${styles.ring} ${
-        selected ? "border-violet-400/60 bg-violet-500/10" : ""
+      aria-pressed={healActive ? healConsoleOpen : selected}
+      aria-label={
+        healActive
+          ? `${pillarId} — ${healMisalignmentCount} misalignment(s), open healing console`
+          : `${pillarId} governance pillar`
+      }
+      className={`glass-panel glass-panel-emerald relative flex h-full flex-col gap-4 rounded-2xl border p-5 text-left transition hover:border-violet-400/40 hover:bg-white/[0.03] focus:outline-none focus:ring-2 focus:ring-violet-400/40 ${styles.ring} ${
+        healActive ? "heal-pillar-active border-amber-500/50" : ""
+      } ${healConsoleOpen ? "border-amber-400/70 bg-amber-500/[0.08]" : ""} ${
+        !healActive && selected ? "border-violet-400/60 bg-violet-500/10" : ""
       }`}
     >
+      {healActive ? (
+        <span
+          className="absolute -right-2 -top-2 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full border border-amber-400/60 bg-amber-500 px-2 text-xs font-bold text-amber-950 shadow-[0_0_14px_rgba(251,191,36,0.5)]"
+          title={`${healMisalignmentCount} pending heal task(s)`}
+        >
+          {healMisalignmentCount}
+        </span>
+      ) : null}
+
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300/80">{pillarId}</p>
@@ -272,7 +448,7 @@ function PillarCard({
           className={`inline-flex shrink-0 items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${styles.badge}`}
         >
           <span className={`h-2 w-2 rounded-full ${styles.dot}`} aria-hidden />
-          {statusLabel}
+          {healActive ? "Heal approval" : statusLabel}
         </span>
       </div>
 
@@ -298,7 +474,7 @@ function PillarCard({
           V3.2 · {v32Step}
         </p>
         <span className="text-xs font-medium text-emerald-200">
-          View latest →
+          {healActive ? "Open healing console →" : "View latest →"}
         </span>
       </div>
     </button>
@@ -724,6 +900,7 @@ export function DashboardShell({
   showNetworkStreams = false,
   embeddedInAdminPortal = false,
   productExplorer = null,
+  healQueueTenantId,
 }: Props) {
   const [report, setReport] = useState<PillarHealthReport>(initialReport);
   const [loading, setLoading] = useState(false);
@@ -737,6 +914,21 @@ export function DashboardShell({
   const [dailyReport, setDailyReport] = useState<DailyNetworkReport | null>(null);
   const [masterLeaderboard, setMasterLeaderboard] = useState<MasterEcoLeaderboard | null>(null);
   const [actionResult, setActionResult] = useState<ArbitrationStateMachineResult | null>(null);
+  const [healQueue, setHealQueue] = useState<HealQueueGetResponse | null>(null);
+  const [healQueueFetchError, setHealQueueFetchError] = useState<string | null>(null);
+  const [healingConsoleOpen, setHealingConsoleOpen] = useState(false);
+  const [healConsolePillar, setHealConsolePillar] = useState<MsgfGovernancePillar | null>(null);
+  const [healConsoleStatus, setHealConsoleStatus] = useState<HealConsoleStatus>(null);
+
+  const refreshHealQueue = useCallback(async () => {
+    const result = await fetchHealQueueForTenant(healQueueTenantId);
+    if (result.ok) {
+      setHealQueue(result.data);
+      setHealQueueFetchError(null);
+    } else {
+      setHealQueueFetchError(result.message);
+    }
+  }, [healQueueTenantId]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -757,12 +949,17 @@ export function DashboardShell({
       const { ok: _ok, error: _err, ...nextReport } = json;
       setReport(nextReport as PillarHealthReport);
       setLastRefresh(nextReport.generated_at);
+      await refreshHealQueue();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to refresh pillar health.");
     } finally {
       setLoading(false);
     }
-  }, [authRedirectPath, healthScope]);
+  }, [authRedirectPath, healthScope, refreshHealQueue]);
+
+  useEffect(() => {
+    void refreshHealQueue();
+  }, [refreshHealQueue]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -770,6 +967,11 @@ export function DashboardShell({
     }, REFRESH_MS);
     return () => window.clearInterval(id);
   }, [refresh]);
+
+  const healCountByPillar = useMemo(
+    () => misalignmentCountByPillar(healQueue?.remediation_tasks ?? []),
+    [healQueue?.remediation_tasks]
+  );
 
   const refreshDashboardStreams = useCallback(async () => {
     if (!showNetworkStreams) return;
@@ -1014,8 +1216,12 @@ export function DashboardShell({
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
           aria-label="Six governance pillars"
         >
+          {healQueueFetchError ? (
+            <p className="col-span-full text-sm text-amber-200/90">{healQueueFetchError}</p>
+          ) : null}
           {GOVERNANCE_PILLAR_CARDS.map((copy) => {
             const live = pillarById.get(copy.pillar);
+            const healCount = healCountByPillar[copy.pillar];
             return (
               <PillarCard
                 key={copy.pillar}
@@ -1030,11 +1236,41 @@ export function DashboardShell({
                 vault={live?.recent_vault_events ?? 0}
                 summary={live?.summary ?? "No telemetry in lookback window."}
                 selected={selectedPillarId === copy.pillar}
-                onSelect={() => setSelectedPillarId(copy.pillar)}
+                healMisalignmentCount={healCount}
+                healConsoleOpen={healingConsoleOpen && healConsolePillar === copy.pillar}
+                onSelect={() => {
+                  if (healCount > 0) {
+                    if (healingConsoleOpen && healConsolePillar === copy.pillar) {
+                      setHealingConsoleOpen(false);
+                      setHealConsolePillar(null);
+                    } else {
+                      setHealConsolePillar(copy.pillar);
+                      setHealingConsoleOpen(true);
+                    }
+                  } else {
+                    setHealingConsoleOpen(false);
+                    setHealConsolePillar(null);
+                    setSelectedPillarId(copy.pillar);
+                  }
+                }}
               />
             );
           })}
         </section>
+
+        <PostIngestHealingConsole
+          open={healingConsoleOpen}
+          onClose={() => {
+            setHealingConsoleOpen(false);
+            setHealConsolePillar(null);
+          }}
+          tenantId={healQueueTenantId}
+          queue={healQueue}
+          pillarFilter={healConsolePillar}
+          onQueueRefresh={() => void refreshHealQueue()}
+          externalStatus={healConsoleStatus}
+          onStatusChange={setHealConsoleStatus}
+        />
 
         {selectedPillar ? <PillarDrilldown pillar={selectedPillar} /> : null}
 

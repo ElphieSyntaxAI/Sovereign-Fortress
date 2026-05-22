@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -17,6 +17,7 @@ import { DashboardShell } from "@/app/_components/dashboard/DashboardShell";
 import { ProductExplorerSection } from "@/app/_components/dashboard/ProductExplorerSection";
 import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { resolveHealthOptionsForDashboardRequest } from "@/lib/dashboard-health-scope";
+import { resolveHealQueueTenantIdForUser } from "@/lib/heal-queue-tenant";
 import { healthService } from "@/lib/services/HealthService";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
@@ -57,6 +58,7 @@ export default async function DashboardPage() {
     <DashboardShell
       userEmail={user.email ?? "Signed in"}
       initialReport={initialReport}
+      healQueueTenantId={resolveHealQueueTenantIdForUser(user)}
       healthScope="personal"
       canAccessAdminDashboard={access.canAccessAdminDashboard}
       scopeDescription={scopeDescription}

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * ARBITRATE remediation — Modular Strategy Matrix (SSOT).
@@ -545,9 +545,21 @@ export class RemediationEngine {
   /**
    * Primary global strategy for an instance (legacy single-row consumers).
    */
-  getPrimaryStrategyForIncident(bugIndex: string): RemediationStrategy | null {
+  /**
+   * Cron / ops auto-settlement — pick lowest structural-risk global strategy (LOM consensus math).
+   * Lower {@link ModularRemediationStrategy.consequence_score} = safer for Brain / Vault integrity.
+   */
+  resolveAutoCronLomConsensusStrategy(bugIndex: string): ModularRemediationStrategy | null {
     const global = this.getGlobalStrategiesForIncident(bugIndex);
-    const pick = global[0] ?? this.getModularStrategiesForIncident(bugIndex)[0];
+    const pool = global.length ? global : this.getModularStrategiesForIncident(bugIndex);
+    if (!pool.length) return null;
+    return pool.reduce((best, candidate) =>
+      candidate.consequence_score < best.consequence_score ? candidate : best
+    );
+  }
+
+  getPrimaryStrategyForIncident(bugIndex: string): RemediationStrategy | null {
+    const pick = this.resolveAutoCronLomConsensusStrategy(bugIndex);
     if (!pick) return null;
     return {
       bug_index_instance: pick.bug_index_instance,
@@ -585,6 +597,117 @@ export class RemediationEngine {
   listMatrixInstances(): string[] {
     return Object.keys(SCORED_MODULAR_STRATEGY_MATRIX);
   }
+
+  /**
+   * BULK heal-queue — score strategies for many file paths, grouped by slash prefix to cut token overhead.
+   */
+  buildBatchRemediationPlan(
+    tasks: readonly { file_path: string; bug_index_instance: string }[]
+  ): BulkRemediationBatchPlan {
+    const prefix = longestCommonPathPrefix(tasks.map((t) => t.file_path));
+    const byPrefix = new Map<string, BatchRemediationTaskInput[]>();
+
+    for (const task of tasks) {
+      const rel = task.file_path.replace(/\\/g, "/").replace(/^\.\/+/, "");
+      const key =
+        prefix && rel.startsWith(prefix)
+          ? prefix
+          : rel.includes("/")
+            ? `${rel.split("/")[0]}/`
+            : "./";
+      const list = byPrefix.get(key) ?? [];
+      list.push(task);
+      byPrefix.set(key, list);
+    }
+
+    const strategies: RemediationStrategy[] = [];
+    const seenInstances = new Set<string>();
+    const groups: BatchRemediationGroup[] = [];
+
+    for (const [pathPrefix, groupTasks] of byPrefix) {
+      const file_paths = groupTasks.map((t) => t.file_path);
+      let strategy_id: string | null = null;
+      let fix_template: string | null = null;
+
+      for (const task of groupTasks) {
+        const instance = normalizeBugIndexInstance(task.bug_index_instance);
+        if (!instance || seenInstances.has(instance)) continue;
+        seenInstances.add(instance);
+        const consensus = this.resolveAutoCronLomConsensusStrategy(instance);
+        if (consensus) {
+          const primary: RemediationStrategy = {
+            bug_index_instance: consensus.bug_index_instance,
+            pillar: consensus.pillar,
+            fix: consensus.fix,
+            consequence: consensus.consequence,
+            risk: consensus.risk,
+            consequence_score: consensus.consequence_score,
+            scope: consensus.scope,
+            strategy_id: consensus.id,
+            apply_to_future_sessions: consensus.apply_to_future_sessions,
+            rationale: consensus.rationale,
+          };
+          strategies.push(primary);
+          if (!strategy_id) {
+            strategy_id = consensus.id;
+            fix_template = buildRemediationFixTemplate(
+              consensus.pillar,
+              consensus.fix,
+              consensus.consequence
+            );
+          }
+        }
+      }
+
+      groups.push({ path_prefix: pathPrefix, file_paths, strategy_id, fix_template });
+    }
+
+    const fullPathChars = tasks.reduce((sum, t) => sum + t.file_path.length, 0);
+    const groupedChars = groups.reduce(
+      (sum, g) => sum + g.path_prefix.length + g.file_paths.length * 8,
+      0
+    );
+    const token_overhead_saved_estimate = Math.max(
+      0,
+      Math.floor((fullPathChars - groupedChars) / 4)
+    );
+
+    return { groups, strategies, token_overhead_saved_estimate };
+  }
+}
+
+export type BatchRemediationTaskInput = {
+  file_path: string;
+  bug_index_instance: string;
+};
+
+export type BatchRemediationGroup = {
+  path_prefix: string;
+  file_paths: string[];
+  strategy_id: string | null;
+  fix_template: string | null;
+};
+
+export type BulkRemediationBatchPlan = {
+  groups: BatchRemediationGroup[];
+  strategies: RemediationStrategy[];
+  /** Approximate chars saved vs listing every full path in one CONVERGE batch prompt. */
+  token_overhead_saved_estimate: number;
+};
+
+/** Longest common directory prefix (POSIX paths). */
+export function longestCommonPathPrefix(paths: readonly string[]): string {
+  if (!paths.length) return "";
+  const normalized = paths.map((p) => p.replace(/\\/g, "/").replace(/^\.\/+/, ""));
+  const parts = normalized.map((p) => p.split("/").filter(Boolean));
+  const minLen = Math.min(...parts.map((seg) => seg.length));
+  const shared: string[] = [];
+  for (let i = 0; i < minLen; i++) {
+    const seg = parts[0][i];
+    if (parts.every((row) => row[i] === seg)) shared.push(seg);
+    else break;
+  }
+  return shared.length ? `${shared.join("/")}/` : "";
 }
 
 /** Process-wide singleton for admin routes and {@link MsgfBridge} consumers. */

@@ -8,15 +8,22 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile } from "fs/promises";
 import path from "path";
 
-import { determineBranch, determineCategory } from "@/lib/services/IngestService";
+import {
+  buildIngestLineageForFile,
+  type IngestFile,
+} from "@/lib/services/IngestService";
 import { sweepAndIngest } from "@/lib/msgf-ingest";
+import {
+  IngestValidationError,
+  parseIngestRequestBody,
+} from "@/lib/schemas/ingest-metadata";
 import { deriveProjectOrigin } from "@/lib/services/tenant-ingest-metadata";
 import {
   bootstrapTenantBrain,
@@ -41,15 +48,6 @@ import { isCostRunawayError, runWithLlmTimeoutSimple } from "@/lib/services/cost
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 import { preFlightCheck } from "@/lib/msgf-shadow";
 
-type IngestFile = { path: string; content: string };
-
-type IngestBody = {
-  tenant_id?: string;
-  /** Repo / monorepo tag for dashboard log filters (e.g. `apps/author-ecosystem`). */
-  project_origin?: string;
-  files?: IngestFile[];
-};
-
 function normalizeRelPath(p: string): string | null {
   const x = p.replace(/\\/g, "/").replace(/^\.\/+/, "");
   if (!x || x.includes("..") || x.startsWith("/")) return null;
@@ -66,12 +64,7 @@ function getApiKey(req: NextRequest): string | null {
 }
 
 function buildLineageMap(files: IngestFile[]) {
-  return files.map((file) => ({
-    path: file.path,
-    category_1_0: determineCategory(file.path),
-    branch_1_1: determineBranch(file.path),
-    instance_1_1_1: "1.1.1",
-  }));
+  return files.map((file) => buildIngestLineageForFile(file));
 }
 
 async function summarizeForAudit(
@@ -113,19 +106,41 @@ ${joined}
 export async function POST(req: NextRequest) {
   const ingestRequestId = randomUUID();
   try {
-    const body = (await req.json()) as IngestBody;
-    const files = Array.isArray(body?.files) ? body.files : [];
+    let body;
+    try {
+      body = parseIngestRequestBody(await req.json());
+    } catch (e) {
+      if (e instanceof IngestValidationError) {
+        return NextResponse.json(
+          { error: e.code, message: e.message, issues: e.issues },
+          { status: e.status }
+        );
+      }
+      throw e;
+    }
 
+    const files = body.files ?? [];
     const normalizedPaths: string[] = [];
+    const ingestFiles: IngestFile[] = [];
+
     for (const f of files) {
       const np = normalizeRelPath(f.path);
       if (!np) {
         return NextResponse.json(
-          { error: `Invalid or unsafe path: ${f.path}` },
+          {
+            error: "INGEST_VALIDATION_ERROR",
+            message: `Invalid or unsafe path: ${f.path}`,
+            issues: [{ path: "files.path", message: "Path must be relative and must not contain .." }],
+          },
           { status: 400 }
         );
       }
       normalizedPaths.push(np);
+      ingestFiles.push({
+        path: np,
+        content: f.content,
+        ...(f.bug_index ? { bug_index: f.bug_index } : {}),
+      });
     }
 
     const tenantId =
@@ -203,15 +218,11 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const lineageMap = buildLineageMap(files);
+      const lineageMap = buildLineageMap(ingestFiles);
       let ingestAudit = "- [SKIP] No files provided — pillar bootstrap only.\n";
       let ingestedCount = 0;
       let skippedBaseline = true;
 
-      const ingestFiles: IngestFile[] = normalizedPaths.map((path, i) => ({
-        path,
-        content: files[i]?.content ?? "",
-      }));
       const projectOrigin = deriveProjectOrigin(ingestFiles, body.project_origin);
 
       if (normalizedPaths.length > 0) {
@@ -257,7 +268,7 @@ export async function POST(req: NextRequest) {
       const readiness = await computeBrainReadiness(admin, tenantId);
 
       if (normalizedPaths.length > 0) {
-        const aiAudit = await summarizeForAudit(req, files, lineageMap);
+        const aiAudit = await summarizeForAudit(req, ingestFiles, lineageMap);
         const finalAuditDoc = [
           "# pre_ingestion_audit.md",
           "",
@@ -316,6 +327,12 @@ export async function POST(req: NextRequest) {
       return response;
     } catch (inner: unknown) {
       await endTenantCreditReservation(admin, creditStart, 500);
+      if (inner instanceof IngestValidationError) {
+        return NextResponse.json(
+          { error: inner.code, message: inner.message, issues: inner.issues },
+          { status: inner.status }
+        );
+      }
       if (isCostRunawayError(inner)) {
         await recordCostRunawayDeadLetterSafe({
           adminSupabase: admin,

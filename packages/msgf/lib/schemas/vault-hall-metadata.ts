@@ -8,15 +8,44 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * Zod contracts for V3.2 differential state (Vault vs Hall) and 1.1.1 genealogical bug index.
+ *
+ * Postgres mirror: `supabase/migrations/20260523120000_crossref_db_enums.sql`
+ * — `msgf_governance_pillar`, `msgf_constraint_ledger`, DOMAIN types for bug-index slugs,
+ *   `pillar_vectors` typed columns + `trg_pillar_vectors_crossref_enforce`.
  */
 
 import { z } from "zod";
 
 import { withMsgfMetadataScope } from "@/lib/services/msgf-metadata-scope";
+
+// -----------------------------------------------------------------------------
+// Shared with Postgres ENUM / DOMAIN (keep in sync with migration)
+// -----------------------------------------------------------------------------
+
+/** Mirrors `public.msgf_governance_pillar`. */
+export const MSG_DB_GOVERNANCE_PILLARS = ["P1", "P2", "P3", "P4", "P5", "P6"] as const;
+
+/** Mirrors `public.msgf_constraint_ledger`. */
+export const MSG_DB_CONSTRAINT_LEDGERS = ["vault", "hall"] as const;
+
+/** Mirrors `public.msgf_vault_hall_pillar`. */
+export const MSG_DB_VAULT_HALL_PILLARS = ["P6"] as const;
+
+/** Mirrors `public.msgf_scheduling_tier`. */
+export const MSG_DB_SCHEDULING_TIERS = ["RED", "YELLOW", "GREEN"] as const;
+
+/** Mirrors `public.msgf_bug_index_level_1` DOMAIN regex. */
+export const MSG_DB_BUG_INDEX_LEVEL_1_REGEX = /^\d+\.0[_A-Z0-9]+$/i;
+
+/** Mirrors `public.msgf_bug_index_level_1_1` DOMAIN regex. */
+export const MSG_DB_BUG_INDEX_LEVEL_11_REGEX = /^\d+\.\d+[_A-Z0-9]+$/i;
+
+/** Mirrors `public.msgf_bug_index_level_1_1_1` DOMAIN regex. */
+export const MSG_DB_BUG_INDEX_LEVEL_111_REGEX = /^\d+\.\d+\.\d+[_A-Z0-9]+$/i;
 
 /**
  * Level 1 — major module / category.
@@ -32,7 +61,7 @@ export const BugIndexLevel1Schema = z
   .min(1)
   .max(128)
   .regex(
-    /^\d+\.0[_A-Z0-9]+$/i,
+    MSG_DB_BUG_INDEX_LEVEL_1_REGEX,
     "level_1_category must match <root>.0_<SLUG> (e.g. 1.0_PULSE, 3.0_RESEARCH)"
   );
 
@@ -46,7 +75,7 @@ export const BugIndexLevel11Schema = z
   .min(1)
   .max(128)
   .regex(
-    /^\d+\.\d+[_A-Z0-9]+$/i,
+    MSG_DB_BUG_INDEX_LEVEL_11_REGEX,
     "level_1_1_branch must match <root>.<branch>_<SLUG> (e.g. 1.1_DEFEND, 3.1_CITATIONS)"
   );
 
@@ -61,9 +90,39 @@ export const BugIndexLevel111Schema = z
   .min(1)
   .max(160)
   .regex(
-    /^\d+\.\d+\.\d+[_A-Z0-9]+$/i,
+    MSG_DB_BUG_INDEX_LEVEL_111_REGEX,
     "level_1_1_1_instance must match <root>.<branch>.<instance>_<SLUG>"
   );
+
+/** Extract numeric root from `1.0_SLUG` → `"1"`. */
+export function genealogicalRootFromCategory(level_1_category: string): string | null {
+  const m = /^(\d+)\.0_/i.exec(level_1_category.trim());
+  return m?.[1] ?? null;
+}
+
+/** Ensures 1.0 / 1.1 / 1.1.1 slugs share the same genealogical root (e.g. all start with `1.`). */
+export function assertGenealogicalBugIndexCoherent(
+  index: {
+    level_1_category: string;
+    level_1_1_branch: string;
+    level_1_1_1_instance: string;
+  },
+  ctx?: z.RefinementCtx
+): void {
+  const root = genealogicalRootFromCategory(index.level_1_category);
+  const branchOk = root != null && new RegExp(`^${root}\\.\\d+[_A-Z0-9]+$`, "i").test(index.level_1_1_branch);
+  const instanceOk =
+    root != null && new RegExp(`^${root}\\.\\d+\\.\\d+[_A-Z0-9]+$`, "i").test(index.level_1_1_1_instance);
+  if (!root || !branchOk || !instanceOk) {
+    const message =
+      "bug_index levels must share the same genealogical root (e.g. 1.0_AUTH, 1.1_GATE, 1.1.1_DELTA).";
+    if (ctx) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: ["level_1_1_branch"] });
+      return;
+    }
+    throw new Error(message);
+  }
+}
 
 export const GenealogicalBugIndexSchema = z
   .object({
@@ -71,16 +130,41 @@ export const GenealogicalBugIndexSchema = z
     level_1_1_branch: BugIndexLevel11Schema,
     level_1_1_1_instance: BugIndexLevel111Schema,
   })
-  .strict();
+  .strict()
+  .superRefine((index, ctx) => assertGenealogicalBugIndexCoherent(index, ctx));
 
 export type GenealogicalBugIndex = z.infer<typeof GenealogicalBugIndexSchema>;
 
-export const ConstraintLedgerKindSchema = z.enum(["vault", "hall"]);
+/** V3.0 engineering governance pillar on `pillar_vectors` (distinct from Vault/Hall `P6` ledger tag). */
+export const MsgfGovernancePillarSchema = z.enum(MSG_DB_GOVERNANCE_PILLARS);
+export type MsgfGovernancePillar = z.infer<typeof MsgfGovernancePillarSchema>;
 
-export const VaultHallPillarSchema = z.literal("P6");
+export const ConstraintLedgerKindSchema = z.enum(MSG_DB_CONSTRAINT_LEDGERS);
+export type ConstraintLedgerKind = z.infer<typeof ConstraintLedgerKindSchema>;
 
-/** Metadata stored on `pillar_vectors` and mirrored on `p4_narrative_logs.metadata`. */
-export const VaultHallMetadataSchema = z
+export const VaultHallPillarSchema = z.enum(MSG_DB_VAULT_HALL_PILLARS);
+
+export const MsgfSchedulingTierSchema = z.enum(MSG_DB_SCHEDULING_TIERS);
+export type MsgfSchedulingTier = z.infer<typeof MsgfSchedulingTierSchema>;
+
+/** Typed columns on `pillar_vectors` / `msgf_sandbox` (CROSS-REF hardening). */
+export const PillarVectorCrossRefColumnsSchema = z
+  .object({
+    governance_pillar: MsgfGovernancePillarSchema,
+    vault_hall_pillar: VaultHallPillarSchema,
+    constraint_ledger: ConstraintLedgerKindSchema,
+    level_1_category: BugIndexLevel1Schema,
+    level_1_1_branch: BugIndexLevel11Schema,
+    level_1_1_1_instance: BugIndexLevel111Schema,
+    genealogical_root: z.number().int().positive().optional(),
+    scheduling_tier: MsgfSchedulingTierSchema.nullable().optional(),
+  })
+  .strict();
+
+export type PillarVectorCrossRefColumns = z.infer<typeof PillarVectorCrossRefColumnsSchema>;
+
+/** Base object shape (extendable for SWEEP ingest rows). */
+export const VaultHallMetadataObjectSchema = z
   .object({
     pillar: VaultHallPillarSchema,
     ledger: ConstraintLedgerKindSchema,
@@ -99,12 +183,44 @@ export const VaultHallMetadataSchema = z
     hal_score: z.number().finite().optional(),
     summary: z.string().max(2000).optional(),
     persisted_at: z.string().optional(),
-    tier: z.enum(["RED", "YELLOW", "GREEN"]).optional(),
+    tier: MsgfSchedulingTierSchema.optional(),
     reason: z.string().max(4000).optional(),
     lom_attempts: z.number().int().min(0).max(32).optional(),
     test_force_mismatch: z.boolean().optional(),
   })
   .strict();
+
+function refineVaultHallMetadataMirror(
+  meta: z.infer<typeof VaultHallMetadataObjectSchema>,
+  ctx: z.RefinementCtx
+): void {
+  if (meta.category !== meta.bug_index.level_1_category) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "category must equal bug_index.level_1_category",
+      path: ["category"],
+    });
+  }
+  if (meta.branch !== meta.bug_index.level_1_1_branch) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "branch must equal bug_index.level_1_1_branch",
+      path: ["branch"],
+    });
+  }
+  if (meta.instance_slug !== meta.bug_index.level_1_1_1_instance) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "instance_slug must equal bug_index.level_1_1_1_instance",
+      path: ["instance_slug"],
+    });
+  }
+}
+
+/** Metadata stored on `pillar_vectors` and mirrored on `p4_narrative_logs.metadata`. */
+export const VaultHallMetadataSchema = VaultHallMetadataObjectSchema.superRefine(
+  refineVaultHallMetadataMirror
+);
 
 export type VaultHallMetadata = z.infer<typeof VaultHallMetadataSchema>;
 
@@ -203,7 +319,7 @@ export function buildVaultHallMetadata(input: {
   legalVersion?: string;
   halScore?: number;
   summary?: string;
-  tier?: "RED" | "YELLOW" | "GREEN";
+  tier?: MsgfSchedulingTier;
   reason?: string;
   lomAttempts?: number;
   testForceMismatch?: boolean;
@@ -239,6 +355,42 @@ export function buildVaultHallMetadata(input: {
       : base;
 
   return VaultHallMetadataSchema.parse(scoped);
+}
+
+/** Minimal metadata shape for CROSS-REF column projection (Vault/Hall + SWEEP ingest). */
+export type PillarVectorCrossRefMetadataInput = {
+  ledger: ConstraintLedgerKind;
+  bug_index: GenealogicalBugIndex;
+  governance_pillar?: MsgfGovernancePillar;
+  /** SWEEP rows set `pillar` to governance P1–P6; Vault/Hall rows use `P6`. */
+  pillar?: MsgfGovernancePillar | z.infer<typeof VaultHallPillarSchema>;
+};
+
+/**
+ * Maps validated Vault/Hall metadata to `pillar_vectors` typed columns.
+ * Postgres trigger `msgf_pillar_vectors_crossref_enforce` re-validates and mirrors JSONB.
+ */
+export function pillarVectorCrossRefColumnsFromMetadata(
+  metadata: PillarVectorCrossRefMetadataInput,
+  options?: { scheduling_tier?: MsgfSchedulingTier | null }
+): PillarVectorCrossRefColumns {
+  const governance_pillar = MsgfGovernancePillarSchema.parse(
+    metadata.governance_pillar ?? metadata.pillar ?? "P6"
+  );
+  const root = genealogicalRootFromCategory(metadata.bug_index.level_1_category);
+
+  return PillarVectorCrossRefColumnsSchema.parse({
+    governance_pillar,
+    vault_hall_pillar: "P6",
+    constraint_ledger: metadata.ledger,
+    level_1_category: metadata.bug_index.level_1_category,
+    level_1_1_branch: metadata.bug_index.level_1_1_branch,
+    level_1_1_1_instance: metadata.bug_index.level_1_1_1_instance,
+    ...(root != null ? { genealogical_root: Number(root) } : {}),
+    ...(options?.scheduling_tier !== undefined
+      ? { scheduling_tier: options.scheduling_tier }
+      : {}),
+  });
 }
 
 export function buildNarrativeLogMetadata(input: {

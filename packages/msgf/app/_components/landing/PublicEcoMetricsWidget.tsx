@@ -10,6 +10,150 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T021802Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T021523Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T020901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T020416Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015948Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015504Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015202Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014746Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014449Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014202Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T013808Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
  */
 /**

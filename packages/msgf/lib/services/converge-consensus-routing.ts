@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * Step 5 (CONVERGE) — Individual Free, INDIVIDUAL_PERPETUAL, Corporate routing.
@@ -141,7 +141,7 @@ function normalizeTierSlug(tierId: string): string {
   return tierId.trim().toLowerCase().replace(/\s+/g, "_");
 }
 
-function isIdeSandboxLicense(license: PulseLicenseContext): boolean {
+export function isIdeSandboxLicense(license: PulseLicenseContext): boolean {
   return license.licenseId.startsWith("ide-sandbox-");
 }
 

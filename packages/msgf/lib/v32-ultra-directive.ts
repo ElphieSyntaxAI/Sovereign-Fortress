@@ -2,6 +2,13 @@
  * @msgf-license-header
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * MSGF V3.2-ULTRA master directive — runtime labels for Pulse, health, and ops.
@@ -131,14 +138,14 @@ export async function evaluateV32RuntimeStatus(): Promise<V32RuntimeStatus> {
   });
 
   let shardStatus: V32RuntimeStepStatus["status"] = "missing";
-  let shardDetail = "REDIS_HOST or REDIS_URL unset — cold Postgres only.";
+  let shardDetail = "UPSTASH_REDIS_REST_* or REDIS_HOST or REDIS_URL unset — cold Postgres only.";
   if (isRedisConfigured()) {
     const redis = await ensureRedisConnectedWithTimeout(
       Number(process.env.MSGF_REDIS_CONNECT_TIMEOUT_MS || 2_000)
     );
     if (redis) {
       shardStatus = "ok";
-      shardDetail = "Redis ping OK — hot layer available for Pulse SHARD.";
+      shardDetail = `Redis ping OK (${process.env.UPSTASH_REDIS_REST_URL?.trim() ? "Upstash REST" : "TCP"}) — hot layer available for Pulse SHARD.`;
     } else {
       shardStatus = envRequireRedis() ? "missing" : "degraded";
       shardDetail = envRequireRedis()
@@ -176,14 +183,18 @@ export async function evaluateV32RuntimeStatus(): Promise<V32RuntimeStatus> {
       : "Set GOOGLE_APPLICATION_CREDENTIALS or GCP project for full CONVERGE.",
   });
 
-  const cronSecret =
+  const opsDedicatedSecret =
     process.env.MSGF_OPS_CRON_SECRET?.trim() || process.env.MSGF_ADMIN_API_KEY?.trim();
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const arbitrateAuthReady = Boolean(opsDedicatedSecret || serviceRole);
   steps.push({
     step: "ARBITRATE",
-    status: cronSecret ? "ok" : "degraded",
-    detail: cronSecret
-      ? "Dashboard Human Arbitrate + ERR_RECURSION_LIMIT in PulseEngine."
-      : "Set MSGF_OPS_CRON_SECRET or MSGF_ADMIN_API_KEY for ops routes.",
+    status: arbitrateAuthReady ? "ok" : "degraded",
+    detail: !arbitrateAuthReady
+      ? "Set MSGF_OPS_CRON_SECRET, MSGF_ADMIN_API_KEY, or SUPABASE_SERVICE_ROLE_KEY for ops routes."
+      : opsDedicatedSecret
+        ? "Dashboard Human Arbitrate + ERR_RECURSION_LIMIT in PulseEngine."
+        : "Ops auth via service role. Add MSGF_OPS_CRON_SECRET for scheduled v32-heartbeat (avoid service role in cron).",
   });
 
   steps.push({

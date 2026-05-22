@@ -29,14 +29,16 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
-  stoplightBar = new StoplightStatusBar();
-  stoplightBar.start();
-  context.subscriptions.push({ dispose: () => stoplightBar?.dispose() });
-
   registerOpenDashboardCommand(context);
   registerViolationCommands(context);
   sidebarDashboard = registerMsgfDashboardProvider(context);
   bindViolationDashboardProvider(sidebarDashboard);
+
+  stoplightBar = new StoplightStatusBar((tone) => {
+    sidebarDashboard?.onHealthAnomaly(tone);
+  });
+  stoplightBar.start();
+  context.subscriptions.push({ dispose: () => stoplightBar?.dispose() });
 
   session = new GuardSession(context, {
     onSnapshot: () => {

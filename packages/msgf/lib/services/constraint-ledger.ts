@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * V3.2 differential state: Vault (positive) vs Hall of Hallucinations (negative).
@@ -20,6 +20,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   buildNarrativeLogMetadata,
   buildVaultHallMetadata,
+  pillarVectorCrossRefColumnsFromMetadata,
   type GenealogicalBugIndex,
   type VaultHallMetadata,
 } from "@/lib/schemas/vault-hall-metadata";
@@ -67,9 +68,11 @@ async function insertPillarVector(
   metadata: VaultHallMetadata
 ): Promise<void> {
   const tableName = pillarTableForTenant(tenantId);
+  const crossRef = pillarVectorCrossRefColumnsFromMetadata(metadata);
   const { error } = await fromPillarVectors(supabase, tenantId).insert({
     content,
     metadata,
+    ...crossRef,
   });
   if (error) {
     throw new Error(`${tableName} insert (${metadata.ledger}): ${error.message}`);

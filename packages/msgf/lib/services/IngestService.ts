@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * SWEEP ingestion — tenant-scoped `pillar_vectors` writes (metadata JSONB only).
@@ -23,6 +23,13 @@ import {
   type GenealogicalBugIndex,
 } from "@/lib/schemas/vault-hall-metadata";
 import {
+  parseSweepPillarVectorMetadata,
+  type IngestFileInput,
+  type IngestLineageMapEntry,
+  type SweepPillarVectorMetadata,
+} from "@/lib/schemas/ingest-metadata";
+import { pillarVectorCrossRefColumnsFromMetadata } from "@/lib/schemas/vault-hall-metadata";
+import {
   ensureTenantPillarBaseline,
   governancePillarForCategory,
   isTenantPillarBaselineSet,
@@ -35,7 +42,7 @@ import {
   withMsgfMetadataScope,
 } from "@/lib/services/msgf-metadata-scope";
 
-export type IngestFile = { path: string; content: string };
+export type IngestFile = IngestFileInput;
 
 export type IngestServiceOptions = {
   files: IngestFile[];
@@ -88,13 +95,27 @@ export function pathToGenealogicalBugIndex(filePath: string): GenealogicalBugInd
   });
 }
 
-function buildIngestMetadata(input: {
+export function resolveIngestBugIndex(file: IngestFile): GenealogicalBugIndex {
+  return file.bug_index ?? pathToGenealogicalBugIndex(file.path);
+}
+
+export function buildIngestLineageForFile(file: IngestFile): IngestLineageMapEntry {
+  const bugIndex = resolveIngestBugIndex(file);
+  const governancePillar = governancePillarForCategory(determineCategory(file.path));
+  return {
+    path: file.path,
+    bug_index: bugIndex,
+    governance_pillar: governancePillar,
+  };
+}
+
+export function buildIngestMetadata(input: {
   tenantId: string;
   projectOrigin: string;
   filePath: string;
   bugIndex: GenealogicalBugIndex;
   governancePillar: MsgfGovernancePillar;
-}): Record<string, unknown> {
+}): SweepPillarVectorMetadata {
   const vaultMeta = buildVaultHallMetadata({
     ledger: "vault",
     bugIndex: input.bugIndex,
@@ -103,11 +124,9 @@ function buildIngestMetadata(input: {
     summary: `SWEEP ingest: ${input.filePath}`,
   });
 
-  return withMsgfMetadataScope(
+  const scoped = withMsgfMetadataScope(
     {
       ...vaultMeta,
-      // SWEEP repository shards use the canonical V3.0 engineering pillar.
-      // Vault/Hall consensus rows keep `pillar: P6` via buildVaultHallMetadata.
       pillar: input.governancePillar,
       governance_pillar: input.governancePillar,
       is_baseline: true,
@@ -121,19 +140,23 @@ function buildIngestMetadata(input: {
       projectOrigin: input.projectOrigin,
     }
   );
+
+  return parseSweepPillarVectorMetadata(scoped);
 }
 
 async function insertIngestVector(
   supabase: SupabaseClient,
   tenantId: string,
   content: string,
-  metadata: Record<string, unknown>,
+  metadata: SweepPillarVectorMetadata,
   embedding: number[]
 ): Promise<{ ok: boolean; error?: string }> {
+  const crossRef = pillarVectorCrossRefColumnsFromMetadata(metadata);
   const { error } = await fromPillarVectors(supabase, tenantId).insert({
     content,
     metadata,
     embedding,
+    ...crossRef,
   });
 
   if (error) return { ok: false, error: error.message };
@@ -168,7 +191,7 @@ export class IngestService {
 
     if (!skipCreation) {
       for (const file of files) {
-        const bugIndex = pathToGenealogicalBugIndex(file.path);
+        const bugIndex = resolveIngestBugIndex(file);
         const category = determineCategory(file.path);
         const governancePillar = governancePillarForCategory(category);
         const metadata = buildIngestMetadata({

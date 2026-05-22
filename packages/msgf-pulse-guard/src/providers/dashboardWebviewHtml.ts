@@ -2,6 +2,11 @@ import type { ViolationDiagnostic } from "../pulseViolationAudit";
 import type { PillarHealthReport } from "../pillarHealthTypes";
 import { aggregateStoplight } from "../pillarHealthTypes";
 import { JEWEL_SIDEBAR_STYLES } from "../ui/jewelTheme";
+import {
+  renderHealingConsole,
+  renderHealingConsoleBootScript,
+  type HealingConsoleView,
+} from "./healingConsoleHtml";
 
 export type DashboardHealthView = {
   apiUrl: string;
@@ -12,6 +17,7 @@ export type DashboardHealthView = {
   scanOk: boolean | null;
   violationSummary: string | null;
   violationDiagnostics: ViolationDiagnostic[] | null;
+  healingConsole: HealingConsoleView;
 };
 
 function escapeHtml(s: string): string {
@@ -116,25 +122,50 @@ export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
   <button class="scan" id="shadowScanBtn" type="button">Trigger Shadow Scan</button>
   ${scanBanner}
 
+  ${renderHealingConsole(view.healingConsole)}
+
   <script>
+    ${renderHealingConsoleBootScript()}
     const vscode = acquireVsCodeApi();
+    initHealingConsole(vscode);
+
     const btn = document.getElementById('shadowScanBtn');
-    btn.addEventListener('click', () => {
-      btn.disabled = true;
-      vscode.postMessage({ type: 'triggerShadowScan' });
-    });
+    if (btn) {
+      btn.addEventListener('click', () => {
+        btn.disabled = true;
+        vscode.postMessage({ type: 'triggerShadowScan' });
+      });
+    }
+
     window.addEventListener('message', (event) => {
       const msg = event.data;
       if (msg.type === 'shadowScanResult') {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
         let el = document.getElementById('scanBanner');
-        if (!el) {
+        if (!el && btn) {
           el = document.createElement('div');
           el.id = 'scanBanner';
           btn.after(el);
         }
-        el.className = 'banner ' + (msg.ok ? 'ok' : 'err');
-        el.textContent = msg.message || (msg.ok ? 'Scan succeeded.' : 'Scan failed.');
+        if (el) {
+          el.className = 'banner ' + (msg.ok ? 'ok' : 'err');
+          el.textContent = msg.message || (msg.ok ? 'Scan succeeded.' : 'Scan failed.');
+        }
+        if (msg.showHealingConsole) {
+          vscode.postMessage({ type: 'refreshHealConsole' });
+        }
+      }
+      if (msg.type === 'healQueueStatus') {
+        const btns = window.__msgfHealButtons || {};
+        if (btns.healAllBtn) btns.healAllBtn.disabled = false;
+        if (btns.approveBtn) btns.approveBtn.disabled = false;
+        if (btns.scheduleBtn) btns.scheduleBtn.disabled = false;
+        if (typeof window.__msgfSetHealStatus === 'function') {
+          window.__msgfSetHealStatus(msg.message || 'Done.', msg.tone || 'success');
+        }
+        if (msg.reload) {
+          window.setTimeout(() => vscode.postMessage({ type: 'refreshHealConsole' }), 1200);
+        }
       }
     });
   </script>

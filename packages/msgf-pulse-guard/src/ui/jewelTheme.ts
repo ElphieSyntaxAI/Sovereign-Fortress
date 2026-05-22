@@ -234,6 +234,193 @@ export const JEWEL_SIDEBAR_STYLES = `
     color: var(--jewel-text-jade);
     font-size: 10px;
   }
+  .heal-console {
+    margin-top: 8px;
+    padding: 12px;
+    border-radius: 10px;
+    background: linear-gradient(165deg, rgba(22, 15, 41, 0.95) 0%, rgba(4, 20, 14, 0.92) 100%);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    box-shadow: 0 0 24px rgba(16, 185, 129, 0.08);
+  }
+  .heal-console h2.console-title {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--jewel-text-ivory);
+    letter-spacing: 0.02em;
+  }
+  .heal-console .console-sub {
+    margin: 0 0 12px;
+    font-size: 11px;
+    color: var(--jewel-text-jade);
+    line-height: 1.45;
+  }
+  .heal-status {
+    margin-bottom: 12px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    display: none;
+  }
+  .heal-status.visible { display: block; }
+  .heal-status.processing {
+    background: rgba(5, 150, 105, 0.2);
+    border: 1px solid var(--jewel-emerald-glow);
+    color: var(--jewel-emerald-glow);
+  }
+  .heal-status.scheduled {
+    background: rgba(107, 33, 168, 0.25);
+    border: 1px solid var(--jewel-purple-royal);
+    color: var(--jewel-purple-royal);
+  }
+  .heal-status.success {
+    background: ${JEWEL.emeraldDeep};
+    border: 1px solid var(--jewel-stoplight-green);
+    color: var(--jewel-stoplight-green);
+  }
+  .heal-status.error {
+    background: rgba(69, 10, 10, 0.45);
+    border: 1px solid var(--jewel-stoplight-ruby);
+    color: var(--jewel-stoplight-ruby);
+  }
+  .pillar-group {
+    margin-bottom: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(16, 185, 129, 0.1);
+    background: rgba(11, 26, 20, 0.6);
+  }
+  .pillar-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--jewel-emerald-glow);
+  }
+  .pillar-group-header .count {
+    color: var(--jewel-text-jade);
+    font-weight: 500;
+  }
+  .task-list { list-style: none; margin: 0; padding: 0; }
+  .task-row {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 8px;
+    padding: 8px 10px;
+    border-top: 1px solid rgba(167, 243, 208, 0.06);
+    align-items: start;
+    cursor: pointer;
+  }
+  .task-row:hover { background: rgba(16, 185, 129, 0.06); }
+  .task-row input[type="checkbox"] {
+    margin-top: 2px;
+    accent-color: var(--jewel-emerald-glow);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+  .task-path {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--jewel-text-ivory);
+    word-break: break-all;
+    line-height: 1.35;
+  }
+  .task-meta {
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--jewel-text-jade);
+    line-height: 1.35;
+  }
+  .task-meta code {
+    font-size: 9px;
+    color: var(--jewel-stoplight-amber);
+    background: rgba(0,0,0,0.25);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+  .heal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  button.heal-primary {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--jewel-emerald-glow);
+    background: linear-gradient(165deg, ${JEWEL.emeraldActive} 0%, ${JEWEL.emeraldDeep} 100%);
+    color: var(--jewel-text-ivory);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.35);
+  }
+  button.heal-primary:hover:not(:disabled) {
+    box-shadow: 0 0 24px rgba(16, 185, 129, 0.5);
+  }
+  button.heal-secondary {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--jewel-purple-royal);
+    background: transparent;
+    color: var(--jewel-purple-royal);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  button.heal-secondary.active {
+    opacity: 1;
+    pointer-events: auto;
+    background: rgba(107, 33, 168, 0.2);
+  }
+  .schedule-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .schedule-row label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--jewel-text-jade);
+  }
+  select.heal-schedule {
+    width: 100%;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    background: var(--jewel-surface-obsidian);
+    color: var(--jewel-text-ivory);
+    font-size: 11px;
+    font-family: var(--jewel-font);
+  }
+  button.heal-schedule-btn {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--jewel-purple-velvet);
+    background: linear-gradient(165deg, #4c1d95 0%, ${JEWEL.purpleVelvet} 100%);
+    color: var(--jewel-text-ivory);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
 `;
 
 /** Full editor panel chrome wrapping the hosted dashboard iframe. */

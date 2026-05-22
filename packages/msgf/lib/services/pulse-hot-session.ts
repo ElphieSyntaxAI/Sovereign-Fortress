@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * V3.2-ULTRA Pulse hot session — SHARD (Step 2) + CROSS-REF (Step 4) Redis paths.
@@ -126,7 +126,7 @@ export async function preparePulseHotLayer(
 
   if (!isRedisConfigured()) {
     logHotDiagnostic(
-      "Redis not configured (set REDIS_HOST or REDIS_URL); using cold Postgres layer only."
+      "Redis not configured (UPSTASH_REDIS_REST_* or REDIS_HOST or REDIS_URL); using cold Postgres layer only."
     );
     warnings.push("redis_not_configured");
   } else {

@@ -40,13 +40,13 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-      - name: Run V3.2 ops heartbeat (tier + Hall 30d purge)
+      - name: Run V3.2 ops heartbeat (tier batches + Hall 30d cold + Redis purge)
         if: ${{ secrets.MSGF_OPS_CRON_SECRET != '' && vars.MSGF_APP_URL != '' }}
         run: |
           curl -sfS -X POST "${MSGF_APP_URL%/}/api/msgf/ops/v32-heartbeat" \
             -H "Authorization: Bearer ${MSGF_OPS_CRON_SECRET}" \
             -H "Content-Type: application/json" \
-            -d '{"skip_tier_batches":false}'
+            -d '{"hall_purge_days":30}'
         env:
           MSGF_APP_URL: ${{ vars.MSGF_APP_URL }}
           MSGF_OPS_CRON_SECRET: ${{ secrets.MSGF_OPS_CRON_SECRET }}

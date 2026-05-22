@@ -5,11 +5,12 @@
 **Companion docs:**
 
 - MSGF 1.0 vision & release plan: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md)
+- MSGF testing (admin vs users): [`MSGF_TESTING.md`](./MSGF_TESTING.md)
 - Author product roadmap: [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md)
 - Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/syntax_education_pillars.md)
 - Implementation tracker (pillars + AUTH): [`PILLAR_PROGRESS.md`](./PILLAR_PROGRESS.md)
 
-**Last updated:** 2026-05-15
+**Last updated:** 2026-05-23
 
 ---
 

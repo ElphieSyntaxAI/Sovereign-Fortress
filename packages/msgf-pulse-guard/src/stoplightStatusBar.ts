@@ -20,6 +20,8 @@ const THEME = {
   rubyBg: "msgf.jewel.stoplight.rubyBg",
 } as const;
 
+export type StoplightAnomalyHandler = (tone: "yellow" | "red") => void;
+
 /**
  * Six-pillar MSGF stoplight indicator (polls Cloud Run health every 30s).
  */
@@ -27,8 +29,9 @@ export class StoplightStatusBar {
   readonly item: vscode.StatusBarItem;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private inFlight = false;
+  private lastTone: "green" | "yellow" | "red" | "init" = "init";
 
-  constructor() {
+  constructor(private readonly onAnomaly?: StoplightAnomalyHandler) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.item.command = "msgf.openDashboard";
     this.item.text = INITIAL_TEXT;
@@ -99,6 +102,7 @@ export class StoplightStatusBar {
             ? `Halt / failure — violations:\n${formatPillarList(violations)}`
             : "Halt / failure on one or more governance pillars.";
         this.applyJewelState("red");
+        this.notifyAnomalyIfNeeded("red");
         return;
       }
 
@@ -109,12 +113,14 @@ export class StoplightStatusBar {
             ? `Degraded pillars:\n${formatPillarList(degraded)}`
             : "One or more governance pillars require attention.";
         this.applyJewelState("yellow");
+        this.notifyAnomalyIfNeeded("yellow");
         return;
       }
 
       this.item.text = "$(check) MSGF: Green";
       this.item.tooltip = "All 6 Governance Pillars Healthy";
       this.applyJewelState("green");
+      this.lastTone = "green";
     } finally {
       this.inFlight = false;
     }
@@ -124,5 +130,12 @@ export class StoplightStatusBar {
     this.item.text = "$(warning) MSGF: Yellow";
     this.item.tooltip = `Pillar health unavailable: ${message}`;
     this.applyJewelState("yellow");
+    this.notifyAnomalyIfNeeded("yellow");
+  }
+
+  private notifyAnomalyIfNeeded(tone: "yellow" | "red"): void {
+    if (this.lastTone === tone) return;
+    this.lastTone = tone;
+    this.onAnomaly?.(tone);
   }
 }

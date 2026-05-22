@@ -1,6 +1,14 @@
 import * as vscode from "vscode";
 
 import { readMsgfSettings, resolveTenantId } from "../config";
+import {
+  fetchHealQueueTasks,
+  postHealQueueAction,
+  resolveHealQueueTenantUuid,
+  tasksFromScanRuleErrors,
+  toHealConsoleTasks,
+} from "../healQueueClient";
+import type { HealConsoleTask, HealQueuePresetInterval } from "../healQueueTypes";
 import { fetchPillarHealthReport } from "../pillarStoplightPoller";
 import type { PillarHealthReport } from "../pillarHealthTypes";
 import type { WrongLogicViolation } from "../pulseViolationAudit";
@@ -9,11 +17,19 @@ import {
   buildDashboardWebviewHtml,
   type DashboardHealthView,
 } from "./dashboardWebviewHtml";
+import type { HealingConsoleView } from "./healingConsoleHtml";
 
 const SHADOW_SCAN_PROGRESS_TITLE = "Executing Live MSGF Shadow Policy Scan...";
 
+type WebviewMessage = {
+  type?: string;
+  action_type?: "BULK" | "INDIVIDUAL" | "SCHEDULED";
+  file_paths?: string[];
+  preset_interval?: HealQueuePresetInterval;
+};
+
 /**
- * Activity-bar sidebar operational dashboard (health + shadow scan).
+ * Activity-bar sidebar operational dashboard (health + shadow scan + healing console).
  */
 export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   static readonly viewType = "msgf.dashboard";
@@ -25,6 +41,14 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   private scanOk: boolean | null = null;
   private violationSummary: string | null = null;
   private violationDiagnostics: WrongLogicViolation["diagnostics"] | null = null;
+
+  private healConsoleVisible = false;
+  private healTriggerLabel = "Awaiting ingest or stoplight signal";
+  private healTasks: HealConsoleTask[] = [];
+  private healBrainSummary: string | null = null;
+  private healQueueError: string | null = null;
+  private healTenantUuid: string | null = null;
+  private lastScanRuleErrors: string[] = [];
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -56,7 +80,20 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   /** External refresh hook (e.g. after config change). */
   async refresh(): Promise<void> {
     await this.refreshHealth();
+    if (this.healConsoleVisible) {
+      await this.refreshHealQueue(this.lastScanRuleErrors);
+    }
     this.render();
+  }
+
+  /** 30s stoplight poll detected yellow/red — surface healing console. */
+  onHealthAnomaly(tone: "yellow" | "red"): void {
+    this.healConsoleVisible = true;
+    this.healTriggerLabel =
+      tone === "red"
+        ? "Stoplight halt — genealogical or pillar violations detected"
+        : "Stoplight degraded — missing pillars or broken roots suspected";
+    void this.openHealingConsole();
   }
 
   /** Reveal P6 / 1.1.1 genealogical diagnostics (from pulse Wrong Logic toast). */
@@ -64,8 +101,59 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     if (!violation) return;
     this.violationSummary = violation.errorMessage;
     this.violationDiagnostics = violation.diagnostics;
+    this.healConsoleVisible = true;
+    this.healTriggerLabel = "Wrong-logic violation — review and approve remediation";
+    this.render();
+    void this.openHealingConsole();
+    void vscode.commands.executeCommand("msgf.dashboard.focus");
+  }
+
+  private async openHealingConsole(): Promise<void> {
+    await this.refreshHealQueue(this.lastScanRuleErrors);
     this.render();
     void vscode.commands.executeCommand("msgf.dashboard.focus");
+  }
+
+  private async refreshHealQueue(fallbackRuleErrors: string[] = []): Promise<void> {
+    const settings = readMsgfSettings();
+    const tenantKey = resolveTenantId(settings);
+    this.healTenantUuid = resolveHealQueueTenantUuid(tenantKey);
+
+    const result = await fetchHealQueueTasks({ settings, tenantKey });
+
+    if (result.ok && result.tasks.length > 0) {
+      this.healTasks = result.tasks;
+      this.healBrainSummary = result.brainSummary;
+      this.healQueueError = null;
+      this.healConsoleVisible = true;
+      return;
+    }
+
+    const fallback = toHealConsoleTasks(tasksFromScanRuleErrors(fallbackRuleErrors));
+    if (fallback.length > 0) {
+      this.healTasks = fallback;
+      this.healBrainSummary = result.brainSummary;
+      this.healQueueError = result.error ?? null;
+      this.healConsoleVisible = true;
+      return;
+    }
+
+    if (result.ok) {
+      this.healTasks = [];
+      this.healBrainSummary = result.brainSummary;
+      this.healQueueError = null;
+      if (!fallbackRuleErrors.length) {
+        this.healConsoleVisible = false;
+      }
+      return;
+    }
+
+    this.healTasks = fallback;
+    this.healBrainSummary = null;
+    this.healQueueError = result.error ?? "Heal queue unavailable.";
+    if (fallback.length > 0 || this.healConsoleVisible) {
+      this.healConsoleVisible = true;
+    }
   }
 
   private async refreshHealth(): Promise<void> {
@@ -76,6 +164,16 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     } else {
       this.healthError = result.error;
     }
+  }
+
+  private healingConsoleView(): HealingConsoleView {
+    return {
+      visible: this.healConsoleVisible,
+      triggerLabel: this.healTriggerLabel,
+      brainSummary: this.healBrainSummary,
+      tasks: this.healTasks,
+      healQueueError: this.healQueueError,
+    };
   }
 
   private render(): void {
@@ -91,19 +189,28 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
       scanOk: this.scanOk,
       violationSummary: this.violationSummary,
       violationDiagnostics: this.violationDiagnostics,
+      healingConsole: this.healingConsoleView(),
     };
 
     this.view.webview.html = buildDashboardWebviewHtml(viewModel);
   }
 
   private async handleMessage(message: unknown): Promise<void> {
-    if (
-      !message ||
-      typeof message !== "object" ||
-      (message as { type?: string }).type !== "triggerShadowScan"
-    ) {
+    const msg = message as WebviewMessage;
+    if (!msg?.type) return;
+
+    if (msg.type === "refreshHealConsole") {
+      await this.refreshHealQueue(this.lastScanRuleErrors);
+      this.render();
       return;
     }
+
+    if (msg.type === "healQueueAction") {
+      await this.handleHealQueueAction(msg);
+      return;
+    }
+
+    if (msg.type !== "triggerShadowScan") return;
 
     await vscode.window.withProgress(
       {
@@ -113,6 +220,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
       },
       async () => {
         const result = await runShadowPolicyScan();
+        this.lastScanRuleErrors = result.ok ? [] : result.ruleErrors;
 
         if (result.ok) {
           this.scanOk = true;
@@ -126,17 +234,75 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
           this.scanMessage = detail;
         }
 
+        await this.refreshHealQueue(this.lastScanRuleErrors);
+        const needsConsole =
+          !result.ok || result.ruleErrors.length > 0 || this.healTasks.length > 0;
+        if (needsConsole) {
+          this.healConsoleVisible = true;
+          this.healTriggerLabel = !result.ok || result.ruleErrors.length > 0
+            ? "Post-ingest scan — missing pillars or broken genealogical roots"
+            : "Shadow scan complete — remediation queue ready";
+        }
+
         this.view?.webview.postMessage({
           type: "shadowScanResult",
           ok: result.ok,
           message: this.scanMessage,
-          ruleErrors: result.ok ? [] : result.ruleErrors,
+          showHealingConsole: needsConsole || this.healTasks.length > 0,
         });
 
         await this.refreshHealth();
         this.render();
       }
     );
+  }
+
+  private async handleHealQueueAction(msg: WebviewMessage): Promise<void> {
+    const settings = readMsgfSettings();
+    const tenantKey = resolveTenantId(settings);
+    const tenantUuid = this.healTenantUuid ?? resolveHealQueueTenantUuid(tenantKey);
+
+    const action = msg.action_type;
+    if (action !== "BULK" && action !== "INDIVIDUAL" && action !== "SCHEDULED") {
+      return;
+    }
+
+    const result = await postHealQueueAction({
+      settings,
+      tenantUuid,
+      action_type: action,
+      file_paths: msg.file_paths,
+      preset_interval: msg.preset_interval,
+    });
+
+    if (result.ok) {
+      const saved = result.token_estimate?.tokens_saved_vs_individual;
+      const extra =
+        saved != null && saved > 0 ? ` (~${saved} tokens saved vs individual)` : "";
+      const resume = result.user_resume_message ? ` ${result.user_resume_message}` : "";
+      const label =
+        action === "SCHEDULED"
+          ? "Scheduled ⏳ — auto-remediation queued"
+          : "Processing ⚡ — complete";
+      this.view?.webview.postMessage({
+        type: "healQueueStatus",
+        tone: "success",
+        message: `${label}${extra}${resume}`,
+        reload: true,
+      });
+      await this.refreshHealQueue(this.lastScanRuleErrors);
+      if (!this.healTasks.length) {
+        this.healConsoleVisible = false;
+      }
+      return;
+    }
+
+    this.view?.webview.postMessage({
+      type: "healQueueStatus",
+      tone: "error",
+      message: result.error ?? "Heal queue action failed.",
+      reload: false,
+    });
   }
 }
 

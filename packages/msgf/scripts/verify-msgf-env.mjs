@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 /**
  * Phase 0 — MSGF environment verification (modular path).
@@ -30,7 +30,25 @@ import { createRequire } from "node:module";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const msgfRoot = path.join(__dirname, "..");
+const repoRoot = path.join(msgfRoot, "..", "..");
 const require = createRequire(import.meta.url);
+
+/** Fallback when Node --env-file-if-exists skips paths on Windows. */
+function loadDotenvFallback() {
+  try {
+    const dotenv = require("dotenv");
+    for (const p of [
+      path.join(repoRoot, ".env"),
+      path.join(repoRoot, ".env.local"),
+      path.join(msgfRoot, ".env"),
+      path.join(msgfRoot, ".env.local"),
+    ]) {
+      if (fs.existsSync(p)) dotenv.config({ path: p, override: true });
+    }
+  } catch {
+    /* dotenv optional */
+  }
+}
 const { assertServiceAccountPresent, getServiceAccountPath } = require("../msgf-init.cjs");
 
 const REQUIRED_ENV = [
@@ -45,12 +63,6 @@ const REQUIRED_ENV = [
     hint: "Required for admin scripts and LOM DB assertions",
   },
   {
-    keys: ["REDIS_HOST", "REDIS_URL"],
-    label: "Redis (V3.2 hot layer)",
-    hint:
-      "REDIS_HOST (+ optional REDIS_PORT, REDIS_PASSWORD) for Memorystore/Docker DNS; or REDIS_URL e.g. redis://127.0.0.1:6379 / Upstash / rediss://",
-  },
-  {
     keys: ["STRIPE_SECRET_KEY"],
     label: "Stripe secret key",
     hint: "Dashboard → Developers → API keys (test mode for dev)",
@@ -60,6 +72,9 @@ const REQUIRED_ENV = [
     label: "Stripe webhook signing secret",
     hint: "From `stripe listen` or Dashboard → Webhooks",
   },
+];
+
+const RECOMMENDED_ENV = [
   {
     keys: ["MSGF_ENABLE_LOM_TEST"],
     label: "LOM test harness flag",
@@ -68,11 +83,8 @@ const REQUIRED_ENV = [
   {
     keys: ["MSGF_INGEST_API_KEY"],
     label: "Tenant ingest API key",
-    hint: "Matches MSGF tenant key config when ingest is key-gated",
+    hint: "Only when MSGF_TENANT_API_KEYS / ingest key-gating is enabled",
   },
-];
-
-const RECOMMENDED_ENV = [
   {
     keys: ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY"],
     label: "Supabase anon/publishable key",
@@ -127,6 +139,38 @@ function checkEnvGroup(entries, { required }) {
   return failed;
 }
 
+function checkRedisHotLayer() {
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+
+  if (upstashUrl && upstashToken) {
+    if (upstashUrl.includes("-box-") || upstashToken.startsWith("box_")) {
+      console.warn(
+        "WARN: UPSTASH_* looks like Upstash Box, not Redis REST. Create a Redis database in console.upstash.com and use its REST URL/token, or use REDIS_URL locally."
+      );
+    } else {
+      console.log(`OK: Upstash Redis REST (${mask(upstashToken)})`);
+      return 0;
+    }
+  } else if (upstashUrl || upstashToken) {
+    console.warn(
+      "WARN: Incomplete Upstash Redis env (need both URL and TOKEN). Falling back to REDIS_HOST / REDIS_URL check."
+    );
+  }
+
+  const hit = firstSet(["REDIS_HOST", "REDIS_URL"]);
+  if (hit) {
+    console.log(`OK: Redis TCP (${hit.key}=${mask(hit.value)})`);
+    return 0;
+  }
+  console.error("FAIL: Missing Redis (V3.2 hot layer)");
+  console.error(
+    "      Upstash Redis: UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN (console → Redis → REST)"
+  );
+  console.error("      Or local/Memorystore: REDIS_URL or REDIS_HOST");
+  return 1;
+}
+
 function checkServiceAccount() {
   const saPath = getServiceAccountPath();
   try {
@@ -152,12 +196,17 @@ function checkServiceAccount() {
 }
 
 function main() {
+  loadDotenvFallback();
   console.log("MSGF Phase 0 — verify-msgf-env");
   console.log(`MSGF package root: ${msgfRoot}`);
   console.log("");
 
   let failed = 0;
-  failed += checkEnvGroup(REQUIRED_ENV, { required: true });
+  failed += checkEnvGroup(
+    REQUIRED_ENV.filter((e) => !e.label.includes("Redis")),
+    { required: true }
+  );
+  failed += checkRedisHotLayer();
   console.log("");
   checkEnvGroup(RECOMMENDED_ENV, { required: false });
   console.log("");

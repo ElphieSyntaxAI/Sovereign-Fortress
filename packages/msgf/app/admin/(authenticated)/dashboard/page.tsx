@@ -2,11 +2,18 @@
  * @msgf-license-header
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
-
 import { cookies, headers } from "next/headers";
 
 import { DashboardShell } from "@/app/_components/dashboard/DashboardShell";
+import { resolveHealQueueTenantIdForUser } from "@/lib/heal-queue-tenant";
 import {
   healthOptionsForSessionOperator,
   resolveSessionDashboardOperator,
@@ -39,6 +46,7 @@ export default async function AdminDashboardPage() {
       <DashboardShell
         userEmail={user?.email ?? "Signed in"}
         initialReport={initialReport}
+        healQueueTenantId={resolveHealQueueTenantIdForUser(user!)}
         authRedirectPath="/admin/sign-in?next=/admin/dashboard"
         healthScope="operator"
         embeddedInAdminPortal

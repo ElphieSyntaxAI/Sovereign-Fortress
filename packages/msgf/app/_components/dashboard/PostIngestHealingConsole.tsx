@@ -1,0 +1,738 @@
+"use client";
+
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T021802Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T021523Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T020901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T020416Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015948Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015504Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T015202Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014746Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014449Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T014202Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T013808Z-internal
+ */
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import {
+  buildHealQueuePostBody,
+  postHealQueueHumanArbitration,
+  postHealQueueRemediation,
+} from "@/lib/heal-queue-web-client";
+import type {
+  HealQueueGetResponse,
+  HealQueuePresetInterval,
+  HumanArbitrationAction,
+  HumanArbitrationComparisonPair,
+  HumanArbitrationPackage,
+  HumanArbitrationRecommendation,
+  RemediationTask,
+} from "@/lib/schemas/heal-queue";
+import type { MsgfGovernancePillar } from "@/lib/services/pillar-baseline";
+import { pillarCardCopy } from "@/lib/dashboard-pillar-copy";
+
+const PILLAR_ORDER: MsgfGovernancePillar[] = ["P1", "P2", "P3", "P4", "P5", "P6"];
+
+const PRESET_OPTIONS: { value: HealQueuePresetInterval; label: string }[] = [
+  { value: "immediate", label: "Immediate" },
+  { value: "1h", label: "1-Hour Window" },
+  { value: "6h", label: "6-Hour Flow" },
+  { value: "nightly", label: "Nightly Batch" },
+];
+
+export type HealConsoleStatusTone = "idle" | "processing" | "scheduled" | "success" | "error";
+
+export type HealConsoleStatus = {
+  tone: HealConsoleStatusTone;
+  message: string;
+} | null;
+
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  tenantId: string;
+  queue: HealQueueGetResponse | null;
+  pillarFilter: MsgfGovernancePillar | null;
+  onQueueRefresh: () => void;
+  externalStatus: HealConsoleStatus;
+  onStatusChange: (status: HealConsoleStatus) => void;
+};
+
+function groupByPillar(tasks: RemediationTask[]): Map<MsgfGovernancePillar, RemediationTask[]> {
+  const map = new Map<MsgfGovernancePillar, RemediationTask[]>();
+  for (const p of PILLAR_ORDER) map.set(p, []);
+  for (const t of tasks) {
+    const list = map.get(t.governance_pillar) ?? [];
+    list.push(t);
+    map.set(t.governance_pillar, list);
+  }
+  return map;
+}
+
+function impactScoreClass(score: number): string {
+  if (score >= 70) return "text-rose-300";
+  if (score >= 40) return "text-amber-300";
+  return "text-emerald-300";
+}
+
+function RecommendationPanel({
+  title,
+  rec,
+}: {
+  title: string;
+  rec: HumanArbitrationRecommendation;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-slate-700/80 bg-black/35">
+      <div className="border-b border-slate-800 px-3 py-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-200/90">{title}</p>
+        <p className="mt-0.5 text-xs font-semibold text-slate-100">{rec.label}</p>
+        <p className="text-[10px] text-slate-500">
+          {rec.scope} · {rec.pillar} · risk {rec.risk}
+        </p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          Recommended code fix
+        </p>
+        <pre className="whitespace-pre-wrap break-words rounded border border-emerald-500/15 bg-emerald-950/20 p-2 text-[10px] leading-relaxed text-emerald-100/95">
+          {rec.recommended_code_fix}
+        </pre>
+        <p className="mb-1 mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          Predicted structural impact
+        </p>
+        <p className="text-[11px] leading-snug text-slate-300">{rec.predicted_consequence}</p>
+        <p className={`mt-2 text-2xl font-bold tabular-nums ${impactScoreClass(rec.consequence_score)}`}>
+          {rec.consequence_score}
+          <span className="text-sm font-normal text-slate-500"> / 100</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function HumanArbitrationComparison({
+  pair,
+}: {
+  pair: HumanArbitrationComparisonPair;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-300/90">
+        {pair.label}
+      </p>
+      <div className="grid min-h-[220px] gap-2 sm:grid-cols-2">
+        <RecommendationPanel title="Model recommendation A" rec={pair.left} />
+        <RecommendationPanel title="Model recommendation B" rec={pair.right} />
+      </div>
+    </div>
+  );
+}
+
+function HumanArbitrationPanel({
+  pkg,
+  submitting,
+  onArbitration,
+}: {
+  pkg: HumanArbitrationPackage;
+  submitting: boolean;
+  onArbitration: (action: HumanArbitrationAction) => Promise<void>;
+}) {
+  const pairs =
+    pkg.comparison_pairs.length > 0
+      ? pkg.comparison_pairs
+      : [
+          {
+            label: "Primary model recommendation",
+            left: pkg.primary,
+            right: pkg.alternatives[0] ?? pkg.primary,
+          },
+        ];
+
+  return (
+    <section className="mb-4 overflow-hidden rounded-xl border border-rose-500/30 bg-gradient-to-b from-rose-950/40 to-slate-950/60">
+      <header className="border-b border-rose-500/25 bg-rose-500/10 px-4 py-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-rose-200">
+          PENDING_HUMAN_ARBITRATION
+        </p>
+        <h3 className="mt-1 break-all text-sm font-bold text-slate-50">{pkg.file_path}</h3>
+        <p className="mt-1 text-xs text-slate-400">{pkg.incident_summary}</p>
+        <p className="mt-1 text-[10px] text-rose-300/80">
+          {pkg.consecutive_failures} consecutive failures · {pkg.bug_index.level_1_1_1_instance}
+        </p>
+      </header>
+
+      <div className="space-y-4 px-4 py-3">
+        {pairs.map((pair, idx) => (
+          <HumanArbitrationComparison key={`${pair.label}-${idx}`} pair={pair} />
+        ))}
+      </div>
+
+      <footer className="flex flex-wrap gap-2 border-t border-rose-500/20 px-4 py-3">
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={() => void onArbitration("APPROVE_BYPASS")}
+          className="flex-1 rounded-lg border border-emerald-400/50 bg-gradient-to-b from-emerald-600/90 to-emerald-900/90 px-3 py-2.5 text-xs font-bold tracking-wide text-white shadow-[0_0_16px_rgba(16,185,129,0.3)] transition hover:shadow-[0_0_22px_rgba(16,185,129,0.4)] disabled:cursor-wait disabled:opacity-50"
+        >
+          APPROVE & BYPASS
+        </button>
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={() => void onArbitration("DENY_PURGE")}
+          className="flex-1 rounded-lg border border-rose-400/50 bg-gradient-to-b from-rose-800/80 to-rose-950/90 px-3 py-2.5 text-xs font-bold tracking-wide text-rose-50 transition hover:border-rose-300/50 disabled:cursor-wait disabled:opacity-50"
+        >
+          DENY & PURGE
+        </button>
+      </footer>
+    </section>
+  );
+}
+
+function statusBannerClass(tone: HealConsoleStatusTone): string {
+  switch (tone) {
+    case "processing":
+      return "border-emerald-500/40 bg-emerald-500/15 text-emerald-100";
+    case "scheduled":
+      return "border-violet-500/40 bg-violet-500/15 text-violet-100";
+    case "success":
+      return "border-emerald-500/35 bg-emerald-600/20 text-emerald-50";
+    case "error":
+      return "border-rose-500/40 bg-rose-500/15 text-rose-100";
+    default:
+      return "border-slate-700 bg-slate-900/50 text-slate-400";
+  }
+}
+
+export function PostIngestHealingConsole({
+  open,
+  onClose,
+  tenantId,
+  queue,
+  pillarFilter,
+  onQueueRefresh,
+  externalStatus,
+  onStatusChange,
+}: Props) {
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [activeArbitrationPath, setActiveArbitrationPath] = useState<string | null>(null);
+  const [preset, setPreset] = useState<HealQueuePresetInterval>("1h");
+  const [submitting, setSubmitting] = useState(false);
+
+  const tasks = useMemo(() => {
+    const all = queue?.remediation_tasks ?? [];
+    if (!pillarFilter) return all;
+    return all.filter((t) => t.governance_pillar === pillarFilter);
+  }, [queue?.remediation_tasks, pillarFilter]);
+
+  const arbitrationPackages = useMemo(() => {
+    const all = queue?.human_arbitration_packages ?? [];
+    if (!pillarFilter) return all;
+    return all.filter((p) => p.governance_pillar === pillarFilter);
+  }, [queue?.human_arbitration_packages, pillarFilter]);
+
+  const activeArbitration = useMemo(
+    () =>
+      arbitrationPackages.find((p) => p.file_path === activeArbitrationPath) ??
+      arbitrationPackages[0] ??
+      null,
+    [arbitrationPackages, activeArbitrationPath]
+  );
+
+  const grouped = useMemo(() => groupByPillar(tasks), [tasks]);
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedPaths(new Set());
+      setActiveArbitrationPath(null);
+      onStatusChange(null);
+    }
+  }, [open, onStatusChange]);
+
+  useEffect(() => {
+    if (!open || !arbitrationPackages.length) return;
+    setActiveArbitrationPath((prev) => {
+      if (prev && arbitrationPackages.some((p) => p.file_path === prev)) return prev;
+      return arbitrationPackages[0]?.file_path ?? null;
+    });
+  }, [open, arbitrationPackages]);
+
+  const togglePath = useCallback((path: string) => {
+    setSelectedPaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }, []);
+
+  const runAction = useCallback(
+    async (action_type: "BULK" | "INDIVIDUAL" | "SCHEDULED", paths?: string[]) => {
+      setSubmitting(true);
+      const optimisticTone: HealConsoleStatusTone =
+        action_type === "SCHEDULED" ? "scheduled" : "processing";
+      const optimisticMessage =
+        action_type === "BULK"
+          ? "Processing ⚡ — batch healing all pillars…"
+          : action_type === "SCHEDULED"
+            ? `Scheduled ⏳ — ${PRESET_OPTIONS.find((o) => o.value === preset)?.label ?? preset} for ${paths?.length ?? 0} file(s)`
+            : `Processing ⚡ — healing ${paths?.length ?? 0} selected file(s)…`;
+      onStatusChange({ tone: optimisticTone, message: optimisticMessage });
+
+      try {
+        const body = buildHealQueuePostBody({
+          tenant_id: tenantId,
+          action_type,
+          file_paths: paths,
+          preset_interval: action_type === "SCHEDULED" ? preset : undefined,
+        });
+        const result = await postHealQueueRemediation(body);
+
+        if (!result.ok) {
+          onStatusChange({ tone: "error", message: result.message });
+          return;
+        }
+
+        const label =
+          action_type === "SCHEDULED"
+            ? "Scheduled ⏳ — auto-remediation queued"
+            : "Processing ⚡ — complete";
+        onStatusChange({ tone: "success", message: label });
+        setSelectedPaths(new Set());
+        onQueueRefresh();
+      } catch (e) {
+        onStatusChange({
+          tone: "error",
+          message: e instanceof Error ? e.message : "Heal queue action failed.",
+        });
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [onQueueRefresh, onStatusChange, preset, tenantId]
+  );
+
+  const runHumanArbitration = useCallback(
+    async (action: HumanArbitrationAction) => {
+      const filePath = activeArbitration?.file_path;
+      if (!filePath) return;
+
+      setSubmitting(true);
+      onStatusChange({
+        tone: "processing",
+        message:
+          action === "APPROVE_BYPASS"
+            ? "Processing ⚡ — APPROVE & BYPASS…"
+            : "Processing ⚡ — DENY & PURGE…",
+      });
+
+      try {
+        const result = await postHealQueueHumanArbitration({
+          tenant_id: tenantId,
+          file_path: filePath,
+          action,
+        });
+
+        if (!result.ok) {
+          onStatusChange({ tone: "error", message: result.message });
+          return;
+        }
+
+        onStatusChange({
+          tone: result.security_clean_signal ? "success" : "scheduled",
+          message: result.message,
+        });
+        setActiveArbitrationPath(null);
+        onQueueRefresh();
+      } catch (e) {
+        onStatusChange({
+          tone: "error",
+          message: e instanceof Error ? e.message : "Human arbitration failed.",
+        });
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [activeArbitration?.file_path, onQueueRefresh, onStatusChange, tenantId]
+  );
+
+  const filterLabel = pillarFilter
+    ? `${pillarFilter} · ${pillarCardCopy(pillarFilter).title}`
+    : "All pillars";
+
+  const brain = queue?.brain_readiness;
+
+  return (
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-300 ${
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        aria-hidden={!open}
+        onClick={onClose}
+      />
+      <aside
+        id="PostIngestHealingConsole"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="heal-console-title"
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-amber-500/25 bg-gradient-to-b from-[#120a24] via-[#0b1a14] to-[#040a08] shadow-[-12px_0_48px_rgba(251,191,36,0.12)] transition-transform duration-300 ease-out sm:max-w-2xl ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-amber-500/20 px-5 py-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-300/90">
+              Post-ingest remediation
+            </p>
+            <h2 id="heal-console-title" className="mt-1 text-lg font-bold text-slate-50">
+              Post-Ingest Healing Console
+            </h2>
+            <p className="mt-1 text-xs text-slate-400">{filterLabel}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-slate-800"
+            aria-label="Close healing console"
+          >
+            Close
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {brain ? (
+            <p className="mb-3 text-xs text-slate-400">
+              Brain readiness {brain.readiness_score}%
+              {brain.missing_pillars.length
+                ? ` · missing ${brain.missing_pillars.join(", ")}`
+                : " · baseline complete"}
+            </p>
+          ) : null}
+
+          {externalStatus ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`mb-4 rounded-lg border px-3 py-2.5 text-sm font-semibold ${statusBannerClass(externalStatus.tone)}`}
+            >
+              {externalStatus.message}
+            </div>
+          ) : null}
+
+          {activeArbitration ? (
+            <HumanArbitrationPanel
+              pkg={activeArbitration}
+              submitting={submitting}
+              onArbitration={runHumanArbitration}
+            />
+          ) : null}
+
+          {arbitrationPackages.length > 1 ? (
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {arbitrationPackages.map((p) => (
+                <button
+                  key={p.file_path}
+                  type="button"
+                  onClick={() => setActiveArbitrationPath(p.file_path)}
+                  className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold transition ${
+                    activeArbitration?.file_path === p.file_path
+                      ? "border-rose-400/60 bg-rose-500/20 text-rose-100"
+                      : "border-slate-700 text-slate-400 hover:border-rose-500/30"
+                  }`}
+                >
+                  {p.file_path.split("/").pop() ?? p.file_path}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {!tasks.length && !arbitrationPackages.length ? (
+            <p className="text-sm text-slate-500">
+              No pending misalignments in this view. Run a shadow ingest or check another pillar.
+            </p>
+          ) : !tasks.length ? (
+            <p className="mb-3 text-xs text-slate-500">
+              Automated heal queue is clear; resolve human arbitration above to close the circuit.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {PILLAR_ORDER.map((pillar) => {
+                const list = grouped.get(pillar) ?? [];
+                if (!list.length) return null;
+                const copy = pillarCardCopy(pillar);
+                return (
+                  <section
+                    key={pillar}
+                    className="overflow-hidden rounded-xl border border-emerald-500/15 bg-slate-950/50"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-800/80 bg-black/25 px-3 py-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                        {pillar} · {copy.title}
+                      </span>
+                      <span className="text-[10px] text-slate-500">{list.length} item(s)</span>
+                    </div>
+                    <ul className="divide-y divide-slate-800/60">
+                      {list.map((task) => {
+                        const checked = selectedPaths.has(task.file_path);
+                        const circuitOpen =
+                          task.circuit_breaker_open ||
+                          task.remediation_state === "PENDING_HUMAN_ARBITRATION";
+                        const isActiveArbitration = activeArbitration?.file_path === task.file_path;
+
+                        if (circuitOpen) {
+                          return (
+                            <li key={`${task.task_id}-${task.file_path}`}>
+                              <button
+                                type="button"
+                                onClick={() => setActiveArbitrationPath(task.file_path)}
+                                className={`flex w-full gap-3 px-3 py-2.5 text-left transition hover:bg-rose-500/[0.08] ${
+                                  isActiveArbitration ? "bg-rose-500/10" : ""
+                                }`}
+                              >
+                                <span className="mt-0.5 shrink-0 rounded border border-rose-400/50 bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-rose-200">
+                                  HITL
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block break-all text-xs font-semibold text-slate-100">
+                                    {task.file_path}
+                                  </span>
+                                  <span className="mt-1 block text-[11px] leading-snug text-rose-200/80">
+                                    Circuit breaker — human arbitration required
+                                  </span>
+                                  <code className="mt-1 inline-block rounded bg-black/30 px-1.5 py-0.5 text-[10px] text-amber-200/90">
+                                    {task.bug_index.level_1_1_1_instance}
+                                  </code>
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        }
+
+                        return (
+                          <li key={`${task.task_id}-${task.file_path}`}>
+                            <label className="flex cursor-pointer gap-3 px-3 py-2.5 hover:bg-emerald-500/[0.06]">
+                              <input
+                                type="checkbox"
+                                className="mt-1 h-4 w-4 shrink-0 accent-emerald-400"
+                                checked={checked}
+                                onChange={() => togglePath(task.file_path)}
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block break-all text-xs font-semibold text-slate-100">
+                                  {task.file_path}
+                                </span>
+                                <span className="mt-1 block text-[11px] leading-snug text-slate-400">
+                                  {task.reason}
+                                </span>
+                                <code className="mt-1 inline-block rounded bg-black/30 px-1.5 py-0.5 text-[10px] text-amber-200/90">
+                                  {task.bug_index.level_1_1_1_instance}
+                                </code>
+                              </span>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <footer className="shrink-0 space-y-2 border-t border-amber-500/20 px-5 py-4">
+          {activeArbitration ? (
+            <p className="text-center text-[10px] text-slate-500">
+              Use APPROVE & BYPASS or DENY & PURGE in the arbitration panel above.
+            </p>
+          ) : null}
+
+          <button
+            type="button"
+            disabled={submitting || !tasks.length || Boolean(activeArbitration)}
+            onClick={() => void runAction("BULK")}
+            className="w-full rounded-lg border border-emerald-400/50 bg-gradient-to-b from-emerald-600/90 to-emerald-900/90 px-4 py-3 text-sm font-bold tracking-wide text-white shadow-[0_0_20px_rgba(16,185,129,0.35)] transition hover:shadow-[0_0_28px_rgba(16,185,129,0.45)] disabled:cursor-wait disabled:opacity-50"
+          >
+            Heal All Now
+          </button>
+
+          <button
+            type="button"
+            disabled={submitting || selectedPaths.size === 0 || Boolean(activeArbitration)}
+            onClick={() => void runAction("INDIVIDUAL", [...selectedPaths])}
+            className={`w-full rounded-lg border px-4 py-2.5 text-sm font-bold transition disabled:cursor-wait disabled:opacity-40 ${
+              selectedPaths.size > 0
+                ? "border-violet-400/50 bg-violet-600/25 text-violet-100"
+                : "border-slate-700 bg-transparent text-slate-500"
+            }`}
+          >
+            Approve Selected ({selectedPaths.size})
+          </button>
+
+          <div className="space-y-2 rounded-lg border border-violet-500/25 bg-violet-950/30 p-3">
+            <label
+              htmlFor="heal-schedule-preset"
+              className="text-[10px] font-semibold uppercase tracking-wider text-slate-400"
+            >
+              Schedule Auto-Remediation
+            </label>
+            <select
+              id="heal-schedule-preset"
+              value={preset}
+              onChange={(e) => setPreset(e.target.value as HealQueuePresetInterval)}
+              className="w-full rounded-lg border border-violet-500/30 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+            >
+              {PRESET_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={submitting || selectedPaths.size === 0 || Boolean(activeArbitration)}
+              onClick={() => void runAction("SCHEDULED", [...selectedPaths])}
+              className="w-full rounded-lg border border-violet-400/40 bg-gradient-to-b from-violet-800/80 to-violet-950/90 px-3 py-2 text-sm font-semibold text-violet-50 transition hover:border-violet-300/50 disabled:cursor-wait disabled:opacity-50"
+            >
+              Apply Schedule to Selected
+            </button>
+          </div>
+        </footer>
+      </aside>
+    </>
+  );
+}

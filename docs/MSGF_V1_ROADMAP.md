@@ -13,7 +13,9 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-05-15 (V3.2-ULTRA integrated)
+**Last updated:** 2026-05-23 (Testing SSoT; remediation circuit breaker; human arbitration; strict v32-heartbeat cron)
+
+**Testing guide:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) — admin npm scripts (cross-platform) vs end-user product flows.
 
 ---
 
@@ -100,15 +102,15 @@ Maps V3.0 defensive ideas to V3.2 **DEFEND** / **CROSS-REF** steps:
 
 ### 2.6 V3.2-ULTRA master directive → 1.0 acceptance criteria
 
-| # | V3.2-ULTRA step | 1.0 done when |
-| :---: | :--- | :--- |
-| 1 | **SWEEP** — Day-zero scan; export/maintain `pre_ingestion_audit.md` | Audit current; CONVERGE backlog tracked |
-| 2 | **SHARD** — Active gates in **Redis** (hot); 6 pillars in **Postgres** (cold) + pgvector 1.1.1 | Migrations live; Redis connected for hot slices; ingest → `pillar_vectors` |
-| 3 | **DEFEND** — Shadow mode + LOM gates on all operations | Pulse + ingest gated; LOM test in staging |
-| 4 | **CROSS-REF** — Pre-flight Vault + Hall before consensus | `preFlightCheck` on Pulse path; no bypass in prod |
-| 5 | **CONVERGE** — Claude/Gemini consensus on RED / critical deltas | Pulse consensus path green in smoke tests |
-| 6 | **ARBITRATE** — HITL if consensus fails or retry **> 3** | Dashboard tie-breaker + `ERR_RECURSION_LIMIT` surfaced |
-| 7 | **PERSIST** — Success → Vault; trim hot / Hall LOW 30d purge | Vault writes audited; tier processor + purge job scheduled |
+| # | Step | 1.0 done when | Status (2026-05-22) |
+| :---: | :--- | :--- | :--- |
+| 1 | **SWEEP** | Audit maintained; ingest writes lineage + `pre_ingestion_audit.md` | **Done** — `pre_ingestion_audit.md`, `sweepAndIngest`, `tests/ingest-workflow.test.ts` |
+| 2 | **SHARD** | Cold pgvector + hot Redis on Pulse | **Done** (ops) — migrations + Upstash on Cloud Run; nanosecond SLO → 1.1 |
+| 3 | **DEFEND** | Shadow + LOM on Pulse/ingest | **Done** (routes) — `preFlightCheck` on Pulse + ingest; LOM harness staging-only |
+| 4 | **CROSS-REF** | Vault/Hall preflight before consensus | **Partial** — Zod + Postgres ENUM/DOMAIN + `pillar_vectors` typed columns + `trg_pillar_vectors_crossref_enforce` (`20260523120000_crossref_db_enums.sql`); Pulse route thin-handler pass still open |
+| 5 | **CONVERGE** | Dual-model on RED/critical | **Partial** — modular `lib/services/pulse-pipeline/` (gate → consensus → arbitrate → persist); IDE converge timeout (`MSGF_PULSE_IDE_CONVERGE_TIMEOUT_MS`) |
+| 6 | **ARBITRATE** | HITL + retry > 3 | **Partial** — `runArbitratePhase` in PulseEngine; incidents + dashboard arbitrate drawer live |
+| 7 | **PERSIST** | Vault writes + Hall 30d purge | **Done** (ops) — ingest/Pulse persist; `POST /api/msgf/ops/v32-heartbeat` + `scheduled_heal_batch` + GH Actions `msgf-tier-heartbeat.yml` (requires `MSGF_OPS_CRON_SECRET` + `MSGF_APP_URL`) |
 
 *V3.0-STRICT (7 steps) is superseded by this table; same intent, V3.2 naming.*
 
@@ -159,6 +161,9 @@ flowchart TB
 | **Storage (V3.2)** | Cold: Supabase/pgvector; Hot: Redis active slices on Pulse path |
 | **Data** | Supabase migrations applied; `verify:supabase-schema` in CI |
 | **Ops UI** | `apps/msgf-dashboard` wired to real alerts (not mocks) for RED/HITL |
+| **Post-Ingest Healing** | `GET/POST /api/msgf/heal-queue` (Zod); web pillar-card triggers + slide-out `PostIngestHealingConsole`; IDE `msgf-pulse-guard` sidebar console (BULK / INDIVIDUAL / SCHEDULED) |
+| **Ops cron** | `POST /api/msgf/ops/v32-heartbeat` — strict `MSGF_OPS_CRON_SECRET`; tier batches; **`6h`/`nightly`** scheduled heals via `RemediationEngine` LOM consensus (Vault persist); Hall cold + Redis purge |
+| **Human arbitration** | Circuit breaker `PENDING_HUMAN_ARBITRATION`; `GET` heal-queue packages + `POST /api/msgf/heal-queue/human-arbitration` (APPROVE_BYPASS / DENY_PURGE); web + IDE drawer |
 | **Public shell** | `packages/msgf/apps/web` — marketing, pricing, Stripe Checkout return URLs |
 | **Billing** | Stripe Checkout + webhook → `p4_profiles` / P3 tier + update credits (see §5) |
 | **Security** | `security:prancer-pillars` on PR; service account + secrets documented |
@@ -170,7 +175,7 @@ flowchart TB
 | :--- | :--- |
 | Full Pulse route refactor (modular SWEEP→PERSIST handlers) | 1.1 |
 | Hot-layer **primary read path** at nanosecond SLO (Redis-first for all gates) | 1.1 |
-| Automated Hall LOW-tier 30d purge in production cron (if not done in 1.0 RC) | 1.0 RC or 1.1 |
+| Author Ecosystem Post-Ingest Healing UI (marketplace BFF popout) | Author 1.x |
 | Prancer Cloud policy packs | 1.1+ |
 | Complete lore-bot matrix (Author AUTH-25) | Author 1.x |
 | Education platform feature-complete | Education 1.0 track |
@@ -194,13 +199,14 @@ Aligned with `packages/msgf/.cursorrules`:
 
 | Milestone | Theme | Key work | Roadmap § |
 | :---: | :--- | :--- | :--- |
-| **M0** | Platform truth | This doc + [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md); root `.env.example` MSGF block; `npm run verify:msgf-env -w msgf`; Phase 0 smoke in [`packages/msgf/README.md`](../packages/msgf/README.md) | — |
-| **M1** | Engine hardening (V3.2) | SHARD hot/cold wiring; split Pulse into SWEEP→PERSIST handlers; Zod metadata; ARBITRATE/recursion in CI | §2.6 |
-| **M2** | Standalone surface | Implement `packages/msgf/apps/web` (pricing, docs, signup); deploy to gatedai subdomain | 1.0 §4.1 |
-| **M3** | Commercial gates | Checkout API, webhook → tier/credits, entitlement middleware after credit guard | P3, `.cursorrules` |
-| **M4** | Multi-tenant ops | Dashboard live data; RED→HITL; YELLOW 6h / GREEN 24h cron; Hall 30d purge; Jira for RED | §2.4 |
-| **M5** | Ecosystem wiring | Author + Education smoke: register → pledge → Pulse; cross-domain cookies | [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md) |
-| **M6** | 1.0 RC | V3.2-ULTRA checklist §2.6 all green in staging; load test Pulse; Prancer; runbook | §2.6 |
+| **M0** | Platform truth | This doc + [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md); root `.env.example` MSGF block; `npm run verify:msgf-env -w msgf`; Phase 0 smoke in [`packages/msgf/README.md`](../packages/msgf/README.md) | **Done** |
+| **M1** | Engine hardening (V3.2) | SHARD hot/cold wiring; split Pulse into SWEEP→PERSIST handlers; Zod metadata; ARBITRATE/recursion in CI | **Partial** — SHARD/DEFEND/ingest + `pulse-pipeline/` done; strict Pulse metadata enums + full route thin-handler pass → 1.1 |
+| **M2** | Standalone surface | Public marketing, pricing, workspace, admin portal on gatedai | **Partial** — lives in `packages/msgf` Next app; `packages/msgf/apps/web` package still **not started** |
+| **M3** | Commercial gates | Checkout API, webhook → tier/credits, entitlement middleware | **Partial** — routes exist; live Stripe + webhook → `p4_profiles` **not production** |
+| **M4** | Multi-tenant ops | Dashboard live data; RED→HITL; tier cron; Hall purge; heal queue | **Partial** — six-pillar dashboard + **Post-Ingest Healing Console** + heal-queue API + `v32-heartbeat` GH workflow; verify secrets on production |
+| **M5** | Ecosystem wiring | Author + Education smoke: register → pledge → Pulse | **Partial** — MSGF on Cloud Run; **IDE extension** heal console wired; Author BFF **local-only** deploy path; HAL→Pulse thin |
+| **M4b** | IDE remediation UX | `msgf-pulse-guard` stoplight + shadow scan → healing console | **Done** — pillar-grouped checkboxes; Heal All / Approve Selected / Schedule presets; optimistic status |
+| **M6** | 1.0 RC | §2.6 all green in staging; load test; Prancer; runbook | **Not started** |
 
 **Suggested gate for tag `msgf-v1.0.0`:** M1–M5 complete in staging; M6 sign-off.
 
@@ -212,7 +218,13 @@ Aligned with `packages/msgf/.cursorrules`:
 | :--- | :--- |
 | Next runtime | `packages/msgf/` |
 | Pulse | `packages/msgf/app/api/msgf/pulse/route.ts` |
+| V3.2 Pulse pipeline | `packages/msgf/lib/services/pulse-pipeline/` |
 | Ingest | `packages/msgf/app/api/msgf/ingest/route.ts` |
+| Heal queue API | `packages/msgf/app/api/msgf/heal-queue/route.ts`, `lib/schemas/heal-queue.ts`, `lib/services/heal-queue-service.ts` |
+| Scheduled heal cron | `lib/services/heal-queue-cron-batch.ts` (invoked from `v32-ops-heartbeat`) |
+| Web healing console | `packages/msgf/app/_components/dashboard/PostIngestHealingConsole.tsx`, `DashboardShell.tsx` |
+| IDE healing console | `packages/msgf-pulse-guard/` (`healQueueClient.ts`, `healingConsoleHtml.ts`, `msgfDashboardProvider.ts`) |
+| Ops heartbeat | `packages/msgf/app/api/msgf/ops/v32-heartbeat/route.ts`, `.github/workflows/msgf-tier-heartbeat.yml` |
 | Credit guard | `packages/msgf/lib/creditGuard.ts`, `middleware.ts` |
 | Stripe (skeleton) | `packages/msgf/app/api/webhooks/stripe/route.ts`, `src/lib/stripe.ts` |
 | Pre-ingestion audit (SWEEP) | `packages/msgf/pre_ingestion_audit.md` |
@@ -230,22 +242,93 @@ Aligned with `packages/msgf/.cursorrules`:
 
 ## 7. Current readiness (honest snapshot)
 
-*As of 2026-05-15 — update when milestones close.*
+*As of 2026-05-22 — Cloud Run MSGF + Upstash SHARD deployed; payment excluded from “done” below.*
 
 | Capability | Status |
 | :--- | :--- |
-| **V3.2-ULTRA §2.6** (7 steps) | **~55%** — see row-by-row below |
-| SWEEP (`pre_ingestion_audit.md`) | **Done** (analysis); CONVERGE not done |
-| SHARD — cold (Postgres/pgvector) | **Partial → strong** |
-| SHARD — hot (Redis active slices) | **Partial** — module exists; prod Redis + Pulse path TBD |
-| DEFEND — shadow + LOM | **Partial** — Pulse; LOM test harness |
-| CROSS-REF — Vault/Hall preflight | **Partial** — `msgf-shadow`; metadata contracts weak |
-| CONVERGE — dual-model consensus | **Partial** — Pulse monolith |
-| ARBITRATE — HITL / retry > 3 | **Partial** — logic exists; dashboard mock |
-| PERSIST — Vault writes + Hall purge | **Partial** — purge script path; 30d policy verify |
-| Stripe billing | **Early** — webhook logs only |
-| Public gatedai site | **Not started** |
-| Author ↔ Pulse integration | **Partial** — shared DB; HAL does not call Pulse |
+| **V3.2-ULTRA §2.6** (7 steps) | **~82%** — 4 **Done**, 3 **Partial** (see §2.6 table) |
+| **Ingest (`POST /api/msgf/ingest`)** | **Done** (workflow) — SWEEP + `preFlightCheck` + strict `lib/schemas/ingest-metadata.ts`; returns `lineage_map`, `missing_pillars`, brain readiness (not a “healed” repair list — see §7.2) |
+| **Heal queue (`GET/POST /api/msgf/heal-queue`)** | **Done** — Zod `IngestRemediationActionSchema`; BULK / INDIVIDUAL / SCHEDULED; `scheduling_tier` migration `20260522160000_heal_queue_scheduling.sql`; `npm run test:heal-queue` |
+| **Post-Ingest Healing Console (web)** | **Done** — six pillar cards poll heal queue; amber pulse + count badge; slide-out `PostIngestHealingConsole` on `/dashboard` and admin dashboard |
+| **Post-Ingest Healing Console (IDE)** | **Done** — `msgf-pulse-guard` sidebar after shadow scan or stoplight yellow/red; same three actions via `postMessage` |
+| **Scheduled auto-remediation** | **Done** (ops) — cron processes `preset_interval` (`immediate`, `1h`, `6h`, `nightly`) via `runCronScheduledHealBatches()` on each heartbeat tick |
+| SWEEP (`pre_ingestion_audit.md`) | **Done** (analysis + ingest artifact); route **refactor** → 1.1 |
+| SHARD — cold (Postgres/pgvector) | **Done** |
+| SHARD — hot (Redis active slices) | **Done** (when `UPSTASH_*` / `REDIS_URL` set) |
+| DEFEND — shadow + LOM | **Done** on Pulse/ingest; LOM integration test = staging |
+| CROSS-REF — Vault/Hall preflight | **Partial** — DB enums + trigger enforce `governance_pillar`, `vault`/`hall`, 1.0/1.1/1.1.1 coherence; Zod mirrors via `MSG_DB_*` constants |
+| CONVERGE — dual-model consensus | **Partial** — `pulse-pipeline/` modular phases; Pulse route still delegates to `PulseEngine` |
+| ARBITRATE — HITL / retry > 3 | **Partial** — live dashboard + incidents + pillar arbitrate drawer |
+| PERSIST — Vault writes + Hall purge | **Done** (ops) — writes OK; `v32-heartbeat` + GH Actions when secrets configured |
+| Stripe billing | **Deferred** (per product) — mock entitlements default ON |
+| Public gatedai site | **Partial** — Next app: landing, pricing, workspace, `/status`, extension download |
+| Author ↔ Pulse integration | **Partial** — BFF proxy + shared Supabase; IDE extension heal loop complete; Author web popout → Author 1.x |
+
+### 7.1 Mock / dead-end APIs (hallucination risk)
+
+Endpoints that can return **synthetic data** or are **orphan** — models and UIs must not treat these as ground truth without checking `source` / env.
+
+| Route | Risk | Mitigation |
+| :--- | :--- | :--- |
+| `GET/POST /api/msgf/master/eco-rollups` | Falls back to **`source: "mock"`** leaderboard when DB read/write fails | Gate UI on `source === "live"`; fix Supabase tables for eco rollups |
+| `GET /api/public-eco-metrics` | Mock metrics when live read fails | Same; used by landing widget |
+| `GET /api/msgf/dashboard/pillar/[pillar]` | Uses **`mockDashboardHealthReport()`** only if Supabase URL+service role missing (rare on Cloud Run) | Ensure env on deploy; prefer `GET /api/msgf/health/pillars` for ops |
+| `GET /api/msgf/dashboard/ticker` | Mock ticker when `REDIS_URL` missing **or** no live DB env | Set Redis + Supabase on ops hosts |
+| Dashboard arbitrate `source: "mock"` | Label only — means no admin client, not fake arbitration | N/A if Supabase configured |
+| `mockDashboardHealthReport` events | Fabricated “Self-healed recursion”, “Pending Human Arbitrate” for **demo** | Do not feed into RAG/ingest; remove from prod UI when live data exists |
+| `v32_mock_stream` in dashboard orchestration | Synthetic stream events | Ops-only; document as non-authoritative |
+| `POST /api/ecosystem/bridge` | Large Author marketplace/sovereignty surface; **not** V3.2 core — easy to confuse with Pulse | Call only from Author product flows |
+| `GET /api/msgf/jira/status` | Ops diagnostic; optional env | Not for model context |
+| `POST /api/helper/*` | Helper milestone routes — niche | Verify caller exists before docs |
+| `sweepAndIngestLegacy` / `authorId` alias | Deprecated ingest API | Use `tenantId` only |
+| Legacy Author `index.js` (port 3003) | Parallel Express stack — duplicate RAG/HAL paths | Prefer TS BFF `main.ts` |
+| `packages/msgf/apps/web` | Documented M2 package **empty** | Use `packages/msgf` app routes |
+
+Full engineering list: [`packages/msgf/pre_ingestion_audit.md`](../packages/msgf/pre_ingestion_audit.md) §4 Hall seeds + §7.1 above.
+
+### 7.2 Ingest response semantics (“what needs healed”)
+
+Ingest does **not** return a list of repaired files. It returns **brain / pillar gaps** to close before the tenant brain is “initialized”:
+
+- `missing_pillars`, `baseline_training_required`, `baseline_training_remaining`
+- `lineage_map` (1.0 / 1.1 / 1.1.1 per file)
+- `ingested_count`, `readiness_score`, `brain_fully_initialized`
+
+**Remediation after ingest** (unified product path):
+
+| Surface | Entry | Actions |
+| :--- | :--- | :--- |
+| **API** | `GET /api/msgf/heal-queue?tenant_id=<uuid>` | Lists `remediation_tasks` + `human_arbitration_packages` + `brain_readiness` |
+| **API** | `POST /api/msgf/heal-queue` | `BULK` · `INDIVIDUAL` + `file_paths[]` · `SCHEDULED` + `preset_interval` |
+| **API** | `POST /api/msgf/heal-queue/human-arbitration` | Operator `APPROVE_BYPASS` / `DENY_PURGE` when circuit breaker is open |
+| **Web** | Six pillar cards on `/dashboard` | Amber pulse + badge count → `PostIngestHealingConsole` drawer |
+| **IDE** | `msgf-pulse-guard` sidebar | Shadow scan complete or 30s stoplight anomaly → same three actions |
+
+**Legacy self-heal report** (still supported): `POST /api/msgf/admin/self-heal/report` → `healed_pillars[]` in [`lib/services/self-heal-report.ts`](../packages/msgf/lib/services/self-heal-report.ts).
+
+Verify locally (see [`MSGF_TESTING.md`](./MSGF_TESTING.md)):
+
+- **All platforms, offline:** `npm run test:unit -w msgf`
+- Ingest: `npm run test:ingest-workflow -w msgf` (needs Supabase)
+- Integration bundle: `npm run test:integration -w msgf`
+- V3.2 ops: `npm run test:ops-cron -w msgf` · `npm run test:v32-ultra -w msgf`
+
+### 7.3 Post-Ingest Healing — implementation checklist
+
+| Item | Status | Path / notes |
+| :--- | :---: | :--- |
+| Strict Zod contracts (GET/POST body) | ✅ | `lib/schemas/heal-queue.ts` |
+| Service: list tasks + execute actions | ✅ | `lib/services/heal-queue-service.ts` |
+| Bulk heal + token savings estimate | ✅ | `lib/services/heal-queue-cron-batch.ts` · `RemediationEngine.buildBatchRemediationPlan` |
+| `scheduling_tier` column on `pillar_vectors` | ✅ | `supabase/migrations/20260522160000_heal_queue_scheduling.sql` |
+| Cron: `6h` / `nightly` on heartbeat | ✅ | `runCronScheduledHealBatches()` — LOM consensus + Vault; skips `PENDING_HUMAN_ARBITRATION` |
+| Remediation circuit breaker (max 3 failures) | ✅ | `lib/services/remediation-retry-circuit.ts` · `npm run test:remediation-circuit` |
+| Human arbitration UI + API | ✅ | `pulse-pipeline/human-arbitration.ts` · `PostIngestHealingConsole` · `npm run test:human-arbitration` |
+| Web client (typed fetch) | ✅ | `lib/heal-queue-web-client.ts` |
+| Web UI drawer | ✅ | `PostIngestHealingConsole.tsx` |
+| IDE extension client + UI | ✅ | `packages/msgf-pulse-guard/src/healQueueClient.ts` |
+| Author Ecosystem web popout | ⬜ | Deferred — use MSGF dashboard or IDE for 1.0 |
+| E2E test against live Cloud Run heal-queue | ⬜ | Manual / staging only today |
 
 ---
 
@@ -259,7 +342,9 @@ Aligned with `packages/msgf/.cursorrules`:
 | `MSGF_AUTH_COOKIE_DOMAIN` | Cross-subdomain session with Author |
 | `MSGF_BILLING_SOFT_CAP_USD`, `MSGF_CREDIT_GUARD_DISABLED` | Ops caps |
 | `MSGF_ENABLE_LOM_TEST` | Staging LOM harness |
+| `MSGF_OPS_CRON_SECRET` | **Required** for `POST /api/msgf/ops/v32-heartbeat` (Bearer or `X-MSGF-Ops-Cron-Secret`; admin key not accepted) |
 | `REDIS_URL` (or project Redis env) | V3.2 hot layer — P4 active slices |
+| GitHub `MSGF_APP_URL` + `MSGF_OPS_CRON_SECRET` | `.github/workflows/msgf-tier-heartbeat.yml` — tier + scheduled heals + purge |
 
 **DNS (production):**
 
@@ -286,5 +371,10 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-05-23 | **Testing SSoT:** [`MSGF_TESTING.md`](./MSGF_TESTING.md); `npm run test:unit` / `test:integration` (cross-platform runners). **v32-heartbeat:** strict cron secret; `6h`/`nightly` DB rows + `resolveAutoCronLomConsensusStrategy`. **Human arbitration** + circuit breaker docs in §7. |
+| 2026-05-22 | **CROSS-REF DB hardening:** Postgres ENUMs (`msgf_governance_pillar`, `msgf_constraint_ledger`, scheduling tier) + DOMAIN slug types + `pillar_vectors` cross-ref columns + enforce triggers; Zod `MSG_DB_*` mirror; `npm run test:crossref-db`. |
+| 2026-05-22 | **Post-Ingest Healing:** heal-queue API + web `PostIngestHealingConsole` + IDE `msgf-pulse-guard` console; scheduled heal cron on `v32-heartbeat`; §7.3 checklist; §2.6 PERSIST **Done**; readiness ~82%; M4b IDE UX **Done**. |
+| 2026-05-22 | §2.6 status column + milestone checkoffs; §7 refresh (~75% V3.2); §7.1 mock/dead-end API registry; §7.2 ingest vs self-heal semantics. |
+| 2026-05-21 | V3.2 ops: `v32_directive`, Redis SHARD, ingest DEFEND, dashboard arbitrate, `v32-heartbeat`, `/status` `force-dynamic`. |
 | 2026-05-15 | **V3.2-ULTRA integrated:** Primary spec `docs/references/MSGF_v3_2_masterdoc.pdf`; hot/cold layers; Vault vs Hall + 30d purge; tiered batching + mandatory RED tie-breaker; V3.2-ULTRA directive (SWEEP→PERSIST) replaces V3.0-STRICT table; readiness mapped to §2.6. |
 | 2026-05-15 | Initial MSGF 1.0 SSOT from `MSGF_v3_masterdoc.pdf`: vision, dual product model, six pillars, milestones M0–M6, three-domain monorepo alignment. |

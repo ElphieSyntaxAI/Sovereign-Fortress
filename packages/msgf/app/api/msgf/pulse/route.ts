@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
  */
 import { randomUUID } from "crypto";
 
@@ -102,6 +102,7 @@ async function runPulsePipelineWithHotLayer(params: {
   logicDriftEscalationThreshold: number | undefined;
   byokGeminiKey: string | null;
   byokAnthropicKey: string | null;
+  isIdePulse?: boolean;
 }) {
   return pulseEngine.runFullPipeline({
     supabase: params.supabase,
@@ -118,6 +119,7 @@ async function runPulsePipelineWithHotLayer(params: {
     hotSession: params.hotSession,
     byokGeminiKey: params.byokGeminiKey,
     byokAnthropicKey: params.byokAnthropicKey,
+    isIdePulse: params.isIdePulse,
   });
 }
 
@@ -278,7 +280,7 @@ export async function POST(req: NextRequest) {
           {
             error: "REDIS_REQUIRED",
             detail:
-              "MSGF_REQUIRE_REDIS is set but the hot layer is unavailable. Configure REDIS_HOST or REDIS_URL.",
+              "MSGF_REQUIRE_REDIS is set but the hot layer is unavailable. Configure UPSTASH_REDIS_REST_* or REDIS_HOST or REDIS_URL.",
             hot_layer: pulseHotLayerDiagnostics(hotSession),
           },
           { status: 503 }
@@ -304,6 +306,7 @@ export async function POST(req: NextRequest) {
           logicDriftEscalationThreshold,
           byokGeminiKey: byok.gemini,
           byokAnthropicKey: byok.anthropic,
+          isIdePulse: idePulse,
         });
       } catch (e) {
         if (e instanceof PulseHttpError) {

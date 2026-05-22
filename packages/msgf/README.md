@@ -9,6 +9,7 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | Doc | Purpose |
 | :--- | :--- |
 | [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) | **1.0 vision & release plan** (MSGF V3.2-ULTRA) |
+| [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
 | [`docs/MONOREPO_PRODUCTS.md`](../../docs/MONOREPO_PRODUCTS.md) | Three web apps & domains |
 | [`pre_ingestion_audit.md`](./pre_ingestion_audit.md) | Day-zero audit (SWEEP) & CONVERGE backlog |
 | [`docs/PILLAR_PROGRESS.md`](../../docs/PILLAR_PROGRESS.md) | Pillar/AUTH implementation tracker |
@@ -184,6 +185,7 @@ npm run test:lom-disagreement -w msgf
 
 | Check | Command / signal |
 | :--- | :--- |
+| Unit tests | `npm run test:unit -w msgf` |
 | Env | `npm run verify:msgf-env -w msgf` |
 | Schema | `npm run verify:db-schema -w msgf` (optional) |
 | Dev server | `npm run dev -w msgf` |
@@ -192,24 +194,57 @@ npm run test:lom-disagreement -w msgf
 
 When all pass, Phase 0 is complete — proceed to Phase 1 (SHARD/DEFEND) in [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) before Author Ecosystem integration.
 
+Add **`npm run test:unit -w msgf`** to the checklist for a fast offline regression pass (see [Testing](#testing-admin-vs-end-users)).
+
+---
+
+## Testing (admin vs end users)
+
+Full reference: [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md).
+
+**Operators (you)** run npm scripts from the repo root on **Windows, macOS, or Linux**:
+
+```bash
+npm run test:unit -w msgf
+```
+
+**End users** (authors / tenants) do not run these commands — they use the dashboard, Pulse API, and the Pulse Guard IDE extension.
+
+| Role | What to run |
+| :--- | :--- |
+| **Admin — fast offline** | `npm run test:unit -w msgf` (heal-queue, ops-cron, crossref-db, remediation-circuit, human-arbitration, ingest-metadata) |
+| **Admin — env / DB** | `npm run verify:msgf-env -w msgf` · `npm run verify:db-schema -w msgf` |
+| **Admin — integration** | `npm run test:integration -w msgf` (needs `.env`; optional `test:lom-disagreement` with dev server) |
+| **User** | Sign in → dashboard healing drawer; Pulse; IDE extension — no npm |
+
+Use separate terminal commands (not PowerShell `&&` chains) when running multiple steps.
+
 ---
 
 ## Scripts
 
 | Script | Purpose |
 | :--- | :--- |
+| `npm run test:unit -w msgf` | **All unit tests** (cross-platform; no Supabase) |
+| `npm run test:integration -w msgf` | Bundled integration tests (needs env) |
 | `npm run verify:msgf-env -w msgf` | **Phase 0** — env + `service-account.json` |
 | `npm run verify:db-schema -w msgf` | Postgres schema vs migrations |
 | `npm run dev -w msgf` | Next dev server |
 | `npm run build -w msgf` | Production build |
-| `npm run test:lom-disagreement -w msgf` | LOM / recursion harness |
+| `npm run test:heal-queue -w msgf` | Heal-queue Zod + cron `6h`/`nightly` + LOM consensus picker |
+| `npm run test:ops-cron -w msgf` | Ops cron secret + Redis purge helpers |
+| `npm run test:remediation-circuit -w msgf` | Circuit breaker → `PENDING_HUMAN_ARBITRATION` |
+| `npm run test:human-arbitration -w msgf` | Human arbitration strategy packages |
+| `npm run test:crossref-db -w msgf` | CROSS-REF ENUM / Zod mirrors |
+| `npm run test:lom-disagreement -w msgf` | LOM / recursion harness (dev server + `MSGF_ENABLE_LOM_TEST`) |
 | `npm run probe:author-ecosystem -w msgf` | Cross-stack smoke (post–integration) |
 | `npm run security:prancer-pillars -w msgf` | Static security scan |
 | `npm run test:v32-ultra -w msgf` | V3.2-ULTRA integration harness (Vault/Hall, purge, directive) |
 | `GET /health` | Liveness + V3.2 SHARD (Redis) checklist |
-| `POST /api/msgf/ops/v32-heartbeat` | Cron: YELLOW/GREEN tier reports + 30d Hall purge (Bearer `MSGF_OPS_CRON_SECRET`) |
+| `POST /api/msgf/ops/v32-heartbeat` | Cron: tier batches + **`6h`/`nightly`** scheduled heals (LOM consensus + Vault) + Hall purge — **`MSGF_OPS_CRON_SECRET` only** |
+| `GET/POST /api/msgf/heal-queue` | Remediation queue; `human_arbitration_packages` on GET; `POST .../human-arbitration` for APPROVE/DENY |
 
-**Production Redis (SHARD):** set `REDIS_HOST` (Memorystore) or `REDIS_URL`; optional `MSGF_REQUIRE_REDIS=1` to reject Pulse when hot layer is down.
+**Production Redis (SHARD):** Upstash REST (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`), Memorystore (`REDIS_HOST`), or local `REDIS_URL`. Verify with `npm run upstash-redis-ping -w msgf`. Optional `MSGF_REQUIRE_REDIS=1` rejects Pulse when hot layer is down.
 
 ---
 

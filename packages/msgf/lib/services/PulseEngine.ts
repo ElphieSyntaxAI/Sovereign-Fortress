@@ -8,10 +8,34 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1013d7a-20260522T022234Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1013d7a-20260522T020901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering â€” including decompilation, disassembly, or derivative
+ * works â€” is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-dde0b5b-20260519T185358Z-internal
  */
 /**
- * MSGF V3.2-ULTRA Pulse pipeline — SHARD → DEFEND → CONVERGE → PERSIST.
+ * MSGF V3.2-ULTRA Pulse pipeline â€” SHARD â†’ DEFEND â†’ CONVERGE â†’ PERSIST.
  * Modular: no imports from apps/author-ecosystem.
  */
 
@@ -146,9 +170,16 @@ import {
 } from "@/lib/services/anthropic-direct-fallback";
 import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
 import { extractProjectOriginFromPulseBody } from "@/lib/utils/pulse-eco-context";
+import { runV32PulsePipeline } from "@/lib/services/pulse-pipeline/run-v32-pipeline";
+import {
+  recordRemediationFailure,
+  recordRemediationSuccess,
+  resolveRemediationFilePath,
+  tripRemediationCircuitBreaker,
+} from "@/lib/services/remediation-retry-circuit";
 
 const LOM_MAX_ATTEMPTS = MAX_RECURSION_DEPTH;
-/** HITL / LOM recursion ceiling — exceeding throws {@link ERR_RECURSION_LIMIT}. */
+/** HITL / LOM recursion ceiling â€” exceeding throws {@link ERR_RECURSION_LIMIT}. */
 export const PULSE_RECURSION_MAX_RETRY = MAX_RECURSION_DEPTH;
 
 /** At this retry count, CONVERGE emits a Halt-State Summary for the Human Tie-Breaker. */
@@ -162,17 +193,6 @@ const CLAUDE_VERTEX_LOCATION =
   process.env.GCP_CLAUDE_LOCATION?.trim() ||
   "global";
 const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-sonnet-4@20250514";
-
-function estimateP5ContextShardingTokensSaved(ctx: PulseConvergeContext): number {
-  const shardableContextChars =
-    ctx.beatsContext.length +
-    ctx.vaultCrossRefContext.length +
-    ctx.p2FlowDirective.length +
-    ctx.defendConstraints.length;
-  const approximateContextTokens = Math.ceil(shardableContextChars / 4);
-  const hotLayerMultiplier = ctx.hotLayerHit || ctx.lineageRedisHit ? 0.72 : 0.38;
-  return Math.max(0, Math.floor(approximateContextTokens * hotLayerMultiplier));
-}
 
 function vertexEndpointForLocation(location: string): string {
   return location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`;
@@ -227,13 +247,29 @@ export type PulseEngineInput = {
 export type PulseFullPipelineInput = PulseEngineInput & {
   geminiModelId: string;
   license: PulseLicenseContext;
-  /** Logic-drift sensitivity slider (0.1 strict → 0.5 relaxed). Default 0.3. */
+  /** Logic-drift sensitivity slider (0.1 strict â†’ 0.5 relaxed). Default 0.3. */
   logicDriftEscalationThreshold?: number;
   /** V3.2 SHARD / CROSS-REF hot session from the HTTP route (Redis fail-open). */
   hotSession?: PulseHotSession;
   /** IDE `.msgf/keys` BYOK for dual-model local gateway. */
   byokGeminiKey?: string | null;
   byokAnthropicKey?: string | null;
+  /** Chrome extension / IDE onboarding â€” shorter CONVERGE timeout with local degrade. */
+  isIdePulse?: boolean;
+};
+
+/** CONVERGE dual-model output before ARBITRATE retry / HITL decisions. */
+export type PulseConsensusCoreResult = {
+  chunks: KeystrokeChunk[];
+  verifyResults: Awaited<ReturnType<StateLedgerP4["verifyKeystrokeStream"]>>["results"];
+  consensus: ChunkConsensus[];
+  allHumanConfirmed: boolean;
+  geminiVerdict: ModelVerdict;
+  claudeVerdict: ModelVerdict;
+  hal: HalScoreResult;
+  halScore: number;
+  modelsDisagree: boolean;
+  recalibrationActive: boolean;
 };
 
 export type LineageLedgerRow = {
@@ -249,7 +285,7 @@ export type PulsePipelineContext = {
   pulseText: string;
   humanTieBreakerResolved: boolean;
   approvedDelta: string | undefined;
-  /** True when P1–P6 governance baselines exist in `pillar_vectors` for this tenant. */
+  /** True when P1â€“P6 governance baselines exist in `pillar_vectors` for this tenant. */
   isPillarBaselineSet: boolean;
   previousBeats: StateBeatRow[];
   previousRetryCount: number;
@@ -299,9 +335,9 @@ export type PulsePersistResult = {
 
 export type PulseFullPipelineOk = {
   kind: "ok";
-  /** Tenant / IDE safe — no LOM chain-of-thought, chunks, or raw verify rationales. */
+  /** Tenant / IDE safe â€” no LOM chain-of-thought, chunks, or raw verify rationales. */
   public: Record<string, unknown>;
-  /** Full forensic trace — persisted to `admin_vault` (service_role only). */
+  /** Full forensic trace â€” persisted to `admin_vault` (service_role only). */
   forensic: Record<string, unknown>;
 };
 
@@ -342,512 +378,12 @@ export type PersistHallRejectionInput = {
 
 export class PulseEngine {
   /**
-   * V3.2 full pipeline: SHARD/DEFEND → CONVERGE (dual-model + HAL) → PERSIST (Vault/Hall + beats).
+   * V3.2 full pipeline: GATE â†’ CONVERGE â†’ ARBITRATE â†’ PERSIST (see `pulse-pipeline/`).
    */
   async runFullPipeline(input: PulseFullPipelineInput): Promise<PulseFullPipelineResult> {
-    const pulseTraceId = input.traceId?.trim() || randomUUID();
-
-    const pledge = await this.assertPledgeAndBaseline(
-      input.supabase,
-      input.tenantId,
-      input.entityId,
-      input.hotSession
-    );
-    if (!pledge.ok) {
-      return {
-        kind: "baseline_required",
-        public: { ...pledge.body, trace_id: pulseTraceId },
-        forensic: {
-          kind: "pulse_baseline_required",
-          tenant_id: input.tenantId,
-          entity_id: input.entityId,
-          trace_id: pulseTraceId,
-          captured_at: new Date().toISOString(),
-        },
-      };
-    }
-
-    try {
-    let isPillarBaselineSet = await isTenantPillarBaselineSet(
-      input.adminSupabase,
-      input.tenantId
-    );
-
-    if (!isPillarBaselineSet) {
-      await ensureTenantPillarBaseline(input.adminSupabase, input.tenantId);
-      isPillarBaselineSet = await isTenantPillarBaselineSet(
-        input.adminSupabase,
-        input.tenantId
-      );
-    }
-
-    const defended = await this.runThroughDefend(input, isPillarBaselineSet);
-
-    const biometricProfile = await getBiometricProfile(input.supabase, input.entityId);
-    const biometric = calculateBiometricScore({
-      keystrokes: defended.keystrokes,
-      profile: biometricProfile,
-    });
-
-    const logicDrift = assessLogicDrift({
-      pulseText: defended.pulseText,
-      halScore: biometric.score,
-      biometricDeltaOver30: biometric.deltaOver30Percent,
-      vaultP2Prioritized: defended.vaultP2Prioritized,
-      preflight: defended.preflight,
-      escalationThreshold: input.logicDriftEscalationThreshold,
-    });
-
-    const forceGlobal =
-      defended.humanTieBreakerResolved || Boolean(defended.approvedDelta?.trim());
-
-    const { commercial: tenantCommercial, routing: convergeRouting } =
-      await resolveConvergeConsensusRouting({
-        adminSupabase: input.adminSupabase,
-        tenantId: input.tenantId,
-        entityId: input.entityId,
-        license: input.license,
-        headerGeminiKey: input.byokGeminiKey,
-        headerAnthropicKey: input.byokAnthropicKey,
-      });
-
-    if (!shouldEscalateToGlobalBrain(logicDrift, { forceGlobal })) {
-      let dualModelGateway: DualModelGatewaySnapshot | undefined;
-      if (
-        isDualModelLocalGatewayEnabled() &&
-        shouldRunLocalDualModelGateway(convergeRouting)
-      ) {
-        dualModelGateway = await runTenantDualModelConsensusGateway({
-          adminSupabase: input.adminSupabase,
-          tenantId: input.tenantId,
-          pulseText: defended.pulseText,
-          keystrokes: defended.keystrokes,
-          beatsContext: defended.beatsContext,
-          p2FlowDirective: defended.p2FlowDirective,
-          vaultCrossRefContext: defended.vaultCrossRefContext,
-          defendConstraints: defended.defendConstraints,
-          geminiModelId: input.geminiModelId,
-          byokGeminiKey:
-            convergeRouting.action === "run_byok_converge"
-              ? convergeRouting.byok.gemini
-              : convergeRouting.byok.gemini ?? input.byokGeminiKey,
-          byokAnthropicKey:
-            convergeRouting.action === "run_byok_converge"
-              ? convergeRouting.byok.anthropic
-              : convergeRouting.byok.anthropic ?? input.byokAnthropicKey,
-          skipTenantCredentialAssert:
-            convergeRouting.segment === "corporate_paid" ||
-            convergeRouting.action === "run_perpetual_platform_converge",
-        });
-      }
-
-      const local = await processLocalGateway({
-        supabase: input.supabase,
-        tenantId: input.tenantId,
-        entityId: input.entityId,
-        legalVersion: pledge.legalVersion,
-        pulseText: defended.pulseText,
-        keystrokes: defended.keystrokes,
-        logicDrift,
-        isPillarBaselineSet: defended.isPillarBaselineSet,
-        defendPreflightTier: defended.preflight.tier,
-        pulseTraceId,
-        dualModelGateway,
-      });
-
-      await setActiveSlice({
-        entityId: input.entityId,
-        previousBeats: [...defended.previousBeats, local.storedBeat].slice(-32),
-        previousRetryCount: defended.previousRetryCount,
-      });
-
-      const remediationSummary = buildPulseRemediationSummaryLocal();
-      const glass = buildPulseGlassBoxData({
-        driftScore: logicDrift.score,
-        preflightTier: String(defended.preflight.tier),
-        routing: "local_gateway",
-        humanTiebreakerRequired: false,
-        halScore: biometric.score,
-        ledger: null,
-        consensusAllHuman: null,
-        modelsDisagree: null,
-        remediationSummary,
-      });
-
-      const publicBody: Record<string, unknown> = {
-        ok: true,
-        trace_id: pulseTraceId,
-        data: glass,
-        routing: "local_gateway",
-        logic_drift_score: logicDrift.score,
-        logic_drift_escalation_threshold: logicDrift.escalation_threshold,
-        contradicts_p2_roadmap: logicDrift.contradictsP2Roadmap,
-        is_pillar_baseline_set: defended.isPillarBaselineSet,
-        beat: stripPublicBeat(local.storedBeat),
-        hal_score: biometric.score,
-        retry_count: defended.previousRetryCount,
-        tie_breaker_protocol_triggered: false,
-        human_tiebreaker_required: false,
-        human_tiebreaker_resolved: false,
-        block_user: false,
-        active_slice_ttl_seconds: HOT_LAYER_ACTIVE_SLICE_TTL_SECONDS,
-        hot_layer_hit: defended.hotLayerHit,
-        lineage_redis_hit: defended.lineageRedisHit,
-        vault_narrative_log_id: null,
-        hall_narrative_log_id: null,
-        ledger: null,
-        license_tenant: input.license.tenantId,
-        license_tier: input.license.tierId,
-        defend_preflight_tier: defended.preflight.tier,
-        vault_lineage_hits: defended.vaultLineage.length,
-        vault_p2_aligned: defended.vaultP2Prioritized.aligned.length,
-        vault_p2_contradicts_roadmap: defended.vaultP2Prioritized.contradicts.length,
-        p2_roadmap_version: defended.p2Roadmap.version,
-        momentum_increased: false,
-        tenant_commercial_segment: tenantCommercial.segment,
-        converge_routing_action: convergeRouting.action,
-        ...(dualModelGateway
-          ? {
-              dual_model_tenant_agreement_score: dualModelGateway.tenant_agreement_score,
-              dual_model_sovereign_escalated: dualModelGateway.sovereign_escalated,
-              dual_model_sovereign_agreement_score: dualModelGateway.sovereign_agreement_score,
-            }
-          : {}),
-        ...buildConvergePublicResponseFields(convergeRouting),
-      };
-
-      const forensic: Record<string, unknown> = {
-        kind: "pulse_local_gateway",
-        trace_id: pulseTraceId,
-        captured_at: new Date().toISOString(),
-        tenant_id: input.tenantId,
-        entity_id: input.entityId,
-        pulse_text: defended.pulseText,
-        keystrokes: defended.keystrokes,
-        logic_drift: logicDrift,
-        biometric,
-        stored_beat_row: local.storedBeat,
-        defend_preflight: defended.preflight,
-        vault_lineage_snapshot: defended.vaultLineage.slice(0, 25),
-        vault_cross_ref_context: defended.vaultCrossRefContext,
-        p2_flow_directive: defended.p2FlowDirective,
-        defend_constraints: defended.defendConstraints,
-        vault_p2_prioritized: defended.vaultP2Prioritized,
-        p2_roadmap: defended.p2Roadmap,
-        global_mitigations: defended.globalMitigations,
-        hot_layer_hit: defended.hotLayerHit,
-        lineage_redis_hit: defended.lineageRedisHit,
-        dual_model_gateway: dualModelGateway ?? null,
-        tenant_commercial_segment: tenantCommercial.segment,
-        converge_routing: convergeRouting,
-      };
-
-      return {
-        kind: "ok",
-        public: publicBody,
-        forensic,
-      };
-    }
-
-    if (isConvergeEscalationBypassOrDegraded(convergeRouting)) {
-      const beatLabel =
-        convergeRouting.action === "soft_cap_exceeded_ide_degraded"
-          ? "converge_soft_cap_degraded"
-          : "converge_bypass";
-
-      const local = await processLocalGateway({
-        supabase: input.supabase,
-        tenantId: input.tenantId,
-        entityId: input.entityId,
-        legalVersion: pledge.legalVersion,
-        pulseText: defended.pulseText,
-        keystrokes: defended.keystrokes,
-        logicDrift,
-        isPillarBaselineSet: defended.isPillarBaselineSet,
-        defendPreflightTier: defended.preflight.tier,
-        pulseTraceId,
-        beatLabel,
-        convergeBypass: convergeRouting.action !== "soft_cap_exceeded_ide_degraded",
-      });
-
-      await setActiveSlice({
-        entityId: input.entityId,
-        previousBeats: [...defended.previousBeats, local.storedBeat].slice(-32),
-        previousRetryCount: defended.previousRetryCount,
-      });
-
-      const remediationSummary = buildPulseRemediationSummaryLocal();
-      const routingLabel =
-        convergeRouting.action === "soft_cap_exceeded_ide_degraded"
-          ? "converge_soft_cap_degraded"
-          : "converge_bypass";
-
-      const glass = buildPulseGlassBoxData({
-        driftScore: logicDrift.score,
-        preflightTier: String(defended.preflight.tier),
-        routing: routingLabel,
-        humanTiebreakerRequired: false,
-        halScore: biometric.score,
-        ledger: null,
-        consensusAllHuman: null,
-        modelsDisagree: null,
-        remediationSummary,
-      });
-
-      const publicBody: Record<string, unknown> = {
-        ok: true,
-        trace_id: pulseTraceId,
-        data: glass,
-        routing: routingLabel,
-        ...buildConvergePublicResponseFields(convergeRouting),
-        logic_drift_score: logicDrift.score,
-        logic_drift_escalation_threshold: logicDrift.escalation_threshold,
-        contradicts_p2_roadmap: logicDrift.contradictsP2Roadmap,
-        is_pillar_baseline_set: defended.isPillarBaselineSet,
-        beat: stripPublicBeat(local.storedBeat),
-        hal_score: biometric.score,
-        retry_count: defended.previousRetryCount,
-        tie_breaker_protocol_triggered: false,
-        human_tiebreaker_required: false,
-        human_tiebreaker_resolved: false,
-        block_user: false,
-        active_slice_ttl_seconds: HOT_LAYER_ACTIVE_SLICE_TTL_SECONDS,
-        hot_layer_hit: defended.hotLayerHit,
-        lineage_redis_hit: defended.lineageRedisHit,
-        vault_narrative_log_id: null,
-        hall_narrative_log_id: null,
-        ledger: null,
-        license_tenant: input.license.tenantId,
-        license_tier: input.license.tierId,
-        tenant_commercial_segment: tenantCommercial.segment,
-        defend_preflight_tier: defended.preflight.tier,
-        vault_lineage_hits: defended.vaultLineage.length,
-        vault_p2_aligned: defended.vaultP2Prioritized.aligned.length,
-        vault_p2_contradicts_roadmap: defended.vaultP2Prioritized.contradicts.length,
-        p2_roadmap_version: defended.p2Roadmap.version,
-        momentum_increased: false,
-      };
-
-      const forensic: Record<string, unknown> = {
-        kind:
-          convergeRouting.action === "soft_cap_exceeded_ide_degraded"
-            ? "pulse_converge_soft_cap_degraded"
-            : "pulse_converge_bypass",
-        trace_id: pulseTraceId,
-        captured_at: new Date().toISOString(),
-        tenant_id: input.tenantId,
-        entity_id: input.entityId,
-        pulse_text: defended.pulseText,
-        keystrokes: defended.keystrokes,
-        logic_drift: logicDrift,
-        biometric,
-        stored_beat_row: local.storedBeat,
-        defend_preflight: defended.preflight,
-        tenant_commercial_segment: tenantCommercial.segment,
-        converge_routing: convergeRouting,
-        byok_presence: {
-          gemini: convergeRouting.byok.sources.gemini,
-          anthropic: convergeRouting.byok.sources.anthropic,
-        },
-      };
-
-      return {
-        kind: "ok",
-        public: publicBody,
-        forensic,
-      };
-    }
-
-    const byokConverge =
-      convergeRouting.action === "run_byok_converge"
-        ? {
-            geminiKey: convergeRouting.byok.gemini!,
-            anthropicKey: convergeRouting.byok.anthropic!,
-          }
-        : undefined;
-
-    const corporateVaultByok =
-      convergeRouting.action === "run_corporate_system_converge" &&
-      convergeRouting.enterpriseVaultConfigured
-        ? {
-            geminiKey: convergeRouting.byok.gemini!,
-            anthropicKey: convergeRouting.byok.anthropic!,
-          }
-        : undefined;
-
-    const convergeByok = byokConverge ?? corporateVaultByok;
-    const platformMaster = usesPlatformMasterConvergeCredentials(convergeRouting);
-
-    const converged = await this.converge({
-      ...defended,
-      supabase: input.supabase,
-      adminSupabase: input.adminSupabase,
-      legalVersion: pledge.legalVersion,
-      geminiModelId: input.geminiModelId,
-      license: input.license,
-      convergeCredentialMode: platformMaster
-        ? convergeRouting.segment === "individual_perpetual"
-          ? "individual_perpetual_platform"
-          : "corporate_system"
-        : "individual_byok",
-      byokGeminiKey: convergeByok?.geminiKey,
-      byokAnthropicKey: convergeByok?.anthropicKey,
-    });
-
-    if (convergeRouting.action === "run_perpetual_platform_converge") {
-      await recordPerpetualPlatformConvergeSlice({
-        adminSupabase: input.adminSupabase,
-        entityId: input.entityId,
-        tenantId: input.tenantId,
-        idempotencyKey: pulseTraceId,
-        traceId: pulseTraceId,
-      });
-    }
-
-    const persisted = await this.persist({
-      adminSupabase: input.adminSupabase,
-      converged,
-      pulseTraceId,
-    });
-
-    const p5TokensSaved = estimateP5ContextShardingTokensSaved(converged);
-    if (p5TokensSaved > 0) {
-      const projectOrigin =
-        extractProjectOriginFromPulseBody(input.rawBody) ?? input.tenantId.trim();
-      void ecoAggregatorClient.sendGlobalTelemetryPayload(input.tenantId, p5TokensSaved, {
-        userId: input.entityId,
-        projectOrigin,
-      });
-    }
-
-    const remediationSummary = buildPulseRemediationSummaryGlobal({
-      ledger: persisted.ledger,
-      humanTiebreakerRequired: converged.requiresTieBreaker,
-      allHumanConfirmed: converged.allHumanConfirmed,
-      modelsDisagree: converged.modelsDisagree,
-    });
-    const glass = buildPulseGlassBoxData({
-      driftScore: logicDrift.score,
-      preflightTier: String(converged.preflight.tier),
-      routing: "global_brain_converge",
-      humanTiebreakerRequired: converged.requiresTieBreaker,
-      halScore: converged.halScore,
-      ledger: persisted.ledger,
-      consensusAllHuman: converged.allHumanConfirmed,
-      modelsDisagree: converged.modelsDisagree,
-      remediationSummary,
-    });
-
-    const publicBody: Record<string, unknown> = {
-      ok: true,
-      trace_id: pulseTraceId,
-      data: glass,
-      routing: "global_brain_converge",
-      logic_drift_score: logicDrift.score,
-      logic_drift_escalation_threshold: logicDrift.escalation_threshold,
-      contradicts_p2_roadmap: logicDrift.contradictsP2Roadmap,
-      is_pillar_baseline_set: defended.isPillarBaselineSet,
-      beat: stripPublicBeat(converged.storedBeat),
-      hal_score: converged.halScore,
-      retry_count: converged.retryCount,
-      tie_breaker_protocol_triggered: converged.tieBreakerProtocolTriggered,
-      human_tiebreaker_required: converged.requiresTieBreaker,
-      human_tiebreaker_resolved: converged.humanTieBreakerResolved,
-      block_user: false,
-      active_slice_ttl_seconds: HOT_LAYER_ACTIVE_SLICE_TTL_SECONDS,
-      hot_layer_hit: converged.hotLayerHit,
-      lineage_redis_hit: converged.lineageRedisHit,
-      vault_narrative_log_id: persisted.vaultNarrativeLogId,
-      hall_narrative_log_id: persisted.hallNarrativeLogId,
-      ledger: persisted.ledger,
-      license_tenant: input.license.tenantId,
-      license_tier: input.license.tierId,
-      tenant_commercial_segment: tenantCommercial.segment,
-      converge_credential_mode: platformMaster
-        ? convergeRouting.segment === "individual_perpetual"
-          ? "individual_perpetual_platform"
-          : "corporate_system"
-        : "individual_byok",
-      ...buildConvergePublicResponseFields(convergeRouting),
-      ...(convergeRouting.segment === "individual_perpetual" &&
-      "monthlyUsage" in convergeRouting
-        ? {
-            monthly_slices_consumed: convergeRouting.monthlyUsage.slicesConsumed,
-            monthly_slice_soft_cap: convergeRouting.monthlyUsage.softCap,
-          }
-        : {}),
-      defend_preflight_tier: converged.preflight.tier,
-      vault_lineage_hits: converged.vaultLineage.length,
-      vault_p2_aligned: converged.vaultP2Prioritized.aligned.length,
-      vault_p2_contradicts_roadmap: converged.vaultP2Prioritized.contradicts.length,
-      p2_roadmap_version: converged.p2Roadmap.version,
-      consensus_all_human: converged.allHumanConfirmed,
-      models_disagree: converged.modelsDisagree,
-      momentum_increased: converged.momentumIncreased,
-    };
-
-    const forensic: Record<string, unknown> = {
-      kind: "pulse_global_converge",
-      trace_id: pulseTraceId,
-      captured_at: new Date().toISOString(),
-      tenant_id: input.tenantId,
-      entity_id: input.entityId,
-      pulse_text: defended.pulseText,
-      keystrokes: defended.keystrokes,
-      logic_drift: logicDrift,
-      chunks: converged.chunks,
-      p4_verify_results: converged.verifyResults,
-      lom_consensus: converged.consensus.map((c) => ({
-        gemini: c.gemini,
-        claude: c.claude,
-        agreement: c.agreement,
-        decision: c.decision,
-        halScore: c.halScore,
-      })),
-      hal_full: converged.hal,
-      halt_state_summary: converged.haltStateSummary ?? null,
-      persistable_delta: converged.persistableDelta,
-      summary_beat: converged.summaryBeat,
-      stored_beat_row: converged.storedBeat,
-      gemini_verdict: converged.geminiVerdict,
-      claude_verdict: converged.claudeVerdict,
-      defend_preflight: converged.preflight,
-      vault_cross_ref_context: converged.vaultCrossRefContext,
-      p2_flow_directive: converged.p2FlowDirective,
-      defend_constraints: converged.defendConstraints,
-      vault_p2_prioritized: converged.vaultP2Prioritized,
-      p2_roadmap: converged.p2Roadmap,
-      narrative_ids: {
-        vault: persisted.vaultNarrativeLogId,
-        hall: persisted.hallNarrativeLogId,
-      },
-      ledger: persisted.ledger,
-    };
-
-    return {
-      kind: "ok",
-      public: publicBody,
-      forensic,
-    };
-    } catch (e: unknown) {
-      if (isCostRunawayError(e)) {
-        await recordCostRunawayDeadLetterSafe({
-          adminSupabase: input.adminSupabase,
-          tenantId: input.tenantId,
-          entityId: input.entityId,
-          traceId: pulseTraceId,
-          operation: "pulse.run_full_pipeline",
-          error: e,
-        });
-        throw new PulseHttpError(503, {
-          error: "MSGF cost-runaway guard tripped (timeout or AI recursion cap).",
-          code: "COST_RUNAWAY_GUARD",
-          trace_id: pulseTraceId,
-        });
-      }
-      throw e;
-    }
+    return runV32PulsePipeline(this, input);
   }
+
 
   async runThroughDefend(
     input: PulseEngineInput,
@@ -901,23 +437,16 @@ export class PulseEngine {
   }
 
   /**
-   * CONVERGE — dual-model consensus (Gemini + Claude shadow), HAL scoring, state_beats append.
+   * CONVERGE (core) â€” dual-model votes + HAL scoring (no ARBITRATE retry yet).
    */
-  async converge(
+  async runConsensusCore(
     ctx: PulsePipelineContext & {
       supabase: SupabaseClient;
-      adminSupabase: SupabaseClient;
-      legalVersion: string;
       geminiModelId: string;
-      license: PulseLicenseContext;
-      convergeCredentialMode:
-        | "corporate_system"
-        | "individual_perpetual_platform"
-        | "individual_byok";
       byokGeminiKey?: string;
       byokAnthropicKey?: string;
     }
-  ): Promise<PulseConvergeContext> {
+  ): Promise<PulseConsensusCoreResult> {
     const p4 = new StateLedgerP4(ctx.supabase, ctx.tenantId);
     const { chunks, results: verifyResults } = await p4.verifyKeystrokeStream(
       ctx.entityId,
@@ -925,7 +454,6 @@ export class PulseEngine {
     );
 
     const momentumRetryForPrompt = ctx.previousRetryCount;
-
     const chunkForConsensus = chunkKeystrokeStream(ctx.keystrokes);
     const useByokConverge = Boolean(
       ctx.byokGeminiKey?.trim() && ctx.byokAnthropicKey?.trim()
@@ -971,9 +499,46 @@ export class PulseEngine {
       },
     });
 
-    const halScore = hal.halScore;
-    const recalibrationActive = hal.flags.baselineTrainingActive;
-    const modelsDisagree = geminiVerdict !== claudeVerdict;
+    return {
+      chunks,
+      verifyResults,
+      consensus,
+      allHumanConfirmed,
+      geminiVerdict,
+      claudeVerdict,
+      hal,
+      halScore: hal.halScore,
+      modelsDisagree: geminiVerdict !== claudeVerdict,
+      recalibrationActive: hal.flags.baselineTrainingActive,
+    };
+  }
+
+  /**
+   * ARBITRATE â€” retry ceiling, HITL tie-breaker, halt-state, state_beats append.
+   */
+  async runArbitratePhase(
+    ctx: PulsePipelineContext & {
+      supabase: SupabaseClient;
+      adminSupabase: SupabaseClient;
+      legalVersion: string;
+      geminiModelId: string;
+      license: PulseLicenseContext;
+    },
+    core: PulseConsensusCoreResult
+  ): Promise<PulseConvergeContext> {
+    const {
+      chunks,
+      verifyResults,
+      consensus,
+      allHumanConfirmed,
+      geminiVerdict,
+      claudeVerdict,
+      hal,
+    } = core;
+    const halScore = core.halScore;
+    const recalibrationActive = core.recalibrationActive;
+    const modelsDisagree = core.modelsDisagree;
+    const p4 = new StateLedgerP4(ctx.supabase, ctx.tenantId);
     const retryCount =
       halScore < 70 && modelsDisagree ? ctx.previousRetryCount + 1 : ctx.previousRetryCount;
     const momentumIncreased = retryCount > ctx.previousRetryCount;
@@ -1042,6 +607,21 @@ export class PulseEngine {
           allHumanConfirmed,
           haltStateSummary,
         }),
+      });
+
+      const recursionPath = resolveRemediationFilePath({
+        tenantId: ctx.tenantId,
+        entityId: ctx.entityId,
+      });
+      await tripRemediationCircuitBreaker({
+        admin: ctx.adminSupabase,
+        tenantId: ctx.tenantId,
+        filePath: recursionPath,
+        bugIndex: PULSE_BUG_INDEX.hallLomRecursion,
+        reason: `LOM recursion guard exceeded (${retryCount} > ${PULSE_RECURSION_MAX_RETRY})`,
+        source: "pulse_arbitrate_recursion",
+      }).catch((e) => {
+        console.warn("[PulseEngine] recursion circuit trip skipped:", e);
       });
 
       throw new PulseHttpError(403, {
@@ -1166,13 +746,36 @@ export class PulseEngine {
   }
 
   /**
-   * PERSIST — Vault (consensus OK) or Hall (consensus fail / LOM disagreement / HITL).
+   * CONVERGE â€” dual-model consensus (Gemini + Claude shadow), then ARBITRATE.
+   */
+  async converge(
+    ctx: PulsePipelineContext & {
+      supabase: SupabaseClient;
+      adminSupabase: SupabaseClient;
+      legalVersion: string;
+      geminiModelId: string;
+      license: PulseLicenseContext;
+      convergeCredentialMode:
+        | "corporate_system"
+        | "individual_perpetual_platform"
+        | "individual_byok";
+      byokGeminiKey?: string;
+      byokAnthropicKey?: string;
+    }
+  ): Promise<PulseConvergeContext> {
+    const core = await this.runConsensusCore(ctx);
+    return this.runArbitratePhase(ctx, core);
+  }
+
+  /**
+   * PERSIST â€” Vault (consensus OK) or Hall (consensus fail / LOM disagreement / HITL).
    * Refreshes hot-layer active slice; every narrative log carries 1.1.1 bug_index.
    */
   async persist(params: {
     adminSupabase: SupabaseClient;
     converged: PulseConvergeContext;
     pulseTraceId: string;
+    rawBody?: unknown;
   }): Promise<PulsePersistResult> {
     const c = params.converged;
     const consensusFailed = !c.allHumanConfirmed;
@@ -1200,6 +803,21 @@ export class PulseEngine {
       });
       vaultNarrativeLogId = vaultResult.narrativeLogId;
       ledger = "vault";
+
+      const vaultPath = resolveRemediationFilePath({
+        rawBody: params.rawBody,
+        tenantId: c.tenantId,
+        entityId: c.entityId,
+        pulseTraceId: params.pulseTraceId,
+      });
+      await recordRemediationSuccess({
+        admin: params.adminSupabase,
+        tenantId: c.tenantId,
+        filePath: vaultPath,
+        bugIndex: PULSE_BUG_INDEX.vaultConsensusOk,
+      }).catch((e) => {
+        console.warn("[PulseEngine] remediation success reset skipped:", e);
+      });
     } else {
       const bugIndex = consensusFailed
         ? PULSE_BUG_INDEX.hallConsensusFailed
@@ -1261,6 +879,28 @@ export class PulseEngine {
       });
       hallNarrativeLogId = hallResult.narrativeLogId;
       ledger = "hall";
+
+      const hallPath = resolveRemediationFilePath({
+        rawBody: params.rawBody,
+        tenantId: c.tenantId,
+        entityId: c.entityId,
+        pulseTraceId: params.pulseTraceId,
+      });
+      const circuit = await recordRemediationFailure({
+        admin: params.adminSupabase,
+        tenantId: c.tenantId,
+        filePath: hallPath,
+        bugIndex,
+        reason,
+        source: consensusFailed
+          ? "pulse_consensus_failed"
+          : lomDisagreement
+            ? "pulse_lom_disagreement"
+            : "pulse_hitl_required",
+      });
+      if (circuit.tripped) {
+        console.info("[PulseEngine] remediation circuit breaker:", circuit.message);
+      }
     }
 
     const refreshedBeats = [...c.previousBeats, c.storedBeat].slice(-32);
@@ -1274,7 +914,7 @@ export class PulseEngine {
   }
 
   /**
-   * Global Approval Gate — routes LogicDelta to `local_state_cache` or `vault_core` (pillar_vectors).
+   * Global Approval Gate â€” routes LogicDelta to `local_state_cache` or `vault_core` (pillar_vectors).
    */
   async persistLogicDeltaWithGate(input: {
     adminSupabase: SupabaseClient;
@@ -1431,11 +1071,11 @@ export class PulseEngine {
     const strategyLabel = input.remediationStrategyLabel?.trim();
 
     const summaryBeat = strategyLabel
-      ? `Arbitration Beat — ${strategyLabel}`
-      : "Arbitration Beat — operator resolution";
+      ? `Arbitration Beat â€” ${strategyLabel}`
+      : "Arbitration Beat â€” operator resolution";
 
     const content = [
-      "[P2 Cross-Ref — human-corrected arbitration_beat]",
+      "[P2 Cross-Ref â€” human-corrected arbitration_beat]",
       `human_reasoning: ${humanReasoning || "(not provided)"}`,
       `final_fix_applied: ${finalFixApplied || "(not provided)"}`,
       ...(strategyLabel ? [`remediation_strategy_label: ${strategyLabel}`] : []),
@@ -1522,11 +1162,11 @@ export class PulseEngine {
     const strategyLabel = input.remediationStrategyLabel?.trim();
 
     const summaryBeat = input.globalMitigation
-      ? "P2 education — global mitigation (all future sessions)"
-      : "P2 education — session resolution";
+      ? "P2 education â€” global mitigation (all future sessions)"
+      : "P2 education â€” session resolution";
 
     const content = [
-      "[P2 Roadmap education vault — human-corrected]",
+      "[P2 Roadmap education vault â€” human-corrected]",
       "p2_roadmap_education: true",
       "arbitration_beat: true",
       `human_reasoning: ${humanReasoning || "(not provided)"}`,
@@ -1592,7 +1232,7 @@ export class PulseEngine {
     };
   }
 
-  private async assertPledgeAndBaseline(
+  async assertPledgeAndBaseline(
     supabase: SupabaseClient,
     tenantId: string,
     entityId: string,
@@ -1928,7 +1568,7 @@ export class PulseEngine {
   }
 
   /**
-   * LOM Momentum Check — instruct models to simplify (never expand) as retries accrue.
+   * LOM Momentum Check â€” instruct models to simplify (never expand) as retries accrue.
    */
   private buildMomentumDirective(momentumRetryCount: number, momentumIncreased = false): string {
     if (momentumRetryCount <= 0 && !momentumIncreased) return "";

@@ -122,11 +122,26 @@ Recommended Hall labels:
 
 ---
 
+## 6) Mock / dead-end API registry (2026-05-22)
+
+See [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) §7.1. Summary for CONVERGE / RAG hygiene:
+
+| Surface | Why it hallucinates |
+|---------|---------------------|
+| `mockDashboardHealthReport` | Fabricated incidents (“Self-healed recursion”, pending arbitrate) |
+| `eco-rollups` / `public-eco-metrics` `source: mock` | Leaderboard/metrics without DB |
+| `v32_mock_stream` | Synthetic dashboard events |
+| Ingest `missing_pillars` vs self-heal `healed_pillars` | Different APIs — do not merge in prompts |
+| Legacy `sweepAndIngestLegacy`, Author `index.js:3003` | Stale code paths |
+
+---
+
 ## Checklist Completion
 - [x] Summary of Linguistic & Logic Baseline (Human Signature)
 - [x] RED Tier logic vulnerabilities
 - [x] Proposed 1.1.1 Sharding Map for refactor
 - [x] Direct instructions for CONVERGE phase
+- [x] Mock / dead-end API registry (§6)
 
 **Acknowledgement:** The **Ancestral Root has been mapped** and is ready for Vault seeding prior to CONVERGE.
 
