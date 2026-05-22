@@ -49,8 +49,9 @@ export default async function ProjectSetupPage() {
             <span className="text-gradient-jewel">Map your projects</span>
           </h1>
           <p className="text-sm text-slate-400">
-            Register local workspace paths or GitHub repositories. MSGF uses these tags to scope pillar
-            health, eco savings, and your personal contribution to the public network total.
+            Register each monorepo app as its own workspace (Author, MSGF, Syntax Educates, etc.) — not
+            only the repository root. MSGF scopes pillar health, eco savings, and Small Brain heals per{" "}
+            <code className="text-violet-200">project_origin</code> tag.
           </p>
         </header>
         <ProjectSetupClient />

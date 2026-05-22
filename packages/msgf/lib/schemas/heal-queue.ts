@@ -243,6 +243,8 @@ export const HealQueueGetResponseSchema = z
     remediation_tasks: z.array(RemediationTaskSchema),
     human_arbitration_packages: z.array(HumanArbitrationPackageSchema),
     heal_token_summary: HealQueueTokenSummarySchema,
+    audience_scope: z.enum(["user", "admin"]).optional(),
+    big_brain_escalations_pending: z.number().int().min(0).optional(),
   })
   .strict();
 

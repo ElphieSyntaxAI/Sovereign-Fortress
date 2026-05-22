@@ -301,6 +301,7 @@ import {
   PostIngestHealingConsole,
   type HealConsoleStatus,
 } from "@/app/_components/dashboard/PostIngestHealingConsole";
+import { BigBrainIssuesPanel } from "@/app/_components/dashboard/BigBrainIssuesPanel";
 import { TokenSavingsFeaturesPanel } from "@/app/_components/dashboard/TokenSavingsFeaturesPanel";
 import { UserBlueprintEcoPanel } from "@/app/_components/dashboard/UserBlueprintEcoPanel";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
@@ -1505,6 +1506,7 @@ export function DashboardShell({
           onQueueRefresh={() => void refreshHealQueue()}
           externalStatus={healConsoleStatus}
           onStatusChange={setHealConsoleStatus}
+          allowHumanArbitration={embeddedInAdminPortal}
         />
 
         {selectedPillar ? <PillarDrilldown pillar={selectedPillar} /> : null}
@@ -1523,6 +1525,10 @@ export function DashboardShell({
           tenantId={healQueueTenantId}
           operatorView={embeddedInAdminPortal}
         />
+
+        {embeddedInAdminPortal ? (
+          <BigBrainIssuesPanel tenantId={healQueueTenantId} />
+        ) : null}
 
         {dailyReport ? (
           <EnvironmentalMitigationSummaryCard

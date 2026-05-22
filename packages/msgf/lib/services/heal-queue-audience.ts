@@ -1,0 +1,54 @@
+/**
+ * Split heal-queue responses: Small Brain tasks for users, Big Brain arbitration for admins.
+ */
+
+import type { HealQueueGetResponse } from "@/lib/schemas/heal-queue";
+import { REMEDIATION_STATE } from "@/lib/schemas/remediation-state";
+import type { BrainAudience } from "@/lib/services/brain-routing-policy";
+
+function isBigBrainRemediationTask(task: {
+  remediation_state?: string;
+  circuit_breaker_open?: boolean;
+}): boolean {
+  return (
+    task.remediation_state === REMEDIATION_STATE.PENDING_HUMAN_ARBITRATION ||
+    task.circuit_breaker_open === true
+  );
+}
+
+export function countBigBrainHealQueueItems(payload: {
+  remediation_tasks: HealQueueGetResponse["remediation_tasks"];
+  human_arbitration_packages: HealQueueGetResponse["human_arbitration_packages"];
+}): number {
+  const taskCount = payload.remediation_tasks.filter(isBigBrainRemediationTask).length;
+  return taskCount + payload.human_arbitration_packages.length;
+}
+
+/**
+ * User dashboard: actionable Small Brain heals only; Big Brain items summarized as pending admin review.
+ */
+export function applyHealQueueAudienceScope(
+  payload: HealQueueGetResponse,
+  audience: BrainAudience
+): HealQueueGetResponse & {
+  audience_scope: BrainAudience;
+  big_brain_escalations_pending?: number;
+} {
+  if (audience === "admin") {
+    return {
+      ...payload,
+      audience_scope: "admin",
+      big_brain_escalations_pending: countBigBrainHealQueueItems(payload),
+    };
+  }
+
+  const big_brain_escalations_pending = countBigBrainHealQueueItems(payload);
+
+  return {
+    ...payload,
+    audience_scope: "user",
+    big_brain_escalations_pending,
+    remediation_tasks: payload.remediation_tasks.filter((t) => !isBigBrainRemediationTask(t)),
+    human_arbitration_packages: [],
+  };
+}

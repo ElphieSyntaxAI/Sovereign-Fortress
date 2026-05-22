@@ -26,12 +26,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const summary = await getSavingsFeaturesSummary24h(tenantId);
+    const summary = await getSavingsFeaturesSummary24h(tenantId, "user");
 
     return NextResponse.json({
       ok: true,
       summary,
-      note: "Counters populate in Redis after Pulses, ingest, dev-events, and CONVERGE cache hits. Estimates are not billing truth.",
+      note: "Small Brain features and local heals for your workspace(s). Big Brain escalations are reviewed on the admin ops dashboard.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "savings-features stats failed";

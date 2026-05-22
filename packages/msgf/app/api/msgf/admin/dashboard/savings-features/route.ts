@@ -35,13 +35,13 @@ export async function GET(req: NextRequest) {
     const op = await resolveSessionDashboardOperator(admin, user);
     assertSessionOperatorIsAdmin(op);
 
-    const summary = await getSavingsFeaturesSummary24h(tenantId);
+    const summary = await getSavingsFeaturesSummary24h(tenantId, "admin");
 
     return NextResponse.json({
       ok: true,
       operator_role: op.role,
       summary,
-      note: "Admin view includes full feature catalog and per-tenant Redis counters (24h).",
+      note: "Admin view includes Big Brain (global CONVERGE, promotions) and Small Brain counters per tenant.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "admin savings-features failed";

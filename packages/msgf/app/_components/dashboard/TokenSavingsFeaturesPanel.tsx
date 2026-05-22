@@ -66,15 +66,35 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
         Token savings layer
       </p>
       <h2 className="mt-1 text-lg font-semibold text-slate-50">
-        Efficiency features {operatorView ? "(operator)" : ""}
+        {operatorView ? "Small Brain + Big Brain (operator)" : "Your workspace — Small Brain"}
       </h2>
       <p className="mt-2 text-sm text-slate-400">
-        <strong className="text-cyan-300/90">Small Brain</strong> keeps logic in your tenant silo
-        (local gateway, Vault, Redis). <strong className="text-violet-300/90">Big Brain</strong> runs
-        global dual-model CONVERGE; changes to system DNA require admin approval. Counters are
-        model-based — not Stripe billing truth.
+        {operatorView ? (
+          <>
+            Tenant-local efficiency counters plus full catalog. Big Brain escalations are in{" "}
+            <a href="#big-brain-issues" className="text-violet-300 hover:underline">
+              operator queue
+            </a>{" "}
+            below.
+          </>
+        ) : (
+          <>
+            Logic stays in <strong className="text-cyan-300/90">your project workspaces</strong>{" "}
+            (map apps under{" "}
+            <a href="/setup/projects" className="text-emerald-300 hover:underline">
+              Projects
+            </a>
+            ). Global CONVERGE and DNA promotion are handled by operators — not shown here.
+          </>
+        )}
         {!hasActivity ? " Activity appears after Pulse, ingest, IDE dev-events, or CONVERGE runs." : null}
       </p>
+      {!operatorView && summary.small_brain_pulse_pct > 0 ? (
+        <p className="mt-2 text-sm text-slate-300">
+          <strong className="text-cyan-300">{summary.small_brain_pulse_pct}%</strong> of your pulses
+          stayed on Small Brain (local / bypass) in the last 24h.
+        </p>
+      ) : null}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Metric

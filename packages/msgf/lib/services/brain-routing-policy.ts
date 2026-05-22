@@ -37,14 +37,41 @@ export type BrainFeatureId =
   | "human_arbitration_global"
   | "rule_submission_promotion";
 
+export type BrainAudience = "user" | "admin";
+
 export type BrainFeatureDescriptor = {
   id: BrainFeatureId;
   label: string;
   tier: MsgfBrainTier;
+  /** Dashboard / API surface that owns actionable issues for this feature. */
+  audience: BrainAudience;
   /** When true, promoting beyond tenant silo requires GLOBAL/COMPANY admin approval. */
   requires_admin_for_global: boolean;
   description: string;
 };
+
+/** Operator-only surfaces for Big Brain escalations and global DNA promotion. */
+export const BIG_BRAIN_ADMIN_SURFACES = [
+  { label: "Ops dashboard", href: "/admin/dashboard#big-brain-issues" },
+  { label: "Admin incidents", href: "/admin/portal" },
+  { label: "Rule submissions", href: "/api/msgf/admin/rule-submissions" },
+  { label: "Global rules", href: "/api/msgf/admin/global-rules" },
+] as const;
+
+export function audienceForBrainTier(tier: MsgfBrainTier): BrainAudience {
+  return tier === MSGF_BRAIN_BIG ? "admin" : "user";
+}
+
+export function isBigBrainFeatureId(id: BrainFeatureId): boolean {
+  return getBrainFeatureDescriptor(id).tier === MSGF_BRAIN_BIG;
+}
+
+export function filterCatalogEntriesForAudience<
+  T extends { brain_tier: MsgfBrainTier; id?: string }
+>(entries: T[], audience: BrainAudience): T[] {
+  if (audience === "admin") return entries;
+  return entries.filter((e) => e.brain_tier === MSGF_BRAIN_SMALL);
+}
 
 /** Canonical feature map for dashboard catalog + docs. */
 export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
@@ -52,6 +79,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "pulse_local_gateway",
     label: "Pulse local gateway",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description:
       "Low logic drift — session state_beats only; no dual-model CONVERGE or global DNA writes.",
@@ -60,6 +88,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "pulse_converge_bypass",
     label: "Pulse CONVERGE bypass",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description:
       "Escalation criteria met but tenant has no BYOK / allowance — cold baseline beat without Big Brain spend.",
@@ -68,6 +97,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "pulse_converge_degraded",
     label: "Pulse CONVERGE degraded",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description: "Soft cap or timeout — graceful local response instead of blocking on global CONVERGE.",
   },
@@ -75,6 +105,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "pulse_global_converge",
     label: "Pulse global CONVERGE",
     tier: MSGF_BRAIN_BIG,
+    audience: "admin",
     requires_admin_for_global: true,
     description:
       "Dual-model Gemini + Claude when logic drift exceeds threshold; Vault persist may queue for admin if globalize.",
@@ -83,6 +114,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "converge_result_cache",
     label: "CONVERGE result cache",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description:
       "Tenant Redis replay of a prior Big Brain verdict — avoids re-invoking dual-model orchestration.",
@@ -91,6 +123,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "dev_event_heal_cheap",
     label: "IDE dev-event (Heal Cheap)",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description:
       "Build failures: tenant Vault lexical match or single Flash heal — never biometric Pulse or global CONVERGE.",
@@ -99,6 +132,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "dev_session",
     label: "IDE dev-session",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description: "Relaxed drift and save-primary flush — local typing rhythm stays on Small Brain path longer.",
   },
@@ -106,6 +140,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "pulse_idempotency",
     label: "Pulse idempotency",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description: "Duplicate Idempotency-Key returns cached Pulse JSON within TTL.",
   },
@@ -113,6 +148,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "ingest_hash_skip",
     label: "Ingest hash skip",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description: "Unchanged file SHA skips SWEEP — tenant-local Redis hash only.",
   },
@@ -120,6 +156,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "credit_reservation",
     label: "Credit reservation",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description: "Pre-reserve credits before optional Big Brain work; 402 when insufficient.",
   },
@@ -127,6 +164,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "usage_monitor",
     label: "usage_monitor",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description: "Per-actor cumulative token estimate — does not promote logic globally.",
   },
@@ -134,6 +172,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "converge_context_budget",
     label: "CONVERGE context budget",
     tier: MSGF_BRAIN_SMALL,
+    audience: "user",
     requires_admin_for_global: false,
     description: "Caps shardable context before Big Brain CONVERGE to reduce unnecessary escalation cost.",
   },
@@ -141,6 +180,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "human_arbitration_global",
     label: "Human arbitration (global)",
     tier: MSGF_BRAIN_BIG,
+    audience: "admin",
     requires_admin_for_global: true,
     description: "Operator strategies with scope global + apply_to_future_sessions — admin/HITL path.",
   },
@@ -148,6 +188,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     id: "rule_submission_promotion",
     label: "Rule submission promotion",
     tier: MSGF_BRAIN_BIG,
+    audience: "admin",
     requires_admin_for_global: true,
     description: "Tenant submissions to msgf_rules / vault_core require GLOBAL_ADMIN approval.",
   },

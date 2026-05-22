@@ -323,6 +323,8 @@ type Props = {
   onQueueRefresh: () => void;
   externalStatus: HealConsoleStatus;
   onStatusChange: (status: HealConsoleStatus) => void;
+  /** Big Brain human arbitration — admin operators only. */
+  allowHumanArbitration?: boolean;
 };
 
 function groupByPillar(tasks: RemediationTask[]): Map<MsgfGovernancePillar, RemediationTask[]> {
@@ -520,6 +522,7 @@ export function PostIngestHealingConsole({
   onQueueRefresh,
   externalStatus,
   onStatusChange,
+  allowHumanArbitration = false,
 }: Props) {
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [activeArbitrationPath, setActiveArbitrationPath] = useState<string | null>(null);
@@ -773,7 +776,17 @@ export function PostIngestHealingConsole({
             </div>
           ) : null}
 
-          {activeArbitration ? (
+          {!allowHumanArbitration &&
+          (queue?.big_brain_escalations_pending ?? 0) > 0 ? (
+            <div className="mb-4 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2.5 text-sm text-violet-100">
+              {queue.big_brain_escalations_pending} item
+              {(queue.big_brain_escalations_pending ?? 0) === 1 ? "" : "s"} escalated to{" "}
+              <strong>Big Brain</strong> for operator review (global CONVERGE / human arbitration).
+              Use your workspace heals below; admins resolve global issues on the ops dashboard.
+            </div>
+          ) : null}
+
+          {allowHumanArbitration && activeArbitration ? (
             <HumanArbitrationPanel
               pkg={activeArbitration}
               submitting={submitting}
@@ -781,7 +794,7 @@ export function PostIngestHealingConsole({
             />
           ) : null}
 
-          {arbitrationPackages.length > 1 ? (
+          {allowHumanArbitration && arbitrationPackages.length > 1 ? (
             <div className="mb-4 flex flex-wrap gap-1.5">
               {arbitrationPackages.map((p) => (
                 <button

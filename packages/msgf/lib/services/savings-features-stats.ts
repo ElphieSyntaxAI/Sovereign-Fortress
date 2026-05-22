@@ -14,9 +14,12 @@ import {
 import { isUsageMonitorWriteEnabled } from "@/lib/usage-monitor";
 import {
   BRAIN_FEATURE_CATALOG,
+  audienceForBrainTier,
+  filterCatalogEntriesForAudience,
   MSGF_BRAIN_BIG,
   MSGF_BRAIN_SMALL,
   savingsCatalogFeatureIdToBrainId,
+  type BrainAudience,
   type MsgfBrainTier,
 } from "@/lib/services/brain-routing-policy";
 
@@ -40,6 +43,7 @@ export type SavingsFeatureCatalogEntry = {
   api_or_env: string;
   admin_visible: boolean;
   brain_tier: MsgfBrainTier;
+  audience: BrainAudience;
   requires_admin_for_global: boolean;
 };
 
@@ -59,8 +63,12 @@ export type SavingsFeatureCounters = {
 export type SavingsFeaturesSummary = {
   tenant_id: string;
   window_hours: 24;
+  audience_scope: BrainAudience;
   counters: SavingsFeatureCounters;
   pulse_routing: PulseRoutingMix;
+  /** User-facing Small Brain pulse share (excludes global CONVERGE from denominator). */
+  small_brain_pulse_pct: number;
+  big_brain_global_converge_pulses: number;
   catalog: SavingsFeatureCatalogEntry[];
 };
 
@@ -90,6 +98,7 @@ function catalogRow(
     admin_visible: true,
     brain_tier: brain?.tier ?? MSGF_BRAIN_SMALL,
     requires_admin_for_global: brain?.requires_admin_for_global ?? false,
+    audience: brain?.audience ?? audienceForBrainTier(brain?.tier ?? MSGF_BRAIN_SMALL),
   };
 }
 
@@ -169,6 +178,7 @@ export function buildSavingsFeatureCatalog(): SavingsFeatureCatalogEntry[] {
       api_or_env: "Pulse pipeline CONVERGE phase · assertGlobalWriteAllowed",
       admin_visible: true,
       brain_tier: MSGF_BRAIN_BIG,
+      audience: "admin",
       requires_admin_for_global: true,
     },
     {
@@ -180,6 +190,7 @@ export function buildSavingsFeatureCatalog(): SavingsFeatureCatalogEntry[] {
       api_or_env: "GET /api/msgf/admin/rule-submissions · global-approval-gate",
       admin_visible: true,
       brain_tier: MSGF_BRAIN_BIG,
+      audience: "admin",
       requires_admin_for_global: true,
     },
   ];
@@ -209,7 +220,8 @@ export async function recordSavingsFeatureTokensSaved(
 }
 
 export async function getSavingsFeaturesSummary24h(
-  tenantId: string
+  tenantId: string,
+  audience: BrainAudience = "user"
 ): Promise<SavingsFeaturesSummary> {
   const tid = tenantId.trim();
   const prefix = (metric: SavingsFeatureMetricKey) =>
@@ -243,9 +255,21 @@ export async function getSavingsFeaturesSummary24h(
     readCounter(prefix("dev_session_pulse")),
   ]);
 
+  const smallBrainPulses =
+    pulse_routing.local_gateway +
+    pulse_routing.converge_bypass +
+    pulse_routing.converge_degraded;
+  const small_brain_pulse_pct =
+    pulse_routing.total_pulses > 0
+      ? Math.round((smallBrainPulses / pulse_routing.total_pulses) * 1000) / 10
+      : 0;
+
+  const fullCatalog = buildSavingsFeatureCatalog();
+
   return {
     tenant_id: tid,
     window_hours: 24,
+    audience_scope: audience,
     counters: {
       converge_cache_hits,
       converge_cache_tokens_saved,
@@ -259,6 +283,8 @@ export async function getSavingsFeaturesSummary24h(
       dev_session_pulses,
     },
     pulse_routing,
-    catalog: buildSavingsFeatureCatalog(),
+    small_brain_pulse_pct,
+    big_brain_global_converge_pulses: pulse_routing.global_converge,
+    catalog: filterCatalogEntriesForAudience(fullCatalog, audience),
   };
 }

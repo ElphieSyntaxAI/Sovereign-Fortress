@@ -298,6 +298,15 @@ export function ProjectSetupClient() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [monorepoPresets, setMonorepoPresets] = useState<
+    Array<{
+      id: string;
+      display_name: string;
+      project_origin: string;
+      suggested_local_path: string;
+    }>
+  >([]);
+  const [addingPresetId, setAddingPresetId] = useState<string | null>(null);
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -317,7 +326,44 @@ export function ProjectSetupClient() {
 
   useEffect(() => {
     void loadProjects();
+    fetch("/api/workspace/monorepo-presets", { credentials: "include", cache: "no-store" })
+      .then(async (res) => {
+        const json = (await res.json()) as {
+          ok?: boolean;
+          presets?: typeof monorepoPresets;
+        };
+        if (json.ok && json.presets) setMonorepoPresets(json.presets);
+      })
+      .catch(() => setMonorepoPresets([]));
   }, [loadProjects]);
+
+  async function addMonorepoPreset(presetId: string) {
+    const preset = monorepoPresets.find((p) => p.id === presetId);
+    if (!preset) return;
+    setAddingPresetId(presetId);
+    setError(null);
+    try {
+      const res = await fetch("/api/msgf/projects", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source_type: "local",
+          display_name: preset.display_name,
+          local_path: preset.suggested_local_path,
+          project_origin: preset.project_origin,
+        }),
+      });
+      const json = (await res.json()) as { ok: boolean; error?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setMessage(`Mapped workspace: ${preset.display_name}`);
+      await loadProjects();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add preset workspace.");
+    } finally {
+      setAddingPresetId(null);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -383,9 +429,15 @@ export function ProjectSetupClient() {
         <h2 className="text-lg font-semibold text-slate-100">How mapping works</h2>
         <ul className="mt-4 space-y-2 text-sm text-slate-300">
           <li>
+            <strong className="text-cyan-200">Monorepo rule</strong> — add{" "}
+            <strong>one workspace per app</strong> (e.g. <code className="text-cyan-100">apps/author-ecosystem</code>
+            , <code className="text-cyan-100">packages/msgf</code>), not only the git root. Each row is an
+            independent <code className="text-cyan-100">project_origin</code> for Small Brain scoping.
+          </li>
+          <li>
             <strong className="text-cyan-200">Local projects</strong> — register the folder path where
             Pulse Guard runs. MSGF derives a stable <code className="text-cyan-100">project_origin</code>{" "}
-            tag from that path.
+            tag from that path when you do not override it.
           </li>
           <li>
             <strong className="text-cyan-200">GitHub repositories</strong> — paste a{" "}
@@ -402,11 +454,49 @@ export function ProjectSetupClient() {
         </ul>
       </section>
 
+      {monorepoPresets.length > 0 ? (
+        <section className="glass-panel rounded-2xl border border-violet-500/20 p-6">
+          <h2 className="text-lg font-semibold text-slate-100">Elphie Syntax monorepo apps</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            One-click workspace rows — each product app is its own project (recommended for this repo).
+          </p>
+          <ul className="mt-4 space-y-2">
+            {monorepoPresets.map((preset) => {
+              const mapped = projects.some((p) => p.project_origin === preset.project_origin);
+              return (
+                <li
+                  key={preset.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 px-4 py-3 text-sm"
+                >
+                  <div>
+                    <p className="font-medium text-slate-100">{preset.display_name}</p>
+                    <p className="font-mono text-xs text-slate-500">{preset.project_origin}</p>
+                    <p className="text-xs text-slate-600">{preset.suggested_local_path}</p>
+                  </div>
+                  {mapped ? (
+                    <span className="text-xs text-emerald-400">Mapped</span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={addingPresetId === preset.id}
+                      onClick={() => void addMonorepoPreset(preset.id)}
+                      className="rounded-full border border-violet-500/40 bg-violet-500/15 px-3 py-1.5 text-xs font-medium text-violet-100 hover:bg-violet-500/25 disabled:opacity-50"
+                    >
+                      {addingPresetId === preset.id ? "Adding…" : "Add workspace"}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
       <form
         onSubmit={(e) => void handleSubmit(e)}
         className="glass-panel space-y-4 rounded-2xl border border-emerald-500/20 p-6"
       >
-        <h2 className="text-lg font-semibold text-slate-100">Add a project</h2>
+        <h2 className="text-lg font-semibold text-slate-100">Add a custom project</h2>
 
         <div className="flex flex-wrap gap-2">
           {(["local", "github"] as const).map((type) => (

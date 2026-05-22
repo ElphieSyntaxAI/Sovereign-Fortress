@@ -291,6 +291,7 @@ const NAV_ITEMS = [
   { href: "/admin/portal", label: "Portal" },
   { href: "/admin/dashboard", label: "Ops dashboard" },
   { href: "/admin/dashboard#token-savings", label: "Token savings" },
+  { href: "/admin/dashboard#big-brain-issues", label: "Big Brain queue" },
   { href: "/dashboard", label: "Your governance" },
   { href: "/workspace", label: "Workspace" },
 ] as const;

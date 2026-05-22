@@ -37,10 +37,12 @@ import {
   parseHealQueueTenantQuery,
   parseIngestRemediationAction,
 } from "@/lib/schemas/heal-queue";
+import { applyHealQueueAudienceScope } from "@/lib/services/heal-queue-audience";
 import {
   executeHealQueueRemediation,
   listHealQueueRemediationTasks,
 } from "@/lib/services/heal-queue-service";
+import { sessionIsDashboardOperator } from "@/lib/services/resolve-dashboard-operator";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClient as createSupabaseServerClient,
@@ -160,7 +162,15 @@ export async function GET(req: NextRequest) {
     const { brain_readiness, remediation_tasks, human_arbitration_packages, heal_token_summary } =
       await listHealQueueRemediationTasks(admin, tenantId, entityId);
 
-    const payload = HealQueueGetResponseSchema.parse({
+    const cookieStore = await cookies();
+    const supabase = createSupabaseServerClient(cookieStore, requestHostFromRequest(req));
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const isOperator =
+      user != null ? await sessionIsDashboardOperator(admin, user) : false;
+
+    const base = HealQueueGetResponseSchema.parse({
       ok: true,
       tenant_id: tenantId,
       brain_readiness: {
@@ -175,6 +185,8 @@ export async function GET(req: NextRequest) {
       human_arbitration_packages,
       heal_token_summary,
     });
+
+    const payload = applyHealQueueAudienceScope(base, isOperator ? "admin" : "user");
 
     return healJson(req, payload);
   } catch (e) {

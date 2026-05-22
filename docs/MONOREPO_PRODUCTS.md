@@ -56,6 +56,8 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 
 **Integration pattern (Author ↔ MSGF):** Author BFF proxies or calls MSGF routes (e.g. `/api/msgf/pulse`, `/api/msgf/ingest`); shared Supabase auth/cookies when `MSGF_AUTH_COOKIE_DOMAIN` is aligned. See `packages/msgf/scripts/probe-author-ecosystem.mjs`.
 
+**Workspace mapping (Small Brain per app):** On MSGF, users register **one `msgf_user_projects` row per monorepo app** (not only the git root) via `/setup/projects` or presets from `GET /api/workspace/monorepo-presets`. Each row’s `project_origin` scopes personal dashboard health and ingest metadata. **Big Brain** (global CONVERGE, human arbitration, rule promotion) is **admin-only** on `/admin/dashboard`.
+
 ---
 
 ## 4. What “1.0” means per product

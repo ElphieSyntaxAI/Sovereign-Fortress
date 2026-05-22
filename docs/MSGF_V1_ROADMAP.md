@@ -368,12 +368,21 @@ Model-based estimates and Redis counters — **not** Stripe billing truth. Full 
 | **Credit reservation** | ✅ | `lib/credit-reservation.ts` · 402 on insufficient | Catalog + reserve / denied counters |
 | **CONVERGE context budget** | ✅ | `lib/services/converge-context-budget.ts` · `MSGF_CONVERGE_MAX_CONTEXT_TOKENS` | Catalog (env cap; wired in `PulseEngine`) |
 
+**Audience routing**
+
+| Brain | Who acts | Dashboard / API |
+| :--- | :--- | :--- |
+| **Small Brain** | Tenant user | `/dashboard`, `/setup/projects`, `GET /api/msgf/heal-queue` (user scope), `GET /api/msgf/dashboard/savings-features` |
+| **Big Brain** | GLOBAL / COMPANY admin | `/admin/dashboard#big-brain-issues`, human arbitration POST, `GET /api/msgf/admin/dashboard/savings-features` |
+
+**Monorepo:** Register **one workspace per app** (`elphiesyntax/author-ecosystem`, `elphiesyntax/msgf`, …) — see `lib/services/monorepo-workspace-presets.ts`.
+
 **Web surfaces**
 
 | Audience | URL | API |
 | :--- | :--- | :--- |
-| Tenant / buyer | `/dashboard#token-savings` | `GET /api/msgf/dashboard/savings-features?tenant_id=` |
-| Operator (GLOBAL / COMPANY admin) | `/admin/dashboard#token-savings` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` |
+| Tenant / buyer | `/dashboard#token-savings` | `GET /api/msgf/dashboard/savings-features?tenant_id=` (Small Brain catalog only) |
+| Operator (GLOBAL / COMPANY admin) | `/admin/dashboard#token-savings` · `#big-brain-issues` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` |
 
 **QA:** `npm run test:savings -w msgf` (includes checkpoints 18–19: dev-event routing + CONVERGE cache in `tests/savings-qa-checkpoints.test.ts`).
 

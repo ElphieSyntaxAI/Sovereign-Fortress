@@ -26,6 +26,7 @@ import {
   parseHealQueueHumanArbitrationBody,
 } from "@/lib/schemas/heal-queue";
 import { executeHealQueueHumanArbitration } from "@/lib/services/heal-queue-service";
+import { sessionIsDashboardOperator } from "@/lib/services/resolve-dashboard-operator";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClient as createSupabaseServerClient,
@@ -121,7 +122,23 @@ export async function POST(req: NextRequest) {
     }
 
     const body = parseHealQueueHumanArbitrationBody(raw);
+    const apiKey = getApiKey(req);
     const { admin, entityId } = await resolveHealQueueActor(req, body.tenant_id);
+
+    if (!apiKey) {
+      const cookieStore = await cookies();
+      const supabase = createSupabaseServerClient(cookieStore, requestHostFromRequest(req));
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || !(await sessionIsDashboardOperator(admin, user))) {
+        throw new HealQueueValidationError(
+          "Human arbitration (Big Brain) requires GLOBAL_ADMIN or COMPANY_ADMIN.",
+          [{ path: "authorization", message: "Operator role required" }],
+          403
+        );
+      }
+    }
 
     const result = await executeHealQueueHumanArbitration({ admin, entityId, body });
     const payload = HumanArbitrationOkSchema.parse(result);
