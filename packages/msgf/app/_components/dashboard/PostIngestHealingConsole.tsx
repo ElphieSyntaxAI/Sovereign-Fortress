@@ -547,6 +547,7 @@ export function PostIngestHealingConsole({
   );
 
   const grouped = useMemo(() => groupByPillar(tasks), [tasks]);
+  const tokenSummary = queue?.heal_token_summary;
 
   useEffect(() => {
     if (!open) {
@@ -702,7 +703,6 @@ export function PostIngestHealingConsole({
     : "All pillars";
 
   const brain = queue?.brain_readiness;
-  const tokenSummary = queue?.heal_token_summary;
 
   const expensiveHealable = useMemo(
     () => tasks.filter((t) => t.token_estimate?.cost_tier === "expensive"),

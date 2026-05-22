@@ -147,6 +147,8 @@ export const HealActionTokenReportSchema = z
   })
   .strict();
 
+export type HealActionTokenReportDto = z.infer<typeof HealActionTokenReportSchema>;
+
 export const RemediationTaskSchema = z
   .object({
     task_id: z.string().uuid(),

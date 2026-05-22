@@ -294,6 +294,13 @@ const UNIT_TESTS = [
   { label: "test:remediation-circuit", args: ["--test", "tests/remediation-retry-circuit.test.ts"] },
   { label: "test:human-arbitration", args: ["--test", "tests/human-arbitration.test.ts"] },
   { label: "test:ingest-metadata", args: ["tests/ingest-metadata-validation.test.ts"] },
+  { label: "test:token-usage-estimate", args: ["--test", "tests/token-usage-estimate.test.ts"] },
+  { label: "test:heal-token-estimate", args: ["--test", "tests/heal-token-estimate.test.ts"] },
+  { label: "test:credit-reservation", args: ["--test", "tests/credit-reservation-routing.test.ts"] },
+  { label: "test:pulse-eco-savings", args: ["--test", "tests/pulse-eco-savings.test.ts"] },
+  { label: "test:ingest-hash-cache", args: ["--test", "tests/ingest-hash-cache.test.ts"] },
+  { label: "test:pulse-idempotency", args: ["--test", "tests/pulse-idempotency.test.ts"] },
+  { label: "test:usage-monitor", args: ["--test", "tests/usage-monitor.test.ts"] },
 ];
 
 function resolveTsxCli() {

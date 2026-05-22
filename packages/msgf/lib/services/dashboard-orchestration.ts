@@ -104,6 +104,16 @@ export type TenantTelemetry24h = {
   logic_drift_scores: number[];
 };
 
+export type PulseRoutingMixSummary = {
+  tenant_id: string;
+  total_pulses: number;
+  local_gateway: number;
+  converge_bypass: number;
+  global_converge: number;
+  local_or_bypass_pct: number;
+  estimated_tokens_saved_vs_naive: number;
+};
+
 export type DailyNetworkReport = {
   generated_at: string;
   window_hours: 24;
@@ -113,6 +123,7 @@ export type DailyNetworkReport = {
     p5_context_savings_pct: number;
     eco_metrics: EcoMetrics;
   };
+  pulse_routing_mix?: PulseRoutingMixSummary[];
   governance_integrity_metrics: {
     global_logic_drift_slope: number;
     total_anomalies: number;

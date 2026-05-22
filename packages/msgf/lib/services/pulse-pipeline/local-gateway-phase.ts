@@ -33,6 +33,11 @@ import {
 } from "@/lib/services/pulse-public-response";
 import type { GatePhaseOk } from "@/lib/services/pulse-pipeline/gate-phase";
 import type { PulseFullPipelineInput, PulseFullPipelineOk } from "@/lib/services/PulseEngine";
+import {
+  estimatePulseRoutingTokenSavings,
+  recordPulseEcoSavings,
+} from "@/lib/services/pulse-eco-savings";
+import { recordPulseRoutingOutcome } from "@/lib/services/pulse-routing-stats";
 
 export type LocalGatewayPhaseParams = {
   input: PulseFullPipelineInput;
@@ -163,6 +168,26 @@ export async function runLocalGatewayPhase(
     converge_routing: convergeRouting,
     dual_model_gateway: params.dualModelGateway ?? null,
   };
+
+  const authorHalTrusted = Boolean(input.authorHalTelemetry);
+  const savings = estimatePulseRoutingTokenSavings({
+    routing: params.routing,
+    contentChars: defended.pulseText.length,
+    keystrokeCount: defended.keystrokes.length,
+    authorHalTrusted,
+  });
+
+  recordPulseEcoSavings({
+    tenantId: input.tenantId,
+    entityId: input.entityId,
+    routing: params.routing,
+    pulseText: defended.pulseText,
+    keystrokeCount: defended.keystrokes.length,
+    authorHalTrusted,
+    rawBody: input.rawBody,
+  });
+
+  void recordPulseRoutingOutcome(input.tenantId, params.routing, savings.tokens_saved);
 
   return { kind: "ok", public: publicBody, forensic };
 }

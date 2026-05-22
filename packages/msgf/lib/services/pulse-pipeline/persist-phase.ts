@@ -29,6 +29,7 @@ import {
 } from "@/lib/services/pulse-public-response";
 import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
 import { extractProjectOriginFromPulseBody } from "@/lib/utils/pulse-eco-context";
+import { recordPulseRoutingOutcome } from "@/lib/services/pulse-routing-stats";
 import type { GatePhaseOk } from "@/lib/services/pulse-pipeline/gate-phase";
 
 function estimateP5ContextShardingTokensSaved(ctx: PulseConvergeContext): number {
@@ -68,6 +69,8 @@ export async function runPersistPhase(
       projectOrigin,
     });
   }
+
+  void recordPulseRoutingOutcome(input.tenantId, "global_converge", p5TokensSaved);
 
   const remediationSummary = buildPulseRemediationSummaryGlobal({
     ledger: persisted.ledger,

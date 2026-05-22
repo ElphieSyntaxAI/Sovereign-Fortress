@@ -407,6 +407,43 @@ async function main() {
     console.log("OK: public.msgf_master_increment_user_project_eco_rollup exists.");
   }
 
+  console.log("--- usage_monitor (credit guard) ---");
+
+  const usageMonitor = await client.query(
+    `select c.relname
+     from pg_catalog.pg_class c
+     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public'
+       and c.relname = 'usage_monitor'
+       and c.relkind = 'r'`
+  );
+
+  if (usageMonitor.rowCount === 0) {
+    console.error(
+      "FAIL: public.usage_monitor missing. Run db:push (migration 20260526120000_usage_monitor_credit_guard.sql)."
+    );
+    ok = false;
+  } else {
+    console.log("OK: public.usage_monitor exists.");
+  }
+
+  const usageMonitorAdd = await client.query(
+    `select p.proname
+     from pg_catalog.pg_proc p
+     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname = 'msgf_usage_monitor_add'`
+  );
+
+  if (usageMonitorAdd.rowCount === 0) {
+    console.error(
+      "FAIL: public.msgf_usage_monitor_add missing. Run db:push (migration 20260622120000_usage_monitor_increment.sql)."
+    );
+    ok = false;
+  } else {
+    console.log("OK: public.msgf_usage_monitor_add exists.");
+  }
+
   await client.end();
 
   if (!ok) {

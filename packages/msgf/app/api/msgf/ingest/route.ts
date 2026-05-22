@@ -40,10 +40,17 @@ import { logIdentityViolation } from "@/lib/identity-violation-log";
 import { resolveCreditGuardGeminiModelId } from "@/lib/creditGuard";
 import {
   endTenantCreditReservation,
+  resolveIngestCreditReserveAmount,
   shouldReserveForIngestWithFiles,
   startTenantCreditReservation,
   type CreditReservationStart,
 } from "@/lib/credit-reservation";
+import { incrementUsageMonitorTokens } from "@/lib/usage-monitor";
+import {
+  isIngestAuditSkipOnHashHit,
+  partitionIngestFilesByContentHash,
+  updateIngestHashesAfterSweep,
+} from "@/lib/services/ingest-hash-cache";
 import { isCostRunawayError, runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 import { preFlightCheck } from "@/lib/msgf-shadow";
@@ -204,6 +211,16 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
     const pillarBootstrap = await bootstrapTenantBrain(admin, tenantId);
 
+    const hashPartition =
+      normalizedPaths.length > 0
+        ? await partitionIngestFilesByContentHash(tenantId, ingestFiles)
+        : { changed: [], unchanged: [], skipped_paths: [] };
+
+    const filesToSweep = hashPartition.changed;
+    const runGeminiAudit =
+      filesToSweep.length > 0 ||
+      (hashPartition.unchanged.length === 0 && normalizedPaths.length > 0);
+
     const idempotencyKey =
       req.headers.get("Idempotency-Key")?.trim() ||
       req.headers.get("x-msgf-idempotency-key")?.trim() ||
@@ -211,7 +228,16 @@ export async function POST(req: NextRequest) {
 
     let creditStart: CreditReservationStart = { enabled: false };
     if (shouldReserveForIngestWithFiles(normalizedPaths.length)) {
-      creditStart = await startTenantCreditReservation(admin, tenantId, idempotencyKey);
+      const reserveAmount = resolveIngestCreditReserveAmount(
+        filesToSweep.length,
+        runGeminiAudit && !(isIngestAuditSkipOnHashHit() && hashPartition.changed.length === 0)
+      );
+      creditStart = await startTenantCreditReservation(
+        admin,
+        tenantId,
+        idempotencyKey,
+        reserveAmount
+      );
       if (creditStart.enabled && creditStart.insufficient) {
         return NextResponse.json({ error: "INSUFFICIENT_FUNDS" }, { status: 402 });
       }
@@ -220,13 +246,16 @@ export async function POST(req: NextRequest) {
     try {
       const lineageMap = buildLineageMap(ingestFiles);
       let ingestAudit = "- [SKIP] No files provided — pillar bootstrap only.\n";
+      if (hashPartition.skipped_paths.length > 0) {
+        ingestAudit += `- [HASH SKIP] Unchanged content (${hashPartition.skipped_paths.length}): ${hashPartition.skipped_paths.join(", ")}\n`;
+      }
       let ingestedCount = 0;
       let skippedBaseline = true;
 
       const projectOrigin = deriveProjectOrigin(ingestFiles, body.project_origin);
 
-      if (normalizedPaths.length > 0) {
-        const ingestPreview = ingestFiles
+      if (filesToSweep.length > 0) {
+        const ingestPreview = filesToSweep
           .map((f) => f.content)
           .join("\n")
           .slice(0, 12_000);
@@ -255,20 +284,26 @@ export async function POST(req: NextRequest) {
         }
 
         const sweep = await sweepAndIngest({
-          files: ingestFiles,
+          files: filesToSweep,
           tenantId,
           supabase: admin,
           projectOrigin,
         });
-        ingestAudit = sweep.auditLog;
+        ingestAudit += sweep.auditLog;
         ingestedCount = sweep.ingested;
         skippedBaseline = sweep.skippedBaseline;
+        await updateIngestHashesAfterSweep(tenantId, filesToSweep);
       }
 
       const readiness = await computeBrainReadiness(admin, tenantId);
 
-      if (normalizedPaths.length > 0) {
-        const aiAudit = await summarizeForAudit(req, ingestFiles, lineageMap);
+      const skipAudit =
+        isIngestAuditSkipOnHashHit() &&
+        hashPartition.changed.length === 0 &&
+        hashPartition.skipped_paths.length > 0;
+
+      if (normalizedPaths.length > 0 && runGeminiAudit && !skipAudit) {
+        const aiAudit = await summarizeForAudit(req, filesToSweep.length ? filesToSweep : ingestFiles, lineageMap);
         const finalAuditDoc = [
           "# pre_ingestion_audit.md",
           "",
@@ -320,10 +355,19 @@ export async function POST(req: NextRequest) {
         pledge_signed: readiness.pledge_signed,
         skipped_baseline_creation: skippedBaseline,
         ingested_count: ingestedCount,
+        skipped_unchanged_hash_count: hashPartition.skipped_paths.length,
         pillars_created: pillarBootstrap.pillars_created,
+        audit_skipped_hash_unchanged: skipAudit,
       });
 
       await endTenantCreditReservation(admin, creditStart, response.status);
+      const usageTokens = Math.max(
+        80,
+        Math.floor(
+          filesToSweep.reduce((s, f) => s + f.content.length, 0) / 4
+        ) + (skipAudit ? 0 : 400)
+      );
+      void incrementUsageMonitorTokens(`tenant:${tenantId}`, usageTokens);
       return response;
     } catch (inner: unknown) {
       await endTenantCreditReservation(admin, creditStart, 500);

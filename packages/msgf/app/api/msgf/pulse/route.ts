@@ -24,8 +24,15 @@ import { applyPulseCorsHeaders, pulseCorsPreflightResponse } from "@/lib/msgf-co
 import { resolveCreditGuardGeminiModelId } from "@/lib/creditGuard";
 import {
   endTenantCreditReservation,
+  resolvePulseCreditReserveAmount,
   startTenantCreditReservation,
 } from "@/lib/credit-reservation";
+import { incrementUsageMonitorTokens } from "@/lib/usage-monitor";
+import {
+  getPulseIdempotencyCache,
+  setPulseIdempotencyCache,
+} from "@/lib/services/pulse-idempotency";
+import { estimatePulseRoutingTokenSavings } from "@/lib/services/pulse-eco-savings";
 import { insertPulseAdminVaultForensic } from "@/lib/services/pulse-admin-vault";
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import {
@@ -239,10 +246,33 @@ export async function POST(req: NextRequest) {
         req.headers.get("x-msgf-idempotency-key")?.trim() ||
         traceId;
 
+      const authorHalTelemetry = parseAuthorHalTelemetryHeader(
+        req.headers.get(MSGF_AUTHOR_HAL_HEADER)
+      );
+
+      const cached = await getPulseIdempotencyCache({
+        tenantId,
+        entityId,
+        idempotencyKey,
+      });
+      if (cached) {
+        const cachedRes = pulseJsonWithTrace(req, traceId, cached.body, {
+          status: cached.status,
+        });
+        cachedRes.headers.set("x-msgf-pulse-idempotent-replay", "1");
+        return cachedRes;
+      }
+
+      const reserveAmount = resolvePulseCreditReserveAmount({
+        authorHalPresent: Boolean(authorHalTelemetry),
+        idePulse,
+      });
+
       const creditStart = await startTenantCreditReservation(
         adminSupabase,
         tenantId,
-        idempotencyKey
+        idempotencyKey,
+        reserveAmount
       );
       if (creditStart.enabled && creditStart.insufficient) {
         return pulseJsonWithTrace(
@@ -296,9 +326,6 @@ export async function POST(req: NextRequest) {
       }
 
       const byok = extractPulseByokFromRequest(req);
-      const authorHalTelemetry = parseAuthorHalTelemetryHeader(
-        req.headers.get(MSGF_AUTHOR_HAL_HEADER)
-      );
 
       let pipelineResult;
       try {
@@ -377,12 +404,35 @@ export async function POST(req: NextRequest) {
         pipelineResult.public as Record<string, unknown>,
         pipelineResult
       ) as Record<string, unknown>;
+
+      const routing =
+        typeof publicPayload.routing === "string" ? publicPayload.routing : "unknown";
+      const savings = estimatePulseRoutingTokenSavings({
+        routing,
+        contentChars: pulseTextSeed.length,
+        authorHalTrusted: Boolean(authorHalTelemetry),
+      });
+      publicPayload.token_usage_estimate = {
+        without_msgf: savings.without_msgf,
+        with_msgf: savings.with_msgf,
+        tokens_saved: savings.tokens_saved,
+        savings_pct: savings.savings_pct,
+      };
+
       const res200 = pulseJsonWithTrace(req, traceId, publicPayload);
       const allowance = publicPayload.x_msgf_allowance_state;
       if (typeof allowance === "string" && allowance.trim()) {
         res200.headers.set(MSGF_ALLOWANCE_STATE_HEADER, allowance.trim());
       }
       await endTenantCreditReservation(adminSupabase, creditStart, res200.status);
+      void incrementUsageMonitorTokens(entityId, savings.with_msgf);
+      void setPulseIdempotencyCache({
+        tenantId,
+        entityId,
+        idempotencyKey,
+        status: 200,
+        body: publicPayload,
+      });
       return res200;
     });
   } catch (err: unknown) {

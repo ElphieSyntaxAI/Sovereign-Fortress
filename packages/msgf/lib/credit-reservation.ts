@@ -15,14 +15,56 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /** Minimum reserved chunk before Pulse / ingest LLM work (see msgf_credit_reserve). */
 export const MSGF_CREDIT_RESERVE_CHUNK = 1000;
 
+/** Local / bypass Pulse reserve (aligns with token-usage-estimate local gateway base). */
+export const MSGF_PULSE_LOCAL_RESERVE_CHUNK =
+  Number(process.env.MSGF_PULSE_LOCAL_RESERVE_CHUNK?.trim()) || 120;
+
+/** Ingest batch without LLM audit (hash skip / baseline only). */
+export const MSGF_INGEST_LIGHT_RESERVE_CHUNK =
+  Number(process.env.MSGF_INGEST_LIGHT_RESERVE_CHUNK?.trim()) || 80;
+
 export type CreditReservationStart =
   | { enabled: false }
   | { enabled: true; insufficient: true }
   | { enabled: true; insufficient: false; ledgerId: string };
 
+function isCreditReservationProdDefaultOn(): boolean {
+  const v = process.env.MSGF_CREDIT_RESERVATION_PROD_DEFAULT?.trim().toLowerCase();
+  if (v === "0" || v === "false" || v === "no") return false;
+  if (v === "1" || v === "true" || v === "yes") return true;
+  return process.env.NODE_ENV === "production";
+}
+
 export function isCreditReservationEnabled(): boolean {
   const v = process.env.MSGF_CREDIT_RESERVATION_ENABLED?.trim().toLowerCase();
-  return v === "1" || v === "true" || v === "yes";
+  if (v === "1" || v === "true" || v === "yes") return true;
+  if (v === "0" || v === "false" || v === "no") return false;
+  return isCreditReservationProdDefaultOn();
+}
+
+/** Route-aware Pulse reserve — Author HAL + IDE path uses smaller chunk. */
+export function resolvePulseCreditReserveAmount(hints: {
+  authorHalPresent?: boolean;
+  idePulse?: boolean;
+  forceGlobalHint?: boolean;
+}): number {
+  if (hints.forceGlobalHint) return MSGF_CREDIT_RESERVE_CHUNK;
+  if (hints.authorHalPresent && hints.idePulse) return MSGF_PULSE_LOCAL_RESERVE_CHUNK;
+  const localDefault = process.env.MSGF_PULSE_DEFAULT_LOCAL_RESERVE?.trim().toLowerCase();
+  if (localDefault === "1" || localDefault === "true") return MSGF_PULSE_LOCAL_RESERVE_CHUNK;
+  return MSGF_CREDIT_RESERVE_CHUNK;
+}
+
+/** Ingest: light reserve when only hash-verified skip path; full when files need sweep/audit. */
+export function resolveIngestCreditReserveAmount(changedFileCount: number, runAudit: boolean): number {
+  if (changedFileCount <= 0 && !runAudit) return MSGF_INGEST_LIGHT_RESERVE_CHUNK;
+  if (!runAudit && changedFileCount > 0) {
+    return Math.min(
+      MSGF_CREDIT_RESERVE_CHUNK,
+      Math.max(MSGF_INGEST_LIGHT_RESERVE_CHUNK, changedFileCount * 40)
+    );
+  }
+  return MSGF_CREDIT_RESERVE_CHUNK;
 }
 
 /** True when ingest will run embeddings (sweep) and/or Gemini audit — reserve before that work. */
