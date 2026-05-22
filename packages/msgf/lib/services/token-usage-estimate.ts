@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
+ */
+/**
  * Estimates LLM token spend for "ungated" (pre-MSGF) vs MSGF-routed Author/Pulse paths.
  * Used by `scripts/track-author-msgf-token-savings.ts` and eco rollups — not billing truth.
  */

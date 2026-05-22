@@ -13,9 +13,9 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-05-20 (token savings layer UI + docs; HAL portable bridge; **Stripe deferred until post-test signoff**)
+**Last updated:** 2026-05-20 (Small/Big Brain audience routing + monorepo workspaces; [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md); **Stripe deferred until post-test signoff**)
 
-**Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf`
+**Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) · **Brain routing:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf`
 
 ---
 
@@ -345,7 +345,7 @@ Verify locally (see [`MSGF_TESTING.md`](./MSGF_TESTING.md)):
 
 ### 7.6 Small Brain vs Big Brain + token savings (1.0)
 
-**SSoT:** [`packages/msgf/lib/services/brain-routing-policy.ts`](../packages/msgf/lib/services/brain-routing-policy.ts) · [`global-approval-gate.ts`](../packages/msgf/lib/services/global-approval-gate.ts)
+**SSoT (internal doc):** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · **Code:** [`brain-routing-policy.ts`](../packages/msgf/lib/services/brain-routing-policy.ts) · [`global-approval-gate.ts`](../packages/msgf/lib/services/global-approval-gate.ts)
 
 | Brain | Who controls it | What runs | Global DNA (`msgf_rules`, `vault_core`) |
 | :--- | :--- | :--- | :--- |
@@ -368,14 +368,21 @@ Model-based estimates and Redis counters — **not** Stripe billing truth. Full 
 | **Credit reservation** | ✅ | `lib/credit-reservation.ts` · 402 on insufficient | Catalog + reserve / denied counters |
 | **CONVERGE context budget** | ✅ | `lib/services/converge-context-budget.ts` · `MSGF_CONVERGE_MAX_CONTEXT_TOKENS` | Catalog (env cap; wired in `PulseEngine`) |
 
-**Audience routing**
+**Audience routing** — Big Brain issues map to **admin**; Small Brain issues map to **users**. Full matrix: [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) §3.
 
 | Brain | Who acts | Dashboard / API |
 | :--- | :--- | :--- |
-| **Small Brain** | Tenant user | `/dashboard`, `/setup/projects`, `GET /api/msgf/heal-queue` (user scope), `GET /api/msgf/dashboard/savings-features` |
-| **Big Brain** | GLOBAL / COMPANY admin | `/admin/dashboard#big-brain-issues`, human arbitration POST, `GET /api/msgf/admin/dashboard/savings-features` |
+| **Small Brain** | Tenant user | `/dashboard`, `/setup/projects`, `GET /api/msgf/heal-queue` (**user scope** for session auth), `GET /api/msgf/dashboard/savings-features` |
+| **Big Brain** | GLOBAL / COMPANY admin | `/admin/dashboard#big-brain-issues`, `POST .../heal-queue/human-arbitration` (session operators), `GET /api/msgf/admin/dashboard/savings-features` |
 
-**Monorepo:** Register **one workspace per app** (`elphiesyntax/author-ecosystem`, `elphiesyntax/msgf`, …) — see `lib/services/monorepo-workspace-presets.ts`.
+| Implementation | Status |
+| :--- | :---: |
+| `heal-queue-audience.ts` — strip arbitration + circuit-breaker tasks for users; `big_brain_escalations_pending` | ✅ |
+| `resolve-dashboard-operator.ts` — operator detection for heal-queue + arbitration | ✅ |
+| `BigBrainIssuesPanel` + `PostIngestHealingConsole` audience split in `DashboardShell` | ✅ |
+| API key on heal-queue GET → **full queue** (no user scope) | ✅ intentional |
+
+**Monorepo:** Register **one `msgf_user_projects` row per app** (not only git root) — presets in `monorepo-workspace-presets.ts`, UI at `/setup/projects`, `GET /api/workspace/monorepo-presets`. Apps: MSGF, Author, Syntax Educates, Vortex — see [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md).
 
 **Web surfaces**
 
@@ -384,7 +391,7 @@ Model-based estimates and Redis counters — **not** Stripe billing truth. Full 
 | Tenant / buyer | `/dashboard#token-savings` | `GET /api/msgf/dashboard/savings-features?tenant_id=` (Small Brain catalog only) |
 | Operator (GLOBAL / COMPANY admin) | `/admin/dashboard#token-savings` · `#big-brain-issues` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` |
 
-**QA:** `npm run test:savings -w msgf` (includes checkpoints 18–19: dev-event routing + CONVERGE cache in `tests/savings-qa-checkpoints.test.ts`).
+**QA:** `npm run test:savings -w msgf` · `npm run test:brain-routing -w msgf` · `npm run test:heal-queue-audience -w msgf` (checkpoints 18–19 in `tests/savings-qa-checkpoints.test.ts`).
 
 ### 7.4 Deployment & release path
 
@@ -450,6 +457,8 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 ## 10. What’s left & recommended next steps
 
+**MSGF-only RC tracker (no Stripe):** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) — P0 automated + staging smoke, P1 engine/ops, P2 sign-off.
+
 *Stripe integration intentionally **after** testing signoff — keep `MSGF_CREDIT_GUARD_DISABLED` / mock entitlements until then.*
 
 ### A. Finish now (testing gate — blocks RC)
@@ -508,6 +517,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-05-20 | **Small Brain / Big Brain:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md); §7.6 audience + heal-queue scope + monorepo workspace presets; `test:brain-routing`, `test:heal-queue-audience`. |
 | 2026-05-23 | **Solo deep-test:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md), `bootstrap:solo`, `probe:solo`, `deep-test:solo`. **§10** + Stripe deferred post-test. **HAL portable:** `msgf/hal-author-bridge`, §7.5. |
 
 | Date | Change |

@@ -1,4 +1,14 @@
 -- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
+-- =============================================================================
+-- =============================================================================
 -- usage_monitor atomic increment (service role only)
 -- =============================================================================
 

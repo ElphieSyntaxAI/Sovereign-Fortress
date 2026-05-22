@@ -6,11 +6,12 @@
 
 - MSGF 1.0 vision & release plan: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md)
 - MSGF testing (admin vs users): [`MSGF_TESTING.md`](./MSGF_TESTING.md)
+- Small Brain / Big Brain + workspaces: [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)
 - Author product roadmap: [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md)
 - Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/syntax_education_pillars.md)
 - Implementation tracker (pillars + AUTH): [`PILLAR_PROGRESS.md`](./PILLAR_PROGRESS.md)
 
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-20
 
 ---
 
@@ -56,7 +57,16 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 
 **Integration pattern (Author ↔ MSGF):** Author BFF proxies or calls MSGF routes (e.g. `/api/msgf/pulse`, `/api/msgf/ingest`); shared Supabase auth/cookies when `MSGF_AUTH_COOKIE_DOMAIN` is aligned. See `packages/msgf/scripts/probe-author-ecosystem.mjs`.
 
-**Workspace mapping (Small Brain per app):** On MSGF, users register **one `msgf_user_projects` row per monorepo app** (not only the git root) via `/setup/projects` or presets from `GET /api/workspace/monorepo-presets`. Each row’s `project_origin` scopes personal dashboard health and ingest metadata. **Big Brain** (global CONVERGE, human arbitration, rule promotion) is **admin-only** on `/admin/dashboard`.
+**Workspace mapping (Small Brain per app):** On MSGF, users register **one `msgf_user_projects` row per monorepo app** (not only the git root) via `/setup/projects` or presets from `GET /api/workspace/monorepo-presets`. Each row’s `project_origin` scopes personal dashboard health and ingest metadata for that silo. **Big Brain** (global CONVERGE, human arbitration, rule promotion) is **admin-only** on `/admin/dashboard` — see [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md).
+
+| Preset id | App | `project_origin` | Typical local path |
+| :--- | :--- | :--- | :--- |
+| `msgf-gated-ai` | MSGF Gated AI | `elphiesyntax/msgf` | `packages/msgf` |
+| `author-ecosystem` | Author Ecosystem | `elphiesyntax/author-ecosystem` | `apps/author-ecosystem` |
+| `syntax-educates` | Syntax Educates | `elphiesyntax/syntax-educates` | `apps/syntax-educates` |
+| `client-vortex` | Vortex Client | `elphiesyntax/client-vortex` | `apps/client-vortex` |
+
+SSoT for preset bodies: `packages/msgf/lib/services/monorepo-workspace-presets.ts`.
 
 ---
 
@@ -87,3 +97,4 @@ Engineering SSOT: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md). When the PDF and
 | :--- | :--- |
 | 2026-05-15 | Linked V3.2-ULTRA PDF in `docs/references/`; MSGF 1.0 plan uses V3.2 as primary spec. |
 | 2026-05-15 | Initial SSoT: three production domains, MSGF dual role (engine + standalone), monorepo mapping. |
+| 2026-05-20 | Workspace preset table; link to `MSGF_BRAIN_ROUTING.md` (per-app workspaces vs admin Big Brain). |

@@ -13,6 +13,8 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | [`docs/MSGF_SOLO_INTEGRATION.md`](../../docs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |
 | [`docs/MSGF_BUYER_WALKTHROUGH.md`](../../docs/MSGF_BUYER_WALKTHROUGH.md) | **Buyer / SaaS** — new user sign-up, pricing, session Pulse (not integrator license) |
 | [`docs/MONOREPO_PRODUCTS.md`](../../docs/MONOREPO_PRODUCTS.md) | Three web apps & domains |
+| [`docs/MSGF_BRAIN_ROUTING.md`](../../docs/MSGF_BRAIN_ROUTING.md) | **Small Brain / Big Brain** — audience routing, heal queue, monorepo workspaces |
+| [`docs/MSGF_RC_CHECKLIST.md`](../../docs/MSGF_RC_CHECKLIST.md) | **MSGF 1.0 RC** — MSGF-only completion checklist (Stripe excluded) |
 | [`pre_ingestion_audit.md`](./pre_ingestion_audit.md) | Day-zero audit (SWEEP) & CONVERGE backlog |
 | [`docs/PILLAR_PROGRESS.md`](../../docs/PILLAR_PROGRESS.md) | Pillar/AUTH implementation tracker |
 
@@ -50,23 +52,43 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 
 ### Small Brain vs Big Brain
 
-| Tier | Meaning |
+| Tier | Meaning | Dashboard audience |
+| :--- | :--- | :--- |
+| **Small Brain** | Tenant-local — Vault, `state_beats`, Redis hot layer, Heal Cheap / bypass, dev-event, cache replay. No global DNA without admin. | **Users** — `/dashboard`, user-scoped heal queue, user savings API |
+| **Big Brain** | Platform global CONVERGE + operator paths. Promotions to `msgf_rules` / `vault_core` need approval. | **Admins** — `/admin/dashboard#big-brain-issues`, human arbitration, admin savings API |
+
+Full internal reference: [`docs/MSGF_BRAIN_ROUTING.md`](../../docs/MSGF_BRAIN_ROUTING.md).
+
+| Module | Role |
 | :--- | :--- |
-| **Small Brain** | Local control — tenant Vault, `state_beats`, Redis hot layer, Heal Cheap / bypass paths. No global DNA without admin. |
-| **Big Brain** | Global dual-model CONVERGE when logic drift warrants it. Promotions to `msgf_rules` / `vault_core` require operator approval. |
+| `lib/services/brain-routing-policy.ts` | Feature catalog, `audienceForBrainTier`, pulse classification |
+| `lib/services/global-approval-gate.ts` | Global write gate + `dev_event` logic delta source |
+| `lib/services/heal-queue-audience.ts` | User vs admin heal-queue response scope |
+| `lib/services/monorepo-workspace-presets.ts` | One workspace per monorepo app (`project_origin`) |
+| `lib/services/resolve-dashboard-operator.ts` | GLOBAL / COMPANY operator session check |
 
-Policy module: `lib/services/brain-routing-policy.ts` · Gate: `lib/services/global-approval-gate.ts` · Verify: `npm run verify:brain-routing -w msgf`
+**Verify:** `npm run test:brain-routing` · `npm run test:heal-queue-audience` · `npm run verify:brain-routing` (live smoke, needs env).
 
-### Dashboard — token savings UI
+### Monorepo workspaces
+
+Register **each app** as its own `msgf_user_projects` row (not only the git root):
+
+- **UI:** `/setup/projects` — presets + one-click add (`ProjectSetupClient.tsx`)
+- **API:** `GET /api/workspace/monorepo-presets`
+- **Presets:** MSGF (`packages/msgf`), Author (`apps/author-ecosystem`), Syntax Educates, Vortex — see `monorepo-workspace-presets.ts`
+
+### Dashboard — token savings & heal queue
 
 | Audience | Page | API |
 | :--- | :--- | :--- |
-| Signed-in tenant | `/dashboard#token-savings` | `GET /api/msgf/dashboard/savings-features?tenant_id=` |
-| GLOBAL / COMPANY admin | `/admin/dashboard#token-savings` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` |
+| Signed-in tenant | `/dashboard#token-savings` | `GET /api/msgf/dashboard/savings-features?tenant_id=` (Small Brain catalog) |
+| GLOBAL / COMPANY admin | `/admin/dashboard#token-savings` · `#big-brain-issues` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` (full catalog) |
 
-The **Token savings layer** panel lists 24h Redis counters (CONVERGE cache, dev-event, idempotency, ingest hash, credit reserve, dev-session) and an expandable **feature catalog** (env on/off). Pulse routing mix remains in its own panel above.
+The **Token savings layer** panel lists 24h Redis counters and a feature catalog with brain badges. Users see Small Brain features only; operators see Big Brain rows (global CONVERGE, arbitration, rule promotion).
 
-**Tests:** `npm run test:savings` · QA checkpoints 18–19 in `tests/savings-qa-checkpoints.test.ts`.
+**Heal queue:** Session users get Small Brain tasks only; `big_brain_escalations_pending` counts items waiting on admin. **API key** callers receive the full queue. Human arbitration UI and `POST .../human-arbitration` require an operator session on the admin dashboard.
+
+**Tests:** `npm run test:savings` (bundle) · `test:brain-routing` · `test:heal-queue-audience` · QA checkpoints 18–19 in `tests/savings-qa-checkpoints.test.ts`.
 
 ### 2. Vertex AI credentials
 
@@ -246,7 +268,7 @@ npm run test:unit -w msgf
 
 | Role | What to run |
 | :--- | :--- |
-| **Admin — fast offline** | `npm run test:unit -w msgf` · `npm run test:savings -w msgf` (token savings + dev-event + CONVERGE cache) |
+| **Admin — fast offline** | `npm run test:unit -w msgf` · `npm run test:savings -w msgf` (token savings, brain routing, heal audience, QA 18–19) |
 | **Admin — env / DB** | `npm run verify:msgf-env -w msgf` · `npm run verify:db-schema -w msgf` |
 | **Admin — integration** | `npm run test:integration -w msgf` (needs `.env`; optional `test:lom-disagreement` with dev server) |
 | **User** | Sign in → dashboard healing drawer; Pulse; IDE extension — no npm |
@@ -274,10 +296,15 @@ Use separate terminal commands (not PowerShell `&&` chains) when running multipl
 | `npm run probe:author-ecosystem -w msgf` | Cross-stack smoke (post–integration) |
 | `npm run security:prancer-pillars -w msgf` | Static security scan |
 | `npm run test:v32-ultra -w msgf` | V3.2-ULTRA integration harness (Vault/Hall, purge, directive) |
-| `npm run test:savings -w msgf` | Token savings bundle (routing, idempotency, ingest hash, dev-event, CONVERGE cache, QA 18–19) |
+| `npm run test:savings -w msgf` | Token savings bundle (routing, idempotency, ingest hash, dev-event, CONVERGE cache, brain-routing, heal-queue-audience, QA 18–19) |
+| `npm run test:brain-routing -w msgf` | Small/Big Brain catalog + pulse classification (offline) |
+| `npm run test:heal-queue-audience -w msgf` | User vs admin heal-queue scope (offline) |
+| `npm run verify:brain-routing -w msgf` | Live brain-routing smoke (needs Supabase env) |
 | `GET /health` | Liveness + V3.2 SHARD (Redis) checklist |
 | `POST /api/msgf/ops/v32-heartbeat` | Cron: tier batches + **`6h`/`nightly`** scheduled heals (LOM consensus + Vault) + Hall purge — **`MSGF_OPS_CRON_SECRET` only** |
-| `GET/POST /api/msgf/heal-queue` | Remediation queue; `human_arbitration_packages` on GET; `POST .../human-arbitration` for APPROVE/DENY |
+| `GET/POST /api/msgf/heal-queue` | Remediation queue; session GET applies user/admin scope; `human_arbitration_packages` admin-only for users |
+| `POST /api/msgf/heal-queue/human-arbitration` | APPROVE/DENY — operator session required (API key path unchanged) |
+| `GET /api/workspace/monorepo-presets` | Monorepo app workspace presets (authenticated) |
 
 **Production Redis (SHARD):** Upstash REST (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`), Memorystore (`REDIS_HOST`), or local `REDIS_URL`. Verify with `npm run upstash-redis-ping -w msgf`. Optional `MSGF_REQUIRE_REDIS=1` rejects Pulse when hot layer is down.
 

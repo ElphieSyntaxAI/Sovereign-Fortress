@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-20
 
-**Companion:** [`packages/msgf/README.md`](../packages/msgf/README.md) (Phase 0 smoke) · [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) (third-party / solo API) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md)
+**Companion:** [`packages/msgf/README.md`](../packages/msgf/README.md) (Phase 0 smoke) · [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) (third-party / solo API) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) (Small/Big Brain + workspaces)
 
 ---
 
@@ -46,7 +46,9 @@ No live Supabase or Vertex required. Safe for CI and local dev on any OS.
 | `npm run test:remediation-circuit -w msgf` | `PENDING_HUMAN_ARBITRATION` circuit breaker (max 3 failures) |
 | `npm run test:human-arbitration -w msgf` | Human arbitration packages from strategy matrix |
 | `npm run test:ingest-metadata -w msgf` | Ingest metadata / lineage Zod |
-| `npm run test:savings -w msgf` | Token savings bundle (routing, idempotency, ingest hash, dev-event, CONVERGE cache, QA checkpoints 18–19) |
+| `npm run test:savings -w msgf` | Token savings bundle (routing, idempotency, ingest hash, dev-event, CONVERGE cache, brain-routing, heal-queue-audience, QA 18–19) |
+| `npm run test:brain-routing -w msgf` | Brain catalog: Small Brain → user audience, Big Brain → admin |
+| `npm run test:heal-queue-audience -w msgf` | Heal-queue GET user scope strips arbitration / circuit-breaker tasks |
 
 **Recommended admin smoke (fast):**
 
@@ -135,20 +137,46 @@ curl -sS -X POST "https://YOUR_MSGF_HOST/api/msgf/ops/v32-heartbeat" \
 
 | API | Purpose |
 | :--- | :--- |
-| `GET /api/msgf/heal-queue?tenant_id=<uuid>` | Tasks + `human_arbitration_packages` for circuit-open rows |
+| `GET /api/msgf/heal-queue?tenant_id=<uuid>` | Tasks + `human_arbitration_packages`; **session** responses are scoped (see §5b) |
 | `POST /api/msgf/heal-queue` | `BULK` · `INDIVIDUAL` · `SCHEDULED` (+ `preset_interval`) |
-| `POST /api/msgf/heal-queue/human-arbitration` | `APPROVE_BYPASS` · `DENY_PURGE` for `PENDING_HUMAN_ARBITRATION` |
+| `POST /api/msgf/heal-queue/human-arbitration` | `APPROVE_BYPASS` · `DENY_PURGE` — **GLOBAL / COMPANY operator session** required |
 
-**Web UI:** `/dashboard` → pillar cards → **Post-Ingest Healing Console** (side-by-side strategy compare + operator buttons).
+**Web UI (audience split):**
 
-**IDE:** `msgf-pulse-guard` extension — same heal-queue client after shadow scan / stoplight anomaly.
+| Role | URL | Healing UI |
+| :--- | :--- | :--- |
+| Tenant user | `/dashboard` | **Post-Ingest Healing Console** — Small Brain tasks only; banner when `big_brain_escalations_pending > 0`; no arbitration buttons |
+| Operator | `/admin/dashboard` · `#big-brain-issues` | Full queue + **BigBrainIssuesPanel** + human arbitration in healing console |
 
-**Verify (admin session or tenant API key):**
+**IDE:** `msgf-pulse-guard` extension — heal-queue client (integrator API key receives full queue).
+
+**Verify (operator session — full queue):**
 
 ```bash
 curl -sS "http://127.0.0.1:3000/api/msgf/heal-queue?tenant_id=YOUR_TENANT_UUID" \
-  -H "Cookie: YOUR_SESSION_COOKIE"
+  -H "Cookie: YOUR_OPERATOR_SESSION_COOKIE"
 ```
+
+**Verify (tenant user session — user scope):** same URL with a non-operator cookie; expect `audience_scope: "user"`, empty `human_arbitration_packages`, and optional `big_brain_escalations_pending`.
+
+---
+
+## 5b. Small Brain vs Big Brain (offline tests)
+
+Reference: [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md).
+
+```bash
+npm run test:brain-routing -w msgf
+npm run test:heal-queue-audience -w msgf
+```
+
+Both are included in `npm run test:savings -w msgf`. Live smoke (optional):
+
+```bash
+npm run verify:brain-routing -w msgf
+```
+
+**Monorepo workspace presets (manual):** sign in → `/setup/projects` → confirm four presets from `GET /api/workspace/monorepo-presets` match Author / MSGF / Educates / Vortex paths.
 
 ---
 
@@ -158,7 +186,9 @@ Users **do not** run npm test scripts. They exercise MSGF through:
 
 | Surface | Validation |
 | :--- | :--- |
-| **MSGF web** | Sign in → dashboard → ingest / pillar health → healing drawer |
+| **MSGF web** | Sign in → dashboard → ingest / pillar health → healing drawer (Small Brain tasks; escalations go to admin) |
+| **Project setup** | `/setup/projects` — one workspace per monorepo app (presets) |
+| **Token savings** | `/dashboard#token-savings` — Small Brain catalog only |
 | **Pulse** | `POST /api/msgf/pulse` after pledge + baseline |
 | **VS Code** | Pulse Guard stoplight + healing sidebar |
 
@@ -211,5 +241,6 @@ npm run compile -w msgf-pulse-guard
 
 | Date | Change |
 | :--- | :--- |
+| 2026-05-20 | Brain routing: `test:brain-routing`, `test:heal-queue-audience`, [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md); heal-queue audience §5/§6. |
 | 2026-05-23 | Solo deep-test: `bootstrap:solo`, `probe:solo`, `deep-test:solo`, [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md). Heal-queue accepts license + silo `tenant_id`. |
 | 2026-05-23 | Initial SSoT: admin vs user, `test:unit` / `test:integration`, strict `v32-heartbeat`, heal-queue human arbitration, cross-platform runners. |

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-e98bd4c-20260522T053721Z-internal
+ * Distribution Build ID: MSGF-0265450-20260522T171829Z-internal
  */
 /**
  * Headless MSGF connector for IDE extensions — buffered Pulses + status-bar logic drift.
@@ -103,6 +103,7 @@ const DEFAULT_BUFFER: Required<IdePulseBufferOptions> = {
   debounceMs: 1200,
   maxBufferedEvents: 96,
   minEventsToFlush: 1,
+  devSession: false,
 };
 
 function emptyStatus(
