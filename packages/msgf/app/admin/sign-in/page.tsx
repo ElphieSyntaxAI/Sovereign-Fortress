@@ -36,8 +36,14 @@ export default async function AdminSignInPage({ searchParams }: Props) {
           </p>
           <h1 className="text-2xl font-bold tracking-tight">Admin sign in</h1>
           <p className="text-sm text-slate-400">
-            Use your Supabase account. Access is granted only when the account has an MSGF
-            operator role.
+            Sign in on <strong className="text-emerald-200/90">elphiesgatedai.elphiesyntax.com</strong>{" "}
+            (MSGF), not the Author subdomain. After email confirmation you should land back here;
+            if you land on authorecosystem first, that app will forward you to MSGF automatically.
+          </p>
+          <p className="text-xs text-slate-500">
+            Requires <code className="text-violet-300">GLOBAL_ADMIN</code> or{" "}
+            <code className="text-violet-300">MSGF_GLOBAL_ADMIN_EMAILS</code> — see{" "}
+            <code className="text-violet-300">npm run create:platform-admin -w msgf</code>.
           </p>
         </div>
         <AuthForm mode="sign-in" postLoginPath={postLoginPath} variant="admin" />

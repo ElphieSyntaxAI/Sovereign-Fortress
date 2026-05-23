@@ -1,0 +1,26 @@
+# Dev image: install monorepo deps once; source is bind-mounted at runtime.
+# Build: docker compose -f docker-compose.dev.yml build
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    CI=1
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+COPY packages ./packages
+COPY apps ./apps
+COPY tools ./tools
+
+# msgf `predev` expects this file; real key is mounted via env at runtime.
+RUN mkdir -p packages/msgf \
+  && test -f packages/msgf/service-account.json \
+  || echo '{}' > packages/msgf/service-account.json
+
+RUN npm ci --no-audit --no-fund
+
+EXPOSE 3001 3002 5173

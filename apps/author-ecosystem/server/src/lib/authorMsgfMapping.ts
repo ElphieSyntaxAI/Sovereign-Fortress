@@ -2,6 +2,10 @@
  * Author BFF ↔ MSGF wiring — env checks for `/api/status` and ops probes.
  */
 
+import { buildAuthorMsgfDashboardLinks, type AuthorMsgfDashboardLinks } from "./authorMsgfDashboardLinks.js";
+
+export const AUTHOR_MSGF_PROJECT_ORIGIN = "elphiesyntax/author-ecosystem" as const;
+
 export type AuthorMsgfMappingStatus = {
   tenant_id: string;
   msgf_app_url: string | null;
@@ -11,10 +15,18 @@ export type AuthorMsgfMappingStatus = {
   ingest_api_key_configured: boolean;
   ingest_tenant_id: string | null;
   author_hal_header: "x-msgf-author-hal";
+  project_origin: typeof AUTHOR_MSGF_PROJECT_ORIGIN;
   chunk_words: 175;
   chunk_overlap_words: 10;
   ready: boolean;
   missing: string[];
+  dashboard_links: AuthorMsgfDashboardLinks;
+  stress_test_commands: {
+    probe: string;
+    track_tokens_live: string;
+    track_tokens_offline: string;
+    mint_license: string;
+  };
 };
 
 function trim(name: string): string {
@@ -25,12 +37,20 @@ export function resolveAuthorMsgfTenantId(raw?: string | null): string {
   return raw?.trim() || trim("MSGF_AUTHOR_TENANT_ID") || "author_ecosystem";
 }
 
+/** Local MSGF dev origin when env unset (see packages/msgf `MSGF_DEV_DEFAULT_PORT` = 3001). */
+export const AUTHOR_MSGF_LOCAL_DEV_ORIGIN = "http://127.0.0.1:3001" as const;
+
 export function resolveAuthorMsgfAppUrl(): string | null {
   const url =
     trim("MSGF_APP_URL") ||
     trim("NEXT_PUBLIC_MSGF_APP_URL") ||
-    trim("MSGF_BASE_URL");
-  return url ? url.replace(/\/+$/, "") : null;
+    trim("MSGF_BASE_URL") ||
+    trim("MSGF_LOCAL_DEV_URL");
+  if (url) return url.replace(/\/+$/, "");
+  if (process.env.NODE_ENV !== "production") {
+    return AUTHOR_MSGF_LOCAL_DEV_ORIGIN;
+  }
+  return null;
 }
 
 export function getAuthorMsgfMappingStatus(): AuthorMsgfMappingStatus {
@@ -60,9 +80,18 @@ export function getAuthorMsgfMappingStatus(): AuthorMsgfMappingStatus {
     ingest_api_key_configured,
     ingest_tenant_id,
     author_hal_header: "x-msgf-author-hal",
+    project_origin: AUTHOR_MSGF_PROJECT_ORIGIN,
     chunk_words: 175,
     chunk_overlap_words: 10,
     ready,
     missing,
+    dashboard_links: buildAuthorMsgfDashboardLinks(tenant_id),
+    stress_test_commands: {
+      probe: "npm run probe:author-ecosystem -w msgf",
+      track_tokens_live: "npm run track:author-tokens:live -w msgf",
+      track_tokens_offline: "npm run track:author-tokens -w msgf",
+      mint_license:
+        "npm run bootstrap:author-msgf -w msgf  (prints MSGF_AUTHOR_PULSE_LICENSE_KEY for .env)",
+    },
   };
 }

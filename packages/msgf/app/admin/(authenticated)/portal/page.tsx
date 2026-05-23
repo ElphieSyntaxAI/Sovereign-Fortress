@@ -77,7 +77,7 @@ export default async function AdminPortalPage() {
         <h2 className="text-base font-semibold text-slate-200">Local stack checklist</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5">
           <li>
-            <code className="text-violet-200">npm run dev -w msgf</code> — MSGF on port 3000
+            <code className="text-violet-200">npm run dev -w msgf</code> — MSGF on port 3001 (3000 free for LIFF)
           </li>
           <li>
             Author BFF + client — <code className="text-violet-200">apps/author-ecosystem/server</code>{" "}

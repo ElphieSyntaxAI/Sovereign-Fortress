@@ -1,3 +1,5 @@
+# Redis only — for full local stack use: npm run docker:dev
+# See docs/DOCKER_LOCAL_DEV.md
 services:
   redis:
     image: redis:alpine

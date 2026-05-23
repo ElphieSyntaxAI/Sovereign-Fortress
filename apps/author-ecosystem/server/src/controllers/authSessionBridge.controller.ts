@@ -21,6 +21,14 @@ import { VAULT_PACT_ATTESTATION_PHRASE } from "../lib/vaultPactAttestation.js";
  */
 export const authSessionBridgeController = Router();
 
+function errorDetail(e: unknown): string {
+  if (e instanceof Error) {
+    const cause = e.cause instanceof Error ? e.cause.message : undefined;
+    return cause ? `${e.message} (${cause})` : e.message;
+  }
+  return String(e);
+}
+
 function mapSupabaseUserToMe(user: { id: string; user_metadata?: Record<string, unknown> | null }) {
   const meta = user.user_metadata ?? {};
   const legacyRaw = meta["legacy_user_id"];
@@ -207,9 +215,14 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
       });
     } catch (e) {
       console.error("[bff/auth/register]", e);
+      const detail = errorDetail(e);
+      const hint =
+        /fetch failed|ENOTFOUND|ECONNREFUSED/i.test(detail)
+          ? " Check packages/msgf/.env.local Supabase URL/keys and network; run npm run verify:bff-env --prefix apps/author-ecosystem/server."
+          : "";
       res.status(500).json({
-        message: "Registration failed",
-        detail: e instanceof Error ? e.message : String(e),
+        message: detail.includes("fetch failed") ? detail : "Registration failed",
+        detail: detail + hint,
       });
     }
   })();

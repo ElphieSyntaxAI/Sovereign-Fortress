@@ -9,7 +9,17 @@ import type { CorsOptions } from "cors";
  * - `BFF_CHROME_EXTENSION_ID`: adds `chrome-extension://<id>`
  */
 export function buildBffCorsOptions(): CorsOptions {
-  const defaults = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000"];
+  const defaults = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://elphiesyntax.com",
+    "https://www.elphiesyntax.com",
+    "https://authorecosystem.elphiesyntax.com",
+  ];
   const fromEnv = (process.env.BFF_ALLOWED_ORIGINS ?? "")
     .split(",")
     .map((s) => s.trim())

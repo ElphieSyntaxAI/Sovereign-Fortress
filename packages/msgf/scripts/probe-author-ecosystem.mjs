@@ -14,7 +14,7 @@
  * Cross-stack smoke probe: Author Ecosystem (Express) + MSGF (Next).
  *
  * Author ecosystem default: http://127.0.0.1:3002 (see apps/author-ecosystem/server/index.js)
- * MSGF default: http://127.0.0.1:3000
+ * MSGF default: http://127.0.0.1:3001 (port 3000 reserved for other local apps)
  *
  * Usage (from packages/msgf):
  *   node scripts/probe-author-ecosystem.mjs
@@ -26,10 +26,12 @@
  *   MSGF_PULSE_COOKIE — Supabase session Cookie header for POST /api/msgf/pulse
  */
 
+import { resolveMsgfLocalOrigin } from "./lib/msgf-local-origin.mjs";
+
 const AUTHOR_BASE = (
   process.env.AUTHOR_ECOSYSTEM_URL || "http://127.0.0.1:3002"
 ).replace(/\/$/, "");
-const MSGF_BASE = (process.env.MSGF_BASE_URL || "http://127.0.0.1:3000").replace(
+const MSGF_BASE = resolveMsgfLocalOrigin().replace(
   /\/$/,
   ""
 );
@@ -106,6 +108,13 @@ async function main() {
         map.ready ? "" : `(missing: ${(map.missing || []).join(", ")})`,
         `tenant=${map.tenant_id}`
       );
+      const links = map.dashboard_links;
+      if (links?.token_savings) {
+        console.log("Token savings dashboard:", links.token_savings);
+      }
+      if (!map.ready && map.stress_test_commands) {
+        console.log("Fix wiring:", map.stress_test_commands.mint_license);
+      }
     }
   } else {
     console.error(
@@ -114,7 +123,46 @@ async function main() {
     );
   }
 
+  const stressWords = Array.from({ length: 200 }, (_, i) => `word${i + 1}`).join(" ");
+  /** Author BFF HAL routes require a DB tenant UUID (not the MSGF slug). */
+  const stressAuthorTenantUuid = process.env.AUTHOR_STRESS_TENANT_UUID?.trim();
+  const stressManuscript =
+    process.env.AUTHOR_STRESS_MANUSCRIPT_ID?.trim() ||
+    "00000000-0000-4000-8000-000000000001";
+
   if (HAL_JWT) {
+    if (stressAuthorTenantUuid) {
+      const chunkBody = {
+        tenantId: stressAuthorTenantUuid,
+        manuscriptId: stressManuscript,
+        contentDelta: stressWords,
+        keystrokeLatencies: sampleHalKeystrokes().map((k) => k.flightTime),
+        lastSyncedChunkIndex: -1,
+      };
+      const chunkRes = await fetch(`${AUTHOR_BASE}/api/hal/chunk-pulse`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${HAL_JWT}`,
+        },
+        body: JSON.stringify(chunkBody),
+      });
+      const chunkJson = await chunkRes.json().catch(() => ({}));
+      console.log(
+        "\nPOST /api/hal/chunk-pulse (stress → MSGF Pulse):",
+        chunkRes.status,
+        chunkJson
+      );
+      const dash = chunkJson?.msgf_dashboard?.token_savings;
+      if (dash) {
+        console.log("\nOpen token savings:", dash);
+      }
+    } else {
+      console.log(
+        "\n(skip) POST /api/hal/chunk-pulse — set AUTHOR_STRESS_TENANT_UUID (Author DB tenant UUID from manuscript.tenant_id)."
+      );
+    }
+
     const keystrokes = halLikeToMsgfKeystrokes(sampleHalKeystrokes());
     const bridgedPulseRes = await fetch(`${AUTHOR_BASE}/api/msgf/pulse`, {
       method: "POST",
@@ -135,7 +183,7 @@ async function main() {
     );
   } else {
     console.log(
-      "\n(skip) POST /api/msgf/pulse through Author BFF — set AUTHOR_ECOSYSTEM_JWT."
+      "\n(skip) Author BFF pulse + chunk-pulse — set AUTHOR_ECOSYSTEM_JWT (Supabase access token)."
     );
   }
 

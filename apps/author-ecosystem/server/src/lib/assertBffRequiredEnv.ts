@@ -20,12 +20,13 @@ function resolveSupabaseJwtSecret(): string | null {
 
 /**
  * Fail fast on missing secrets so Supabase-backed auth (`@supabase/ssr` + admin) and routes
- * do not half-start. `JWT_SECRET` is optional (legacy JWT fallback only).
+ * do not half-start.
  *
- * `SUPABASE_JWT_SECRET` is required: it must match **Project Settings → API → JWT Secret** (used to
- * verify HS256 access tokens from `author_bff_jwt` / `Authorization: Bearer`).
+ * **Required:** project URL, publishable key, service role key (new `sb_publishable_` / `sb_secret_`
+ * or legacy anon / service_role from Dashboard → API Keys).
  *
- * Env files are read from the **resolved monorepo root** (absolute path), not `process.cwd()`.
+ * **Optional:** `SUPABASE_JWT_SECRET` — only for local HS256 verify of Bearer tokens. New Supabase
+ * projects often omit a separate JWT secret; the BFF validates sessions via Auth API + SSR cookies.
  */
 export function assertBffRequiredEnv(): void {
   loadMonorepoRootEnv();
@@ -40,38 +41,37 @@ export function assertBffRequiredEnv(): void {
   }
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) missing.push("SUPABASE_SERVICE_ROLE_KEY");
 
-  const jwtSecret = resolveSupabaseJwtSecret();
-  if (!jwtSecret) {
-    missing.push(
-      "SUPABASE_JWT_SECRET (Supabase Dashboard → Settings → API → JWT Secret; or legacy JWT_SECRET in packages/msgf/.env.local)"
-    );
-  }
   if (missing.length) {
-    const rootLocal = join(monorepoRoot, ".env.local");
     const msgfLocal = join(monorepoRoot, "packages", "msgf", ".env.local");
     const hint = [
       `monorepoRoot=${monorepoRoot}`,
-      `root .env.local=${existsSync(rootLocal)}`,
-      `packages/msgf/.env.local=${existsSync(msgfLocal)}`,
+      `packages/msgf/.env.local exists=${existsSync(msgfLocal)}`,
     ].join("; ");
-    throw new Error(`BFF startup: missing required environment variables: ${missing.join(", ")} (${hint})`);
-  }
-
-  const jwtSecretResolved = jwtSecret!;
-  try {
-    const tok = jwt.sign({ sub: "__bff_jwt_self_test__" }, jwtSecretResolved, {
-      algorithm: "HS256",
-      expiresIn: "60s",
-    });
-    jwt.verify(tok, jwtSecretResolved, { algorithms: ["HS256"] });
-  } catch (e) {
     throw new Error(
-      `SUPABASE_JWT_SECRET is set but is not usable as an HS256 signing key (must match Supabase JWT Secret). ` +
-        (e instanceof Error ? e.message : String(e))
+      `BFF startup: missing required environment variables: ${missing.join(", ")} (${hint})`
     );
   }
 
-  console.log(
-    `[bff] env OK (root=${monorepoRoot}): Supabase URL + publishable + service role + SUPABASE_JWT_SECRET (HS256 self-check passed)`
-  );
+  const jwtSecret = resolveSupabaseJwtSecret();
+  if (jwtSecret) {
+    try {
+      const tok = jwt.sign({ sub: "__bff_jwt_self_test__" }, jwtSecret, {
+        algorithm: "HS256",
+        expiresIn: "60s",
+      });
+      jwt.verify(tok, jwtSecret, { algorithms: ["HS256"] });
+      console.log(
+        `[bff] env OK (root=${monorepoRoot}): Supabase URL + publishable + service role + SUPABASE_JWT_SECRET (local HS256 verify)`
+      );
+    } catch (e) {
+      throw new Error(
+        `SUPABASE_JWT_SECRET is set but is not usable as an HS256 signing key. ` +
+          (e instanceof Error ? e.message : String(e))
+      );
+    }
+  } else {
+    console.log(
+      `[bff] env OK (root=${monorepoRoot}): Supabase URL + publishable + service role (Auth API session verify; no JWT secret in env)`
+    );
+  }
 }

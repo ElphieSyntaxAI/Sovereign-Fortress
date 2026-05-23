@@ -699,7 +699,11 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
-import { msgfPostLoginPath, resolveAuthRedirectUrl } from "@/lib/auth-post-login";
+import {
+  msgfPostLoginPath,
+  resolveAuthRedirectUrl,
+  resolveMsgfAuthCallbackHref,
+} from "@/lib/auth-post-login";
 import { msgfAuthCookieDomainForHost } from "@/lib/msgf-auth-cookies";
 import { createClient } from "@/utils/supabase/client";
 
@@ -713,10 +717,6 @@ type Props = {
   variant?: "default" | "admin";
 };
 
-function authCallbackUrl(): string {
-  return resolveAuthRedirectUrl("/auth/callback");
-}
-
 export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -728,6 +728,16 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
 
   const isSignUp = mode === "sign-up";
   const isAdmin = variant === "admin";
+
+  const emailConfirmCallbackUrl = useCallback(() => {
+    const targetPath =
+      postLoginPath?.trim().startsWith("/")
+        ? postLoginPath.trim()
+        : isAdmin
+          ? "/admin/portal"
+          : msgfPostLoginPath();
+    return resolveMsgfAuthCallbackHref(targetPath);
+  }, [postLoginPath, isAdmin]);
 
   const submit = useCallback(
     async (e: React.FormEvent) => {
@@ -743,7 +753,7 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
           const { error: signUpError } = await supabase.auth.signUp({
             email,
             password,
-            options: { emailRedirectTo: authCallbackUrl() },
+            options: { emailRedirectTo: emailConfirmCallbackUrl() },
           });
           if (signUpError) {
             console.error("[AuthForm] sign-up failed:", signUpError.message, signUpError);
@@ -809,7 +819,7 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
         setLoading(false);
       }
     },
-    [email, password, isSignUp, isAdmin, postLoginPath]
+    [email, password, isSignUp, isAdmin, postLoginPath, emailConfirmCallbackUrl]
   );
 
   const resendConfirmation = useCallback(async () => {
@@ -828,7 +838,7 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
       const { error: resendError } = await supabase.auth.resend({
         type: "signup",
         email: targetEmail,
-        options: { emailRedirectTo: authCallbackUrl() },
+        options: { emailRedirectTo: emailConfirmCallbackUrl() },
       });
 
       if (resendError) {
@@ -846,7 +856,7 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
     } finally {
       setResending(false);
     }
-  }, [email, pendingConfirmationEmail]);
+  }, [email, pendingConfirmationEmail, emailConfirmCallbackUrl]);
 
   return (
     <form

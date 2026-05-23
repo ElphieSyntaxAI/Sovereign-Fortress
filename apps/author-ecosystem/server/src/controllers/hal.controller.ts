@@ -20,9 +20,10 @@ import {
 } from "../lib/halMetrics.js";
 import { P4_HAL_LEDGER, P4_HAL_LEDGER_ROLLING_AVG_5 } from "../lib/database/canonicalIdentifiers.js";
 import { assertBffManuscriptTenantSession } from "../middleware/author-gate.js";
-import { readBearerUser } from "../lib/readBearerJwtUser.js";
+import { readBearerUser, tryReadBearerUser } from "../lib/readBearerJwtUser.js";
 import type { AuthorHalDnaEvent } from "../lib/msgfPulseBridge.js";
 import { syncAuthorHalChunksToMsgf } from "../lib/authorHalMsgfSync.js";
+import { getAuthorMsgfMappingStatus } from "../lib/authorMsgfMapping.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 type HalSessionBody = {
@@ -113,7 +114,10 @@ halController.post("/api/hal/chunk-pulse", async (req: Request, res: Response) =
     const style = stylometricFromContentDelta(contentDelta, locale);
 
     let authorUserId: string | null = null;
-    if (body.authorUserId != null && String(body.authorUserId).trim() !== "") {
+    const bearer = tryReadBearerUser(req);
+    if (bearer?.userId) {
+      authorUserId = bearer.userId;
+    } else if (body.authorUserId != null && String(body.authorUserId).trim() !== "") {
       authorUserId = assertUuid(String(body.authorUserId), "authorUserId");
     }
 
@@ -157,8 +161,15 @@ halController.post("/api/hal/chunk-pulse", async (req: Request, res: Response) =
       });
     }
 
+    if (!authorUserId) {
+      return res.status(400).json({
+        error:
+          "authorUserId or Authorization Bearer required — MSGF entity id must be the signed-in user UUID.",
+      });
+    }
+
     const sync = await syncAuthorHalChunksToMsgf({
-      userId: authorUserId || tenantId,
+      userId: authorUserId,
       tenantId,
       manuscriptId,
       contentDelta,
@@ -172,11 +183,16 @@ halController.post("/api/hal/chunk-pulse", async (req: Request, res: Response) =
       lastSyncedChunkIndex: Number.isFinite(lastSynced) ? lastSynced : null,
     });
 
+    const mapping = getAuthorMsgfMappingStatus();
     return res.status(200).json({
       ok: sync.errors.length === 0,
       packets_sent: sync.packetsSent,
       last_chunk_index: sync.lastChunkIndex,
+      last_routing: sync.last_routing,
+      routings: sync.routings,
       errors: sync.errors,
+      msgf_mapping_ready: mapping.ready,
+      msgf_dashboard: mapping.dashboard_links,
     });
   } catch (e) {
     if (e instanceof HalValidationError) {
@@ -406,6 +422,8 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
           lastChunkIndex: Number.isFinite(lastSynced) ? lastSynced : null,
           results: [],
           errors: ["MSGF sync disabled."],
+          last_routing: null as string | null,
+          routings: [] as string[],
         }
       : await syncAuthorHalChunksToMsgf({
           userId: authorUserId || sessionId,
@@ -444,7 +462,10 @@ halController.post("/api/hal/session", async (req: Request, res: Response) => {
         configured: syncMsgf,
         packets_sent: msgfPulse.packetsSent,
         last_chunk_index: msgfPulse.lastChunkIndex,
+        last_routing: msgfPulse.last_routing,
+        routings: msgfPulse.routings,
         errors: msgfPulse.errors,
+        dashboard: getAuthorMsgfMappingStatus().dashboard_links,
       },
     });
   } catch (e) {

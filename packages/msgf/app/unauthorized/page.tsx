@@ -17,14 +17,27 @@ export default function UnauthorizedPage() {
     <main className="mx-auto max-w-md space-y-4 p-8 text-center">
       <h1 className="text-xl font-semibold text-zinc-100">Unauthorized</h1>
       <p className="text-sm text-zinc-400">
-        You do not have access to this tenant or resource.
+        This account is signed in but does not have an MSGF operator role (
+        <code className="text-violet-300">GLOBAL_ADMIN</code> or{" "}
+        <code className="text-violet-300">COMPANY_ADMIN</code>). Run{" "}
+        <code className="text-violet-300">npm run create:platform-admin -w msgf</code> for a test
+        admin, or add your email to <code className="text-violet-300">MSGF_GLOBAL_ADMIN_EMAILS</code>
+        .
       </p>
-      <Link
-        href="/"
-        className="inline-block text-sm text-zinc-300 underline-offset-4 hover:underline"
-      >
-        Home
-      </Link>
+      <div className="flex flex-col gap-2 text-sm">
+        <Link
+          href="/admin/sign-in?next=/admin/portal"
+          className="text-violet-300 underline-offset-4 hover:underline"
+        >
+          Admin sign-in (elphiesgatedai)
+        </Link>
+        <Link
+          href="/"
+          className="text-zinc-300 underline-offset-4 hover:underline"
+        >
+          Home
+        </Link>
+      </div>
     </main>
   );
 }

@@ -45,6 +45,35 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 
 ---
 
+## 2b. Platform hub — `elphiesyntax.com` (target vs today)
+
+**Target (1.x):** The **apex domain** is the monorepo front door — overview of all products, shared branding, and **one login** that asks *which platform + persona* you need, then routes you to the right app.
+
+| Host | Role |
+| :--- | :--- |
+| **elphiesyntax.com** (apex) | Product family overview + **unified sign-in** (`PlatformLoginMatrix` in `@elphie-syntax/ui`) |
+| **authorecosystem.elphiesyntax.com** | Author Ecosystem app (HAL, manuscripts, Vault Pact) |
+| **elphiesgatedai.elphiesyntax.com** | MSGF / Gated AI (Pulse, billing, governance dashboard, **operator admin** `/admin/*`) |
+| **syntaxeducates.elphiesyntax.com** | Syntax Education (sandbox, teacher, LTI) |
+
+**Login flow (target):**
+
+1. User opens **elphiesyntax.com** → hub explains the three surfaces.
+2. User signs in once (shared Supabase project).
+3. User picks **Author · Education · Gated AI** + persona → redirect to that product’s subdomain with session cookies on `.elphiesyntax.com` when configured.
+4. **MSGF operator admin** remains on **elphiesgatedai** (`/admin/sign-in`) — not the Author subdomain.
+
+**Today (interim):**
+
+- Hub UI lives in `apps/author-ecosystem/client/src/pages/PlatformHubPage.jsx` and is intended to be served when the apex host is `elphiesyntax.com` / `www.elphiesyntax.com` (see `App.jsx` routing).
+- **authorecosystem** host skips the hub and goes straight to `/sign-in`.
+- Product CTAs already point at the correct production subdomains via `VITE_MSGF_APP_URL`, `VITE_AUTHOR_APP_URL`, `VITE_EDUCATION_APP_URL`.
+- Email confirm / PKCE should complete on **Gated AI** for MSGF admin, or use Author `/auth/callback` → forward to MSGF (see [`AUTHOR_MSGF_WIRING.md`](./AUTHOR_MSGF_WIRING.md)).
+
+**Later refactor (no new product logic):** extract the hub into a small deployable under `apps/` or `packages/ui` so apex DNS does not depend on the Author Vite bundle; keep `platform-persona-auth.ts` and cookie domain rules as the single routing SSOT.
+
+---
+
 ## 3. Shared platform layer
 
 | Layer | Location | Consumers |
@@ -55,7 +84,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | Supabase schema | `packages/msgf/supabase/migrations/` | Shared Postgres for P4/MSGF tables |
 | Tenant silo policy | `packages/msgf/config/tenant-manifest.json` | CI / `enforce-silo` tooling |
 
-**Integration pattern (Author ↔ MSGF):** Author BFF proxies or calls MSGF routes (e.g. `/api/msgf/pulse`, `/api/msgf/ingest`); shared Supabase auth/cookies when `MSGF_AUTH_COOKIE_DOMAIN` is aligned. See `packages/msgf/scripts/probe-author-ecosystem.mjs`.
+**Integration pattern (Author ↔ MSGF):** Author BFF proxies or calls MSGF routes (e.g. `/api/msgf/pulse`, `/api/msgf/ingest`); shared Supabase auth/cookies when `MSGF_AUTH_COOKIE_DOMAIN` is aligned. Ops guide: [`AUTHOR_MSGF_WIRING.md`](./AUTHOR_MSGF_WIRING.md). Probe: `packages/msgf/scripts/probe-author-ecosystem.mjs`.
 
 **Workspace mapping (Small Brain per app):** On MSGF, users register **one `msgf_user_projects` row per monorepo app** (not only the git root) via `/setup/projects` or presets from `GET /api/workspace/monorepo-presets`. Each row’s `project_origin` scopes personal dashboard health and ingest metadata for that silo. **Big Brain** (global CONVERGE, human arbitration, rule promotion) is **admin-only** on `/admin/dashboard` — see [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md).
 
@@ -98,3 +127,4 @@ Engineering SSOT: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md). When the PDF and
 | 2026-05-15 | Linked V3.2-ULTRA PDF in `docs/references/`; MSGF 1.0 plan uses V3.2 as primary spec. |
 | 2026-05-15 | Initial SSoT: three production domains, MSGF dual role (engine + standalone), monorepo mapping. |
 | 2026-05-20 | Workspace preset table; link to `MSGF_BRAIN_ROUTING.md` (per-app workspaces vs admin Big Brain). |
+| 2026-05-22 | §2b apex hub target map (`elphiesyntax.com` overview + unified login → product subdomains). |

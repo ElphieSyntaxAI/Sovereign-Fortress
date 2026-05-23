@@ -28,6 +28,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 
+import { resolveMsgfLocalDevOrigin } from "../lib/runtime/msgf-dev-defaults.js";
 import { buildChunkedAuthorPulseBodiesFromContent } from "../lib/hal-author-bridge.js";
 import { bootstrapTenantBrain, createPledgeBeat } from "../lib/msgf-onboarding.js";
 import { toUniversalP1PulseBody } from "../src/lib/universal/p1HalStandard.js";
@@ -43,7 +44,7 @@ import {
 const AUTHOR_BASE = (
   process.env.AUTHOR_ECOSYSTEM_URL || "http://127.0.0.1:3002"
 ).replace(/\/$/, "");
-const MSGF_BASE = (process.env.MSGF_APP_URL || process.env.MSGF_BASE_URL || "http://127.0.0.1:3000").replace(
+const MSGF_BASE = resolveMsgfLocalDevOrigin().replace(
   /\/$/,
   ""
 );

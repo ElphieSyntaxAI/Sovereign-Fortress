@@ -23,6 +23,7 @@ import { msgfPulseController } from "./controllers/msgfPulse.controller.js";
 import { msgfSelfHealController } from "./controllers/msgfSelfHeal.controller.js";
 import { rootController } from "./controllers/root.controller.js";
 import { buildBffCorsOptions } from "./lib/corsConfig.js";
+import { bffAuthMiddleware } from "./lib/resolveBffAuthUser.js";
 
 loadMonorepoRootEnv();
 assertBffRequiredEnv();
@@ -32,6 +33,10 @@ const port = Number(process.env.PORT) || 3002;
 
 app.use(cors(buildBffCorsOptions()));
 app.use(express.json({ limit: "2mb" }));
+
+app.use((req, res, next) => {
+  void bffAuthMiddleware(req, res, next);
+});
 
 app.use(pactGuard);
 

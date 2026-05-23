@@ -32,6 +32,31 @@ export function bffFetch(path: string, init?: RequestInit): Promise<Response> {
   });
 }
 
+/** Turn network-level `TypeError: Failed to fetch` into an actionable message. */
+export function formatBffFetchError(err: unknown, path: string): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  const target = bffUrl(path);
+  const isNetwork =
+    err instanceof TypeError ||
+    /failed to fetch|network|ECONNREFUSED|ENOTFOUND/i.test(msg);
+
+  if (!isNetwork) return msg || "Request failed";
+
+  const lines = [
+    "Could not reach the Author API (BFF).",
+    `Target: ${target}`,
+    "",
+    "Local dev — run both:",
+    "  npm run dev:author-bff",
+    "  npm run dev:author-client",
+    "Or: npm run dev:author",
+    "",
+    "Production — build the client with VITE_AUTHOR_BFF_URL pointing at your Author BFF (Cloud Run),",
+    "and allow the frontend origin in BFF_ALLOWED_ORIGINS.",
+  ];
+  return lines.join("\n");
+}
+
 export function bffAuthHeaders(accessToken: string | null | undefined): Record<string, string> {
   const headers: Record<string, string> = {};
   const t = typeof accessToken === "string" ? accessToken.trim() : "";

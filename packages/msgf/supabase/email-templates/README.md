@@ -61,6 +61,8 @@ supabase.auth.signUp({
 
 After sign-up → `/confirm-email?email=...` with **Resend confirmation** via `supabase.auth.resend({ type: "signup", ... })`.
 
+**Redirect URLs (Supabase Dashboard → Authentication):** allow `https://elphiesgatedai.elphiesyntax.com/auth/callback` and `https://authorecosystem.elphiesyntax.com/auth/callback` so confirmation can forward to MSGF when Site URL points at Author. Prefer Site URL = Gated AI for operator admin flows.
+
 ## Brand alignment
 
 Matches MSGF landing tokens in `app/globals.css`: `--color-jewel-emerald`, `--color-jewel-purple`, `.landing-mesh`, `.glass-panel`. Logo matches [`BrandLogo`](../../app/_components/brand/BrandLogo.tsx) → `public/brand/elphie-syntax-logo.png`.

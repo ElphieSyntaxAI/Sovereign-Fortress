@@ -65,7 +65,7 @@ export default defineConfig(({ mode }) => {
     env.VITE_AUTHOR_BFF_URL ||
     env.AUTHOR_BFF_URL ||
     env.NEXT_PUBLIC_AUTHOR_BFF_URL ||
-    "";
+    (mode === "development" ? "http://127.0.0.1:3002" : "");
   const viteAuthorAppUrl =
     env.VITE_AUTHOR_APP_URL ||
     env.AUTHOR_APP_URL ||
@@ -79,8 +79,9 @@ export default defineConfig(({ mode }) => {
   const viteMsgfAppUrl =
     env.VITE_MSGF_APP_URL ||
     env.MSGF_APP_URL ||
+    env.MSGF_LOCAL_DEV_URL ||
     env.NEXT_PUBLIC_MSGF_APP_URL ||
-    "";
+    "http://127.0.0.1:3001";
 
   return {
     plugins: [tailwindcss(), react(), spaFallbackPlugin()],
@@ -94,24 +95,37 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_MSGF_APP_URL": JSON.stringify(viteMsgfAppUrl),
     },
     resolve: {
+      /** Use `development` exports (TypeScript source) — `dist/*.js` is not built in every clone. */
+      conditions: ["development", "browser", "import", "module", "default"],
       alias: {
         /**
          * `msgf` workspace package uses `@/` imports; map them when Vite prebundles msgf from
          * `packages/msgf` (Author client does not use `@/` for its own sources).
          */
         "@": path.resolve(monorepoRoot, "packages/msgf"),
+        "msgf/lib/platform-persona-auth": path.resolve(
+          monorepoRoot,
+          "packages/msgf/lib/platform-persona-auth.ts"
+        ),
+        "msgf/connector": path.resolve(monorepoRoot, "packages/msgf/lib/connector/client.ts"),
+        "msgf/connector/client": path.resolve(monorepoRoot, "packages/msgf/lib/connector/client.ts"),
+        "msgf/ui": path.resolve(monorepoRoot, "packages/msgf/ui/index.ts"),
         /** Canonical terms folder: `apps/author-ecosystem/terms` (single source for web + BFF). */
         "@terms": path.resolve(__dirname, "../terms"),
         /** Canonical NDAs: `apps/author-ecosystem/nda` */
         "@nda": path.resolve(__dirname, "../nda"),
       },
     },
+    optimizeDeps: {
+      exclude: ["msgf/lib/platform-persona-auth", "msgf/connector", "msgf/ui"],
+    },
     server: {
+      host: true,
       port: 5173,
-      strictPort: true,
+      strictPort: false,
       proxy: {
         "/api": {
-          target: "http://localhost:3002", // This must match your server port
+          target: env.VITE_AUTHOR_BFF_URL || env.AUTHOR_BFF_URL || "http://127.0.0.1:3002",
           changeOrigin: true,
           secure: false,
         },

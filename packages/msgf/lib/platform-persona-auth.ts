@@ -118,27 +118,96 @@ export function personaToProfileRole(platform: PlatformId, persona: string): str
   return "developer";
 }
 
+function msgfAppOrigin(): string {
+  return (
+    process.env.MSGF_APP_URL?.trim()?.replace(/\/$/, "") ||
+    process.env.NEXT_PUBLIC_MSGF_APP_URL?.trim()?.replace(/\/$/, "") ||
+    "https://elphiesgatedai.elphiesyntax.com"
+  );
+}
+
+function authorAppOrigin(): string {
+  return (
+    process.env.AUTHOR_APP_URL?.trim()?.replace(/\/$/, "") ||
+    process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim()?.replace(/\/$/, "") ||
+    "https://authorecosystem.elphiesyntax.com"
+  );
+}
+
+function educationAppOrigin(): string {
+  return (
+    process.env.EDUCATION_APP_URL?.trim()?.replace(/\/$/, "") ||
+    process.env.NEXT_PUBLIC_EDUCATION_APP_URL?.trim()?.replace(/\/$/, "") ||
+    "https://syntaxeducates.elphiesyntax.com"
+  );
+}
+
+function sharedAuthCookieDomain(): string | undefined {
+  const raw =
+    process.env.MSGF_AUTH_COOKIE_DOMAIN?.trim() ||
+    process.env.NEXT_PUBLIC_MSGF_AUTH_COOKIE_DOMAIN?.trim();
+  if (!raw || raw.toLowerCase() === "host") return undefined;
+  return raw;
+}
+
+function hostSharesAuthCookie(requestHost: string | undefined, targetOrigin: string): boolean {
+  if (!requestHost?.trim()) return false;
+  const host = requestHost.trim().toLowerCase().split(":")[0];
+  const domain = sharedAuthCookieDomain();
+  if (!domain?.startsWith(".")) {
+    try {
+      return new URL(targetOrigin).hostname.toLowerCase() === host;
+    } catch {
+      return false;
+    }
+  }
+  const root = domain.slice(1).toLowerCase();
+  try {
+    const targetHost = new URL(targetOrigin).hostname.toLowerCase();
+    const hostOk = host === root || host.endsWith(`.${root}`);
+    const targetOk = targetHost === root || targetHost.endsWith(`.${root}`);
+    return hostOk && targetOk;
+  } catch {
+    return false;
+  }
+}
+
 export function resolvePostLoginRedirect(platform: PlatformId): string {
   if (platform === "author") {
-    const base =
-      process.env.AUTHOR_APP_URL?.trim() ||
-      process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
-      "";
-    if (!base) return "/dashboard";
-    return base.endsWith("/dashboard") ? base : `${base.replace(/\/$/, "")}/dashboard`;
+    const base = authorAppOrigin();
+    if (!process.env.AUTHOR_APP_URL?.trim() && !process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim()) {
+      return "/dashboard";
+    }
+    return `${base}/dashboard`;
   }
   if (platform === "education") {
-    return (
-      process.env.EDUCATION_APP_URL?.trim() ||
-      process.env.NEXT_PUBLIC_EDUCATION_APP_URL?.trim() ||
-      "https://syntaxeducates.elphiesyntax.com"
-    );
+    return educationAppOrigin();
   }
-  const base =
-    process.env.MSGF_APP_URL?.trim() ||
-    process.env.NEXT_PUBLIC_MSGF_APP_URL?.trim() ||
-    "https://elphiesgatedai.elphiesyntax.com";
-  return base.endsWith("/dashboard") ? base : `${base.replace(/\/$/, "")}/dashboard`;
+  const base = msgfAppOrigin();
+  return `${base}/dashboard`;
+}
+
+/**
+ * After BFF login: when cookies are not shared across subdomains, send the user to sign-in
+ * on the destination app instead of /dashboard (avoids "logged in on Author, logged out on MSGF").
+ */
+export function resolvePostLoginRedirectForRequest(
+  platform: PlatformId,
+  requestHost?: string
+): string {
+  if (platform === "author") {
+    return resolvePostLoginRedirect(platform);
+  }
+
+  const destination = platform === "education" ? educationAppOrigin() : msgfAppOrigin();
+  const nextPath = platform === "education" ? "/" : "/dashboard";
+
+  if (hostSharesAuthCookie(requestHost, destination)) {
+    return platform === "education" ? destination : `${destination}${nextPath}`;
+  }
+
+  const signInNext = encodeURIComponent(nextPath);
+  return `${destination}/sign-in?next=${signInNext}`;
 }
 
 export function parsePlatformLoginBody(body: Record<string, unknown>): PlatformLoginBody | null {

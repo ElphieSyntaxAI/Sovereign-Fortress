@@ -85,7 +85,7 @@ export async function fetchGoogleDocTitle(googleDocId: string): Promise<string |
  * @see `packages/msgf/app/api/msgf/ingest/route.ts`
  */
 export async function pipeToMsgfIngestService(files: MsgfIngestFile[], tenantId?: string): Promise<unknown> {
-  const base = (process.env.MSGF_APP_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+  const base = (process.env.MSGF_APP_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
   const url = `${base}/api/msgf/ingest`;
   const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
   const apiKey = process.env.MSGF_INGEST_API_KEY?.trim();
@@ -119,7 +119,7 @@ export type SyncGoogleManuscriptResult = {
  * - `GOOGLE_APPLICATION_CREDENTIALS` — service account JSON (Vertex / GCP)
  * - `MY_BOOK_ID` — Google Doc file id
  * - `P4_MANUSCRIPT_ID` — existing `p4_manuscripts.id` to update
- * - `MSGF_APP_URL` — MSGF Next origin (default `http://127.0.0.1:3000`)
+ * - `MSGF_APP_URL` — MSGF Next origin (default `http://127.0.0.1:3001`)
  * - `MSGF_INGEST_API_KEY` / `MSGF_INGEST_TENANT_ID` — when MSGF tenant API keys are enabled
  * - `SYNC_P4_PLOT_VECTORS=true` — also run {@link IngestionService.ingestManuscript} (`plot` lane) for RAG; needs embeddings env
  */

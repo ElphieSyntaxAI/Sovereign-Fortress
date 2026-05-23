@@ -1,4 +1,16 @@
 @import "tailwindcss";
 
-@source "./**/*.{jsx,js}";
+@source "./**/*.{jsx,js,tsx,ts}";
 @source "../../../../packages/ui/src/**/*.{tsx,ts}";
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0a0612;
+  color: #f5f0e8;
+}

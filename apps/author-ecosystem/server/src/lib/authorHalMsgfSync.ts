@@ -7,6 +7,7 @@ import {
 
 import {
   forwardAuthorPulseToMsgf,
+  resolveAuthorMsgfTenantId,
   type AuthorMsgfPulseResult,
 } from "./msgfPulseBridge.js";
 
@@ -15,6 +16,9 @@ export type AuthorHalMsgfSyncResult = {
   lastChunkIndex: number | null;
   results: AuthorMsgfPulseResult[];
   errors: string[];
+  /** Last successful MSGF routing kind from pulse response (for Author UI / logs). */
+  last_routing: string | null;
+  routings: string[];
 };
 
 /**
@@ -47,6 +51,8 @@ export async function syncAuthorHalChunksToMsgf(params: {
 
   const results: AuthorMsgfPulseResult[] = [];
   const errors: string[] = [];
+  const routings: string[] = [];
+  let last_routing: string | null = null;
   let lastChunkIndex: number | null =
     params.lastSyncedChunkIndex != null ? Math.floor(params.lastSyncedChunkIndex) : null;
 
@@ -64,7 +70,7 @@ export async function syncAuthorHalChunksToMsgf(params: {
 
     const r = await forwardAuthorPulseToMsgf({
       userId: params.userId,
-      tenantId: params.tenantId,
+      tenantId: resolveAuthorMsgfTenantId(),
       body: packet.body,
       authorHal,
       idempotencyKey: params.sessionId
@@ -74,6 +80,10 @@ export async function syncAuthorHalChunksToMsgf(params: {
 
     results.push(r);
     lastChunkIndex = packet.chunkIndex;
+    if (r.routing) {
+      routings.push(r.routing);
+      last_routing = r.routing;
+    }
     if (!r.ok && r.error) errors.push(r.error);
   }
 
@@ -82,5 +92,7 @@ export async function syncAuthorHalChunksToMsgf(params: {
     lastChunkIndex,
     results,
     errors,
+    last_routing,
+    routings,
   };
 }

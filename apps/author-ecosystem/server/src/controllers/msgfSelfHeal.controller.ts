@@ -20,7 +20,7 @@ msgfSelfHealController.post("/api/msgf/self-heal/report", async (req: Request, r
     });
   }
 
-  const base = (process.env.MSGF_APP_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+  const base = (process.env.MSGF_APP_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
   const url = `${base}/api/msgf/admin/self-heal/report`;
 
   const authorTenantId =

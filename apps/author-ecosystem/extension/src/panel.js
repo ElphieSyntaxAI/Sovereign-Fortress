@@ -328,8 +328,24 @@ function halSessionIdFromResponse(result) {
 
 async function resolveDashboardUrl() {
   const { apiBase } = await chrome.storage.local.get(["apiBase"]);
-  const base = (String(apiBase ?? "").trim() || DEFAULT_API_BASE).replace(/\/+$/, "");
-  if (base.includes("elphiesyntax.com")) return "https://elphiesyntax.com/dashboard";
+  const bff = (String(apiBase ?? "").trim() || DEFAULT_API_BASE).replace(/\/+$/, "");
+  try {
+    const statusRes = await fetch(`${bff}/api/status`);
+    if (statusRes.ok) {
+      const status = await statusRes.json();
+      const tokenSavings = status?.msgf_mapping?.dashboard_links?.token_savings;
+      if (typeof tokenSavings === "string" && tokenSavings.trim()) {
+        return tokenSavings.trim();
+      }
+      const msgfDashboard = status?.msgf_mapping?.dashboard_links?.dashboard;
+      if (typeof msgfDashboard === "string" && msgfDashboard.trim()) {
+        return msgfDashboard.trim();
+      }
+    }
+  } catch {
+    /* fall through to Author client */
+  }
+  if (bff.includes("elphiesyntax.com")) return "https://elphiesyntax.com/dashboard";
   return "http://localhost:5173/dashboard";
 }
 

@@ -13,7 +13,12 @@
       "default": "./src/index.ts"
     },
     "./styles.css": "./src/styles.css",
-    "./platform-login.css": "./src/platform-login.css"
+    "./platform-login.css": "./src/platform-login.css",
+    "./platform-login": {
+      "types": "./src/components/PlatformLoginMatrix.tsx",
+      "import": "./src/components/PlatformLoginMatrix.tsx",
+      "default": "./src/components/PlatformLoginMatrix.tsx"
+    }
   },
   "peerDependencies": {
     "msgf": "*",

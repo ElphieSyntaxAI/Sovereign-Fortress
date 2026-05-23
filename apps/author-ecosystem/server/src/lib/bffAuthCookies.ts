@@ -47,7 +47,7 @@ export function getJwtFromRequest(req: Request): string | null {
 /**
  * `author_bff_jwt` uses the same **domain / path / sameSite / secure** defaults as Supabase SSR
  * cookies (`withBffSupabaseCookieOptions` → root `MSGF_AUTH_COOKIE_DOMAIN`, `MSGF_AUTH_COOKIE_SECURE`)
- * so a session minted on the BFF (e.g. `localhost:3002`) is visible to Next (`localhost:3000`) when
+ * so a session minted on the BFF (e.g. `localhost:3002`) is visible to Next (`localhost:3001`) when
  * the host is shared (`localhost` cookies are not port-scoped in the cookie domain).
  *
  * Optional: `BFF_COOKIE_SAMESITE` (`lax` | `strict` | `none`). `none` forces `secure: true`.

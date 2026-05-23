@@ -105,18 +105,28 @@ function tryLegacyJwt(token: string): BffAuthUser | null {
   }
 }
 
+/** Resolve user from cookie/Bearer without sending 401/403 (for optional auth paths). */
+export function tryReadBearerUser(req: Request): BffAuthUser | null {
+  const pre = (req as Request & { bffAuthUser?: BffAuthUser }).bffAuthUser;
+  if (pre) return pre;
+
+  const token = getJwtFromRequest(req);
+  if (!token) return null;
+  return trySupabaseAccessToken(token) ?? tryLegacyJwt(token);
+}
+
 export function readBearerUser(req: Request, res: Response): BffAuthUser | null {
+  const pre = (req as Request & { bffAuthUser?: BffAuthUser }).bffAuthUser;
+  if (pre) return pre;
+
+  const user = tryReadBearerUser(req);
+  if (user) return user;
+
   const token = getJwtFromRequest(req);
   if (!token) {
     res.status(401).json({ error: "Missing auth — use httpOnly session cookie or Authorization: Bearer" });
     return null;
   }
-
-  const fromSupabase = trySupabaseAccessToken(token);
-  if (fromSupabase) return fromSupabase;
-
-  const fromLegacy = tryLegacyJwt(token);
-  if (fromLegacy) return fromLegacy;
 
   res.status(403).json({ error: "Invalid or expired token" });
   return null;

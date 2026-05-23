@@ -1,0 +1,111 @@
+# Local dev stack — one command instead of multiple terminals + port hunting.
+#
+# Prereqs:
+#   1. Docker Desktop
+#   2. packages/msgf/.env.local with Supabase keys + SUPABASE_JWT_SECRET
+#   3. npm run docker:preflight
+#
+# Usage:
+#   npm run docker:dev              # Author BFF + client + MSGF + Redis
+#   npm run docker:dev:author       # Author only (BFF + client + Redis)
+#   npm run docker:dev:down
+#
+# URLs (from your machine):
+#   Author UI   http://127.0.0.1:5173
+#   Author BFF  http://127.0.0.1:3002/api/ping
+#   MSGF        http://127.0.0.1:3001
+#   Redis       localhost:6379
+
+name: elphie-dev
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  author-bff:
+    profiles: ["author", "full"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    working_dir: /app
+    command: npm run dev -w @elphie-syntax/author-ecosystem-server
+    ports:
+      - "3002:3002"
+    env_file:
+      - packages/msgf/.env.local
+    environment:
+      PORT: "3002"
+      NODE_ENV: development
+      MSGF_APP_URL: http://127.0.0.1:3001
+      BFF_ALLOWED_ORIGINS: http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:3001
+    volumes:
+      - .:/app
+      - elphie_dev_node_modules:/app/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3002/api/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+
+  author-client:
+    profiles: ["author", "full"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    working_dir: /app
+    command: npm run dev -w @elphie-syntax/author-ecosystem-client -- --host 0.0.0.0 --port 5173
+    ports:
+      - "5173:5173"
+    env_file:
+      - packages/msgf/.env.local
+    environment:
+      VITE_AUTHOR_BFF_URL: http://127.0.0.1:3002
+      VITE_MSGF_APP_URL: http://127.0.0.1:3001
+    volumes:
+      - .:/app
+      - elphie_dev_node_modules:/app/node_modules
+    depends_on:
+      author-bff:
+        condition: service_healthy
+
+  msgf:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    working_dir: /app
+    command: npm run dev -w msgf
+    ports:
+      - "3001:3001"
+    env_file:
+      - packages/msgf/.env.local
+    environment:
+      PORT: "3001"
+      NODE_ENV: development
+      MSGF_LOCAL_DEV_URL: http://127.0.0.1:3001
+    volumes:
+      - .:/app
+      - elphie_dev_node_modules:/app/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  elphie_dev_node_modules:

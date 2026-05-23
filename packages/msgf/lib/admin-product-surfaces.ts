@@ -10,6 +10,8 @@
  *
  * Distribution Build ID: MSGF-92d026a-20260522T181651Z-internal
  */
+import { resolveMsgfLocalDevOrigin } from "@/lib/runtime/msgf-dev-defaults";
+
 export type AdminSurfaceLink = {
   label: string;
   href: string;
@@ -67,14 +69,14 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
     trimUrl(process.env.MSGF_APP_URL) ||
     trimUrl(process.env.NEXT_PUBLIC_MSGF_APP_URL) ||
     "https://elphiesgatedai.elphiesyntax.com";
-  const msgfLocal = trimUrl(process.env.MSGF_LOCAL_DEV_URL) || "http://127.0.0.1:3000";
+  const msgfLocal = trimUrl(process.env.MSGF_LOCAL_DEV_URL) || resolveMsgfLocalDevOrigin();
 
   const authorProd =
     trimUrl(process.env.AUTHOR_APP_URL) ||
     trimUrl(process.env.NEXT_PUBLIC_AUTHOR_APP_URL) ||
     "https://authorecosystem.elphiesyntax.com";
   const authorLocalClient =
-    trimUrl(process.env.AUTHOR_CLIENT_DEV_URL) || "http://127.0.0.1:5173";
+    trimUrl(process.env.AUTHOR_CLIENT_DEV_URL) || "http://localhost:5173";
   const authorLocalBff =
     trimUrl(process.env.AUTHOR_ECOSYSTEM_URL) ||
     trimUrl(process.env.AUTHOR_BFF_URL) ||

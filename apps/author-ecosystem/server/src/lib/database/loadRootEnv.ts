@@ -65,7 +65,12 @@ export function loadMonorepoRootEnv(): void {
   rootEnvLoaded = true;
   const root = resolve(getMonorepoRootDir());
   const msgfPkg = join(root, "packages", "msgf");
+  const authorServer = join(root, "apps", "author-ecosystem", "server");
 
+  // Author-specific overrides load first (lowest precedence). Shared Supabase + MSGF keys
+  // from `packages/msgf/.env.local` must win over placeholder values in `server/.env`.
+  dotenv.config({ path: join(authorServer, ".env") });
+  dotenv.config({ path: join(authorServer, ".env.local") });
   dotenv.config({ path: join(root, ".env") });
   dotenv.config({ path: join(root, ".env.local"), override: true });
   dotenv.config({ path: join(msgfPkg, ".env") });

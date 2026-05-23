@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-import { bffCredentials, bffUrl } from "../lib/bffFetch";
+import { bffCredentials, bffFetch, formatBffFetchError } from "../lib/bffFetch";
 import { NDA_DOCUMENTS } from "../legal/ndaRegistry";
 import { TERMS_DOCUMENTS } from "../legal/termsRegistry";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../legal/vaultPactAttestation";
@@ -68,9 +68,8 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
   const onSubmit = async (values: RegisterFormValues) => {
     props.onError(null);
     try {
-      const res = await fetch(bffUrl("/api/auth/register"), {
+      const res = await bffFetch("/api/auth/register", {
         method: "POST",
-        ...bffCredentials,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: values.username.trim(),
@@ -85,17 +84,19 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
       const json = (await res.json().catch(() => ({}))) as {
         message?: string;
         error?: string;
+        detail?: string;
         redirectUrl?: string;
       };
       if (!res.ok) {
-        props.onError(json.message || json.error || res.statusText);
+        const msg = [json.message, json.detail, json.error].filter(Boolean).join(" — ");
+        props.onError(msg || res.statusText);
         return;
       }
       const redirect =
         typeof json.redirectUrl === "string" ? json.redirectUrl : "/dashboard";
       navigate(redirect.startsWith("http") ? "/dashboard" : redirect, { replace: true });
     } catch (e) {
-      props.onError(e instanceof Error ? e.message : "Registration request failed");
+      props.onError(formatBffFetchError(e, "/api/auth/register"));
     }
   };
 

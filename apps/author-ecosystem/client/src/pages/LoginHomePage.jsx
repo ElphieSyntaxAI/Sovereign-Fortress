@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { PlatformLoginMatrix } from "@elphie-syntax/ui";
+import { PlatformLoginMatrix } from "@elphie-syntax/ui/platform-login";
 import "@elphie-syntax/ui/platform-login.css";
 
 import { RegisterForm } from "../components/RegisterForm";
-import { bffCredentials, bffUrl } from "../lib/bffFetch";
+import { bffFetch, formatBffFetchError } from "../lib/bffFetch";
 
 export default function LoginHomePage() {
   const [authError, setAuthError] = useState(/** @type {string | null} */ (null));
@@ -51,9 +51,9 @@ export default function LoginHomePage() {
           subtitle="Sovereign ethical AI across Author, Education, and Gated AI"
           onSubmit={async (payload) => {
             setAuthError(null);
-            const res = await fetch(bffUrl("/api/auth/login"), {
+            try {
+            const res = await bffFetch("/api/auth/login", {
               method: "POST",
-              ...bffCredentials,
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 email: payload.email,
@@ -69,6 +69,9 @@ export default function LoginHomePage() {
             }
             const redirect = typeof json.redirectUrl === "string" ? json.redirectUrl : "/dashboard";
             window.location.assign(redirect);
+            } catch (e) {
+              setAuthError(formatBffFetchError(e, "/api/auth/login"));
+            }
           }}
         />
       ) : (
@@ -81,7 +84,7 @@ export default function LoginHomePage() {
 
       {authError ? (
         <p
-          className="fixed bottom-20 left-1/2 z-50 max-w-sm -translate-x-1/2 rounded-lg border border-red-500/40 bg-[#120a21]/95 px-4 py-2 text-center text-sm text-red-300"
+          className="fixed bottom-20 left-1/2 z-50 max-w-md -translate-x-1/2 whitespace-pre-wrap rounded-lg border border-red-500/40 bg-[#120a21]/95 px-4 py-2 text-center text-xs text-red-300"
           role="alert"
         >
           {authError}

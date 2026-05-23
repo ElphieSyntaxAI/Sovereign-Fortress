@@ -10,8 +10,10 @@
  *
  * Distribution Build ID: MSGF-92d026a-20260522T181651Z-internal
  */
+import { MSGF_DEV_DEFAULT_PORT } from "./msgf-dev-defaults";
+
 /** Default when `PORT` is unset or invalid (local dev). Cloud Run always sets `PORT`. */
-const MSGF_DEFAULT_PORT = 3000;
+const MSGF_DEFAULT_PORT = MSGF_DEV_DEFAULT_PORT;
 
 /**
  * Resolve the HTTP listen port from `process.env.PORT` (required on GCP Cloud Run).
