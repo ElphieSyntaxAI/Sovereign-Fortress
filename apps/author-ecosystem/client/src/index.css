@@ -3,6 +3,10 @@
 @source "./**/*.{jsx,js,tsx,ts}";
 @source "../../../../packages/ui/src/**/*.{tsx,ts}";
 
+/** Creative (violet) vs Business (amber) shell — set on `AuthorAppLayout` root. */
+@custom-variant lens-creative (&:where([data-author-lens="creative"] *));
+@custom-variant lens-business (&:where([data-author-lens="business"] *));
+
 html,
 body,
 #root {

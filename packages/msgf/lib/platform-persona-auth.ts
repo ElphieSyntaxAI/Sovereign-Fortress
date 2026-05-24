@@ -176,9 +176,9 @@ export function resolvePostLoginRedirect(platform: PlatformId): string {
   if (platform === "author") {
     const base = authorAppOrigin();
     if (!process.env.AUTHOR_APP_URL?.trim() && !process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim()) {
-      return "/dashboard";
+      return "/home";
     }
-    return `${base}/dashboard`;
+    return `${base}/home`;
   }
   if (platform === "education") {
     return educationAppOrigin();

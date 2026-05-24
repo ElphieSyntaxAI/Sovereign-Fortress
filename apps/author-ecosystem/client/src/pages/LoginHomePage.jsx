@@ -68,7 +68,7 @@ export default function LoginHomePage() {
               setAuthError(json.message || json.error || res.statusText);
               return;
             }
-            const redirect = typeof json.redirectUrl === "string" ? json.redirectUrl : "/dashboard";
+            const redirect = typeof json.redirectUrl === "string" ? json.redirectUrl : "/home";
             window.location.assign(redirect);
             } catch (e) {
               setAuthError(formatBffFetchError(e, "/api/auth/login"));

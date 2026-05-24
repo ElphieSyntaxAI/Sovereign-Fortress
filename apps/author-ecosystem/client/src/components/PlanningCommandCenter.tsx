@@ -19,6 +19,8 @@ import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 import { registerEditorStateProvider } from "../lib/editorSnapshotRegistry";
 import { getSupabaseBrowserClient } from "../lib/supabaseBrowser";
 
+export type PlanningTabId = "wiki" | "interview" | "sandbox" | "discovery";
+
 export type PlanningCommandCenterProps = {
   manuscriptId: string;
   tenantId: string;
@@ -29,11 +31,14 @@ export type PlanningCommandCenterProps = {
    * else the BFF httpOnly `author_bff_jwt` cookie (legacy bridge).
    */
   getAccessToken?: () => string | null | Promise<string | null>;
+  initialTab?: PlanningTabId;
+  /** When set, only these workspace tabs render (for routed Outline / ingest pages). */
+  allowedTabs?: PlanningTabId[];
+  /** Hide pillar health + sync toolbar when a dedicated route owns the header. */
+  compactChrome?: boolean;
 };
 
-type TabId = "wiki" | "interview" | "sandbox" | "discovery";
-
-const TABS: { id: TabId; label: string }[] = [
+const ALL_TABS: { id: PlanningTabId; label: string }[] = [
   { id: "wiki", label: "Wiki Architect" },
   { id: "interview", label: "Librarian Interview" },
   { id: "sandbox", label: "Plot Sandbox" },
@@ -272,7 +277,20 @@ function PlanningEditorSnapshotBridge() {
 }
 
 function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
-  const [tab, setTab] = useState<TabId>("wiki");
+  const tabs = useMemo(() => {
+    if (!props.allowedTabs?.length) return ALL_TABS;
+    const allowed = new Set(props.allowedTabs);
+    return ALL_TABS.filter((t) => allowed.has(t.id));
+  }, [props.allowedTabs]);
+
+  const defaultTab = props.initialTab ?? tabs[0]?.id ?? "wiki";
+  const [tab, setTab] = useState<PlanningTabId>(defaultTab);
+
+  useEffect(() => {
+    if (!tabs.some((t) => t.id === tab)) {
+      setTab(tabs[0]?.id ?? "wiki");
+    }
+  }, [tabs, tab]);
 
   const envUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -349,33 +367,35 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
 
   return (
     <section className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-zinc-100">Planning command center</h2>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <EditorRequestButton manuscriptId={props.manuscriptId} getAccessToken={getToken} />
-          <SyncToLibrarianButton
-            manuscriptId={props.manuscriptId}
-            tenantId={props.tenantId}
-            getAccessToken={getToken}
-          />
-        </div>
-      </div>
+      {!props.compactChrome ? (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-zinc-100">Planning command center</h2>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <EditorRequestButton manuscriptId={props.manuscriptId} getAccessToken={getToken} />
+              <SyncToLibrarianButton
+                manuscriptId={props.manuscriptId}
+                tenantId={props.tenantId}
+                getAccessToken={getToken}
+              />
+            </div>
+          </div>
+          <div className="rounded-xl border border-emerald-900/35 bg-zinc-950/40 p-4">
+            <h3 className="text-sm font-semibold text-zinc-100">Tenant observability</h3>
+            <p className="mt-0.5 text-[11px] text-zinc-500">
+              Logic drift and six-pillar stoplights — shared with Sentinel diagnostics.
+            </p>
+            <div className="mt-3">
+              <BrainPillarHealth pollIntervalMs={20_000} lookbackHours={168} />
+            </div>
+          </div>
+          <SharedSessionDigest />
+        </>
+      ) : null}
       <PlanningEditorSnapshotBridge />
-
-      <div className="rounded-xl border border-emerald-900/35 bg-zinc-950/40 p-4">
-        <h3 className="text-sm font-semibold text-zinc-100">Tenant observability</h3>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
-          Your logic drift trajectory and six-pillar stoplights refresh automatically. Sentinel reports attach the
-          same editor excerpt and keystrokes you see in the glass box below.
-        </p>
-        <div className="mt-3">
-          <BrainPillarHealth pollIntervalMs={20_000} lookbackHours={168} />
-        </div>
-      </div>
-
-      <SharedSessionDigest />
+      {tabs.length > 1 ? (
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Planning modes">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -388,6 +408,7 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
           </button>
         ))}
       </div>
+      ) : null}
       <div role="tabpanel" className="min-h-[12rem]">
         {body}
       </div>

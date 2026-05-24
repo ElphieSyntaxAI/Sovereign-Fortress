@@ -2,6 +2,8 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import VaultProtector from "./components/VaultProtector";
+import { RequireAuthorLens } from "./components/RequireAuthorLens";
+import AuthorAppLayout from "./layouts/AuthorAppLayout";
 
 /** Route-level code split — avoid loading dashboard/msgf on the hub and sign-in pages. */
 function lazyPage(importer, label) {
@@ -37,7 +39,22 @@ const AuthCallbackRedirectPage = lazyPage(
   () => import("./pages/AuthCallbackRedirectPage.jsx"),
   "auth-callback"
 );
-const DashboardPage = lazyPage(() => import("./pages/DashboardPage.tsx"), "dashboard");
+const AuthorHomePage = lazyPage(() => import("./pages/AuthorHomePage.tsx"), "home");
+const ManuscriptsPage = lazyPage(() => import("./pages/ManuscriptsPage.tsx"), "manuscripts");
+const OutlinePage = lazyPage(() => import("./pages/OutlinePage.tsx"), "outline");
+const DraftingPage = lazyPage(() => import("./pages/DraftingPage.tsx"), "drafting");
+const RevisionPage = lazyPage(() => import("./pages/RevisionPage.tsx"), "revision");
+const EditorSuggestionsPage = lazyPage(
+  () => import("./pages/EditorSuggestionsPage.tsx"),
+  "editor-suggestions"
+);
+const CreativeGuildPage = lazyPage(() => import("./pages/CreativeGuildPage.tsx"), "guild");
+const PublishingRequestsPage = lazyPage(
+  () => import("./pages/PublishingRequestsPage.tsx"),
+  "publishing-requests"
+);
+const NotificationsPage = lazyPage(() => import("./pages/NotificationsPage.tsx"), "notifications");
+const SettingsPage = lazyPage(() => import("./pages/SettingsPage.tsx"), "settings");
 const TermsPage = lazyPage(() => import("./pages/TermsPage"), "terms");
 const NdaPage = lazyPage(() => import("./pages/NdaPage"), "nda");
 const VaultPactPage = lazyPage(() => import("./pages/VaultPactPage"), "vault-pact");
@@ -85,13 +102,81 @@ export default function App() {
         <Route path="/admin/portal" element={<AdminPortalRedirectPage />} />
         <Route path="/admin" element={<Navigate to="/admin/sign-in" replace />} />
         <Route
-          path="/dashboard"
           element={
             <VaultProtector>
-              <DashboardPage />
+              <AuthorAppLayout />
             </VaultProtector>
           }
-        />
+        >
+          <Route path="/home" element={<AuthorHomePage />} />
+          <Route path="/manuscripts" element={<ManuscriptsPage />} />
+          <Route
+            path="/outline"
+            element={
+              <RequireAuthorLens lens="creative">
+                <OutlinePage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
+            path="/drafting"
+            element={
+              <RequireAuthorLens lens="creative">
+                <DraftingPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
+            path="/revision"
+            element={
+              <RequireAuthorLens lens="creative">
+                <RevisionPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
+            path="/editor-suggestions"
+            element={
+              <RequireAuthorLens lens="creative">
+                <EditorSuggestionsPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <RequireAuthorLens lens="creative">
+                <NotificationsPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireAuthorLens lens="creative">
+                <SettingsPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
+            path="/guild"
+            element={
+              <RequireAuthorLens lens="business">
+                <CreativeGuildPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
+            path="/publishing-requests"
+            element={
+              <RequireAuthorLens lens="business">
+                <PublishingRequestsPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route path="/dashboard" element={<Navigate to="/outline" replace />} />
+          <Route path="/analytics" element={<Navigate to="/publishing-requests" replace />} />
+        </Route>
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/terms/:slug" element={<TermsPage />} />
         <Route path="/nda" element={<NdaPage />} />

@@ -33,7 +33,23 @@ function errorDetail(e: unknown): string {
   return String(e);
 }
 
-function mapSupabaseUserToMe(user: { id: string; user_metadata?: Record<string, unknown> | null }) {
+function readActivatedPersonas(meta: Record<string, unknown>, fallbackPersona: string): string[] {
+  const raw = meta["activated_personas"];
+  if (Array.isArray(raw)) {
+    const list = raw
+      .map((p) => String(p).trim().toLowerCase())
+      .filter((p) => isPersonaValidForPlatform("author", p));
+    if (list.length) return [...new Set(list)];
+  }
+  const seed = fallbackPersona.trim().toLowerCase();
+  return isPersonaValidForPlatform("author", seed) ? [seed] : ["author"];
+}
+
+function mapSupabaseUserToMe(user: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+}) {
   const meta = user.user_metadata ?? {};
   const legacyRaw = meta["legacy_user_id"];
   const id =
@@ -42,8 +58,23 @@ function mapSupabaseUserToMe(user: { id: string; user_metadata?: Record<string, 
       : typeof legacyRaw === "number"
         ? String(legacyRaw)
         : user.id;
-  const role = normalizeRole(meta["terms_role"] ?? meta["user_role"] ?? meta["role"]);
-  return { id, role };
+  const persona = String(meta.persona ?? meta.terms_role ?? meta.user_role ?? meta.role ?? "author")
+    .trim()
+    .toLowerCase();
+  const role = normalizeRole(meta["terms_role"] ?? meta["user_role"] ?? meta["role"] ?? persona);
+  return {
+    id,
+    email: user.email ?? null,
+    role,
+    persona: isPersonaValidForPlatform("author", persona) ? persona : "author",
+    activated_personas: readActivatedPersonas(meta, persona),
+  };
+}
+
+function mergeActivatedPersona(meta: Record<string, unknown>, persona: string): string[] {
+  const next = new Set(readActivatedPersonas(meta, persona));
+  next.add(persona.trim().toLowerCase());
+  return [...next];
 }
 
 function mirrorAccessTokenCookie(req: Request, res: Response, accessToken: string | undefined): void {
@@ -78,7 +109,7 @@ authSessionBridgeController.get("/msgf-handoff", (req: Request, res: Response) =
 
       const returnTo = sanitizeAuthorReturnToUrl(
         typeof req.query.return_to === "string" ? req.query.return_to : undefined,
-        `${DEFAULT_AUTHOR_DASHBOARD_RETURN}/dashboard`
+        `${DEFAULT_AUTHOR_DASHBOARD_RETURN}/home`
       );
 
       const payload = verifyOperatorHandoffToken(token, operatorHandoffSecret());
@@ -149,8 +180,17 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
 
       mirrorAccessTokenCookie(req, res, data.session.access_token);
       const entitlement = await syncPlatformPersonaSession(res, data.user, { platform, persona });
+      const admin = getSupabaseAdmin();
+      const meta = { ...(data.user.user_metadata ?? {}) };
+      const activated = mergeActivatedPersona(meta, persona);
+      await admin.auth.admin.updateUserById(data.user.id, {
+        user_metadata: { ...meta, activated_personas: activated },
+      });
 
-      const u = mapSupabaseUserToMe(data.user);
+      const u = mapSupabaseUserToMe({
+        ...data.user,
+        user_metadata: { ...meta, persona, activated_personas: activated },
+      });
       res.status(200).json({
         message: "Login successful",
         user: {
@@ -158,10 +198,11 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
           email: data.user.email,
           username: data.user.user_metadata?.username,
           platform,
-          persona,
+          persona: u.persona,
           role: entitlement.userRole,
           tenant_id: entitlement.tenantId,
           msgf_license_provisioned: entitlement.provisionedLicense,
+          activated_personas: u.activated_personas,
         },
         redirectUrl: resolvePostLoginRedirect(platform),
       });
@@ -261,7 +302,22 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
         persona: termsRole,
       });
 
-      const u = mapSupabaseUserToMe(sessionData.user);
+      const activated = mergeActivatedPersona(sessionData.user.user_metadata ?? {}, termsRole);
+      await admin.auth.admin.updateUserById(authUserId, {
+        user_metadata: {
+          ...(sessionData.user.user_metadata ?? {}),
+          activated_personas: activated,
+        },
+      });
+
+      const u = mapSupabaseUserToMe({
+        ...sessionData.user,
+        user_metadata: {
+          ...(sessionData.user.user_metadata ?? {}),
+          persona: termsRole,
+          activated_personas: activated,
+        },
+      });
       res.status(201).json({
         message: "User registered successfully",
         user: {
@@ -269,10 +325,11 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
           username,
           email,
           platform: "author",
-          persona: termsRole,
+          persona: u.persona,
           role: entitlement.userRole,
           tenant_id: entitlement.tenantId,
           msgf_license_provisioned: entitlement.provisionedLicense,
+          activated_personas: u.activated_personas,
           theme: "Pleasure",
         },
         redirectUrl: resolvePostLoginRedirect("author"),
@@ -302,7 +359,7 @@ authSessionBridgeController.get("/me", (req: Request, res: Response) => {
       const { data: userData, error } = await supabase.auth.getUser();
       if (!error && userData.user) {
         const u = mapSupabaseUserToMe(userData.user);
-        res.status(200).json({ authenticated: true, user: { id: u.id, role: u.role } });
+        res.status(200).json({ authenticated: true, user: u });
         return;
       }
     } catch (e) {
@@ -311,7 +368,112 @@ authSessionBridgeController.get("/me", (req: Request, res: Response) => {
 
     const user = readBearerUser(req, res);
     if (!user) return;
-    res.status(200).json({ authenticated: true, user: { id: user.userId, role: user.role } });
+    res.status(200).json({
+      authenticated: true,
+      user: {
+        id: user.userId,
+        role: user.role,
+        persona: user.role,
+        activated_personas: [user.role],
+      },
+    });
+  })();
+});
+
+authSessionBridgeController.post("/switch-persona", (req: Request, res: Response) => {
+  void (async () => {
+    try {
+      const persona = String((req.body as Record<string, unknown>)?.persona ?? "")
+        .trim()
+        .toLowerCase();
+      if (!isPersonaValidForPlatform("author", persona)) {
+        res.status(400).json({ message: "Invalid author persona." });
+        return;
+      }
+
+      const supabase = createBffSupabaseServerClient(req, res);
+      const { data: userData, error } = await supabase.auth.getUser();
+      if (error || !userData.user) {
+        res.status(401).json({ message: "Not authenticated." });
+        return;
+      }
+
+      const meta = { ...(userData.user.user_metadata ?? {}) };
+      const activated = readActivatedPersonas(meta, persona);
+      if (!activated.includes(persona)) {
+        res.status(403).json({
+          message: "Activate this role in Settings before switching.",
+        });
+        return;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      mirrorAccessTokenCookie(req, res, sessionData.session?.access_token);
+
+      const entitlement = await syncPlatformPersonaSession(res, userData.user, {
+        platform: "author",
+        persona,
+      });
+
+      const merged = mergeActivatedPersona(meta, persona);
+      const admin = getSupabaseAdmin();
+      await admin.auth.admin.updateUserById(userData.user.id, {
+        user_metadata: { ...meta, activated_personas: merged },
+      });
+
+      const u = mapSupabaseUserToMe({
+        ...userData.user,
+        user_metadata: { ...meta, persona, activated_personas: merged },
+      });
+
+      res.status(200).json({
+        message: "Role switched",
+        user: {
+          ...u,
+          role: entitlement.userRole,
+          tenant_id: entitlement.tenantId,
+        },
+      });
+    } catch (e) {
+      console.error("[bff/auth/switch-persona]", e);
+      res.status(500).json({ message: e instanceof Error ? e.message : "Switch failed." });
+    }
+  })();
+});
+
+authSessionBridgeController.post("/activate-persona", (req: Request, res: Response) => {
+  void (async () => {
+    try {
+      const persona = String((req.body as Record<string, unknown>)?.persona ?? "")
+        .trim()
+        .toLowerCase();
+      if (!isPersonaValidForPlatform("author", persona)) {
+        res.status(400).json({ message: "Invalid author persona." });
+        return;
+      }
+
+      const supabase = createBffSupabaseServerClient(req, res);
+      const { data: userData, error } = await supabase.auth.getUser();
+      if (error || !userData.user) {
+        res.status(401).json({ message: "Not authenticated." });
+        return;
+      }
+
+      const meta = { ...(userData.user.user_metadata ?? {}) };
+      const activated = mergeActivatedPersona(meta, persona);
+      const admin = getSupabaseAdmin();
+      await admin.auth.admin.updateUserById(userData.user.id, {
+        user_metadata: { ...meta, activated_personas: activated },
+      });
+
+      res.status(200).json({
+        message: "Persona activated",
+        activated_personas: activated,
+      });
+    } catch (e) {
+      console.error("[bff/auth/activate-persona]", e);
+      res.status(500).json({ message: e instanceof Error ? e.message : "Activation failed." });
+    }
   })();
 });
 

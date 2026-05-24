@@ -2,17 +2,14 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
 import { CoolDownLock, type CoolDownManuscriptState } from "../components/CoolDownLock";
-import { ManuscriptSelector } from "../components/ManuscriptSelector";
 import { PlanningCommandCenter } from "../components/PlanningCommandCenter";
 import { AuthorSentinelBugButton } from "../components/AuthorSentinelBugButton";
-import { MsgfConnectionStatus } from "../components/MsgfConnectionStatus";
-import { OperatorAdminLink } from "../components/OperatorAdminLink";
-import { OperatorAdminPanel } from "../components/OperatorAdminPanel";
 import HALTracker from "../components/HALTracker.jsx";
-import { NarrativeProvider, useNarrative } from "../context/NarrativeContext";
-import { bffCredentials, bffUrl } from "../lib/bffFetch";
+import { useAuthorWorkspaceLens } from "../context/AuthorWorkspaceLensContext";
+import { useNarrative } from "../context/NarrativeContext";
 
 function DashboardInner() {
+  const { meta } = useAuthorWorkspaceLens();
   const { selection, setSelection } = useNarrative();
 
   const manuscript: CoolDownManuscriptState | null = useMemo(() => {
@@ -29,62 +26,30 @@ function DashboardInner() {
     };
   }, [selection]);
 
-  const logout = async () => {
-    try {
-      const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-      const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-      if (url?.trim() && key?.trim()) {
-        const { getSupabaseBrowserClient } = await import("../lib/supabaseBrowser");
-        await getSupabaseBrowserClient().auth.signOut();
-      }
-    } catch {
-      // non-blocking
-    }
-    await fetch(bffUrl("/api/auth/logout"), { method: "POST", ...bffCredentials });
-    window.location.assign("/");
-  };
-
   return (
-    <div className="dark min-h-screen bg-zinc-950 p-6 text-zinc-100">
-      <div className="mx-auto max-w-5xl space-y-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-            <p className="text-sm text-zinc-400">
-              Pick a manuscript, then open planning tools.{" "}
-              <Link to="/" className="text-zinc-300 underline underline-offset-2 hover:text-white">
-                Home
-              </Link>
-              {" · "}
-              <Link to="/terms" className="text-zinc-300 underline underline-offset-2 hover:text-white">
-                Terms
-              </Link>
-              {" · "}
-              <Link to="/nda" className="text-zinc-300 underline underline-offset-2 hover:text-white">
-                NDAs
-              </Link>
-              {" · "}
-              <Link to="/vault-pact" className="text-zinc-300 underline underline-offset-2 hover:text-white">
-                Vault Pact
-              </Link>
-              {" · "}
-              <OperatorAdminLink className="text-violet-300 underline underline-offset-2 hover:text-violet-200" />
+    <div className="space-y-8">
+        <header>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-400/90">
+              {meta.label} lens
             </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-900"
-          >
-            Sign out
-          </button>
+            <h1 className="text-2xl font-semibold tracking-tight">Planning workspace</h1>
+            <p className="text-sm text-zinc-400">
+              Wiki architect, librarian, ingest, plot sandbox, and HAL.{" "}
+              <Link to="/manuscripts" className="text-violet-300 underline underline-offset-2 hover:text-violet-100">
+                Change manuscript
+              </Link>
+            </p>
         </header>
 
-        <OperatorAdminPanel />
-
-        <MsgfConnectionStatus />
-
-        <ManuscriptSelector />
+        {!selection ? (
+          <p className="text-sm text-amber-300/90">
+            Select a manuscript on{" "}
+            <Link to="/manuscripts" className="underline">
+              Manuscripts
+            </Link>{" "}
+            first.
+          </p>
+        ) : null}
 
         {selection ? (
           <CoolDownLock
@@ -112,10 +77,7 @@ function DashboardInner() {
               <HALTracker />
             </main>
           </CoolDownLock>
-        ) : (
-          <p className="text-sm text-zinc-500">Select a manuscript above to load the Planning Command Center.</p>
-        )}
-      </div>
+        ) : null}
 
       <AuthorSentinelBugButton />
     </div>
@@ -123,9 +85,5 @@ function DashboardInner() {
 }
 
 export default function DashboardPage() {
-  return (
-    <NarrativeProvider>
-      <DashboardInner />
-    </NarrativeProvider>
-  );
+  return <DashboardInner />;
 }
