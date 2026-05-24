@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 
-import { ManuscriptSelector } from "../components/ManuscriptSelector";
+import { ManuscriptHub } from "../components/ManuscriptHub";
 import { useNarrative } from "../context/NarrativeContext";
+import { displayTitle } from "../lib/manuscriptTypes";
 
 export default function ManuscriptsPage() {
   const { selection } = useNarrative();
@@ -11,23 +12,30 @@ export default function ManuscriptsPage() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Manuscripts</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Every project you own on this account — select one, then open the planning workspace or HAL tracker.
+          Create series or books, link Google Docs for HAL, and manage current projects. The active manuscript
+          drives wiki, drafting, and business views.
         </p>
       </header>
-
-      <ManuscriptSelector />
 
       {selection ? (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-900/40 bg-emerald-950/20 px-4 py-3">
           <p className="text-sm text-emerald-100/90">
-            Active: <span className="font-medium text-emerald-50">{selection.manuscriptId}</span>
-            <span className="text-emerald-300/70"> · tenant {selection.tenantId}</span>
+            Active manuscript:{" "}
+            <span className="font-medium text-emerald-50">
+              {selection.title?.trim() || displayTitle({ title: selection.title, id: selection.manuscriptId })}
+            </span>
           </p>
+          <Link
+            to="/wiki"
+            className="rounded-full border border-violet-500/50 bg-violet-600/90 px-4 py-1.5 text-xs font-semibold text-violet-50 hover:bg-violet-500"
+          >
+            Wiki
+          </Link>
           <Link
             to="/outline"
             className="rounded-full border border-violet-500/50 bg-violet-600/90 px-4 py-1.5 text-xs font-semibold text-violet-50 hover:bg-violet-500"
           >
-            Open outline
+            Outline
           </Link>
           <Link
             to="/drafting"
@@ -37,8 +45,12 @@ export default function ManuscriptsPage() {
           </Link>
         </div>
       ) : (
-        <p className="text-sm text-zinc-500">Select a manuscript above to enable workspace actions.</p>
+        <p className="text-sm text-zinc-500">
+          Click a linked project below to set your active manuscript (confirmation required when switching).
+        </p>
       )}
+
+      <ManuscriptHub />
     </div>
   );
 }

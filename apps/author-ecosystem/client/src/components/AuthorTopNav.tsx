@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
+import { ActiveManuscriptChip } from "./ActiveManuscriptChip";
 import { BusinessCreativeToggle } from "./BusinessCreativeToggle";
 import {
   AUTHOR_ROLE_OPTIONS,
@@ -116,6 +117,8 @@ export function AuthorTopNav() {
           </Link>
 
           <BusinessCreativeToggle />
+
+          <ActiveManuscriptChip />
 
           <div className="relative" ref={roleRef}>
             <button

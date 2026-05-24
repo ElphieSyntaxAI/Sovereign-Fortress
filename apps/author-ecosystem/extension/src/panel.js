@@ -163,6 +163,48 @@ function updateManuscriptHud() {
  * Auth check: `GET /api/auth/me` with credentials (httpOnly cookie) + optional Bearer from storage.
  * Context sync: `GET /api/manuscripts/active` (latest dashboard selection via touch).
  */
+function parseGoogleDocId(url) {
+  const m = String(url || "").match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+  return m?.[1] ?? null;
+}
+
+/** Report the active Google Doc to the dashboard link session (after author starts session on web). */
+async function reportLinkDoc() {
+  const act = await bffRequest("/api/manuscripts/link-session/active", { method: "GET" });
+  if (!act.ok || !act.data?.session?.id) {
+    throw new Error(
+      "No active link session. In the web dashboard go to Manuscripts → Start link session, then open this doc and try again."
+    );
+  }
+  const sessionId = act.data.session.id;
+  const tabId = await resolveWritingTabId();
+  if (tabId == null) {
+    throw new Error("Open a Google Doc in this browser, then click Report doc again.");
+  }
+  const tab = await chrome.tabs.get(tabId);
+  const url = tab.url || "";
+  const docId = parseGoogleDocId(url);
+  if (!docId) {
+    throw new Error("The writing tab is not a Google Doc URL.");
+  }
+  const report = await bffRequest(`/api/manuscripts/link-session/${encodeURIComponent(sessionId)}/report`, {
+    method: "POST",
+    body: {
+      google_doc_id: docId,
+      google_doc_url: url,
+    },
+  });
+  if (!report.ok) {
+    throw new Error(report.data?.error || `Report failed (${report.status})`);
+  }
+  const title = report.data?.session?.google_doc_title || docId;
+  const hint = $("linkSessionHint");
+  if (hint) {
+    hint.textContent = `Reported “${title}”. Confirm Link session on the Manuscripts page.`;
+  }
+  setOutput(report.data);
+}
+
 async function refreshSessionContext() {
   const me = await bffRequest("/api/auth/me", { method: "GET" });
   if (!me.ok) {
@@ -566,6 +608,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       .catch((e) => setOutput(e.message))
   );
   $("syncSession").addEventListener("click", () => refreshSessionContext().catch((e) => setOutput(e.message)));
+  $("reportLinkDoc").addEventListener("click", () => reportLinkDoc().catch((e) => setOutput(e.message)));
   $("loadProjects").addEventListener("click", () => loadProjects().catch((e) => setOutput(e.message)));
   $("pushSession").addEventListener("click", () => pushHalSession().catch((e) => setOutput(e.message)));
   $("endSessionWrapUp").addEventListener("click", () => endSessionAndWrapUp().catch((e) => setOutput(e.message)));

@@ -22,6 +22,7 @@ export const AUTHOR_LENS_META: Record<
 };
 
 const CREATIVE_PREFIXES = [
+  "/wiki",
   "/outline",
   "/drafting",
   "/revision",
@@ -29,7 +30,7 @@ const CREATIVE_PREFIXES = [
   "/dashboard",
 ] as const;
 
-const BUSINESS_PREFIXES = ["/guild", "/publishing-requests", "/analytics"] as const;
+const BUSINESS_PREFIXES = ["/guild", "/fan-management", "/publishing-requests", "/analytics"] as const;
 
 export const LENS_ONLY_ROUTES: Record<AuthorWorkspaceLens, readonly string[]> = {
   creative: [...CREATIVE_PREFIXES],

@@ -41,6 +41,7 @@ const AuthCallbackRedirectPage = lazyPage(
 );
 const AuthorHomePage = lazyPage(() => import("./pages/AuthorHomePage.tsx"), "home");
 const ManuscriptsPage = lazyPage(() => import("./pages/ManuscriptsPage.tsx"), "manuscripts");
+const WikiPage = lazyPage(() => import("./pages/WikiPage.tsx"), "wiki");
 const OutlinePage = lazyPage(() => import("./pages/OutlinePage.tsx"), "outline");
 const DraftingPage = lazyPage(() => import("./pages/DraftingPage.tsx"), "drafting");
 const RevisionPage = lazyPage(() => import("./pages/RevisionPage.tsx"), "revision");
@@ -52,6 +53,10 @@ const CreativeGuildPage = lazyPage(() => import("./pages/CreativeGuildPage.tsx")
 const PublishingRequestsPage = lazyPage(
   () => import("./pages/PublishingRequestsPage.tsx"),
   "publishing-requests"
+);
+const FanManagementPage = lazyPage(
+  () => import("./pages/FanManagementPage.tsx"),
+  "fan-management"
 );
 const NotificationsPage = lazyPage(() => import("./pages/NotificationsPage.tsx"), "notifications");
 const SettingsPage = lazyPage(() => import("./pages/SettingsPage.tsx"), "settings");
@@ -111,6 +116,14 @@ export default function App() {
           <Route path="/home" element={<AuthorHomePage />} />
           <Route path="/manuscripts" element={<ManuscriptsPage />} />
           <Route
+            path="/wiki"
+            element={
+              <RequireAuthorLens lens="creative">
+                <WikiPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
             path="/outline"
             element={
               <RequireAuthorLens lens="creative">
@@ -163,6 +176,14 @@ export default function App() {
             element={
               <RequireAuthorLens lens="business">
                 <CreativeGuildPage />
+              </RequireAuthorLens>
+            }
+          />
+          <Route
+            path="/fan-management"
+            element={
+              <RequireAuthorLens lens="business">
+                <FanManagementPage />
               </RequireAuthorLens>
             }
           />

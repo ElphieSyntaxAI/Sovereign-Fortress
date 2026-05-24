@@ -9,6 +9,7 @@ export type AuthorNavItem = {
 
 export const CREATIVE_NAV: AuthorNavItem[] = [
   { to: "/manuscripts", label: "Manuscripts" },
+  { to: "/wiki", label: "Wiki", matchPrefix: "/wiki" },
   { to: "/outline", label: "Outline", matchPrefix: "/outline" },
   { to: "/drafting", label: "Drafting", matchPrefix: "/drafting" },
   { to: "/revision", label: "Revision passes", matchPrefix: "/revision" },
@@ -19,6 +20,7 @@ export const CREATIVE_NAV: AuthorNavItem[] = [
 
 export const BUSINESS_NAV: AuthorNavItem[] = [
   { to: "/guild", label: "Creative Guild", matchPrefix: "/guild" },
+  { to: "/fan-management", label: "Fan management", matchPrefix: "/fan-management" },
   { to: "/publishing-requests", label: "Publishing requests", matchPrefix: "/publishing-requests" },
 ];
 

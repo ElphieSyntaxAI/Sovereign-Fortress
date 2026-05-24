@@ -36,6 +36,8 @@ export type PlanningCommandCenterProps = {
   allowedTabs?: PlanningTabId[];
   /** Hide pillar health + sync toolbar when a dedicated route owns the header. */
   compactChrome?: boolean;
+  /** When true, wiki scratch + sync are disabled (Wiki route boots read-only). */
+  wikiReadOnly?: boolean;
 };
 
 const ALL_TABS: { id: PlanningTabId; label: string }[] = [
@@ -205,11 +207,17 @@ function WikiArchitectPanel(props: {
   manuscriptId: string;
   tenantId: string;
   loadView: (mode: DashboardMode) => Promise<DashboardViewPayload>;
+  readOnly?: boolean;
 }) {
   const { wikiNotes, setWikiNotes, interviewTurns, plotBeats } = usePlanningSession();
 
   return (
     <div className="space-y-4">
+      {props.readOnly ? (
+        <p className="text-xs text-zinc-500" role="status">
+          Read-only — click the pencil in the page header to edit wiki scratch notes.
+        </p>
+      ) : null}
       <label className="block space-y-1">
         <span className="text-[10px] uppercase tracking-wide text-zinc-500">
           Wiki scratch (shared — visible on all tabs via digest / this field)
@@ -217,8 +225,14 @@ function WikiArchitectPanel(props: {
         <textarea
           value={wikiNotes}
           onChange={(e) => setWikiNotes(e.target.value)}
+          readOnly={props.readOnly}
           rows={3}
-          className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100"
+          className={[
+            "w-full rounded-md border px-2 py-1.5 text-sm",
+            props.readOnly
+              ? "cursor-default border-zinc-800 bg-zinc-900/50 text-zinc-400"
+              : "border-zinc-700 bg-zinc-950 text-zinc-100",
+          ].join(" ")}
         />
       </label>
       {interviewTurns.length > 0 || plotBeats.length > 0 ? (
@@ -348,6 +362,7 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
           manuscriptId={props.manuscriptId}
           tenantId={props.tenantId}
           loadView={loadView}
+          readOnly={props.wikiReadOnly}
         />
       );
     }
@@ -373,11 +388,13 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
             <h2 className="text-lg font-semibold text-zinc-100">Planning command center</h2>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <EditorRequestButton manuscriptId={props.manuscriptId} getAccessToken={getToken} />
-              <SyncToLibrarianButton
-                manuscriptId={props.manuscriptId}
-                tenantId={props.tenantId}
-                getAccessToken={getToken}
-              />
+              {!props.wikiReadOnly ? (
+                <SyncToLibrarianButton
+                  manuscriptId={props.manuscriptId}
+                  tenantId={props.tenantId}
+                  getAccessToken={getToken}
+                />
+              ) : null}
             </div>
           </div>
           <div className="rounded-xl border border-emerald-900/35 bg-zinc-950/40 p-4">
