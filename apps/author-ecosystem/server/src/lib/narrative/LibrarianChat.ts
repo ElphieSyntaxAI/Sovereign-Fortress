@@ -1,8 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { retrieveP4NarrativeChunks } from "../p4RagRetrieval.js";
 import { createOpenAIEmbedder, type EmbedBatchFn } from "./IngestionService.js";
-
-const EMBEDDING_DIM = 1536;
 
 /** Supported answer / question languages for the Librarian. */
 export type LibrarianLanguage = "en" | "es" | "ja";
@@ -393,6 +392,10 @@ export type LibrarianAskInput = {
   languageDetection?: LibrarianLanguageDetectionMode;
   /** `school` enables Teaching mode in the system prompt. Default `author`. */
   tenantScope?: LibrarianTenantScope;
+  /** When set, applies series scope and locked-wiki rules for multi-book series. */
+  manuscriptId?: string | null;
+  /** When false, hides draft wiki snapshots unless locked/canon (legacy HUD). Default false. */
+  includeWikiDrafts?: boolean;
 };
 
 export type LibrarianAskResult = {
@@ -516,6 +519,8 @@ export class LibrarianChat {
       language: languageOverride,
       languageDetection: detectionOverride,
       tenantScope = "author",
+      manuscriptId,
+      includeWikiDrafts = false,
     } = input;
 
     const q = String(question ?? "").trim();
@@ -528,39 +533,16 @@ export class LibrarianChat {
       languageOverride ?? (await detectLibrarianLanguage(q, detectionMode));
 
     const k = clampTopK(topK);
-    const [qVec] = await this.embedBatch([q]);
-    if (!qVec || qVec.length !== EMBEDDING_DIM) {
-      throw new Error(`Embedding dimension mismatch: expected ${EMBEDDING_DIM}`);
-    }
-
-    const rpcArgs: Record<string, unknown> = {
-      p_tenant_id: tenantId,
-      p_query_embedding: qVec,
-      p_match_count: k,
-      p_chunk_types: chunkTypes && chunkTypes.length > 0 ? chunkTypes : null,
-    };
-
-    const { data: rows, error } = await this.supabase.rpc(
-      "match_p4_narrative_library_chunks",
-      rpcArgs
-    );
-
-    if (error) {
-      throw new Error(`match_p4_narrative_library_chunks failed: ${error.message}`);
-    }
-
-    const retrievedChunks: NarrativeChunkHit[] = (rows ?? []).map((r: Record<string, unknown>) => ({
-      id: String(r.id),
-      content: String(r.content ?? ""),
-      source_document: String(r.source_document ?? ""),
-      chunk_type: String(r.chunk_type ?? ""),
-      chunk_index: Number(r.chunk_index ?? 0),
-      metadata: (r.metadata && typeof r.metadata === "object" ? r.metadata : {}) as Record<
-        string,
-        unknown
-      >,
-      cosine_similarity: Number(r.cosine_similarity ?? 0),
-    }));
+    const { chunks: retrievedChunks } = await retrieveP4NarrativeChunks(this.supabase, {
+      tenantId,
+      question: q,
+      topK: k,
+      manuscriptId,
+      includeWikiDrafts,
+      audience,
+      chunkTypes,
+      embedBatch: this.embedBatch,
+    });
 
     const system = buildLibrarianSystemPrompt(detectedLanguage, { tenantScope });
     const canonContext = buildCanonContext(retrievedChunks);

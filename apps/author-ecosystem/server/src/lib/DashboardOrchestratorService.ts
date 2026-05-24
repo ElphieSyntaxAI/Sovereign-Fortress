@@ -27,6 +27,7 @@ import { HelperProofService } from "./HelperProofService.js";
 import type { InterestMetrics, MarketplaceHubVisibility } from "./MarketplaceOrchestrator.js";
 import { MarketplaceOrchestrator } from "./MarketplaceOrchestrator.js";
 import type { P4ManuscriptRow, RevisionStatus } from "./RevisionLockService.js";
+import { isOutlinePlotForScope, resolveSeriesRagScope, shouldIncludeChunkForP4Rag } from "./seriesRagScope.js";
 
 export type DashboardMode = "PLANNING" | "DRAFTING" | "REVISION" | "BUSINESS" | "GROWTH";
 
@@ -205,12 +206,6 @@ function isRevisionLockActive(row: P4ManuscriptRow, now = Date.now()): boolean {
 
 function asRecord(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
-}
-
-function isOutlinePlot(meta: Record<string, unknown>, manuscriptId: string): boolean {
-  if (meta["outline"] === true || meta["is_outline"] === true) return true;
-  if (String(meta["manuscript_id"] ?? "") === manuscriptId) return true;
-  return false;
 }
 
 /** Aligns with RAG / HUD plot_point_order ladder (1–9+). */
@@ -445,6 +440,7 @@ export class DashboardOrchestratorService {
     manuscriptId: string
   ): Promise<Omit<PlanningDashboardData, "marketplace" | "marketplace_interest" | "helper_proof">> {
     const tenantId = ms.tenant_id;
+    const seriesScope = await resolveSeriesRagScope(this.supabase, tenantId, manuscriptId);
     const { data: lore, error: e1 } = await this.supabase
       .from("p4_narrative_library_chunks")
       .select("id, chunk_type, source_document, chunk_index, word_count, content")
@@ -484,10 +480,18 @@ export class DashboardOrchestratorService {
     const outlineRows =
       (plot ?? []).filter((r) => {
         const meta = asRecord((r as Record<string, unknown>)["metadata"]);
-        return isOutlinePlot(meta, manuscriptId);
+        return isOutlinePlotForScope(meta, seriesScope, manuscriptId);
       }) ?? [];
 
-    const bible = (lore ?? []).map((r) => toPreview(r as Record<string, unknown>));
+    const bible = (lore ?? [])
+      .filter((r) => {
+        const meta = asRecord((r as Record<string, unknown>)["metadata"]);
+        return shouldIncludeChunkForP4Rag(meta, seriesScope, {
+          includeWikiDrafts: true,
+          audience: "author",
+        });
+      })
+      .map((r) => toPreview(r as Record<string, unknown>));
     const outline =
       outlineRows.length > 0
         ? outlineRows.map((r) => toPlotPreview(r as Record<string, unknown>))

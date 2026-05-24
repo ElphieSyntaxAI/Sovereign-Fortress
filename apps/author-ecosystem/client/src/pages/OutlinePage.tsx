@@ -1,10 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { OutlineGoogleDocPicker } from "../components/OutlineGoogleDocPicker";
-import { PlanningCommandCenter } from "../components/PlanningCommandCenter";
+import {
+  OutlinePlanningSessionChrome,
+  PlanningCommandCenter,
+} from "../components/PlanningCommandCenter";
 import { CreativeManuscriptShell } from "../components/CreativeManuscriptShell";
 import { CreativePageHeader } from "../components/CreativePageHeader";
 import { useNarrative } from "../context/NarrativeContext";
+import {
+  mergeNotesForLibrarianSync,
+  PlanningSessionProvider,
+  usePlanningSession,
+} from "../planning/PlanningSessionContext";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 
@@ -23,67 +32,82 @@ const TABS: { id: OutlineTabId; label: string }[] = [
   { id: "blank-page-outlining", label: "Blank page outlining" },
 ];
 
+const pccProps = {
+  compactChrome: true,
+  useParentSession: true as const,
+};
+
 export default function OutlinePage() {
   const { selection } = useNarrative();
+  return (
+    <div className="space-y-6">
+      <CreativePageHeader title="Outline" description="Multi-mode outlining workspace for" />
+      {selection ? (
+        <PlanningSessionProvider manuscriptId={selection.manuscriptId}>
+          <CreativeManuscriptShell>
+            <OutlinePageContent
+              manuscriptId={selection.manuscriptId}
+              tenantId={selection.tenantId}
+            />
+          </CreativeManuscriptShell>
+        </PlanningSessionProvider>
+      ) : (
+        <CreativeManuscriptShell>{null}</CreativeManuscriptShell>
+      )}
+    </div>
+  );
+}
+
+function OutlinePageContent(props: { manuscriptId: string; tenantId: string }) {
   const [tab, setTab] = useState<OutlineTabId>("building-block-outline");
-  const [notes, setNotes] = useState("");
   const [blankOutline, setBlankOutline] = useState("");
   const [savingBlank, setSavingBlank] = useState(false);
-  const [savingNotes, setSavingNotes] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
-  const notesStorageKey = useMemo(
-    () => (selection ? `elphie:outline:notes:${selection.manuscriptId}` : null),
-    [selection]
-  );
+  const { brainstormNotes, setBrainstormNotes, wikiNotes, interviewTurns, plotBeats } =
+    usePlanningSession();
 
-  useEffect(() => {
-    if (!selection || !notesStorageKey) return;
+  const loadManuscriptOutline = useCallback(async () => {
     try {
-      setNotes(localStorage.getItem(notesStorageKey) ?? "");
+      const token = await getPreferredBffBearer();
+      const res = await fetch(bffUrl("/api/manuscripts"), {
+        ...bffCredentials,
+        headers: { ...bffAuthHeaders(token) },
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        manuscripts?: Array<{ id: string; outline?: string | null }>;
+      };
+      const row = json.manuscripts?.find((m) => m.id === props.manuscriptId);
+      setBlankOutline(row?.outline ?? "");
     } catch {
-      setNotes("");
+      setBlankOutline("");
     }
-  }, [selection, notesStorageKey]);
+  }, [props.manuscriptId]);
 
   useEffect(() => {
-    if (!selection) return;
-    void (async () => {
-      try {
-        const token = await getPreferredBffBearer();
-        const res = await fetch(bffUrl("/api/manuscripts"), {
-          ...bffCredentials,
-          headers: { ...bffAuthHeaders(token) },
-        });
-        const json = (await res.json().catch(() => ({}))) as {
-          manuscripts?: Array<{ id: string; outline?: string | null }>;
-        };
-        const row = json.manuscripts?.find((m) => m.id === selection.manuscriptId);
-        setBlankOutline(row?.outline ?? "");
-      } catch {
-        setBlankOutline("");
-      }
-    })();
-  }, [selection]);
+    void loadManuscriptOutline();
+  }, [loadManuscriptOutline]);
 
   const saveBlankOutline = async () => {
-    if (!selection) return;
     setSavingBlank(true);
     setStatus(null);
     try {
       const token = await getPreferredBffBearer();
-      const res = await fetch(bffUrl(`/api/manuscripts/${encodeURIComponent(selection.manuscriptId)}`), {
-        method: "PATCH",
-        ...bffCredentials,
-        headers: {
-          ...bffAuthHeaders(token),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ outline: blankOutline }),
-      });
+      const res = await fetch(
+        bffUrl(`/api/manuscripts/${encodeURIComponent(props.manuscriptId)}`),
+        {
+          method: "PATCH",
+          ...bffCredentials,
+          headers: {
+            ...bffAuthHeaders(token),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ outline: blankOutline }),
+        }
+      );
       const json = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(json.error || res.statusText);
-      setStatus("Blank outline saved.");
+      setStatus("Blank outline saved to manuscript.");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
@@ -91,17 +115,12 @@ export default function OutlinePage() {
     }
   };
 
-  const syncNotesToOutline = async () => {
-    if (!selection) return;
-    setSavingNotes(true);
+  const syncBrainstormViaSession = async () => {
     setStatus(null);
     try {
-      if (notesStorageKey) {
-        localStorage.setItem(notesStorageKey, notes);
-      }
       const token = await getPreferredBffBearer();
       const res = await fetch(
-        bffUrl(`/api/manuscripts/${encodeURIComponent(selection.manuscriptId)}/sync-session`),
+        bffUrl(`/api/manuscripts/${encodeURIComponent(props.manuscriptId)}/sync-session`),
         {
           method: "POST",
           ...bffCredentials,
@@ -110,167 +129,170 @@ export default function OutlinePage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            wikiNotes: notes,
-            interviewTurns: [],
-            plotBeats: [],
+            wikiNotes: mergeNotesForLibrarianSync(wikiNotes, brainstormNotes),
+            interviewTurns,
+            plotBeats,
           }),
         }
       );
-      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        success?: boolean;
+        warnings?: string[];
+      };
       if (!res.ok) throw new Error(json.error || res.statusText);
-      setStatus("Notes synced to outline/wiki session.");
+      if (json.success === false) {
+        setStatus(json.warnings?.join(" ") || "Sync returned no writes — add more content first.");
+        return;
+      }
+      setStatus("Full outline session synced (notes, interview, beats, wiki scratch).");
+      await loadManuscriptOutline();
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSavingNotes(false);
     }
   };
 
+  const sharedPcc = {
+    manuscriptId: props.manuscriptId,
+    tenantId: props.tenantId,
+    ...pccProps,
+  };
+
   return (
-    <div className="space-y-6">
-      <CreativePageHeader
-        title="Outline"
-        description="Multi-mode outlining workspace for"
-      />
-      {selection ? (
-        <CreativeManuscriptShell>
-          <section className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <nav className="flex flex-wrap gap-2" aria-label="Outline modes">
-                {TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTab(t.id)}
-                    className={[
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition",
-                      tab === t.id
-                        ? "border-violet-500/60 bg-violet-950/40 text-violet-100"
-                        : "border-zinc-700 bg-zinc-900/60 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200",
-                    ].join(" ")}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </nav>
+    <>
+        <OutlinePlanningSessionChrome
+          manuscriptId={props.manuscriptId}
+          tenantId={props.tenantId}
+          onSynced={() => {
+            setStatus("Planning session synced to Librarian. Blank outline refreshed if beats updated it.");
+            void loadManuscriptOutline();
+          }}
+        />
+
+        <section className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <nav className="flex flex-wrap gap-2" aria-label="Outline modes">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={[
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                    tab === t.id
+                      ? "border-violet-500/60 bg-violet-950/40 text-violet-100"
+                      : "border-zinc-700 bg-zinc-900/60 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200",
+                  ].join(" ")}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {status ? <p className="text-xs text-zinc-400">{status}</p> : null}
+
+          {tab === "building-block-outline" ? (
+            <PlanningCommandCenter {...sharedPcc} initialTab="sandbox" allowedTabs={["sandbox"]} />
+          ) : null}
+
+          {tab === "interview-style-outline" ? (
+            <PlanningCommandCenter {...sharedPcc} initialTab="interview" allowedTabs={["interview"]} />
+          ) : null}
+
+          {tab === "wiki-outline" ? (
+            <div className="space-y-3">
+              <p className="rounded-lg border border-violet-900/40 bg-violet-950/25 px-3 py-2 text-xs text-violet-100/90">
+                <span className="font-medium text-violet-200">Wiki scratch</span> below is shared with
+                other outline tabs. For structured lore (characters, settings, plot points, themes), open{" "}
+                <Link to="/wiki" className="font-semibold text-violet-300 underline hover:text-violet-200">
+                  Wiki
+                </Link>{" "}
+                and click <span className="font-medium">Edit wiki</span>.
+              </p>
+              <PlanningCommandCenter {...sharedPcc} initialTab="wiki" allowedTabs={["wiki"]} />
             </div>
+          ) : null}
 
-            {status ? <p className="text-xs text-zinc-400">{status}</p> : null}
-
-            {tab === "building-block-outline" ? (
-              <PlanningCommandCenter
-                manuscriptId={selection.manuscriptId}
-                tenantId={selection.tenantId}
-                initialTab="sandbox"
-                allowedTabs={["sandbox"]}
-                compactChrome
+          {tab === "notes-brainstorming" ? (
+            <section className="space-y-3">
+              <p className="text-xs text-zinc-500">
+                Brainstorm notes are part of the shared outline session. Use{" "}
+                <span className="text-zinc-300">Sync to Librarian</span> above to push everything, or sync
+                just this tab below (includes interview + sandbox beats too).
+              </p>
+              <textarea
+                rows={12}
+                value={brainstormNotes}
+                onChange={(e) => setBrainstormNotes(e.target.value)}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                placeholder="Dump ideas, chapter bullets, fragments, and alternate paths here..."
               />
-            ) : null}
-
-            {tab === "interview-style-outline" ? (
-              <PlanningCommandCenter
-                manuscriptId={selection.manuscriptId}
-                tenantId={selection.tenantId}
-                initialTab="interview"
-                allowedTabs={["interview"]}
-                compactChrome
-              />
-            ) : null}
-
-            {tab === "wiki-outline" ? (
-              <PlanningCommandCenter
-                manuscriptId={selection.manuscriptId}
-                tenantId={selection.tenantId}
-                initialTab="wiki"
-                allowedTabs={["wiki"]}
-                compactChrome
-              />
-            ) : null}
-
-            {tab === "notes-brainstorming" ? (
-              <section className="space-y-3">
-                <p className="text-xs text-zinc-500">
-                  Freeform notes for brainstorms. Save locally and sync into the planning wiki/outline session.
-                </p>
-                <textarea
-                  rows={12}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-                  placeholder="Dump ideas, chapter bullets, fragments, and alternate paths here..."
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (notesStorageKey) localStorage.setItem(notesStorageKey, notes);
-                      setStatus("Notes saved locally.");
-                    }}
-                    className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300"
-                  >
-                    Save notes locally
-                  </button>
-                  <button
-                    type="button"
-                    disabled={savingNotes}
-                    onClick={() => void syncNotesToOutline()}
-                    className="rounded-full border border-violet-500/50 bg-violet-700/80 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                  >
-                    {savingNotes ? "Syncing…" : "Sync notes to outline/wiki"}
-                  </button>
-                </div>
-              </section>
-            ) : null}
-
-            {tab === "blank-page-outlining" ? (
-              <section className="space-y-3">
-                <p className="text-xs text-zinc-500">
-                  Blank page outline editor writing directly to manuscript outline text.
-                </p>
-                <textarea
-                  rows={14}
-                  value={blankOutline}
-                  onChange={(e) => setBlankOutline(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-                  placeholder="Write a full traditional outline here (acts, beats, chapter bullets)..."
-                />
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={savingBlank}
-                  onClick={() => void saveBlankOutline()}
-                  className="rounded-full border border-violet-500/50 bg-violet-700/80 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  onClick={() => setStatus("Brainstorm notes saved locally for this manuscript.")}
+                  className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300"
                 >
-                  {savingBlank ? "Saving…" : "Save blank-page outline"}
+                  Saved locally (auto)
                 </button>
-              </section>
-            ) : null}
-          </section>
+                <button
+                  type="button"
+                  onClick={() => void syncBrainstormViaSession()}
+                  className="rounded-full border border-violet-500/50 bg-violet-700/80 px-3 py-1.5 text-xs font-semibold text-white"
+                >
+                  Sync full session to Librarian
+                </button>
+              </div>
+            </section>
+          ) : null}
 
-          <section className="space-y-3 rounded-xl border border-amber-900/30 bg-amber-950/15 p-4">
-            <h2 className="text-sm font-semibold text-amber-100">Connect completed outline docs</h2>
-            <p className="text-xs text-amber-200/75">
-              Pick a Google Doc from your Drive to import outline text and/or link it for HAL. You can also
-              ingest DOCX/TXT/PDF below.
-            </p>
-            <OutlineGoogleDocPicker
-              manuscriptId={selection.manuscriptId}
-              onOutlineImported={(outline) => {
-                setBlankOutline(outline);
-                setTab("blank-page-outlining");
-                setStatus("Outline imported from Google Doc. Review on Blank page tab.");
-              }}
-              onLinked={() => setStatus("Google Doc linked for HAL on this manuscript.")}
-            />
-            <PlanningCommandCenter
-              manuscriptId={selection.manuscriptId}
-              tenantId={selection.tenantId}
-              initialTab="discovery"
-              allowedTabs={["discovery"]}
-              compactChrome
-            />
-          </section>
-        </CreativeManuscriptShell>
-      ) : null}
-    </div>
+          {tab === "blank-page-outlining" ? (
+            <section className="space-y-3">
+              <p className="text-xs text-zinc-500">
+                Manuscript outline text (<code className="text-zinc-400">p4_manuscripts.outline</code>
+                ). Sandbox plot beats can also update this when you sync to Librarian.
+              </p>
+              <textarea
+                rows={14}
+                value={blankOutline}
+                onChange={(e) => setBlankOutline(e.target.value)}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                placeholder="Write a full traditional outline here (acts, beats, chapter bullets)..."
+              />
+              <button
+                type="button"
+                disabled={savingBlank}
+                onClick={() => void saveBlankOutline()}
+                className="rounded-full border border-violet-500/50 bg-violet-700/80 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              >
+                {savingBlank ? "Saving…" : "Save blank-page outline"}
+              </button>
+            </section>
+          ) : null}
+        </section>
+
+        <section className="space-y-3 rounded-xl border border-amber-900/30 bg-amber-950/15 p-4">
+          <h2 className="text-sm font-semibold text-amber-100">Connect completed outline docs</h2>
+          <p className="text-xs text-amber-200/75">
+            Pick a Google Doc from your Drive to import outline text and/or link it for HAL. You can also
+            ingest DOCX/TXT/PDF below.
+          </p>
+          <OutlineGoogleDocPicker
+            manuscriptId={props.manuscriptId}
+            onOutlineImported={(outline) => {
+              setBlankOutline(outline);
+              setTab("blank-page-outlining");
+              setStatus("Outline imported from Google Doc. Review on Blank page tab.");
+            }}
+            onLinked={() => setStatus("Google Doc linked for HAL on this manuscript.")}
+          />
+          <PlanningCommandCenter
+            {...sharedPcc}
+            initialTab="discovery"
+            allowedTabs={["discovery"]}
+          />
+        </section>
+    </>
   );
 }

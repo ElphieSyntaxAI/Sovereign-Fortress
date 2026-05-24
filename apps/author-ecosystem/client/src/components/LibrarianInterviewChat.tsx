@@ -18,8 +18,10 @@ type ChatMessage = {
 type ProposedWithKey = ProposedLoreChunk & { _key: string };
 
 export type LibrarianInterviewChatProps = {
-  /** Sent as `project_id` to RAG / lore-git (often same as manuscript id). */
-  projectId: string | null;
+  /** Author tenant id — sent as `project_id` for P4 retrieval. */
+  tenantId: string | null;
+  /** Active manuscript — enables series-scoped RAG (locked lore from all books in the series). */
+  manuscriptId: string | null;
   getAccessToken: () => string | null | Promise<string | null>;
 };
 
@@ -33,7 +35,11 @@ async function readJson(res: Response): Promise<unknown> {
   }
 }
 
-export function LibrarianInterviewChat({ projectId, getAccessToken }: LibrarianInterviewChatProps) {
+export function LibrarianInterviewChat({
+  tenantId,
+  manuscriptId,
+  getAccessToken,
+}: LibrarianInterviewChatProps) {
   const { appendInterviewTurn } = usePlanningSession();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -51,8 +57,8 @@ export function LibrarianInterviewChat({ projectId, getAccessToken }: LibrarianI
   const sendMessage = useCallback(async () => {
     const text = input.trim();
     if (!text || pending) return;
-    if (!projectId?.trim()) {
-      setError("Set VITE_PLANNING_MANUSCRIPT_ID (or pass manuscriptId) so project_id is sent to the librarian.");
+    if (!tenantId?.trim() || !manuscriptId?.trim()) {
+      setError("Select a manuscript before chatting with the librarian.");
       return;
     }
 
@@ -76,7 +82,8 @@ export function LibrarianInterviewChat({ projectId, getAccessToken }: LibrarianI
         body: JSON.stringify({
           audience: "author",
           question: text,
-          project_id: projectId.trim(),
+          project_id: tenantId.trim(),
+          manuscript_id: manuscriptId.trim(),
           system_prompt: "lore_extraction",
           include_wiki_drafts: true,
           hud_state: {},
@@ -121,7 +128,7 @@ export function LibrarianInterviewChat({ projectId, getAccessToken }: LibrarianI
       setPending(false);
       scrollToBottom();
     }
-  }, [appendInterviewTurn, getAccessToken, input, pending, projectId]);
+  }, [appendInterviewTurn, getAccessToken, input, manuscriptId, pending, tenantId]);
 
   const commitChunk = useCallback(
     async (chunk: ProposedWithKey) => {
@@ -143,7 +150,8 @@ export function LibrarianInterviewChat({ projectId, getAccessToken }: LibrarianI
           },
           body: JSON.stringify({
             lore_extraction_commit: true,
-            project_id: projectId?.trim() || null,
+            project_id: tenantId?.trim() || null,
+            manuscript_id: manuscriptId?.trim() || null,
             proposed_chunk,
             stylistic_metadata: {},
           }),
@@ -165,7 +173,7 @@ export function LibrarianInterviewChat({ projectId, getAccessToken }: LibrarianI
         setCommittingKey(null);
       }
     },
-    [appendInterviewTurn, committingKey, getAccessToken, projectId]
+    [appendInterviewTurn, committingKey, getAccessToken, manuscriptId, tenantId]
   );
 
   return (

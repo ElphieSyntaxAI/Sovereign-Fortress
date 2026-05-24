@@ -184,6 +184,8 @@ async function buildP4RetrievalContext(params: {
   question: string;
   topK: number;
   audience: LibrarianAudienceMode;
+  manuscriptId?: string | null;
+  includeWikiDrafts?: boolean;
 }): Promise<string> {
   const chat = new LibrarianChat(getSupabaseAdmin());
   const result = await chat.ask({
@@ -192,8 +194,39 @@ async function buildP4RetrievalContext(params: {
     topK: params.topK,
     audience: params.audience,
     enforceMode: "strict",
+    manuscriptId: params.manuscriptId,
+    includeWikiDrafts: params.includeWikiDrafts,
   });
   return result.retrievedChunks.map(formatP4ChunkContext).join("\n\n") || "(none found)";
+}
+
+async function resolveTenantAndManuscript(
+  projectIdRaw: string,
+  manuscriptIdRaw: string,
+  authorUserId: string
+): Promise<{ tenantId: string; manuscriptId: string | null }> {
+  let tenantId = assertUuid(projectIdRaw, "project_id");
+  let manuscriptId: string | null = null;
+
+  if (manuscriptIdRaw) {
+    manuscriptId = assertUuid(manuscriptIdRaw, "manuscript_id");
+    const supabase = getSupabaseAdmin();
+    const { data: ms, error } = await supabase
+      .from("p4_manuscripts")
+      .select("tenant_id")
+      .eq("id", manuscriptId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!ms) throw new HalValidationError("manuscript_id not found");
+    if (String(ms.tenant_id) !== authorUserId) {
+      throw new HalValidationError("manuscript_id does not belong to this author");
+    }
+    tenantId = String(ms.tenant_id);
+  } else if (tenantId !== authorUserId) {
+    throw new HalValidationError("project_id must match the authenticated author tenant");
+  }
+
+  return { tenantId, manuscriptId };
 }
 
 /** POST /api/rag/chat — P4 Librarian retrieval + Gemini (lore_extraction | narrative_audit | default HUD). */
@@ -218,7 +251,13 @@ p4LoreRagController.post("/api/rag/chat", async (req: Request, res: Response) =>
     if (!projectIdRaw) {
       return res.status(400).json({ error: "project_id is required for P4 retrieval" });
     }
-    const tenantId = assertUuid(projectIdRaw, "project_id");
+    const manuscriptIdRaw =
+      body.manuscript_id != null ? String(body.manuscript_id).trim() : "";
+    const { tenantId, manuscriptId } = await resolveTenantAndManuscript(
+      projectIdRaw,
+      manuscriptIdRaw,
+      user.userId
+    );
 
     const topK = Math.max(1, Math.min(Number(body.top_k ?? process.env.RAG_TOP_K ?? 8), 20));
     const includeWikiDrafts =
@@ -229,13 +268,19 @@ p4LoreRagController.post("/api/rag/chat", async (req: Request, res: Response) =>
     const narrativeAudit = sys === "narrative_audit";
 
     const hudDesc = "HUD metadata filters: off (P4 vector retrieval via Librarian).";
-    const wikiNote = includeWikiDrafts ? "included in retrieval" : "excluded";
+    const wikiNote = includeWikiDrafts
+      ? "included in retrieval"
+      : manuscriptId
+        ? "drafts excluded; series locked canon included when applicable"
+        : "draft wiki excluded unless locked/canon";
 
     const loreContext = await buildP4RetrievalContext({
       tenantId,
       question,
       topK,
       audience: audienceV,
+      manuscriptId,
+      includeWikiDrafts,
     });
 
     if (loreExtraction) {
@@ -347,6 +392,8 @@ p4LoreRagController.post("/api/rag/chat", async (req: Request, res: Response) =>
       topK,
       audience: audienceV,
       enforceMode: "strict",
+      manuscriptId,
+      includeWikiDrafts,
     });
 
     return res.status(200).json({

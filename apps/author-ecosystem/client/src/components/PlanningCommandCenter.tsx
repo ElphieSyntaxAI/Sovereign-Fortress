@@ -6,6 +6,7 @@ import {
 } from "@elphie-syntax/ui/dashboard";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  mergeNotesForLibrarianSync,
   PlanningSessionProvider,
   usePlanningSession,
 } from "../planning/PlanningSessionContext";
@@ -38,6 +39,10 @@ export type PlanningCommandCenterProps = {
   compactChrome?: boolean;
   /** When true, wiki scratch + sync are disabled (Wiki route boots read-only). */
   wikiReadOnly?: boolean;
+  /**
+   * When true, do not mount an inner PlanningSessionProvider — use the parent Outline (or page) provider.
+   */
+  useParentSession?: boolean;
 };
 
 const ALL_TABS: { id: PlanningTabId; label: string }[] = [
@@ -58,12 +63,13 @@ function tabButtonClass(active: boolean): string {
 
 type SyncPhase = "idle" | "absorbing" | "success" | "error";
 
-function SyncToLibrarianButton(props: {
+export function SyncToLibrarianButton(props: {
   manuscriptId: string;
   tenantId: string;
   getAccessToken: () => string | null | Promise<string | null>;
+  onSynced?: () => void;
 }) {
-  const { interviewTurns, plotBeats, wikiNotes } = usePlanningSession();
+  const { interviewTurns, plotBeats, wikiNotes, brainstormNotes } = usePlanningSession();
   const [phase, setPhase] = useState<SyncPhase>("idle");
   const [err, setErr] = useState<string | null>(null);
 
@@ -87,7 +93,7 @@ function SyncToLibrarianButton(props: {
         body: JSON.stringify({
           interviewTurns,
           plotBeats,
-          wikiNotes,
+          wikiNotes: mergeNotesForLibrarianSync(wikiNotes, brainstormNotes),
         }),
       });
       const json = (await res.json().catch(() => ({}))) as {
@@ -108,6 +114,7 @@ function SyncToLibrarianButton(props: {
         return;
       }
       setPhase("success");
+      props.onSynced?.();
       window.setTimeout(() => setPhase("idle"), 2800);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -151,8 +158,9 @@ function SyncToLibrarianButton(props: {
   );
 }
 
-function SharedSessionDigest() {
-  const { interviewTurns, plotBeats, wikiNotes, lastSandboxDualAudit } = usePlanningSession();
+export function SharedSessionDigest() {
+  const { interviewTurns, plotBeats, wikiNotes, brainstormNotes, lastSandboxDualAudit } =
+    usePlanningSession();
   const last = interviewTurns[interviewTurns.length - 1];
   return (
     <div className="space-y-3">
@@ -168,7 +176,10 @@ function SharedSessionDigest() {
           </p>
         ) : null}
         {wikiNotes.trim() ? (
-          <p className="mt-1 line-clamp-2 text-zinc-500">Wiki notes: {wikiNotes.trim()}</p>
+          <p className="mt-1 line-clamp-2 text-zinc-500">Wiki scratch: {wikiNotes.trim()}</p>
+        ) : null}
+        {brainstormNotes.trim() ? (
+          <p className="mt-1 line-clamp-2 text-zinc-500">Brainstorm: {brainstormNotes.trim()}</p>
         ) : null}
       </aside>
 
@@ -368,7 +379,11 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
     }
   } else if (tab === "interview") {
     body = (
-      <LibrarianInterviewChat projectId={props.manuscriptId.trim() || null} getAccessToken={getToken} />
+      <LibrarianInterviewChat
+        tenantId={props.tenantId.trim() || null}
+        manuscriptId={props.manuscriptId.trim() || null}
+        getAccessToken={getToken}
+      />
     );
   } else if (tab === "discovery") {
     body = (
@@ -437,7 +452,35 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
  * Three-way workspace: Wiki Architect (hosts `DashboardRouter`), Librarian Interview, and Plot Sandbox.
  * All panels read/write the same {@link PlanningSessionState} via {@link PlanningSessionProvider}.
  */
+export function OutlinePlanningSessionChrome(props: {
+  manuscriptId: string;
+  tenantId: string;
+  onSynced?: () => void;
+}) {
+  const getToken = useCallback(() => getPreferredBffBearer(), []);
+  return (
+    <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="text-xs text-zinc-400">
+          One shared outline session across all tabs. Interview, sandbox beats, wiki scratch, and
+          brainstorm notes sync together.
+        </p>
+        <SyncToLibrarianButton
+          manuscriptId={props.manuscriptId}
+          tenantId={props.tenantId}
+          getAccessToken={getToken}
+          onSynced={props.onSynced}
+        />
+      </div>
+      <SharedSessionDigest />
+    </div>
+  );
+}
+
 export function PlanningCommandCenter(props: PlanningCommandCenterProps) {
+  if (props.useParentSession) {
+    return <PlanningCommandCenterInner {...props} />;
+  }
   return (
     <PlanningSessionProvider>
       <PlanningCommandCenterInner {...props} />

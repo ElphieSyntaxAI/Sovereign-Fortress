@@ -279,7 +279,8 @@ export function PlotSandboxPanel({ manuscriptId, tenantId, getAccessToken }: Plo
         body: JSON.stringify({
           audience: "author",
           question,
-          project_id: manuscriptId.trim() || null,
+          project_id: tenantId.trim(),
+          manuscript_id: manuscriptId.trim(),
           system_prompt: "narrative_audit",
           include_wiki_drafts: true,
           hud_state: {},
