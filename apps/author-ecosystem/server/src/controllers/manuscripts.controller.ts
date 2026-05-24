@@ -1,35 +1,36 @@
 import { Router, type Request, type Response } from "express";
 
 import { extractGoogleDocId, normalizeGoogleDocUrl } from "../lib/googleDocUrl.js";
+import {
+  canFinishRevisions,
+  canSetPhase,
+  parseProjectPhase,
+  type ManuscriptPhaseRow,
+  type ProjectPhase,
+} from "../lib/manuscriptPhaseRules.js";
+import { lockWikiForManuscriptRevision } from "../lib/wikiRevisionLock.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 export const manuscriptsController = Router();
 
 const MANUSCRIPT_SELECT =
-  "id, tenant_id, title, revision_status, updated_at, lock_expires_at, revision_cooldown_until, cooldown_revision_status, locked_until, cooldown_duration, series_id, project_phase, google_doc_url, google_doc_id, hal_extension_enabled, linked_at";
+  "id, tenant_id, title, revision_status, updated_at, lock_expires_at, revision_cooldown_until, cooldown_revision_status, locked_until, cooldown_duration, series_id, project_phase, google_doc_url, google_doc_id, hal_extension_enabled, linked_at, revisions_completed_at, wiki_revision_locked_at";
 
-type ProjectPhase = "idea" | "wip" | "finished";
-
-type HubManuscriptRow = Record<string, unknown> & {
-  id: string;
-  series_id: string | null;
-  project_phase: ProjectPhase;
-  linked_at: string | null;
-};
-
-function parsePhase(raw: unknown): ProjectPhase | null {
-  const s = String(raw ?? "").trim().toLowerCase();
-  if (s === "idea" || s === "wip" || s === "finished") return s;
-  return null;
-}
+type HubManuscriptRow = ManuscriptPhaseRow &
+  Record<string, unknown> & {
+    id: string;
+    series_id: string | null;
+    linked_at: string | null;
+  };
 
 function phaseBuckets(rows: HubManuscriptRow[]) {
   const linked = rows.filter((r) => r.linked_at != null);
+  const norm = (r: HubManuscriptRow) => parseProjectPhase(r.project_phase) ?? "working";
   return {
-    idea: linked.filter((r) => r.project_phase === "idea"),
-    wip: linked.filter((r) => r.project_phase === "wip"),
-    finished: linked.filter((r) => r.project_phase === "finished"),
+    working: linked.filter((r) => norm(r) === "working"),
+    editing: linked.filter((r) => norm(r) === "editing"),
+    finished: linked.filter((r) => norm(r) === "finished"),
   };
 }
 
@@ -146,7 +147,7 @@ manuscriptsController.post("/api/manuscripts", async (req: Request, res: Respons
       tenant_id: user.userId,
       title,
       series_id: seriesId,
-      project_phase: "idea",
+      project_phase: "working",
     })
     .select(MANUSCRIPT_SELECT)
     .single();
@@ -178,9 +179,27 @@ manuscriptsController.patch("/api/manuscripts/:manuscriptId", async (req: Reques
     if (!title) return res.status(400).json({ error: "title cannot be empty" });
     patch.title = title;
   }
+  const supabase = getSupabaseAdmin();
+
   if (body.project_phase !== undefined) {
-    const phase = parsePhase(body.project_phase);
-    if (!phase) return res.status(400).json({ error: "project_phase must be idea, wip, or finished" });
+    const phase = parseProjectPhase(body.project_phase);
+    if (!phase) {
+      return res.status(400).json({ error: "project_phase must be working, editing, or finished" });
+    }
+
+    const { data: current, error: readErr } = await supabase
+      .from("p4_manuscripts")
+      .select(MANUSCRIPT_SELECT)
+      .eq("id", manuscriptId)
+      .eq("tenant_id", user.userId)
+      .maybeSingle();
+
+    if (readErr) return res.status(500).json({ error: readErr.message });
+    if (!current) return res.status(404).json({ error: "Manuscript not found" });
+
+    const gate = canSetPhase(current as ManuscriptPhaseRow, phase);
+    if (!gate.ok) return res.status(400).json({ error: gate.error });
+
     patch.project_phase = phase;
   }
 
@@ -188,7 +207,6 @@ manuscriptsController.patch("/api/manuscripts/:manuscriptId", async (req: Reques
     return res.status(400).json({ error: "No valid fields to update" });
   }
 
-  const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("p4_manuscripts")
     .update(patch)
@@ -237,6 +255,7 @@ manuscriptsController.post(
         google_doc_id: docId,
         hal_extension_enabled: true,
         linked_at: now,
+        project_phase: "working",
         updated_at: now,
       })
       .eq("id", manuscriptId)
@@ -336,3 +355,78 @@ manuscriptsController.get("/api/manuscripts", async (req: Request, res: Response
 
   return res.status(200).json({ manuscripts: data ?? [] });
 });
+
+/**
+ * POST /api/manuscripts/:manuscriptId/finish-revisions
+ * Body: { confirm: true, reason?: string } — locks wiki canon and moves to Finished.
+ */
+manuscriptsController.post(
+  "/api/manuscripts/:manuscriptId/finish-revisions",
+  async (req: Request, res: Response) => {
+    const user = readBearerUser(req, res);
+    if (!user) return;
+
+    const manuscriptId = String(req.params.manuscriptId ?? "").trim();
+    const body = (req.body ?? {}) as { confirm?: unknown; reason?: unknown };
+    if (body.confirm !== true && String(body.confirm).toLowerCase() !== "true") {
+      return res.status(400).json({ error: "confirm: true is required" });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const { data: row, error: readErr } = await supabase
+      .from("p4_manuscripts")
+      .select(MANUSCRIPT_SELECT)
+      .eq("id", manuscriptId)
+      .eq("tenant_id", user.userId)
+      .maybeSingle();
+
+    if (readErr) return res.status(500).json({ error: readErr.message });
+    if (!row) return res.status(404).json({ error: "Manuscript not found" });
+
+    const gate = canFinishRevisions(row as ManuscriptPhaseRow);
+    if (!gate.ok) return res.status(400).json({ error: gate.error });
+
+    const now = new Date().toISOString();
+    let chunks_updated = 0;
+    try {
+      const lock = await lockWikiForManuscriptRevision(supabase, user.userId, manuscriptId);
+      chunks_updated = lock.chunks_updated;
+    } catch (e) {
+      console.error("[manuscripts/finish-revisions] wiki lock", e);
+      return res.status(500).json({
+        error: e instanceof Error ? e.message : "Failed to lock wiki lore",
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("p4_manuscripts")
+      .update({
+        project_phase: "finished",
+        wiki_revision_locked_at: now,
+        updated_at: now,
+      })
+      .eq("id", manuscriptId)
+      .eq("tenant_id", user.userId)
+      .select(MANUSCRIPT_SELECT)
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const reason = String(body.reason ?? "").trim();
+    if (reason.length >= 10) {
+      await supabase.from("p4_wiki_unlock_requests").insert({
+        tenant_id: user.userId,
+        manuscript_id: manuscriptId,
+        reason: `[pre-lock note] ${reason}`,
+        status: "pending",
+      });
+    }
+
+    return res.status(200).json({
+      manuscript: data,
+      wiki_chunks_locked: chunks_updated,
+      message:
+        "Wiki lore is locked at this revision point. To edit earlier wiki state you must email support to verify admin access and provide a reason.",
+    });
+  }
+);

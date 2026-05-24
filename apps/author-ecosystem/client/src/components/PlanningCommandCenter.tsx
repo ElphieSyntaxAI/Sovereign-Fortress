@@ -76,7 +76,7 @@ function SyncToLibrarianButton(props: {
     try {
       const token = await props.getAccessToken();
       const id = props.manuscriptId.trim();
-      const url = `/api/projects/${encodeURIComponent(id)}/sync-session`;
+      const url = `/api/manuscripts/${encodeURIComponent(id)}/sync-session`;
       const res = await fetch(url, {
         method: "POST",
         ...bffCredentials,

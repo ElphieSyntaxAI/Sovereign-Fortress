@@ -247,6 +247,7 @@ linkSessionController.post(
         google_doc_url: session.google_doc_url,
         hal_extension_enabled: true,
         linked_at: now,
+        project_phase: "working",
         updated_at: now,
       })
       .eq("id", manuscriptId)

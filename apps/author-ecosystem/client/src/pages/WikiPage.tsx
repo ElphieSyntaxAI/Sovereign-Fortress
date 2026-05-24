@@ -1,16 +1,46 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { CreativeManuscriptShell } from "../components/CreativeManuscriptShell";
 import { WikiAuthorView } from "../components/WikiAuthorView";
 import { useNarrative } from "../context/NarrativeContext";
+import { getPreferredBffBearer } from "../lib/authAccessToken";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 
 export default function WikiPage() {
   const { selection } = useNarrative();
   const [fanPreview, setFanPreview] = useState(false);
   const [wikiEditable, setWikiEditable] = useState(false);
+  const [wikiLockedAt, setWikiLockedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selection?.manuscriptId) return;
+    void (async () => {
+      try {
+        const token = await getPreferredBffBearer();
+        const res = await fetch(bffUrl("/api/manuscripts"), {
+          ...bffCredentials,
+          headers: { ...bffAuthHeaders(token) },
+        });
+        const json = (await res.json()) as {
+          manuscripts?: { id: string; wiki_revision_locked_at?: string | null }[];
+        };
+        const row = json.manuscripts?.find((m) => m.id === selection.manuscriptId);
+        setWikiLockedAt(row?.wiki_revision_locked_at ?? null);
+      } catch {
+        setWikiLockedAt(null);
+      }
+    })();
+  }, [selection?.manuscriptId]);
 
   return (
     <CreativeManuscriptShell>
+      {wikiLockedAt ? (
+        <p className="rounded-lg border border-amber-800/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-100/90">
+          Wiki is locked at finished revisions ({new Date(wikiLockedAt).toLocaleString()}). To edit earlier
+          wiki state, email support with admin verification and your reason for the change.
+        </p>
+      ) : null}
+
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Wiki</h1>
@@ -34,7 +64,7 @@ export default function WikiPage() {
           >
             {fanPreview ? "Fan preview on" : "Fan preview (hide spoilers)"}
           </button>
-          {!fanPreview ? (
+          {!fanPreview && !wikiLockedAt ? (
             <button
               type="button"
               onClick={() => setWikiEditable((v) => !v)}
@@ -57,7 +87,7 @@ export default function WikiPage() {
         manuscriptId={selection!.manuscriptId}
         tenantId={selection!.tenantId}
         fanPreview={fanPreview}
-        wikiEditable={wikiEditable}
+        wikiEditable={wikiEditable && !wikiLockedAt}
       />
     </CreativeManuscriptShell>
   );

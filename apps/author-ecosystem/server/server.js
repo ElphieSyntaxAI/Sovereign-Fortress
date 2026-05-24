@@ -45,8 +45,6 @@ const loreGitRoutes = require("./src/routes/loreGitRoutes");
 app.use("/api/lore-git", loreGitRoutes);
 const adminRoutes = require("./src/routes/adminRoutes");
 app.use("/api/admin", adminRoutes);
-const projectRoutes = require("./src/routes/projectRoutes");
-app.use("/api/projects", projectRoutes);
 // --- 1. ROUTE IMPORTS ---
 const authRoutes = require("./src/routes/authRoutes");
 const testRoutes = require("./src/routes/testRoutes");

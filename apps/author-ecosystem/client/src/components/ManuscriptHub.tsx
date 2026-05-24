@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 
+import { FinishRevisionsDialog } from "./FinishRevisionsDialog";
 import { LinkSessionPanel } from "./LinkSessionPanel";
 import { SwitchProjectDialog } from "./SwitchProjectDialog";
 import { useNarrative } from "../context/NarrativeContext";
@@ -8,7 +10,9 @@ import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 import {
   displayTitle,
+  hasRevisionCooldownLock,
   hubRowToSelection,
+  normalizePhase,
   type HubManuscript,
   type ManuscriptHubPayload,
   type PhaseColumns,
@@ -16,17 +20,19 @@ import {
 } from "../lib/manuscriptTypes";
 
 const PHASES: { id: ProjectPhase; label: string }[] = [
-  { id: "idea", label: "Idea phase" },
-  { id: "wip", label: "Work in progress" },
+  { id: "working", label: "Working" },
+  { id: "editing", label: "Editing" },
   { id: "finished", label: "Finished" },
 ];
 
 function KanbanColumn(props: {
+  columnPhase: ProjectPhase;
   label: string;
   items: HubManuscript[];
   activeId: string | null;
   onSelect: (row: HubManuscript) => void;
   onMovePhase: (row: HubManuscript, phase: ProjectPhase) => void;
+  onFinishRevisions: (row: HubManuscript) => void;
 }) {
   return (
     <div className="min-w-[10rem] flex-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-2">
@@ -37,6 +43,14 @@ function KanbanColumn(props: {
         ) : (
           props.items.map((row) => {
             const isActive = props.activeId === row.id;
+            const phase = normalizePhase(row.project_phase);
+            const locked = Boolean(row.wiki_revision_locked_at);
+            const canFinish =
+              props.columnPhase === "editing" &&
+              !locked &&
+              Boolean(row.revisions_completed_at) &&
+              phase !== "finished";
+
             return (
               <li key={row.id}>
                 <button
@@ -53,19 +67,51 @@ function KanbanColumn(props: {
                   {row.google_doc_id ? (
                     <span className="mt-0.5 block text-[10px] text-zinc-500">Doc linked · HAL on</span>
                   ) : null}
+                  {locked ? (
+                    <span className="mt-0.5 block text-[10px] text-amber-400/90">Wiki locked</span>
+                  ) : null}
                 </button>
-                <select
-                  className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-1 py-0.5 text-[10px] text-zinc-400"
-                  value={row.project_phase}
-                  onChange={(e) => props.onMovePhase(row, e.target.value as ProjectPhase)}
-                  aria-label={`Move ${displayTitle(row)}`}
-                >
-                  {PHASES.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
+
+                {props.columnPhase === "finished" || locked ? null : (
+                  <select
+                    className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-1 py-0.5 text-[10px] text-zinc-400"
+                    value={phase}
+                    onChange={(e) => props.onMovePhase(row, e.target.value as ProjectPhase)}
+                    aria-label={`Move ${displayTitle(row)}`}
+                  >
+                    {PHASES.filter((p) => p.id !== "finished").map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {phase === "working" && !hasRevisionCooldownLock(row) ? (
+                  <p className="mt-1 text-[10px] text-zinc-500">
+                    Set revision cooldown on{" "}
+                    <Link to="/revision" className="text-violet-300 underline">
+                      Revision passes
+                    </Link>{" "}
+                    before Editing.
+                  </p>
+                ) : null}
+
+                {canFinish ? (
+                  <button
+                    type="button"
+                    onClick={() => props.onFinishRevisions(row)}
+                    className="mt-1 w-full rounded-full border border-amber-500/50 bg-amber-900/50 px-2 py-1 text-[10px] font-semibold text-amber-100"
+                  >
+                    Finished revisions
+                  </button>
+                ) : null}
+
+                {props.columnPhase === "editing" && !row.revisions_completed_at ? (
+                  <p className="mt-1 text-[10px] text-amber-300/80">
+                    Complete vault revision reports to enable Finished revisions.
+                  </p>
+                ) : null}
               </li>
             );
           })
@@ -81,6 +127,7 @@ function KanbanBoard(props: {
   activeId: string | null;
   onSelect: (row: HubManuscript) => void;
   onMovePhase: (row: HubManuscript, phase: ProjectPhase) => void;
+  onFinishRevisions: (row: HubManuscript) => void;
 }) {
   return (
     <section className="space-y-2">
@@ -89,11 +136,13 @@ function KanbanBoard(props: {
         {PHASES.map((p) => (
           <KanbanColumn
             key={p.id}
+            columnPhase={p.id}
             label={p.label}
             items={props.columns[p.id]}
             activeId={props.activeId}
             onSelect={props.onSelect}
             onMovePhase={props.onMovePhase}
+            onFinishRevisions={props.onFinishRevisions}
           />
         ))}
       </div>
@@ -108,6 +157,8 @@ export function ManuscriptHub() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingSwitch, setPendingSwitch] = useState<HubManuscript | null>(null);
+  const [finishTarget, setFinishTarget] = useState<HubManuscript | null>(null);
+  const [finishBusy, setFinishBusy] = useState(false);
 
   const [newSeriesTitle, setNewSeriesTitle] = useState("");
   const [newBookTitle, setNewBookTitle] = useState("");
@@ -181,6 +232,7 @@ export function ManuscriptHub() {
   };
 
   const onMovePhase = async (row: HubManuscript, phase: ProjectPhase) => {
+    if (phase === "finished") return;
     try {
       await apiJson(`/api/manuscripts/${encodeURIComponent(row.id)}`, {
         method: "PATCH",
@@ -189,6 +241,24 @@ export function ManuscriptHub() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const confirmFinishRevisions = async () => {
+    if (!finishTarget) return;
+    setFinishBusy(true);
+    setError(null);
+    try {
+      await apiJson(`/api/manuscripts/${encodeURIComponent(finishTarget.id)}/finish-revisions`, {
+        method: "POST",
+        body: JSON.stringify({ confirm: true }),
+      });
+      setFinishTarget(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setFinishBusy(false);
     }
   };
 
@@ -236,6 +306,14 @@ export function ManuscriptHub() {
         currentTitle={selection?.title?.trim() || null}
         onConfirm={confirmSwitch}
         onCancel={() => setPendingSwitch(null)}
+      />
+
+      <FinishRevisionsDialog
+        open={finishTarget != null}
+        target={finishTarget}
+        busy={finishBusy}
+        onConfirm={() => void confirmFinishRevisions()}
+        onCancel={() => setFinishTarget(null)}
       />
 
       {error ? (
@@ -331,8 +409,8 @@ export function ManuscriptHub() {
           <header>
             <h2 className="text-sm font-semibold text-zinc-100">Current projects</h2>
             <p className="mt-1 text-xs text-zinc-500">
-              Click a project to set the active manuscript (confirms switch for row-level security). Use the
-              phase dropdown to move cards between columns.
+              Working → Editing requires an active revision cooldown lock. Finished is only via{" "}
+              <strong className="text-zinc-300">Finished revisions</strong> after vault reports are complete.
             </p>
           </header>
 
@@ -342,6 +420,7 @@ export function ManuscriptHub() {
             activeId={activeId}
             onSelect={onSelectProject}
             onMovePhase={(row, phase) => void onMovePhase(row, phase)}
+            onFinishRevisions={setFinishTarget}
           />
 
           {hub.series.map(({ series, columns }) => (
@@ -352,17 +431,18 @@ export function ManuscriptHub() {
               activeId={activeId}
               onSelect={onSelectProject}
               onMovePhase={(row, phase) => void onMovePhase(row, phase)}
+              onFinishRevisions={setFinishTarget}
             />
           ))}
 
           {hub.unlinked.length === 0 &&
-          hub.standalone.idea.length +
-            hub.standalone.wip.length +
+          hub.standalone.working.length +
+            hub.standalone.editing.length +
             hub.standalone.finished.length ===
             0 &&
           hub.series.every(
             (s) =>
-              s.columns.idea.length + s.columns.wip.length + s.columns.finished.length === 0
+              s.columns.working.length + s.columns.editing.length + s.columns.finished.length === 0
           ) ? (
             <p className="text-sm text-zinc-500">
               No linked projects yet — create a book and link a Google Doc above.

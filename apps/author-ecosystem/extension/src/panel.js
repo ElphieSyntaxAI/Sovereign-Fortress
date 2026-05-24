@@ -231,19 +231,6 @@ async function refreshSessionContext() {
   updateManuscriptHud();
 }
 
-async function loadProjects() {
-  const data = await apiFetch("/api/projects");
-  const sel = $("projectSelect");
-  sel.innerHTML = "";
-  for (const p of data.projects || []) {
-    const opt = document.createElement("option");
-    opt.value = p.project_id;
-    opt.textContent = p.title;
-    sel.appendChild(opt);
-  }
-  setOutput({ loaded: (data.projects || []).length });
-}
-
 async function readKeystrokeBufferFromWritingTab() {
   const tabId = await resolveWritingTabId();
   if (tabId == null) {
@@ -561,8 +548,7 @@ function displayLibrarianHudResult(result) {
 
 async function askLibrarian() {
   await refreshSessionContext();
-  const projectId =
-    sessionContext.activeManuscript?.id || $("projectSelect").value || null;
+  const projectId = sessionContext.activeManuscript?.id || null;
   const question = $("librarianQuestion").value.trim();
   if (!question) return setOutput("Enter a question.");
 
@@ -609,7 +595,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
   $("syncSession").addEventListener("click", () => refreshSessionContext().catch((e) => setOutput(e.message)));
   $("reportLinkDoc").addEventListener("click", () => reportLinkDoc().catch((e) => setOutput(e.message)));
-  $("loadProjects").addEventListener("click", () => loadProjects().catch((e) => setOutput(e.message)));
   $("pushSession").addEventListener("click", () => pushHalSession().catch((e) => setOutput(e.message)));
   $("endSessionWrapUp").addEventListener("click", () => endSessionAndWrapUp().catch((e) => setOutput(e.message)));
   $("askLibrarian").addEventListener("click", () => askLibrarian().catch((e) => setOutput(e.message)));

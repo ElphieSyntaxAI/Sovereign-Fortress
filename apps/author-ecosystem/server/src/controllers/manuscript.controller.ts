@@ -597,11 +597,26 @@ manuscriptController.post("/api/manuscripts/:id/unlock", async (req: Request, re
     latestCriticSensitivityText(supabase, manuscriptId),
   ]);
 
+  const completedAt = new Date().toISOString();
+  await supabase
+    .from("p4_manuscripts")
+    .update({ revisions_completed_at: completedAt, updated_at: completedAt })
+    .eq("id", manuscriptId)
+    .eq("tenant_id", user.userId);
+
+  const { data: msFinal } = await supabase
+    .from("p4_manuscripts")
+    .select(MANUSCRIPT_UNLOCK_SELECT)
+    .eq("id", manuscriptId)
+    .eq("tenant_id", user.userId)
+    .maybeSingle();
+
   return res.status(200).json({
     ok: true,
+    revisions_completed_at: completedAt,
     revision_report,
     report_json: revision_report?.report_json ?? null,
     critic_sensitivity_text,
-    manuscript: msAfter,
+    manuscript: msFinal ?? msAfter,
   });
 });

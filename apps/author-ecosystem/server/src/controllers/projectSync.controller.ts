@@ -50,20 +50,15 @@ function buildOutlineFromBeats(beats: PlotBeatIn[]): string {
     .join("\n\n");
 }
 
-/**
- * POST /api/projects/:id/sync-session
- * Consolidates planning session (interview, sandbox beats, wiki notes) into manuscript outline + narrative library vectors.
- * `:id` is the manuscript / project UUID (`p4_manuscripts.id`).
- */
-projectSyncController.post("/api/projects/:id/sync-session", async (req: Request, res: Response) => {
+async function handleSyncSession(req: Request, res: Response): Promise<void> {
   const user = readBearerUser(req, res);
   if (!user) return;
 
   let manuscriptId: string;
   try {
-    manuscriptId = assertUuid(String(req.params.id ?? ""), "project id");
+    manuscriptId = assertUuid(String(req.params.id ?? req.params.manuscriptId ?? ""), "manuscript id");
   } catch (e) {
-    return res.status(400).json({ error: e instanceof Error ? e.message : "Invalid project id" });
+    return res.status(400).json({ error: e instanceof Error ? e.message : "Invalid manuscript id" });
   }
 
   const body = req.body as Record<string, unknown>;
@@ -179,4 +174,15 @@ projectSyncController.post("/api/projects/:id/sync-session", async (req: Request
     warnings,
     revision_gate,
   });
+}
+
+/**
+ * POST /api/manuscripts/:id/sync-session
+ * POST /api/projects/:id/sync-session (deprecated alias)
+ */
+projectSyncController.post("/api/manuscripts/:id/sync-session", (req, res) => {
+  void handleSyncSession(req, res);
+});
+projectSyncController.post("/api/projects/:id/sync-session", (req, res) => {
+  void handleSyncSession(req, res);
 });

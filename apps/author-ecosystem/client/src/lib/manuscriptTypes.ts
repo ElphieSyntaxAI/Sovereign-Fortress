@@ -1,4 +1,4 @@
-export type ProjectPhase = "idea" | "wip" | "finished";
+export type ProjectPhase = "working" | "editing" | "finished";
 
 export type HubManuscript = {
   id: string;
@@ -12,16 +12,18 @@ export type HubManuscript = {
   locked_until?: string | null;
   cooldown_duration?: string | null;
   series_id: string | null;
-  project_phase: ProjectPhase;
+  project_phase: ProjectPhase | string;
   google_doc_url: string | null;
   google_doc_id: string | null;
   hal_extension_enabled: boolean;
   linked_at: string | null;
+  revisions_completed_at?: string | null;
+  wiki_revision_locked_at?: string | null;
 };
 
 export type PhaseColumns = {
-  idea: HubManuscript[];
-  wip: HubManuscript[];
+  working: HubManuscript[];
+  editing: HubManuscript[];
   finished: HubManuscript[];
 };
 
@@ -30,6 +32,13 @@ export type ManuscriptHubPayload = {
   standalone: PhaseColumns;
   series: { series: { id: string; title: string }; columns: PhaseColumns }[];
 };
+
+export function normalizePhase(raw: string | null | undefined): ProjectPhase {
+  const s = String(raw ?? "working").toLowerCase();
+  if (s === "editing" || s === "wip") return "editing";
+  if (s === "finished") return "finished";
+  return "working";
+}
 
 export function hubRowToSelection(row: HubManuscript): import("../context/NarrativeContext").NarrativeSelection {
   return {
@@ -47,4 +56,8 @@ export function hubRowToSelection(row: HubManuscript): import("../context/Narrat
 export function displayTitle(row: { title?: string | null; id: string }): string {
   const t = row.title?.trim();
   return t || `Untitled (${row.id.slice(0, 8)}…)`;
+}
+
+export function hasRevisionCooldownLock(row: HubManuscript): boolean {
+  return row.cooldown_revision_status === "LOCKED" || row.revision_status === "LOCKED";
 }
