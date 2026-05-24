@@ -15,7 +15,7 @@ import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 export const manuscriptsController = Router();
 
 const MANUSCRIPT_SELECT =
-  "id, tenant_id, title, revision_status, updated_at, lock_expires_at, revision_cooldown_until, cooldown_revision_status, locked_until, cooldown_duration, series_id, project_phase, google_doc_url, google_doc_id, hal_extension_enabled, linked_at, revisions_completed_at, wiki_revision_locked_at";
+  "id, tenant_id, title, outline, revision_status, updated_at, lock_expires_at, revision_cooldown_until, cooldown_revision_status, locked_until, cooldown_duration, series_id, project_phase, google_doc_url, google_doc_id, hal_extension_enabled, linked_at, revisions_completed_at, wiki_revision_locked_at";
 
 type HubManuscriptRow = ManuscriptPhaseRow &
   Record<string, unknown> & {
@@ -171,13 +171,16 @@ manuscriptsController.patch("/api/manuscripts/:manuscriptId", async (req: Reques
   const manuscriptId = String(req.params.manuscriptId ?? "").trim();
   if (!manuscriptId) return res.status(400).json({ error: "manuscriptId is required" });
 
-  const body = (req.body ?? {}) as { project_phase?: unknown; title?: unknown };
+  const body = (req.body ?? {}) as { project_phase?: unknown; title?: unknown; outline?: unknown };
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
   if (body.title !== undefined) {
     const title = String(body.title ?? "").trim();
     if (!title) return res.status(400).json({ error: "title cannot be empty" });
     patch.title = title;
+  }
+  if (body.outline !== undefined) {
+    patch.outline = String(body.outline ?? "");
   }
   const supabase = getSupabaseAdmin();
 

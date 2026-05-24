@@ -1,4 +1,3 @@
-import { drive } from "@googleapis/drive";
 import { Router, type Request, type Response } from "express";
 
 import {
@@ -8,6 +7,13 @@ import {
   googleOAuthConfigured,
   GOOGLE_OAUTH_SCOPES,
 } from "../lib/googleOAuth.js";
+import {
+  docUrlFromMeta,
+  fetchGoogleDocMetaOAuth,
+  fetchGoogleDocPlainTextOAuth,
+  listRecentGoogleDocsOAuth,
+} from "../lib/googleDocOAuth.js";
+import { extractGoogleDocId, normalizeGoogleDocUrl } from "../lib/googleDocUrl.js";
 import { getGoogleOAuthClientForTenant, upsertGoogleCredentials } from "../lib/googleOAuthTokens.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
@@ -127,19 +133,109 @@ googleOAuthController.get("/api/google/drive/recent-docs", async (req: Request, 
   const user = readBearerUser(req, res);
   if (!user) return;
 
+  const q = typeof req.query.q === "string" ? req.query.q : "";
   const supabase = getSupabaseAdmin();
   try {
     const { client } = await getGoogleOAuthClientForTenant(supabase, user.userId);
-    const d = drive({ version: "v3", auth: client });
-    const { data } = await d.files.list({
-      pageSize: 15,
-      orderBy: "modifiedTime desc",
-      q: "mimeType='application/vnd.google-apps.document' and trashed=false",
-      fields: "files(id, name, modifiedTime, webViewLink)",
-    });
-    return res.status(200).json({ files: data.files ?? [] });
+    const files = await listRecentGoogleDocsOAuth(client, { query: q, pageSize: 25 });
+    return res.status(200).json({ files });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return res.status(400).json({ error: msg });
   }
 });
+
+const MANUSCRIPT_OUTLINE_SELECT =
+  "id, tenant_id, title, outline, google_doc_url, google_doc_id, hal_extension_enabled, linked_at, project_phase";
+
+/**
+ * POST /api/manuscripts/:manuscriptId/google-doc/connect
+ * Body: { google_doc_id, google_doc_url?, import_outline?: boolean, link_hal?: boolean }
+ * Pick a completed Google Doc from Drive (OAuth) and import outline text and/or link for HAL.
+ */
+googleOAuthController.post(
+  "/api/manuscripts/:manuscriptId/google-doc/connect",
+  async (req: Request, res: Response) => {
+    const user = readBearerUser(req, res);
+    if (!user) return;
+
+    const manuscriptId = String(req.params.manuscriptId ?? "").trim();
+    const body = (req.body ?? {}) as {
+      google_doc_id?: string;
+      google_doc_url?: string;
+      import_outline?: boolean;
+      link_hal?: boolean;
+    };
+
+    const docId =
+      String(body.google_doc_id ?? "").trim() ||
+      (body.google_doc_url ? extractGoogleDocId(String(body.google_doc_url)) : null);
+    if (!manuscriptId || !docId) {
+      return res.status(400).json({ error: "google_doc_id or google_doc_url is required" });
+    }
+
+    const importOutline =
+      body.import_outline !== false && String(body.import_outline).toLowerCase() !== "false";
+    const linkHal = body.link_hal !== false && String(body.link_hal).toLowerCase() !== "false";
+
+    const supabase = getSupabaseAdmin();
+    const { data: ms } = await supabase
+      .from("p4_manuscripts")
+      .select("id")
+      .eq("id", manuscriptId)
+      .eq("tenant_id", user.userId)
+      .maybeSingle();
+    if (!ms) return res.status(404).json({ error: "Manuscript not found" });
+
+    try {
+      const { client } = await getGoogleOAuthClientForTenant(supabase, user.userId);
+      const meta = await fetchGoogleDocMetaOAuth(client, docId);
+      const docUrl = body.google_doc_url?.trim()
+        ? normalizeGoogleDocUrl(String(body.google_doc_url))
+        : docUrlFromMeta(meta);
+
+      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      let outline_chars = 0;
+
+      if (importOutline) {
+        const text = await fetchGoogleDocPlainTextOAuth(client, docId);
+        patch.outline = text;
+        outline_chars = text.length;
+      }
+
+      if (linkHal) {
+        const now = new Date().toISOString();
+        patch.google_doc_id = meta.id;
+        patch.google_doc_url = docUrl;
+        patch.hal_extension_enabled = true;
+        patch.linked_at = now;
+        patch.project_phase = "working";
+      }
+
+      const { data, error } = await supabase
+        .from("p4_manuscripts")
+        .update(patch)
+        .eq("id", manuscriptId)
+        .eq("tenant_id", user.userId)
+        .select(MANUSCRIPT_OUTLINE_SELECT)
+        .single();
+
+      if (error) return res.status(500).json({ error: error.message });
+
+      return res.status(200).json({
+        manuscript: data,
+        doc: meta,
+        outline_chars,
+        message: [
+          importOutline ? "Outline text imported from Google Doc." : null,
+          linkHal ? "Google Doc linked for HAL extension." : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return res.status(400).json({ error: msg });
+    }
+  }
+);

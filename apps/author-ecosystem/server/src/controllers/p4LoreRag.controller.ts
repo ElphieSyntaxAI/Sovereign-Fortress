@@ -406,6 +406,8 @@ p4LoreRagController.post("/api/lore-git/commit", async (req: Request, res: Respo
       return res.status(400).json({ error: "project_id is required" });
     }
     const tenantId = assertUuid(project_id, "project_id");
+    const manuscriptId =
+      body.manuscript_id != null ? String(body.manuscript_id).trim() : "";
 
     const stylistic_metadata =
       body.stylistic_metadata != null && typeof body.stylistic_metadata === "object" && !Array.isArray(body.stylistic_metadata)
@@ -451,7 +453,7 @@ p4LoreRagController.post("/api/lore-git/commit", async (req: Request, res: Respo
       excerpt,
     ].join("\n");
 
-    const metadata = {
+    const metadata: Record<string, unknown> = {
       lore_extraction: true,
       lore_extraction_chunk_type: chunk_type_raw,
       lore_extraction_tags: tags,
@@ -459,7 +461,32 @@ p4LoreRagController.post("/api/lore-git/commit", async (req: Request, res: Respo
       wiki_visibility: "draft",
       ledger: "wiki_snapshot",
       stylistic_metadata,
+      ...(manuscriptId ? { manuscript_id: manuscriptId } : {}),
     };
+
+    const wikiMeta = body.wiki_metadata;
+    if (wikiMeta != null && typeof wikiMeta === "object" && !Array.isArray(wikiMeta)) {
+      const allowed = [
+        "spoiler_level",
+        "plot_point",
+        "plot_point_order",
+        "era",
+        "source_type",
+        "outline_entity_kind",
+        "wiki_visibility",
+        "narrative_master_logic",
+        "wiki_form_tier",
+        "wiki_form_answers",
+        "rag_template",
+        "world_bible_section",
+        "tags",
+      ] as const;
+      for (const key of allowed) {
+        if ((wikiMeta as Record<string, unknown>)[key] !== undefined) {
+          metadata[key] = (wikiMeta as Record<string, unknown>)[key];
+        }
+      }
+    }
 
     const analysisPack = analyzeChapterSubmission({
       chapterText: excerpt,

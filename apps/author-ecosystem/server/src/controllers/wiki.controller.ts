@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
+import { chunkMatchesManuscript, isScrappedWiki } from "../lib/wikiEntryHelpers.js";
 
 export const wikiController = Router();
 
@@ -83,7 +84,16 @@ wikiController.get("/api/wiki/:manuscriptId/chunks", async (req: Request, res: R
     return res.status(500).json({ error: error.message });
   }
 
-  const chunks: WikiChunk[] = (rows ?? []).map((r) => {
+  const scoped = (rows ?? []).filter((r) => {
+    const meta = (r.metadata && typeof r.metadata === "object" ? r.metadata : {}) as Record<
+      string,
+      unknown
+    >;
+    if (isScrappedWiki(meta)) return false;
+    return chunkMatchesManuscript(meta, manuscriptId);
+  });
+
+  const chunks: WikiChunk[] = scoped.map((r) => {
     const meta = (r.metadata && typeof r.metadata === "object" ? r.metadata : {}) as Record<
       string,
       unknown

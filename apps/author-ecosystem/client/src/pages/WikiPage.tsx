@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { CreativeManuscriptShell } from "../components/CreativeManuscriptShell";
 import { WikiAuthorView } from "../components/WikiAuthorView";
+import { WikiDraftProvider } from "../context/WikiDraftContext";
 import { useNarrative } from "../context/NarrativeContext";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
@@ -11,6 +12,7 @@ export default function WikiPage() {
   const [fanPreview, setFanPreview] = useState(false);
   const [wikiEditable, setWikiEditable] = useState(false);
   const [wikiLockedAt, setWikiLockedAt] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selection?.manuscriptId) return;
@@ -31,6 +33,8 @@ export default function WikiPage() {
       }
     })();
   }, [selection?.manuscriptId]);
+
+  const canEdit = Boolean(selection && !fanPreview && !wikiLockedAt);
 
   return (
     <CreativeManuscriptShell>
@@ -53,7 +57,10 @@ export default function WikiPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setFanPreview((v) => !v)}
+            onClick={() => {
+              setFanPreview((v) => !v);
+              if (!fanPreview) setWikiEditable(false);
+            }}
             className={[
               "rounded-full border px-3 py-1.5 text-xs font-medium transition",
               fanPreview
@@ -64,7 +71,7 @@ export default function WikiPage() {
           >
             {fanPreview ? "Fan preview on" : "Fan preview (hide spoilers)"}
           </button>
-          {!fanPreview && !wikiLockedAt ? (
+          {canEdit ? (
             <button
               type="button"
               onClick={() => setWikiEditable((v) => !v)}
@@ -77,18 +84,29 @@ export default function WikiPage() {
               aria-pressed={wikiEditable}
             >
               <span aria-hidden>✎</span>
-              {wikiEditable ? "Editing scratch" : "Edit scratch"}
+              {wikiEditable ? "Editing wiki" : "Edit wiki"}
             </button>
           ) : null}
         </div>
       </header>
 
-      <WikiAuthorView
-        manuscriptId={selection!.manuscriptId}
-        tenantId={selection!.tenantId}
-        fanPreview={fanPreview}
-        wikiEditable={wikiEditable && !wikiLockedAt}
-      />
+      {status ? (
+        <p className="rounded-lg border border-emerald-900/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-200/90">
+          {status}
+        </p>
+      ) : null}
+
+      {selection ? (
+        <WikiDraftProvider manuscriptId={selection.manuscriptId}>
+          <WikiAuthorView
+            manuscriptId={selection.manuscriptId}
+            tenantId={selection.tenantId}
+            fanPreview={fanPreview}
+            wikiEditable={wikiEditable && !wikiLockedAt}
+            onStatus={setStatus}
+          />
+        </WikiDraftProvider>
+      ) : null}
     </CreativeManuscriptShell>
   );
 }
