@@ -1,38 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { buildMsgfAdminSignInUrl, buildMsgfAuthCallbackUrl } from "@elphie-syntax/core/platform-admin-auth";
 
 /**
  * Supabase email-confirm / magic-link landing when the project Site URL is Author.
  * Forwards the PKCE `code` (and hash tokens) to MSGF `/auth/callback` so the session
  * is minted on elphiesgatedai.elphiesyntax.com (required for `/admin/sign-in`).
  */
-function resolveMsgfOrigin() {
-  const fromEnv = import.meta.env.VITE_MSGF_APP_URL?.trim()?.replace(/\/$/, "");
-  if (fromEnv) return fromEnv;
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname.toLowerCase();
-    if (host === "localhost" || host === "127.0.0.1") {
-      return "http://127.0.0.1:3001";
-    }
-  }
-  return "https://elphiesgatedai.elphiesyntax.com";
-}
-
 function buildMsgfCallbackUrl() {
-  const msgfOrigin = resolveMsgfOrigin();
-  const params = new URLSearchParams(window.location.search);
-  if (!params.has("next")) {
-    const stored = sessionStorage.getItem("elphie_auth_callback_next");
-    if (stored?.startsWith("/") && !stored.startsWith("//")) {
-      params.set("next", stored);
-    }
-  }
-  const qs = params.toString();
-  const hash = window.location.hash || "";
-  return `${msgfOrigin}/auth/callback${qs ? `?${qs}` : ""}${hash}`;
+  return buildMsgfAuthCallbackUrl({
+    search: window.location.search,
+    hash: window.location.hash || "",
+    hostname: window.location.hostname,
+    env: import.meta.env,
+  });
 }
 
 export default function AuthCallbackRedirectPage() {
   const [error, setError] = useState(/** @type {string | null} */ (null));
+  const adminSignInHref = useMemo(
+    () =>
+      buildMsgfAdminSignInUrl({
+        hostname: typeof window !== "undefined" ? window.location.hostname : undefined,
+        env: import.meta.env,
+      }),
+    []
+  );
 
   useEffect(() => {
     try {
@@ -47,10 +40,7 @@ export default function AuthCallbackRedirectPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-zinc-950 p-8 text-zinc-100">
         <p className="text-sm text-red-300">Could not complete sign-in redirect: {error}</p>
-        <a
-          href="https://elphiesgatedai.elphiesyntax.com/admin/sign-in"
-          className="text-sm text-emerald-400 underline"
-        >
+        <a href={adminSignInHref} className="text-sm text-emerald-400 underline">
           Open MSGF admin sign-in
         </a>
       </div>

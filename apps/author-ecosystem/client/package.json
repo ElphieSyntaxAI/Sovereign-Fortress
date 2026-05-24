@@ -10,6 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@elphie-syntax/core": "file:../../../packages/core",
     "@elphie-syntax/ui": "file:../../../packages/ui",
     "msgf": "file:../../../packages/msgf",
     "@hookform/resolvers": "^3.9.1",

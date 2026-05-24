@@ -23,6 +23,21 @@
       "types": "./src/lib/forensics/calibration-pure.ts",
       "import": "./src/lib/forensics/calibration-pure.ts",
       "default": "./src/lib/forensics/calibration-pure.ts"
+    },
+    "./platform-admin-auth": {
+      "types": "./src/lib/platform-admin-auth.ts",
+      "import": "./src/lib/platform-admin-auth.ts",
+      "default": "./src/lib/platform-admin-auth.ts"
+    },
+    "./operator-handoff-url": {
+      "types": "./src/lib/operator-handoff-url.ts",
+      "import": "./src/lib/operator-handoff-url.ts",
+      "default": "./src/lib/operator-handoff-url.ts"
+    },
+    "./operator-handoff-token": {
+      "types": "./src/lib/operator-handoff-token.ts",
+      "import": "./src/lib/operator-handoff-token.ts",
+      "default": "./src/lib/operator-handoff-token.ts"
     }
   },
   "dependencies": {

@@ -4,6 +4,7 @@ import type { CookieOptions, Request, Response } from "express";
 import { parseCookieHeader } from "./bffAuthCookies.js";
 import { withBffSupabaseCookieOptions } from "./bffSupabaseCookieOptions.js";
 import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
+import { supabaseNodeClientOptions } from "./supabaseNodeRealtime.js";
 
 /**
  * Browser-facing Supabase client for the author BFF (publishable key + cookie session).
@@ -21,6 +22,7 @@ export function createBffSupabaseServerClient(req: Request, res: Response) {
   }
 
   return createServerClient(supabaseUrl, supabaseKey, {
+    ...supabaseNodeClientOptions(),
     cookies: {
       getAll() {
         const jar = parseCookieHeader(req.headers.cookie);

@@ -10,6 +10,8 @@
  *
  * Distribution Build ID: MSGF-92d026a-20260522T181651Z-internal
  */
+import { buildMsgfAuthorHandoffUrl } from "@elphie-syntax/core/operator-handoff-url";
+
 import { resolveMsgfLocalDevOrigin } from "@/lib/runtime/msgf-dev-defaults";
 
 export type AdminSurfaceLink = {
@@ -76,7 +78,13 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
     trimUrl(process.env.NEXT_PUBLIC_AUTHOR_APP_URL) ||
     "https://authorecosystem.elphiesyntax.com";
   const authorLocalClient =
-    trimUrl(process.env.AUTHOR_CLIENT_DEV_URL) || "http://localhost:5173";
+    trimUrl(process.env.AUTHOR_CLIENT_DEV_URL) || "http://127.0.0.1:5173";
+  const authorLocalDashboard = joinPath(authorLocalClient, "/dashboard");
+  const authorHandoffLocal = buildMsgfAuthorHandoffUrl(msgfLocal, authorLocalDashboard);
+  const authorHandoffProd = buildMsgfAuthorHandoffUrl(
+    msgfProd,
+    joinPath(authorProd, "/dashboard")
+  );
   const authorLocalBff =
     trimUrl(process.env.AUTHOR_ECOSYSTEM_URL) ||
     trimUrl(process.env.AUTHOR_BFF_URL) ||
@@ -108,6 +116,7 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
         { label: "Operator dashboard", href: "/admin/dashboard" },
       ],
       localDev: [
+        { label: "Operator admin sign-in", href: "/admin/sign-in" },
         { label: "MSGF dev server", href: msgfLocal, external: true },
         { label: "System status", href: "/status" },
         { label: "Audit log (tenant guard demo)", href: "/audit-log" },
@@ -130,26 +139,44 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
       detailHref: "/products/author",
       ...preferLocalAuthorInDev(
         {
-          label: "Open Author Ecosystem (prod)",
-          href: authorProd,
+          label: "Open Author dashboard (prod)",
+          href: authorHandoffProd,
           external: true,
         },
         {
-          label: "Open Author Ecosystem (localhost)",
-          href: authorLocalClient,
+          label: "Open Author dashboard (localhost)",
+          href: authorHandoffLocal,
           external: true,
         }
       ),
       production: [
         { label: "Author app (prod)", href: authorProd, external: true },
+        {
+          label: "Operator admin (via Author)",
+          href: joinPath(authorProd, "/admin/sign-in"),
+          external: true,
+        },
         { label: "Product roadmap", href: "/products/author" },
       ],
       localDev: [
         {
-          label: "Author client (Vite)",
+          label: "Operator admin sign-in",
+          href: joinPath(authorLocalClient, "/admin/sign-in"),
+          external: true,
+          description: "Redirects to MSGF — same GLOBAL_ADMIN session",
+        },
+        {
+          label: "Author dashboard (SSO handoff)",
+          href: authorHandoffLocal,
+          external: true,
+          description:
+            "Uses your MSGF operator session — lands on /dashboard with Author BFF cookies",
+        },
+        {
+          label: "Author client (Vite root)",
           href: authorLocalClient,
           external: true,
-          description: "npm run dev in apps/author-ecosystem/client",
+          description: "npm run dev in apps/author-ecosystem/client (no MSGF SSO)",
         },
         {
           label: "Author BFF",
@@ -184,10 +211,21 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
       },
       production: [
         { label: "Education app (prod)", href: educationProd, external: true },
+        {
+          label: "Operator admin (via Education)",
+          href: joinPath(educationProd, "/admin/sign-in"),
+          external: true,
+        },
         { label: "Teacher dashboard (prod)", href: educationTeacherProd, external: true },
         { label: "Product roadmap", href: "/products/education" },
       ],
       localDev: [
+        {
+          label: "Operator admin sign-in",
+          href: joinPath(educationLocal, "/admin/sign-in"),
+          external: true,
+          description: "Redirects to MSGF operator portal",
+        },
         {
           label: "Local app — Sandbox",
           href: joinPath(educationLocal, "/sandbox"),

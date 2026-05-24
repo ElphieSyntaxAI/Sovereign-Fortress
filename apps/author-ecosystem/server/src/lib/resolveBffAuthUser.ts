@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import { getJwtFromRequest } from "./bffAuthCookies.js";
 import { createBffSupabaseServerClient } from "./bffSupabaseSsr.js";
 import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
+import { supabaseNodeClientOptions } from "./supabaseNodeRealtime.js";
 import {
   normalizeRole,
   tryReadBearerUser,
@@ -37,9 +38,13 @@ function getPublishableAuthClient(): SupabaseClient | null {
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
   if (!url || !key) return null;
   if (!publishableClient) {
-    publishableClient = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    publishableClient = createClient(
+      url,
+      key,
+      supabaseNodeClientOptions({
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    );
   }
   return publishableClient;
 }
@@ -78,7 +83,11 @@ export async function bffAuthMiddleware(
   res: Response,
   next: () => void
 ): Promise<void> {
-  if (req.path.startsWith("/api/auth/login") || req.path.startsWith("/api/auth/register")) {
+  if (
+    req.path.startsWith("/api/auth/login") ||
+    req.path.startsWith("/api/auth/register") ||
+    req.path.startsWith("/api/auth/msgf-handoff")
+  ) {
     next();
     return;
   }

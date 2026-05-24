@@ -68,4 +68,5 @@ export const MSGF_OPERATOR_USER_ID_HEADER = "x-msgf-operator-user-id";
 /** Trusted Author BFF HAL snapshot JSON ({@link AuthorHalTelemetrySnapshot}) — rhythm only, no RAG. */
 export const MSGF_AUTHOR_HAL_HEADER = "x-msgf-author-hal";
 
-export { MSGF_WRITE_TARGET_HEADER } from "@/lib/msgf-tenant-governance";
+/** Set by API middleware on mutating requests for DEV_TEST (see tenant governance). */
+export const MSGF_WRITE_TARGET_HEADER = "x-msgf-write-target";

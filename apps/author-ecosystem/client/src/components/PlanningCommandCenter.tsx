@@ -3,7 +3,7 @@ import {
   DashboardRouter,
   type DashboardMode,
   type DashboardViewPayload,
-} from "@elphie-syntax/ui";
+} from "@elphie-syntax/ui/dashboard";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   PlanningSessionProvider,

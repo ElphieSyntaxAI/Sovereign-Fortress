@@ -18,6 +18,16 @@
       "types": "./src/components/PlatformLoginMatrix.tsx",
       "import": "./src/components/PlatformLoginMatrix.tsx",
       "default": "./src/components/PlatformLoginMatrix.tsx"
+    },
+    "./dashboard": {
+      "types": "./src/dashboard.ts",
+      "import": "./src/dashboard.ts",
+      "default": "./src/dashboard.ts"
+    },
+    "./pillar-health": {
+      "types": "./src/pillar-health.ts",
+      "import": "./src/pillar-health.ts",
+      "default": "./src/pillar-health.ts"
     }
   },
   "peerDependencies": {

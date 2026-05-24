@@ -6,6 +6,8 @@ import { ManuscriptSelector } from "../components/ManuscriptSelector";
 import { PlanningCommandCenter } from "../components/PlanningCommandCenter";
 import { AuthorSentinelBugButton } from "../components/AuthorSentinelBugButton";
 import { MsgfConnectionStatus } from "../components/MsgfConnectionStatus";
+import { OperatorAdminLink } from "../components/OperatorAdminLink";
+import { OperatorAdminPanel } from "../components/OperatorAdminPanel";
 import HALTracker from "../components/HALTracker.jsx";
 import { NarrativeProvider, useNarrative } from "../context/NarrativeContext";
 import { bffCredentials, bffUrl } from "../lib/bffFetch";
@@ -65,6 +67,8 @@ function DashboardInner() {
               <Link to="/vault-pact" className="text-zinc-300 underline underline-offset-2 hover:text-white">
                 Vault Pact
               </Link>
+              {" · "}
+              <OperatorAdminLink className="text-violet-300 underline underline-offset-2 hover:text-violet-200" />
             </p>
           </div>
           <button
@@ -75,6 +79,8 @@ function DashboardInner() {
             Sign out
           </button>
         </header>
+
+        <OperatorAdminPanel />
 
         <MsgfConnectionStatus />
 

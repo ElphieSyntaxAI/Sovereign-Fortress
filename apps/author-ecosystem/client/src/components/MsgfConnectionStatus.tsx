@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { bffCredentials, bffUrl } from "../lib/bffFetch";
+import { bffCredentials, bffUrl, formatBffFetchError } from "../lib/bffFetch";
 
 type MsgfMapping = {
   tenant_id?: string;
@@ -22,7 +22,7 @@ export function MsgfConnectionStatus() {
       if (!res.ok) throw new Error(data.error ?? `Status failed (${res.status})`);
       setMapping(data.msgf_mapping ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load MSGF mapping status.");
+      setError(formatBffFetchError(e, "/api/status"));
     }
   }, []);
 
@@ -32,9 +32,9 @@ export function MsgfConnectionStatus() {
 
   if (error) {
     return (
-      <p className="rounded-lg border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-200">
-        MSGF bridge status unavailable: {error}
-      </p>
+      <pre className="whitespace-pre-wrap rounded-lg border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-200">
+        {error}
+      </pre>
     );
   }
 

@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+import { OperatorAdminLink } from "../components/OperatorAdminLink";
+
 /**
  * elphiesyntax.com home — "What are you looking for?" platform chooser.
  *
@@ -403,6 +405,8 @@ export default function PlatformHubPage() {
           >
             MSGF Gated AI ↗
           </a>
+          <span className="text-slate-700">·</span>
+          <OperatorAdminLink className="text-violet-300/90 underline-offset-4 hover:underline" />
         </p>
       </footer>
     </div>

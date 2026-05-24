@@ -145,14 +145,19 @@ function SurfaceCard({ surface }: { surface: AdminProductSurface }) {
         ) : null}
       </div>
 
-      {surface.id === "author" || surface.id === "education" ? (
+      {surface.id === "author" ? (
+        <p className="rounded-lg border border-violet-500/30 bg-violet-950/25 px-3 py-2 text-xs text-slate-400">
+          <strong className="text-violet-100">Author dashboard</strong> uses SSO handoff: your MSGF
+          sign-in is copied to the Author BFF (port 3002), then you land on{" "}
+          <code className="text-violet-200">/dashboard</code>. Use the same host (
+          <code className="text-violet-200">127.0.0.1</code>, not{" "}
+          <code className="text-violet-200">localhost</code>) as Docker dev.
+        </p>
+      ) : null}
+      {surface.id === "education" ? (
         <p className="rounded-lg border border-slate-600/40 bg-slate-900/40 px-3 py-2 text-xs text-slate-400">
-          Opens a <strong className="text-slate-200">separate subdomain</strong> — not MSGF.
-          <code className="mx-1 text-violet-200">
-            {surface.id === "author" ? "authorecosystem" : "syntaxeducates"}
-          </code>
-          must be deployed on its own (Author BFF + client, or Syntax Educates Vite).{" "}
-          <code className="text-violet-200">./setup-cloud.sh</code> only ships MSGF.
+          Opens <code className="text-violet-200">syntaxeducates.elphiesyntax.com</code> (separate
+          Vite app). MSGF operator sign-in remains on this host.
         </p>
       ) : null}
 

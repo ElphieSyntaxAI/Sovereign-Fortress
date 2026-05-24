@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PlatformLoginMatrix } from "@elphie-syntax/ui/platform-login";
 import "@elphie-syntax/ui/platform-login.css";
 
+import { OperatorAdminLink } from "../components/OperatorAdminLink";
 import { RegisterForm } from "../components/RegisterForm";
 import { bffFetch, formatBffFetchError } from "../lib/bffFetch";
 
@@ -103,6 +104,8 @@ export default function LoginHomePage() {
         <Link to="/vault-pact" className="text-emerald-400/80 underline underline-offset-2 hover:text-[#f5f0e8]">
           Vault Pact
         </Link>
+        {" · "}
+        <OperatorAdminLink className="text-violet-300/90 underline underline-offset-2 hover:text-violet-200" />
       </footer>
     </div>
   );

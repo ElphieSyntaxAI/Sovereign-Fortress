@@ -17,7 +17,12 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { MSGF_TENANT_ID_HEADER } from "@/lib/msgf-http-headers";
+import {
+  MSGF_TENANT_ID_HEADER,
+  MSGF_WRITE_TARGET_HEADER,
+} from "@/lib/msgf-http-headers";
+
+export { MSGF_WRITE_TARGET_HEADER };
 
 /** Author production silo — browser traffic must come from allowed origins. */
 export const MSGF_TENANT_PRODUCTION_AUTHOR = "PRODUCTION_AUTHOR";
@@ -34,9 +39,6 @@ export const MSGF_PILLAR_TABLE_SANDBOX = "msgf_sandbox" as const;
 export type MsgfPillarTableName =
   | typeof MSGF_PILLAR_TABLE_PRODUCTION
   | typeof MSGF_PILLAR_TABLE_SANDBOX;
-
-/** Set by API middleware on mutating requests for DEV_TEST. */
-export const MSGF_WRITE_TARGET_HEADER = "x-msgf-write-target";
 
 export const MSGF_WRITE_TARGET_SANDBOX = "sandbox";
 

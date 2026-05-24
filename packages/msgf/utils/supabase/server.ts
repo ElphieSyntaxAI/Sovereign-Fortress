@@ -14,6 +14,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import { withMsgfAuthCookieOptions } from "@/lib/msgf-auth-cookies";
+import { supabaseNodeClientOptions } from "@/lib/supabase-node-realtime";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -55,6 +56,7 @@ export const createClient = (
     supabaseUrl!,
     supabaseKey!,
     {
+      ...supabaseNodeClientOptions(),
       cookies: {
         getAll() {
           return cookieStore.getAll();

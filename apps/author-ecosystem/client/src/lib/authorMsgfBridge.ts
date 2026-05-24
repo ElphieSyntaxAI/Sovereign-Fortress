@@ -1,4 +1,8 @@
-import { MsgfBridge, type P1Standard, type PulseDispatchResult } from "msgf/connector";
+import {
+  MsgfBridge,
+  type P1Standard,
+  type PulseDispatchResult,
+} from "msgf/connector/MsgfBridge";
 
 import { bffAuthHeaders, bffFetch, bffUrl } from "./bffFetch";
 

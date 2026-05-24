@@ -82,12 +82,3 @@ export {
   resolveBrainSensitivityHeader,
 } from "./brain-sensitivity";
 export { normalizeConnectorTenantId } from "./tenant";
-export {
-  IdeConnector,
-  createIdeConnector,
-  type IdeConnectorConfig,
-  type IdePulseBufferOptions,
-  type IdeStatusBarSnapshot,
-  type IdeBufferedPulseResult,
-  type IdeStatusRouting,
-} from "@/lib/ide-connector";

@@ -41,6 +41,14 @@ const DashboardPage = lazyPage(() => import("./pages/DashboardPage.tsx"), "dashb
 const TermsPage = lazyPage(() => import("./pages/TermsPage"), "terms");
 const NdaPage = lazyPage(() => import("./pages/NdaPage"), "nda");
 const VaultPactPage = lazyPage(() => import("./pages/VaultPactPage"), "vault-pact");
+const AdminSignInRedirectPage = lazyPage(
+  () => import("./pages/AdminSignInRedirectPage.jsx"),
+  "admin-sign-in"
+);
+const AdminPortalRedirectPage = lazyPage(
+  () => import("./pages/AdminPortalRedirectPage.jsx"),
+  "admin-portal"
+);
 
 function PageFallback() {
   return (
@@ -73,6 +81,9 @@ export default function App() {
         <Route path="/sign-in" element={<LoginHomePage />} />
         <Route path="/login" element={<Navigate to="/sign-in" replace />} />
         <Route path="/auth/callback" element={<AuthCallbackRedirectPage />} />
+        <Route path="/admin/sign-in" element={<AdminSignInRedirectPage />} />
+        <Route path="/admin/portal" element={<AdminPortalRedirectPage />} />
+        <Route path="/admin" element={<Navigate to="/admin/sign-in" replace />} />
         <Route
           path="/dashboard"
           element={

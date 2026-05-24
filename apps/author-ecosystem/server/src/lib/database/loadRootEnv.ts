@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import dotenv from "dotenv";
 
+import { reconcileSupabaseEnv } from "../resolveSupabaseProjectUrl.js";
+
 const thisDir = resolve(dirname(fileURLToPath(import.meta.url)));
 
 /**
@@ -75,4 +77,6 @@ export function loadMonorepoRootEnv(): void {
   dotenv.config({ path: join(root, ".env.local"), override: true });
   dotenv.config({ path: join(msgfPkg, ".env") });
   dotenv.config({ path: join(msgfPkg, ".env.local"), override: true });
+
+  reconcileSupabaseEnv();
 }

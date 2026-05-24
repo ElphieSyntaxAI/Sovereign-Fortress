@@ -1,5 +1,9 @@
 import { Router, type Request, type Response } from "express";
 import {
+  sanitizeAuthorReturnToUrl,
+  verifyOperatorHandoffToken,
+} from "@elphie-syntax/core/operator-handoff-token";
+import {
   PLATFORM_COMING_SOON,
   isPersonaValidForPlatform,
   parsePlatformLoginBody,
@@ -47,6 +51,66 @@ function mirrorAccessTokenCookie(req: Request, res: Response, accessToken: strin
   if (!t) return;
   res.cookie(BFF_AUTH_COOKIE_NAME, t, bffCookieBaseOptions(req));
 }
+
+function operatorHandoffSecret(): string {
+  return (
+    process.env.MSGF_OPERATOR_HANDOFF_SECRET?.trim() ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    ""
+  );
+}
+
+const DEFAULT_AUTHOR_DASHBOARD_RETURN =
+  process.env.AUTHOR_CLIENT_DEV_URL?.trim()?.replace(/\/+$/, "") ||
+  "http://127.0.0.1:5173";
+
+/**
+ * GET /api/auth/msgf-handoff — browser navigation from MSGF admin portal; sets Author BFF session cookies.
+ */
+authSessionBridgeController.get("/msgf-handoff", (req: Request, res: Response) => {
+  void (async () => {
+    try {
+      const token = String(req.query.handoff ?? "").trim();
+      if (!token) {
+        res.status(400).send("Missing handoff token.");
+        return;
+      }
+
+      const returnTo = sanitizeAuthorReturnToUrl(
+        typeof req.query.return_to === "string" ? req.query.return_to : undefined,
+        `${DEFAULT_AUTHOR_DASHBOARD_RETURN}/dashboard`
+      );
+
+      const payload = verifyOperatorHandoffToken(token, operatorHandoffSecret());
+      const supabase = createBffSupabaseServerClient(req, res);
+      const { data, error } = await supabase.auth.setSession({
+        access_token: payload.access_token,
+        refresh_token: payload.refresh_token,
+      });
+
+      if (error || !data.session?.user) {
+        res.status(401).send(error?.message ?? "Could not establish Author session.");
+        return;
+      }
+
+      mirrorAccessTokenCookie(req, res, data.session.access_token);
+
+      const meta = data.session.user.user_metadata ?? {};
+      let persona = String(meta.persona ?? meta.terms_role ?? "author").trim().toLowerCase();
+      if (!isPersonaValidForPlatform("author", persona)) persona = "author";
+
+      await syncPlatformPersonaSession(res, data.session.user, {
+        platform: "author",
+        persona,
+      });
+
+      res.redirect(302, returnTo);
+    } catch (e) {
+      console.error("[bff/auth/msgf-handoff]", e);
+      res.status(400).send(e instanceof Error ? e.message : "Handoff failed.");
+    }
+  })();
+});
 
 /**
  * Canonical author personas (`author` / `editor` / `helper` / `publisher`).

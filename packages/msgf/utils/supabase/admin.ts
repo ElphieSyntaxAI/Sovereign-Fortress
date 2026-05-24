@@ -12,6 +12,8 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { supabaseNodeClientOptions } from "@/lib/supabase-node-realtime";
+
 export function createAdminClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -20,7 +22,11 @@ export function createAdminClient(): SupabaseClient {
       "createAdminClient: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required."
     );
   }
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return createClient(
+    url,
+    key,
+    supabaseNodeClientOptions({
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  );
 }

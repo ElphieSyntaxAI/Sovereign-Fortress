@@ -36,9 +36,12 @@ export default async function AdminSignInPage({ searchParams }: Props) {
           </p>
           <h1 className="text-2xl font-bold tracking-tight">Admin sign in</h1>
           <p className="text-sm text-slate-400">
-            Sign in on <strong className="text-emerald-200/90">elphiesgatedai.elphiesyntax.com</strong>{" "}
-            (MSGF), not the Author subdomain. After email confirmation you should land back here;
-            if you land on authorecosystem first, that app will forward you to MSGF automatically.
+            Canonical operator sign-in for the whole product family (MSGF, Author Ecosystem, Syntax
+            Education). Satellite apps expose{" "}
+            <code className="text-violet-300">/admin/sign-in</code> and forward here. After email
+            confirmation you should land back on MSGF; if you land on Author or Syntax Educates
+            first, their <code className="text-violet-300">/auth/callback</code> shim forwards you
+            here automatically.
           </p>
           <p className="text-xs text-slate-500">
             Requires <code className="text-violet-300">GLOBAL_ADMIN</code> or{" "}

@@ -34,12 +34,16 @@ export async function middleware(request: NextRequest) {
   req = tenantGate.request;
 
   if (req.nextUrl.pathname.startsWith("/api/msgf")) {
-    const entitlementDenied = await assertPulseEntitlementOr429(req);
-    if (entitlementDenied) return entitlementDenied;
+    const isAuthorHandoff = req.nextUrl.pathname === "/api/msgf/admin/author-handoff";
 
-    const denied = await assertMsgfCreditsOr429(req);
-    if (denied) return denied;
-    req = applyMsgfCreditModelHeader(req);
+    if (!isAuthorHandoff) {
+      const entitlementDenied = await assertPulseEntitlementOr429(req);
+      if (entitlementDenied) return entitlementDenied;
+
+      const denied = await assertMsgfCreditsOr429(req);
+      if (denied) return denied;
+      req = applyMsgfCreditModelHeader(req);
+    }
   }
 
   return await updateSession(req);

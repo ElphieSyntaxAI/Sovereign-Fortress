@@ -4,6 +4,7 @@ import { Router, type Request, type Response } from "express";
 
 import { NDA_ROOT } from "../lib/ndaRoot.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
+import { ensurePublicAuthorProfile } from "../lib/ensurePublicAuthorProfile.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../lib/vaultPactAttestation.js";
 import { getCurrentVaultPactSha256 } from "../middleware/pactGuard.js";
@@ -126,11 +127,34 @@ legalNdaController.post("/api/legal/vault-pact-attest", async (req: Request, res
       return;
     }
     if (!profile) {
-      res.status(409).json({
-        error: "no_profile",
-        message: "Your account has no Supabase profile row yet; complete onboarding before attesting.",
-      });
-      return;
+      const { data: p4, error: p4Err } = await admin
+        .from("p4_profiles")
+        .select("user_id, username")
+        .eq("user_id", user.userId)
+        .maybeSingle();
+
+      if (p4Err) {
+        res.status(500).json({ error: p4Err.message });
+        return;
+      }
+      if (!p4?.user_id) {
+        res.status(409).json({
+          error: "no_profile",
+          message:
+            "Your account has no Author profile yet. Sign in via MSGF admin handoff or complete registration before attesting.",
+        });
+        return;
+      }
+
+      const { data: authUser, error: authErr } = await admin.auth.admin.getUserById(user.userId);
+      if (authErr || !authUser.user) {
+        res.status(500).json({
+          error: authErr?.message ?? "Could not load auth user for profile provisioning.",
+        });
+        return;
+      }
+
+      await ensurePublicAuthorProfile(admin, authUser.user);
     }
 
     const { error: insertErr } = await admin.from("legal_attestations").insert({

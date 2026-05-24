@@ -1,4 +1,4 @@
-import { PillarStatusGrid, type PillarHealthReport } from "@elphie-syntax/ui";
+import { PillarStatusGrid, type PillarHealthReport } from "@elphie-syntax/ui/pillar-health";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getPreferredBffBearer } from "../lib/authAccessToken";

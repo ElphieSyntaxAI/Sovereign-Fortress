@@ -196,7 +196,11 @@ export async function ensureMsgfPulseProfile(
   );
 
   if (error) {
-    throw new Error(`ensureMsgfPulseProfile: p4_profiles upsert failed: ${error.message}`);
+    const detail =
+      error.message === "fetch failed" || error.message.includes("fetch failed")
+        ? `${error.message} — check NEXT_PUBLIC_SUPABASE_URL in packages/msgf/.env.local (a placeholder SUPABASE_URL in root .env must not override it)`
+        : error.message;
+    throw new Error(`ensureMsgfPulseProfile: p4_profiles upsert failed: ${detail}`);
   }
 }
 

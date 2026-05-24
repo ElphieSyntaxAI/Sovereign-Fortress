@@ -10,6 +10,8 @@
 import jwt from "jsonwebtoken";
 import { createClient } from "@supabase/supabase-js";
 
+import { supabaseNodeClientOptions } from "../lib/supabaseNodeRealtime.js";
+
 import { getMonorepoRootDir, loadMonorepoRootEnv } from "../lib/database/loadRootEnv.js";
 
 function mask(s: string | undefined, head = 10): string {
@@ -65,9 +67,13 @@ async function run(): Promise<void> {
     process.exit(1);
   }
 
-  const admin = createClient(url, service, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const admin = createClient(
+    url,
+    service,
+    supabaseNodeClientOptions({
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  );
   const { data, error } = await admin.from("p4_profiles").select("user_id, legacy_user_id, username").limit(3);
   if (error) {
     console.error("[verify] p4_profiles query FAILED:", error.message, error.code ?? "");

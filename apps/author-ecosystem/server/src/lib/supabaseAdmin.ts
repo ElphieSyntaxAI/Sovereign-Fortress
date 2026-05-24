@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
+import { resolveSupabaseProjectUrl } from "./resolveSupabaseProjectUrl.js";
+import { supabaseNodeClientOptions } from "./supabaseNodeRealtime.js";
 
 let cached: SupabaseClient | null = null;
 
@@ -10,8 +12,7 @@ export function getSupabaseAdmin(): SupabaseClient {
 
   if (cached) return cached;
 
-  const url =
-    process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const url = resolveSupabaseProjectUrl();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
   if (!url || !key) {
@@ -20,8 +21,12 @@ export function getSupabaseAdmin(): SupabaseClient {
     );
   }
 
-  cached = createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  cached = createClient(
+    url,
+    key,
+    supabaseNodeClientOptions({
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  );
   return cached;
 }

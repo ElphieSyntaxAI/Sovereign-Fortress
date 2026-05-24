@@ -61,7 +61,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 1. User opens **elphiesyntax.com** → hub explains the three surfaces.
 2. User signs in once (shared Supabase project).
 3. User picks **Author · Education · Gated AI** + persona → redirect to that product’s subdomain with session cookies on `.elphiesyntax.com` when configured.
-4. **MSGF operator admin** remains on **elphiesgatedai** (`/admin/sign-in`) — not the Author subdomain.
+4. **MSGF operator admin** is canonical on **elphiesgatedai** (`/admin/sign-in`). Author and Syntax Educates expose the same path and **redirect to MSGF** (shared helpers in `@elphie-syntax/core/platform-admin-auth`).
 
 **Today (interim):**
 

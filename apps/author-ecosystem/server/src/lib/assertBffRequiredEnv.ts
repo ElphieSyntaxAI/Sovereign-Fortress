@@ -4,6 +4,10 @@ import { join, resolve } from "node:path";
 import jwt from "jsonwebtoken";
 
 import { getMonorepoRootDir, loadMonorepoRootEnv } from "./database/loadRootEnv.js";
+import {
+  isPlaceholderSupabaseUrl,
+  resolveSupabaseProjectUrl,
+} from "./resolveSupabaseProjectUrl.js";
 
 function resolveSupabaseJwtSecret(): string | null {
   const primary = process.env.SUPABASE_JWT_SECRET?.trim();
@@ -33,9 +37,13 @@ export function assertBffRequiredEnv(): void {
   const monorepoRoot = resolve(getMonorepoRootDir());
 
   const missing: string[] = [];
-  const supabaseUrl =
-    process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseUrl = resolveSupabaseProjectUrl();
   if (!supabaseUrl) missing.push("SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL)");
+  if (supabaseUrl && isPlaceholderSupabaseUrl(supabaseUrl)) {
+    missing.push(
+      "real Supabase project URL in packages/msgf/.env.local (NEXT_PUBLIC_SUPABASE_URL; not your-project.supabase.co)"
+    );
+  }
   if (!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()) {
     missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
   }

@@ -98,6 +98,11 @@ export default defineConfig(({ mode }) => {
       /** Use `development` exports (TypeScript source) — `dist/*.js` is not built in every clone. */
       conditions: ["development", "browser", "import", "module", "default"],
       alias: {
+        /** Avoid pulling education + `node:crypto` handoff code through the UI package barrel. */
+        "@elphie-syntax/ui/dashboard": path.resolve(
+          monorepoRoot,
+          "packages/ui/src/dashboard.ts"
+        ),
         /**
          * `msgf` workspace package uses `@/` imports; map them when Vite prebundles msgf from
          * `packages/msgf` (Author client does not use `@/` for its own sources).
@@ -107,8 +112,16 @@ export default defineConfig(({ mode }) => {
           monorepoRoot,
           "packages/msgf/lib/platform-persona-auth.ts"
         ),
+        "msgf/connector/MsgfBridge": path.resolve(
+          monorepoRoot,
+          "packages/msgf/lib/connector/MsgfBridge.ts"
+        ),
         "msgf/connector": path.resolve(monorepoRoot, "packages/msgf/lib/connector/client.ts"),
         "msgf/connector/client": path.resolve(monorepoRoot, "packages/msgf/lib/connector/client.ts"),
+        "@elphie-syntax/ui/pillar-health": path.resolve(
+          monorepoRoot,
+          "packages/ui/src/pillar-health.ts"
+        ),
         "msgf/ui": path.resolve(monorepoRoot, "packages/msgf/ui/index.ts"),
         /** Canonical terms folder: `apps/author-ecosystem/terms` (single source for web + BFF). */
         "@terms": path.resolve(__dirname, "../terms"),
@@ -117,12 +130,22 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      exclude: ["msgf/lib/platform-persona-auth", "msgf/connector", "msgf/ui"],
+      exclude: [
+        "msgf/lib/platform-persona-auth",
+        "msgf/connector",
+        "msgf/ui",
+        "@elphie-syntax/ui",
+        "@elphie-syntax/ui/dashboard",
+        "@elphie-syntax/ui/pillar-health",
+        "msgf/connector/MsgfBridge",
+        "@elphie-syntax/core",
+      ],
     },
     server: {
       host: true,
       port: 5173,
-      strictPort: false,
+      /** Fail fast if 5173 is taken — MSGF handoff + cookies expect this port (not 5174). */
+      strictPort: true,
       proxy: {
         "/api": {
           target: env.VITE_AUTHOR_BFF_URL || env.AUTHOR_BFF_URL || "http://127.0.0.1:3002",

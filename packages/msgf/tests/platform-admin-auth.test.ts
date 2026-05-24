@@ -1,0 +1,59 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import {
+  buildMsgfAdminSignInUrl,
+  buildMsgfAuthCallbackUrl,
+  resolveMsgfAppOrigin,
+} from "@elphie-syntax/core/platform-admin-auth";
+import { buildMsgfAuthorHandoffUrl, sanitizeAuthorReturnToUrl } from "@elphie-syntax/core/operator-handoff-url";
+
+describe("platform-admin-auth", () => {
+  it("resolveMsgfAppOrigin prefers env", () => {
+    assert.equal(
+      resolveMsgfAppOrigin({ env: { MSGF_APP_URL: "https://example.test/" } }),
+      "https://example.test"
+    );
+  });
+
+  it("buildMsgfAdminSignInUrl includes next and from", () => {
+    const url = new URL(
+      buildMsgfAdminSignInUrl({
+        origin: "http://127.0.0.1:3001",
+        next: "/admin/portal",
+        from: "author",
+      })
+    );
+    assert.equal(url.pathname, "/admin/sign-in");
+    assert.equal(url.searchParams.get("next"), "/admin/portal");
+    assert.equal(url.searchParams.get("from"), "author");
+  });
+
+  it("buildMsgfAuthorHandoffUrl points at MSGF handoff route", () => {
+    const href = buildMsgfAuthorHandoffUrl(
+      "http://127.0.0.1:3001",
+      "http://127.0.0.1:5173/dashboard"
+    );
+    const u = new URL(href);
+    assert.equal(u.pathname, "/api/msgf/admin/author-handoff");
+    assert.equal(u.searchParams.get("return_to"), "http://127.0.0.1:5173/dashboard");
+  });
+
+  it("sanitizeAuthorReturnToUrl blocks arbitrary hosts", () => {
+    assert.equal(
+      sanitizeAuthorReturnToUrl("https://evil.test/dashboard", "http://127.0.0.1:5173/dashboard"),
+      "http://127.0.0.1:5173/dashboard"
+    );
+  });
+
+  it("buildMsgfAuthCallbackUrl preserves search and hash", () => {
+    const href = buildMsgfAuthCallbackUrl({
+      origin: "http://127.0.0.1:3001",
+      search: "?code=abc&next=%2Fadmin%2Fportal",
+      hash: "#access_token=x",
+    });
+    assert.ok(href.startsWith("http://127.0.0.1:3001/auth/callback?"));
+    assert.ok(href.includes("code=abc"));
+    assert.ok(href.endsWith("#access_token=x"));
+  });
+});

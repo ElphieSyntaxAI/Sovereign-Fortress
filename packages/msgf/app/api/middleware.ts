@@ -48,6 +48,10 @@ export async function applyMsgfApiTenantMiddleware(
     return { response: null, request };
   }
 
+  if (request.nextUrl.pathname === "/api/msgf/admin/author-handoff") {
+    return { response: null, request };
+  }
+
   const promotion = await applyIndividualTenantPromotion(request);
   if (promotion.response) {
     return { response: promotion.response, request };

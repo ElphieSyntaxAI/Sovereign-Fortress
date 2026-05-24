@@ -50,6 +50,7 @@ export function formatBffFetchError(err: unknown, path: string): string {
     "  npm run dev:author-bff",
     "  npm run dev:author-client",
     "Or: npm run dev:author",
+    "Or: npm run docker:dev  (then open http://127.0.0.1:5173 and http://127.0.0.1:3002/api/ping)",
     "",
     "Production — build the client with VITE_AUTHOR_BFF_URL pointing at your Author BFF (Cloud Run),",
     "and allow the frontend origin in BFF_ALLOWED_ORIGINS.",

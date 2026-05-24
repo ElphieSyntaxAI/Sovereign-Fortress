@@ -11,6 +11,7 @@ import {
 import { MSGF } from "msgf/onboarding";
 
 import { bffCookieBaseOptions } from "./bffAuthCookies.js";
+import { ensurePublicAuthorProfile } from "./ensurePublicAuthorProfile.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
 
 export type PlatformPersonaContext = {
@@ -61,6 +62,8 @@ export async function syncPlatformPersonaSession(
     persona: ctx.persona,
     preferredTheme: typeof meta.preferred_theme === "string" ? meta.preferred_theme : "Pleasure",
   });
+
+  await ensurePublicAuthorProfile(admin, user);
 
   await admin.auth.admin.updateUserById(user.id, {
     user_metadata: {

@@ -44,3 +44,26 @@ export {
   resolveWorkspaceConfig,
   type ResolvedWorkspaceConfig,
 } from "./lib/education/workspace-config";
+
+export {
+  MSGF_ADMIN_PORTAL_PATH,
+  MSGF_ADMIN_SIGN_IN_PATH,
+  MSGF_AUTH_CALLBACK_PATH,
+  ElphieAuthCallbackNextKey,
+  buildMsgfAdminPortalUrl,
+  buildMsgfAdminSignInUrl,
+  buildMsgfAuthCallbackUrl,
+  clearStashedAuthCallbackNext,
+  isSafeRelativePath,
+  readStashedAuthCallbackNext,
+  resolveMsgfAppOrigin,
+  stashAuthCallbackNext,
+  type PlatformSurface,
+} from "./lib/platform-admin-auth";
+
+/** Server-only HMAC helpers: import `@elphie-syntax/core/operator-handoff-token`. */
+export {
+  buildMsgfAuthorHandoffUrl,
+  sanitizeAuthorReturnToUrl,
+  type OperatorHandoffPayload,
+} from "./lib/operator-handoff-url";
