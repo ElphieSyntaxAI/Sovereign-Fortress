@@ -118,6 +118,9 @@ export default function VaultProtector(props: VaultProtectorProps) {
       }
       setPhraseInput("");
       await loadStatus();
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/home")) {
+        window.location.assign("/home");
+      }
     } finally {
       setSubmitting(false);
     }

@@ -28,7 +28,7 @@ export function createBffSupabaseServerClient(req: Request, res: Response) {
         const jar = parseCookieHeader(req.headers.cookie);
         return Object.entries(jar).map(([name, value]) => ({ name, value }));
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
         const xf = req.headers["x-forwarded-host"];
         const forwarded = Array.isArray(xf) ? xf[0] : xf;
         const requestHost =

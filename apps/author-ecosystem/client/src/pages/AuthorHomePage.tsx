@@ -5,7 +5,6 @@ import { useAuthorRole } from "../context/AuthorRoleContext";
 import { useAuthorWorkspaceLens } from "../context/AuthorWorkspaceLensContext";
 import { CREATIVE_NAV, BUSINESS_NAV } from "../lib/authorNavConfig";
 import { MsgfConnectionStatus } from "../components/MsgfConnectionStatus";
-import { OperatorAdminPanel } from "../components/OperatorAdminPanel";
 
 export default function AuthorHomePage() {
   const { user, loading } = useAuthorRole();
@@ -35,7 +34,13 @@ export default function AuthorHomePage() {
         <BusinessCreativeToggle />
       </section>
 
-      <OperatorAdminPanel />
+      <p className="text-xs text-zinc-500">
+        Platform admin, role dashboards, and global settings live in the{" "}
+        <Link to="/admin" className="text-violet-300 underline">
+          Admin nav
+        </Link>{" "}
+        (left rail).
+      </p>
       <MsgfConnectionStatus />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

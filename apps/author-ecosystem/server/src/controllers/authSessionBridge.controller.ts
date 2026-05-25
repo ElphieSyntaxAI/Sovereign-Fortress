@@ -14,6 +14,7 @@ import { BFF_AUTH_COOKIE_NAME, bffCookieBaseOptions } from "../lib/bffAuthCookie
 import { createBffSupabaseServerClient } from "../lib/bffSupabaseSsr.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 import { readBearerUser, normalizeRole } from "../lib/readBearerJwtUser.js";
+import { isPlatformOperatorEmail } from "../lib/isPlatformOperator.js";
 import { syncPlatformPersonaSession } from "../lib/syncPlatformPersonaSession.js";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../lib/vaultPactAttestation.js";
 
@@ -68,6 +69,7 @@ function mapSupabaseUserToMe(user: {
     role,
     persona: isPersonaValidForPlatform("author", persona) ? persona : "author",
     activated_personas: readActivatedPersonas(meta, persona),
+    is_platform_operator: isPlatformOperatorEmail(user.email),
   };
 }
 

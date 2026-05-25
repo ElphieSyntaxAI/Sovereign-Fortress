@@ -60,6 +60,18 @@ const FanManagementPage = lazyPage(
 );
 const NotificationsPage = lazyPage(() => import("./pages/NotificationsPage.tsx"), "notifications");
 const SettingsPage = lazyPage(() => import("./pages/SettingsPage.tsx"), "settings");
+const AuthorAdminOverviewPage = lazyPage(
+  () => import("./pages/admin/AuthorAdminOverviewPage.tsx"),
+  "admin-overview"
+);
+const RoleWorkspaceHubPage = lazyPage(
+  () => import("./pages/admin/RoleWorkspaceHubPage.tsx"),
+  "role-workspace"
+);
+const GlobalAdminSettingsPage = lazyPage(
+  () => import("./pages/admin/GlobalAdminSettingsPage.tsx"),
+  "admin-settings"
+);
 const TermsPage = lazyPage(() => import("./pages/TermsPage"), "terms");
 const NdaPage = lazyPage(() => import("./pages/NdaPage"), "nda");
 const VaultPactPage = lazyPage(() => import("./pages/VaultPactPage"), "vault-pact");
@@ -114,6 +126,17 @@ export default function App() {
           }
         >
           <Route path="/home" element={<AuthorHomePage />} />
+          <Route path="/admin" element={<AuthorAdminOverviewPage />} />
+          <Route path="/admin/workspace/:roleId" element={<RoleWorkspaceHubPage />} />
+          <Route path="/admin/settings" element={<GlobalAdminSettingsPage />} />
+          <Route
+            path="/admin/notifications"
+            element={
+              <RequireAuthorLens lens="creative">
+                <NotificationsPage />
+              </RequireAuthorLens>
+            }
+          />
           <Route path="/manuscripts" element={<ManuscriptsPage />} />
           <Route
             path="/wiki"
@@ -195,7 +218,7 @@ export default function App() {
               </RequireAuthorLens>
             }
           />
-          <Route path="/dashboard" element={<Navigate to="/outline" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/home" replace />} />
           <Route path="/analytics" element={<Navigate to="/publishing-requests" replace />} />
         </Route>
         <Route path="/terms" element={<TermsPage />} />

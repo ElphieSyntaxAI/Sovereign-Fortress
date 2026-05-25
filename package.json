@@ -27,6 +27,8 @@
     "db:push:verify": "npm run db:push && npm run verify:supabase-schema",
     "test:msgf:unit": "npm run test:unit -w msgf",
     "test:msgf:integration": "npm run test:integration -w msgf",
+    "test:author": "npm run test -w @elphie-syntax/author-ecosystem-server && npm run test:smoke -w @elphie-syntax/author-ecosystem-server",
+    "test:author:client:build": "npm run build -w @elphie-syntax/author-ecosystem-client",
     "validate:deployment": "node scripts/validate-deployment.mjs",
     "validate:deployment:env": "node scripts/validate-deployment.mjs --with-env",
     "deep-test:solo": "npm run deep-test:solo -w msgf",

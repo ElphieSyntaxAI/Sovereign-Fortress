@@ -12,7 +12,7 @@ import {
 } from "../planning/PlanningSessionContext";
 import { BrainPillarHealth } from "./BrainPillarHealth";
 import { EditorRequestButton } from "./EditorRequestButton";
-import { IngestDiscoveryDashboard } from "./IngestDiscoveryDashboard";
+import { ImportDocumentCallout } from "./onboarding/ImportDocumentCallout";
 import { LibrarianInterviewChat } from "./LibrarianInterviewChat";
 import { PlotSandboxPanel } from "./PlotSandboxPanel";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
@@ -49,7 +49,7 @@ const ALL_TABS: { id: PlanningTabId; label: string }[] = [
   { id: "wiki", label: "Wiki Architect" },
   { id: "interview", label: "Librarian Interview" },
   { id: "sandbox", label: "Plot Sandbox" },
-  { id: "discovery", label: "Discovery ingest" },
+  { id: "discovery", label: "File import info" },
 ];
 
 function tabButtonClass(active: boolean): string {
@@ -386,9 +386,7 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
       />
     );
   } else if (tab === "discovery") {
-    body = (
-      <IngestDiscoveryDashboard projectId={props.manuscriptId.trim() || null} getAccessToken={getToken} />
-    );
+    body = <ImportDocumentCallout manuscriptId={props.manuscriptId.trim() || undefined} />;
   } else {
     body = (
       <PlotSandboxPanel manuscriptId={props.manuscriptId} tenantId={props.tenantId} getAccessToken={getToken} />

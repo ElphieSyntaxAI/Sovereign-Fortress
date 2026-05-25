@@ -93,8 +93,9 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
         return;
       }
       const redirect =
-        typeof json.redirectUrl === "string" ? json.redirectUrl : "/dashboard";
-      navigate(redirect.startsWith("http") ? "/dashboard" : redirect, { replace: true });
+        typeof json.redirectUrl === "string" ? json.redirectUrl : "/home";
+      const path = redirect.startsWith("http") ? "/home" : redirect.replace(/^\/dashboard\b/, "/home");
+      navigate(path, { replace: true });
     } catch (e) {
       props.onError(formatBffFetchError(e, "/api/auth/register"));
     }

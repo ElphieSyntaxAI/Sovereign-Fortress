@@ -20,6 +20,8 @@ import { wikiController } from "./controllers/wiki.controller.js";
 import { wikiEntriesController } from "./controllers/wikiEntries.controller.js";
 import { p4LoreRagController } from "./controllers/p4LoreRag.controller.js";
 import { plotSandboxController } from "./controllers/plotSandbox.controller.js";
+import { onboardingController } from "./controllers/onboarding.controller.js";
+import { platformAdminController } from "./controllers/platformAdmin.controller.js";
 import { projectSyncController } from "./controllers/projectSync.controller.js";
 import { recalibrationController } from "./controllers/recalibration.controller.js";
 import { pactGuard } from "./middleware/pactGuard.js";
@@ -74,6 +76,8 @@ app.use(ingestUploadController);
 app.use(revisionGateRouter);
 app.use(recalibrationController);
 
+app.use(onboardingController);
+app.use(platformAdminController);
 app.use(projectSyncController);
 app.use(plotSandboxController);
 app.listen(port, "0.0.0.0", () => {

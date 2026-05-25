@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { FinishRevisionsDialog } from "./FinishRevisionsDialog";
+import { DocumentIngestFlow } from "./onboarding/DocumentIngestFlow";
 import { LinkSessionPanel } from "./LinkSessionPanel";
 import { SwitchProjectDialog } from "./SwitchProjectDialog";
 import { useNarrative } from "../context/NarrativeContext";
@@ -380,6 +381,37 @@ export function ManuscriptHub() {
           </form>
         </div>
       </section>
+
+      {selection?.manuscriptId ? (
+        <section
+          id="import-documents"
+          className="space-y-4 rounded-xl border border-violet-900/30 bg-violet-950/10 p-4"
+        >
+          <h2 className="text-sm font-semibold text-violet-100">Import a document (file upload only)</h2>
+          <p className="text-xs text-zinc-500">
+            Runs only when you pick a file here — not while planning on the site or typing in the extension.
+            Builds wiki blocks, scene cards, and an outline for Plot Sandbox. Large files need authorship
+            answers from your text.
+          </p>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <DocumentIngestFlow
+              slot="world_bible"
+              manuscriptId={selection.manuscriptId}
+              getAccessToken={getPreferredBffBearer}
+            />
+            <DocumentIngestFlow
+              slot="current_draft"
+              manuscriptId={selection.manuscriptId}
+              getAccessToken={getPreferredBffBearer}
+            />
+            <DocumentIngestFlow
+              slot="character_sheet"
+              manuscriptId={selection.manuscriptId}
+              getAccessToken={getPreferredBffBearer}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading project hub…</p>

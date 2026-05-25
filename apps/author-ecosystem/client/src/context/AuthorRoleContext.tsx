@@ -27,6 +27,7 @@ export type AuthorSessionUser = {
   persona: string;
   role: string;
   activated_personas: string[];
+  is_platform_operator?: boolean;
 };
 
 type AuthorRoleContextValue = {
@@ -56,6 +57,7 @@ export function AuthorRoleProvider({ children }: { children: ReactNode }) {
           role?: string;
           persona?: string;
           activated_personas?: string[];
+          is_platform_operator?: boolean;
         };
       };
       if (!res.ok || !json.authenticated || !json.user?.id) {
@@ -72,6 +74,7 @@ export function AuthorRoleProvider({ children }: { children: ReactNode }) {
         persona,
         role: String(json.user.role ?? persona),
         activated_personas: activated.length ? activated : [persona],
+        is_platform_operator: Boolean(json.user.is_platform_operator),
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load session.");

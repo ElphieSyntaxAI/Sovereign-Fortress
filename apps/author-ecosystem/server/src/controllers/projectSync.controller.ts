@@ -58,7 +58,8 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
   try {
     manuscriptId = assertUuid(String(req.params.id ?? req.params.manuscriptId ?? ""), "manuscript id");
   } catch (e) {
-    return res.status(400).json({ error: e instanceof Error ? e.message : "Invalid manuscript id" });
+    res.status(400).json({ error: e instanceof Error ? e.message : "Invalid manuscript id" });
+    return;
   }
 
   const body = req.body as Record<string, unknown>;
@@ -75,10 +76,12 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
 
   if (msErr) {
     console.error("[sync-session] manuscript read", msErr.message);
-    return res.status(500).json({ error: msErr.message });
+    res.status(500).json({ error: msErr.message });
+    return;
   }
   if (!ms) {
-    return res.status(404).json({ error: "Manuscript not found" });
+    res.status(404).json({ error: "Manuscript not found" });
+    return;
   }
 
   const tenantId = assertUuid(String((ms as { tenant_id: string }).tenant_id), "tenant_id");
@@ -91,7 +94,8 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
       .update({ outline: outlineText, updated_at: new Date().toISOString() })
       .eq("id", manuscriptId);
     if (upErr) {
-      return res.status(500).json({ error: `Failed to update outline: ${upErr.message}` });
+      res.status(500).json({ error: `Failed to update outline: ${upErr.message}` });
+      return;
     }
     outlineUpdated = true;
   }
@@ -164,7 +168,7 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
     warnings.push(`Revision gate: ${msg}`);
   }
 
-  return res.status(200).json({
+  res.status(200).json({
     success: anyWork,
     manuscript_id: manuscriptId,
     tenant_id: tenantId,

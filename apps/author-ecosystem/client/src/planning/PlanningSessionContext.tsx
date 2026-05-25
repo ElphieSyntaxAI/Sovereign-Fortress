@@ -12,6 +12,10 @@ export function outlineBrainstormStorageKey(manuscriptId: string): string {
   return `elphie:outline:notes:${manuscriptId}`;
 }
 
+export function ingestPlotBeatsStorageKey(manuscriptId: string): string {
+  return `elphie:file-import:plotbeats:${manuscriptId}`;
+}
+
 export type InterviewTurn = {
   id: string;
   question: string;
@@ -46,6 +50,8 @@ export type PlanningSessionState = {
   setWikiNotes: (notes: string) => void;
   setBrainstormNotes: (notes: string) => void;
   setLastSandboxDualAudit: (next: SandboxDualAuditSummary | null) => void;
+  /** Apply plot beats from a completed file import (scene cards / outline). */
+  applyPlanningFromFileImport: (beats: Array<{ synopsis: string; order: number }>) => void;
 };
 
 /** Wiki scratch + brainstorm block sent to sync-session. */
@@ -122,6 +128,42 @@ export function PlanningSessionProvider({
     ]);
   }, []);
 
+  const applyPlanningFromFileImport = useCallback(
+    (beats: Array<{ synopsis: string; order: number }>) => {
+      const next: PlotBeat[] = beats
+        .filter((b) => b.synopsis.trim())
+        .sort((a, b) => a.order - b.order)
+        .map((b, i) => ({
+          id: crypto.randomUUID(),
+          synopsis: b.synopsis.trim(),
+          order: i,
+        }));
+      setPlotBeats(next);
+      if (manuscriptId) {
+        try {
+          localStorage.setItem(ingestPlotBeatsStorageKey(manuscriptId), JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+    [manuscriptId]
+  );
+
+  useEffect(() => {
+    if (!manuscriptId) return;
+    try {
+      const raw = localStorage.getItem(ingestPlotBeatsStorageKey(manuscriptId));
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as PlotBeat[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setPlotBeats(parsed);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [manuscriptId]);
+
   const value = useMemo<PlanningSessionState>(
     () => ({
       interviewTurns,
@@ -135,6 +177,7 @@ export function PlanningSessionProvider({
       setWikiNotes,
       setBrainstormNotes,
       setLastSandboxDualAudit,
+      applyPlanningFromFileImport,
     }),
     [
       interviewTurns,
@@ -145,6 +188,7 @@ export function PlanningSessionProvider({
       appendInterviewTurn,
       appendPlotBeat,
       setBrainstormNotes,
+      applyPlanningFromFileImport,
     ]
   );
 

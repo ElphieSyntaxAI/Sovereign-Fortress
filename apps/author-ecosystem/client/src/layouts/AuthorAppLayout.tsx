@@ -1,10 +1,12 @@
 import { Outlet } from "react-router-dom";
 
 import { AuthorSentinelBugButton } from "../components/AuthorSentinelBugButton";
+import { AuthorAdminNav, AuthorAdminNavMobile } from "../components/admin/AuthorAdminNav";
 import { AuthorTopNav } from "../components/AuthorTopNav";
 import { AuthorRoleProvider } from "../context/AuthorRoleContext";
 import { AuthorWorkspaceLensProvider, useAuthorWorkspaceLens } from "../context/AuthorWorkspaceLensContext";
 import { NarrativeProvider } from "../context/NarrativeContext";
+import { OnboardingGate } from "../components/onboarding/OnboardingGate";
 
 function AuthorAppShell() {
   const { lens } = useAuthorWorkspaceLens();
@@ -20,9 +22,15 @@ function AuthorAppShell() {
       ].join(" ")}
     >
       <AuthorTopNav />
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <Outlet />
-      </main>
+      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
+        <AuthorAdminNav />
+        <div className="min-w-0 flex-1">
+          <AuthorAdminNavMobile />
+          <main className="py-2">
+            <Outlet />
+          </main>
+        </div>
+      </div>
       {lens === "creative" ? <AuthorSentinelBugButton /> : null}
     </div>
   );
@@ -36,7 +44,9 @@ export default function AuthorAppLayout() {
     <AuthorRoleProvider>
       <AuthorWorkspaceLensProvider>
         <NarrativeProvider>
-          <AuthorAppShell />
+          <OnboardingGate>
+            <AuthorAppShell />
+          </OnboardingGate>
         </NarrativeProvider>
       </AuthorWorkspaceLensProvider>
     </AuthorRoleProvider>
