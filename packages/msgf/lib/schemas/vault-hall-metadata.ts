@@ -307,6 +307,36 @@ export const PULSE_BUG_INDEX = {
     level_1_1_branch: "1.1_DEFEND",
     level_1_1_1_instance: "1.1.1_INGEST_SHADOW_BLOCK",
   }),
+  /** Author document ingest — SWEEP shard: compiled source text. */
+  authorIngestWikiSource: buildGenealogicalBugIndex({
+    level_1_category: "1.0_AUTHOR",
+    level_1_1_branch: "1.1_INGEST",
+    level_1_1_1_instance: "1.1.1_WIKI_SOURCE",
+  }),
+  /** Author document ingest — SWEEP shard: character wiki entry. */
+  authorIngestWikiCharacter: buildGenealogicalBugIndex({
+    level_1_category: "1.0_AUTHOR",
+    level_1_1_branch: "1.1_INGEST",
+    level_1_1_1_instance: "1.1.1_WIKI_CHARACTER",
+  }),
+  /** Author document ingest — SWEEP shard: setting / location wiki entry. */
+  authorIngestWikiSetting: buildGenealogicalBugIndex({
+    level_1_category: "1.0_AUTHOR",
+    level_1_1_branch: "1.1_INGEST",
+    level_1_1_1_instance: "1.1.1_WIKI_SETTING",
+  }),
+  /** Author document ingest — SWEEP shard: plot beat / scene card. */
+  authorIngestWikiPlotBeat: buildGenealogicalBugIndex({
+    level_1_category: "1.0_AUTHOR",
+    level_1_1_branch: "1.1_INGEST",
+    level_1_1_1_instance: "1.1.1_WIKI_PLOT_BEAT",
+  }),
+  /** Author document ingest — SWEEP shard: manuscript outline aggregate. */
+  authorIngestWikiOutline: buildGenealogicalBugIndex({
+    level_1_category: "1.0_AUTHOR",
+    level_1_1_branch: "1.1_INGEST",
+    level_1_1_1_instance: "1.1.1_WIKI_OUTLINE",
+  }),
   /** Admin-approved promotion from local_state_cache → vault_core (system DNA). */
   globalPromotionVault: buildGenealogicalBugIndex({
     level_1_category: "1.0_PULSE",

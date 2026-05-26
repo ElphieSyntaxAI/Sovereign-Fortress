@@ -289,6 +289,7 @@ onboardingController.post(
 
       const enriched = await analyzeDocumentIngest({
         supabase,
+        tenantId: user.userId,
         text: sourceText,
         slot,
         manuscriptId,
@@ -332,7 +333,7 @@ onboardingController.post(
           proposed_wiki: compiledScan.proposed,
           outline_beats: compiledScan.outline_beats,
           content_signals: enriched.content_signals,
-          story_fingerprint: enriched.story_fingerprint,
+          story_fingerprint: { ...enriched.story_fingerprint, msgf: enriched.msgf_meta },
           ingest_conflicts: enriched.ingest_conflicts,
           clarifying_questions: enriched.clarifying_questions,
           status,
@@ -360,6 +361,7 @@ onboardingController.post(
         ingest_conflicts: enriched.ingest_conflicts,
         clarifying_questions: enriched.clarifying_questions,
         used_llm: enriched.usedLlm,
+        msgf_meta: enriched.msgf_meta,
       });
     } catch (e) {
       console.error("[onboarding/document/scan]", e);
@@ -415,6 +417,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
 
     const enriched = await analyzeDocumentIngest({
       supabase,
+      tenantId: user.userId,
       text: sourceText,
       slot,
       manuscriptId,
@@ -456,7 +459,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
         proposed_wiki: compiledScan.proposed,
         outline_beats: compiledScan.outline_beats,
         content_signals: enriched.content_signals,
-        story_fingerprint: enriched.story_fingerprint,
+        story_fingerprint: { ...enriched.story_fingerprint, msgf: enriched.msgf_meta },
         ingest_conflicts: enriched.ingest_conflicts,
         clarifying_questions: enriched.clarifying_questions,
         status,
@@ -484,6 +487,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
       ingest_conflicts: enriched.ingest_conflicts,
       clarifying_questions: enriched.clarifying_questions,
       used_llm: enriched.usedLlm,
+      msgf_meta: enriched.msgf_meta,
       google_doc: meta,
       google_doc_tabs: {
         count: tabCount,

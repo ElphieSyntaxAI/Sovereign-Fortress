@@ -17,6 +17,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@elphie-syntax/core": "file:../../../packages/core",
+    "@googleapis/docs": "^5.0.1",
     "@googleapis/drive": "^20.1.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.49.1",

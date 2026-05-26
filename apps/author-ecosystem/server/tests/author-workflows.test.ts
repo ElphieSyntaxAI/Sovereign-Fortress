@@ -32,6 +32,13 @@ import {
   buildCommitPreviewText,
   detectStructureMergeRisk,
 } from "../src/lib/documentIngestMsgfGuard.js";
+import {
+  loadDocumentIngestKeywords,
+  matchKeywordHintsInText,
+} from "../src/lib/documentIngestKeywords.js";
+import { buildDocumentIngestSignals } from "../src/lib/documentIngestSignals.js";
+import { groundProposedWikiToSource } from "../src/lib/documentIngestMsgfPipeline.js";
+import { buildAuthorDocumentSweepFiles } from "../src/lib/documentIngestMsgfSweep.js";
 import { isPlatformOperatorEmail, parseGlobalAdminEmails } from "../src/lib/isPlatformOperator.js";
 
 const BFF_BASE = (process.env.AUTHOR_ECOSYSTEM_URL ?? "http://127.0.0.1:3002").replace(/\/$/, "");
@@ -254,6 +261,34 @@ describe("document ingest outline → wiki building blocks", () => {
     assert.ok(beats.some((b) => /Spin-off.*Perssine/i.test(b.title ?? "")));
   });
 
+  test("fills chapters 24-29 from aggregate when only tabs 1-23 exist", () => {
+    const chapterTabs = Array.from({ length: 23 }, (_, i) => {
+      const n = i + 1;
+      return `--- TAB: Chapter ${n} ---\n\nChapter ${n}\nAcina Pov\nBeat for chapter ${n}.`;
+    }).join("\n\n");
+    const aggregate = [
+      "--- TAB: The Quantum Heart Outline ---",
+      "Beginning",
+      "Setup",
+      "",
+      "Middle Chapter Outline",
+      "Chapter\tWhat happens\tPOV",
+      ...Array.from({ length: 6 }, (_, i) => {
+        const n = 24 + i;
+        return `${n}\tFinal arc beat ${n}\tAcina Pov`;
+      }),
+    ].join("\n");
+    const beats = extractOutlineBeatsFromText(`${chapterTabs}\n\n${aggregate}`);
+    const chapters = beats
+      .map((b) => b.chapter_number)
+      .filter((n): n is number => n != null)
+      .sort((a, b) => a - b);
+    assert.ok(chapters.includes(23), `have: ${chapters.join(",")}`);
+    assert.ok(chapters.includes(24), `have: ${chapters.join(",")}`);
+    assert.ok(chapters.includes(29), `have: ${chapters.join(",")}`);
+    assert.equal(chapters.filter((n) => n === 24).length, 1);
+  });
+
   test("split POV chapter tab gets split title", () => {
     const text = [
       "--- TAB: Chapter 11 ---",
@@ -380,6 +415,71 @@ describe("platform operator", () => {
     assert.equal(isPlatformOperatorEmail("other@test.com"), false);
     if (prev === undefined) delete process.env.MSGF_GLOBAL_ADMIN_EMAILS;
     else process.env.MSGF_GLOBAL_ADMIN_EMAILS = prev;
+  });
+});
+
+describe("MSGF document ingest pipeline", () => {
+  test("keyword hints match only when present in text", () => {
+    const config = loadDocumentIngestKeywords();
+    const hits = matchKeywordHintsInText("Chapter 3 — Split POV\nElena runs.", config);
+    assert.ok(hits.some((h) => h.toLowerCase().includes("chapter")));
+    assert.ok(hits.some((h) => h.toLowerCase().includes("split pov")));
+    const none = matchKeywordHintsInText("Hello world only.", config);
+    assert.equal(none.length, 0);
+  });
+
+  test("structural signals detect tabs and tables", () => {
+    const text = "--- TAB: Outline ---\n| Scene | Beat |\n| 1 | Hook |\n| 2 | Twist |";
+    const signals = buildDocumentIngestSignals(text);
+    assert.ok(signals.tab_count >= 1);
+    assert.ok(signals.table_beat_estimate >= 2);
+    assert.match(signals.summary, /Structural signals/);
+  });
+
+  test("groundProposedWikiToSource drops ungrounded excerpts", () => {
+    const source = "The city of Aldermere glowed under twin moons. Captain Reyes waited.";
+    const { kept, dropped } = groundProposedWikiToSource(
+      [
+        {
+          title: "Aldermere",
+          excerpt: "The city of Aldermere glowed under twin moons.",
+          chunk_type: "location",
+          tags: [],
+          wiki_metadata: { outline_entity_kind: "setting" },
+        },
+        {
+          title: "Fake",
+          excerpt: "This sentence does not appear anywhere in the uploaded document at all.",
+          chunk_type: "other",
+          tags: [],
+          wiki_metadata: { outline_entity_kind: "note" },
+        },
+      ],
+      source
+    );
+    assert.equal(kept.length, 1);
+    assert.equal(dropped, 1);
+  });
+
+  test("buildAuthorDocumentSweepFiles assigns wiki shards with paths", () => {
+    const files = buildAuthorDocumentSweepFiles({
+      manuscriptId: "00000000-0000-4000-8000-000000000001",
+      slot: "world_bible",
+      sourceText: "A".repeat(300),
+      proposed: [
+        {
+          title: "Elena",
+          excerpt: "Elena is the protagonist who seeks redemption in the capital.",
+          chunk_type: "character",
+          tags: ["import"],
+          wiki_metadata: { outline_entity_kind: "character" },
+        },
+      ],
+      outlineBeats: [{ synopsis: "Opening beat", order: 0 }],
+    });
+    assert.ok(files.some((f) => f.path.includes("/wiki/")));
+    assert.ok(files.some((f) => f.path.includes("/source.txt")));
+    assert.ok(files.every((f) => f.bug_index?.level_1_category === "1.0_AUTHOR"));
   });
 });
 

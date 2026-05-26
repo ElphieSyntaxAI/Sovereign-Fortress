@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -8,19 +7,37 @@ import {
   type IngestOutlineBeat,
   type ProposedWikiEntry,
 } from "./documentIngestGate.js";
+import { compileDocumentIngest } from "./documentIngestCompile.js";
 import {
   buildManuscriptOutlineFromBeats,
   normalizeProposedWikiEntry,
+  type IngestPlotBeat,
 } from "./documentIngestOutline.js";
 import { IngestionService } from "./narrative/IngestionService.js";
 import { embedWikiExcerpt, newWikiSourceDocument } from "./wikiEntryHelpers.js";
+import { buildAuthorDocumentSweepFiles } from "./documentIngestMsgfSweep.js";
 import { pipeToMsgfIngestService } from "./fetchManuscript.js";
 
 export type PlanningIngestSnapshot = {
   manuscript_outline: string;
-  plot_beats: Array<{ synopsis: string; order: number }>;
+  plot_beats: Array<{
+    synopsis: string;
+    order: number;
+    title?: string;
+    pov_mode?: string;
+    pov_names?: string[];
+    chapter_number?: number | null;
+  }>;
   scene_card_count: number;
   wiki_entry_count: number;
+  compile_stats?: {
+    outline_beats_before: number;
+    outline_beats_after: number;
+    wiki_entries_before: number;
+    wiki_entries_after: number;
+    source_chars_before?: number;
+    source_chars_after?: number;
+  };
 };
 
 export async function commitDocumentIngestToBackend(params: {
@@ -40,13 +57,19 @@ export async function commitDocumentIngestToBackend(params: {
   msgf_ingest: unknown;
   planning: PlanningIngestSnapshot;
 }> {
-  const { supabase, tenantId, manuscriptId, slot, filename, sourceText } = params;
-  const normalized = params.proposed.map((e) =>
+  const { supabase, tenantId, manuscriptId, slot, filename } = params;
+  const compiled = compileDocumentIngest({
+    outlineBeats: params.outlineBeats as IngestPlotBeat[],
+    proposedWiki: params.proposed,
+    sourceText: params.sourceText,
+  });
+  const sourceText = compiled.source_text ?? params.sourceText;
+  const normalized = compiled.proposed_wiki.map((e) =>
     normalizeProposedWikiEntry(e, manuscriptId, slot)
   );
   const beats =
-    params.outlineBeats.length > 0
-      ? params.outlineBeats
+    compiled.outline_beats.length > 0
+      ? compiled.outline_beats
       : slot === "current_draft"
         ? []
         : [];
@@ -121,7 +144,11 @@ export async function commitDocumentIngestToBackend(params: {
             is_outline: true,
             manuscript_id: manuscriptId,
             scene_card: true,
-            plot_point_order: b.plot_point_order ?? i + 1,
+            plot_point_order: b.plot_point_order ?? b.chapter_number ?? i + 1,
+            chapter_number: b.chapter_number ?? null,
+            beat_title: b.title,
+            pov_mode: b.pov_mode,
+            pov_names: b.pov_names,
             ingest_slot: slot,
             file_import: true,
             ledger: "wiki_snapshot",
@@ -175,26 +202,34 @@ export async function commitDocumentIngestToBackend(params: {
   let msgf_ingest: unknown = null;
   if (params.syncMsgfBrain !== false && sourceText.length > 500) {
     try {
-      const digest = createHash("sha256").update(sourceText, "utf8").digest("hex").slice(0, 16);
-      msgf_ingest = await pipeToMsgfIngestService(
-        [
-          {
-            path: `author-file-import/${slot}/${manuscriptId}-${digest}.txt`,
-            content: sourceText.slice(0, 120000),
-          },
-        ],
-        tenantId
-      );
+      const sweepFiles = buildAuthorDocumentSweepFiles({
+        manuscriptId,
+        slot,
+        sourceText,
+        proposed: normalized,
+        outlineBeats: beats,
+      });
+      if (sweepFiles.length) {
+        msgf_ingest = await pipeToMsgfIngestService(sweepFiles, tenantId);
+      }
     } catch (e) {
-      console.warn("[commitDocumentIngest] msgf ingest", e);
+      console.warn("[commitDocumentIngest] msgf sweep ingest", e);
     }
   }
 
   const planning: PlanningIngestSnapshot = {
     manuscript_outline: outlineText,
-    plot_beats: beats.map((b) => ({ synopsis: b.synopsis, order: b.order })),
+    plot_beats: beats.map((b) => ({
+      synopsis: b.synopsis,
+      order: b.order,
+      title: b.title,
+      pov_mode: b.pov_mode,
+      pov_names: b.pov_names,
+      chapter_number: b.chapter_number ?? null,
+    })),
     scene_card_count: beats.length,
     wiki_entry_count: wiki_chunk_ids.length,
+    compile_stats: compiled.stats,
   };
 
   return { lore_ingest, plot_ingest, wiki_chunk_ids, msgf_ingest, planning };

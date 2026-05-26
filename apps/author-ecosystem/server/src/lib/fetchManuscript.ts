@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import { drive } from "@googleapis/drive";
 import { GoogleAuth } from "google-auth-library";
+import type { GenealogicalBugIndex } from "msgf/lib/schemas/vault-hall-metadata";
 
 import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
@@ -21,7 +22,11 @@ import { IngestionService, parseManuscriptToText } from "./narrative/IngestionSe
 
 const DRIVE_READONLY = "https://www.googleapis.com/auth/drive.readonly";
 
-export type MsgfIngestFile = { path: string; content: string };
+export type MsgfIngestFile = {
+  path: string;
+  content: string;
+  bug_index?: GenealogicalBugIndex;
+};
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim();

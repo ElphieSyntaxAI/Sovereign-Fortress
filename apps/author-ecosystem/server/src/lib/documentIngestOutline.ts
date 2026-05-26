@@ -239,6 +239,7 @@ function isOutlineSubheading(line: string): boolean {
   return (
     /^(beginning|middle|end)\b/i.test(t) ||
     /^middle\s+the\b/i.test(t) ||
+    /^middle\s+chapter\s+outline/i.test(t) ||
     /^book synopsis\b/i.test(t) ||
     /^hints at sequal/i.test(t) ||
     /^hints at sequel/i.test(t) ||
@@ -252,6 +253,7 @@ function layerForOutlineSubheading(heading: string): PlanningLayer {
   if (/^book synopsis\b/.test(h)) return "book_synopsis";
   if (/hints at sequal|hints at sequel|spin off/.test(h)) return "notes";
   if (/^ending chapter outline/.test(h)) return "chapter_breakdown";
+  if (/middle chapter outline/.test(h)) return "chapter_breakdown";
   return "macro_outline";
 }
 
@@ -335,6 +337,24 @@ function extractEmbeddedSubsectionBeats(body: string, tabTitle: string): IngestP
         )
       );
       continue;
+    }
+
+    if (layer === "chapter_breakdown") {
+      const table = extractChapterTableBeats(sectionBody, {
+        tabTitle: chunk.heading,
+        layer: "chapter_breakdown",
+      });
+      if (table.length >= 1) {
+        beats.push(...table.map((b, i) => ({ ...b, order: order + i, tab_title: tabTitle })));
+        order = beats.length;
+        continue;
+      }
+      const ch = extractChapterBeats(sectionBody, { layer: "chapter_breakdown", tab: chunk.heading });
+      if (ch.length >= 1) {
+        beats.push(...ch.map((b, i) => ({ ...b, order: order + i, tab_title: tabTitle })));
+        order = beats.length;
+        continue;
+      }
     }
 
     const macroLines = extractMacroOutlineBeats(sectionBody, { tab: chunk.heading });
@@ -475,7 +495,72 @@ function buildChapterTitle(
 
 function isDedicatedChapterTab(tabTitle: string): boolean {
   if (isFranchisePlanningTab(tabTitle)) return false;
-  return /^chapter\s+\d+\b/i.test(tabTitle.trim());
+  return /^chapter\s*\d+\b/i.test(tabTitle.trim());
+}
+
+function maxChapterNumberInText(text: string): number {
+  let max = 0;
+  for (const m of text.matchAll(/(?:^|\n)\s*(?:chapter|ch\.?)\s*(\d+)\b/gim)) {
+    const n = Number(m[1]);
+    if (Number.isFinite(n)) max = Math.max(max, n);
+  }
+  for (const line of text.split("\n")) {
+    const cells = splitTabularLine(line);
+    if (!cells?.length) continue;
+    const n = parseChapterNumber(cells[0] ?? "");
+    if (n != null) max = Math.max(max, n);
+  }
+  return max;
+}
+
+function chapterNumbersInBeats(beats: IngestPlotBeat[]): Set<number> {
+  const have = new Set<number>();
+  for (const b of beats) {
+    const n =
+      b.chapter_number ??
+      parseChapterNumber(b.title ?? "") ??
+      parseChapterNumber(b.synopsis.slice(0, 200));
+    if (n != null) have.add(n);
+  }
+  return have;
+}
+
+/** Chapters that only appear in master outline / ending tables, not per-chapter tabs. */
+function fillMissingChapterBeats(
+  beats: IngestPlotBeat[],
+  sections: Array<{ title: string; body: string; path?: string; layer: PlanningLayer }>
+): IngestPlotBeat[] {
+  const have = chapterNumbersInBeats(beats);
+  const fullText = sections.map((s) => s.body).join("\n");
+  const maxCh = maxChapterNumberInText(fullText);
+  if (maxCh === 0) return beats;
+
+  const missing: number[] = [];
+  for (let n = 1; n <= maxCh; n++) {
+    if (!have.has(n)) missing.push(n);
+  }
+  if (missing.length === 0) return beats;
+
+  const added = [...beats];
+  for (const section of sections) {
+    const label = section.path ?? section.title;
+    const pool = [
+      ...extractChapterTableBeats(section.body, {
+        tabTitle: label,
+        layer: "chapter_breakdown",
+      }),
+      ...extractChapterBeats(section.body, { layer: "chapter_breakdown", tab: label }),
+    ];
+    for (const b of pool) {
+      const ch = b.chapter_number ?? parseChapterNumber(b.synopsis);
+      if (ch == null || !missing.includes(ch) || have.has(ch)) continue;
+      if (isFranchiseChapterContent(label, b.synopsis)) continue;
+      added.push({ ...b, tab_title: b.tab_title ?? label });
+      have.add(ch);
+    }
+  }
+
+  return added;
 }
 
 function countChapterHeadings(text: string): number {
@@ -865,9 +950,14 @@ function pruneAggregateDuplicateSections(
   );
 
   return beats.filter((b) => {
+    const ch = b.chapter_number ?? parseChapterNumber(b.synopsis);
+    if (ch != null && b.planning_layer === "chapter_breakdown") {
+      return true;
+    }
+
     const tab = b.tab_title ?? "";
     if (!tab || tab === "Document") {
-      if ((b.chapter_number ?? parseChapterNumber(b.synopsis)) != null) return false;
+      if (ch != null) return false;
     }
     if (tab && !allowedTitles.has(tab) && isDedicatedChapterTab(tab)) return true;
     if (tab && allowedTitles.has(tab)) return true;
@@ -1005,7 +1095,8 @@ export function extractOutlineBeatsFromText(text: string): IngestPlotBeat[] {
       const label = section.path ?? section.title;
       const layer =
         section.layer === "unknown" ? classifyPlanningLayer(section.title) : section.layer;
-      if (isLikelyAggregateSection(section, tabSections.filter((s) => isDedicatedChapterTab(s.title)).length)) {
+      const dedicatedCount = tabSections.filter((s) => isDedicatedChapterTab(s.title)).length;
+      if (isLikelyAggregateSection(section, dedicatedCount)) {
         const embedded = extractEmbeddedSubsectionBeats(section.body, label);
         if (embedded.length) {
           all.push(...embedded);
@@ -1014,11 +1105,27 @@ export function extractOutlineBeatsFromText(text: string): IngestPlotBeat[] {
             ...extractBeatsFromSection(section.body, { tabTitle: label, layer: "macro_outline" })
           );
         }
+        const have = chapterNumbersInBeats(all);
+        const fromAggregate = [
+          ...extractChapterTableBeats(section.body, {
+            tabTitle: label,
+            layer: "chapter_breakdown",
+          }),
+          ...extractChapterBeats(section.body, { layer: "chapter_breakdown", tab: label }),
+        ];
+        for (const b of fromAggregate) {
+          const ch = b.chapter_number ?? parseChapterNumber(b.synopsis);
+          if (ch == null || have.has(ch)) continue;
+          if (isFranchiseChapterContent(label, b.synopsis)) continue;
+          all.push(b);
+          have.add(ch);
+        }
         continue;
       }
       all.push(...extractBeatsFromSection(section.body, { tabTitle: label, layer }));
     }
-    const pruned = pruneAggregateDuplicateSections(tabSections, all);
+    const filled = fillMissingChapterBeats(all, tabSections);
+    const pruned = pruneAggregateDuplicateSections(tabSections, filled);
     if (pruned.length >= 1) return compileOutlineBeats(capBeats(dedupeBeats(pruned)));
   }
 

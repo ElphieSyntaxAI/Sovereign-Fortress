@@ -255,6 +255,7 @@ Aligned with `packages/msgf/.cursorrules`:
 | :--- | :--- |
 | **V3.2-ULTRA §2.6** (7 steps) | **~85%** — 4 **Done**, 3 **Partial** (ARBITRATE strengthened; see §2.6 table) |
 | **Ingest (`POST /api/msgf/ingest`)** | **Done** (workflow) — SWEEP + `preFlightCheck` + strict `lib/schemas/ingest-metadata.ts`; returns `lineage_map`, `missing_pillars`, brain readiness (not a “healed” repair list — see §7.2) |
+| **Author document ingest (BFF)** | **Done** — CONVERGE + optional keywords + 1.1.1 SWEEP shards; see [`AUTHOR_DOCUMENT_INGEST_MSGF.md`](AUTHOR_DOCUMENT_INGEST_MSGF.md) |
 | **Heal queue (`GET/POST /api/msgf/heal-queue`)** | **Done** — Zod `IngestRemediationActionSchema`; BULK / INDIVIDUAL / SCHEDULED; `scheduling_tier` migration `20260522160000_heal_queue_scheduling.sql`; `npm run test:heal-queue` |
 | **Post-Ingest Healing Console (web)** | **Done** — six pillar cards poll heal queue; amber pulse + count badge; slide-out `PostIngestHealingConsole` on `/dashboard` and admin dashboard |
 | **Post-Ingest Healing Console (IDE)** | **Done** — `msgf-pulse-guard` sidebar after shadow scan or stoplight yellow/red; same three actions via `postMessage` |
