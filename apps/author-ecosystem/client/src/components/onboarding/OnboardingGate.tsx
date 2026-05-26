@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { getPreferredBffBearer } from "../../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../../lib/bffFetch";
+import { dispatchDocumentIngestCommitted } from "../../lib/documentIngestEvents";
+import { formatBffFetchError } from "../../lib/bffFetch";
 import { fetchOnboardingStatus } from "../../lib/onboardingApi";
 import { useAuthorRole } from "../../context/AuthorRoleContext";
 import { useNarrative } from "../../context/NarrativeContext";
@@ -32,6 +34,8 @@ export function OnboardingGate(props: { children: ReactNode }) {
     clarifying_questions: ClarifyingQuestion[];
   } | null>(null);
   const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [forceCommit, setForceCommit] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -68,9 +72,14 @@ export function OnboardingGate(props: { children: ReactNode }) {
     void reload();
   }, [reload]);
 
-  const commitReview = async (action: "submit" | "cancel", proposed: ProposedWiki[]) => {
+  const commitReview = async (
+    action: "submit" | "cancel",
+    proposed: ProposedWiki[],
+    opts?: { force_commit?: boolean }
+  ) => {
     if (!docReview) return;
     setReviewBusy(true);
+    setReviewError(null);
     try {
       const token = await getPreferredBffBearer();
       const res = await fetch(bffUrl("/api/onboarding/document/commit"), {
@@ -81,16 +90,45 @@ export function OnboardingGate(props: { children: ReactNode }) {
           session_id: docReview.session_id,
           action,
           proposed_wiki: proposed,
+          outline_beats: docReview.outline_beats,
+          ...(opts?.force_commit ? { force_commit: true } : {}),
         }),
       });
-      const json = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(json.error || res.statusText);
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        hint?: string;
+        planning?: { plot_beats?: Array<{ synopsis: string; order: number; title?: string }> };
+      };
+      if (res.status === 409 && action === "submit") {
+        setForceCommit(true);
+        throw new Error(
+          `${json.message ?? json.error ?? res.statusText}${json.hint ? ` ${json.hint}` : ""}`
+        );
+      }
+      if (!res.ok) throw new Error(json.message ?? json.error ?? res.statusText);
+      if (action === "submit" && selection?.manuscriptId) {
+        const beats = json.planning?.plot_beats ?? docReview.outline_beats;
+        dispatchDocumentIngestCommitted({
+          manuscriptId: selection.manuscriptId,
+          wikiCount: proposed.length,
+          beatCount: beats.length,
+        });
+      }
+      setForceCommit(false);
+      setDocReview(null);
+      void reload();
     } catch (e) {
+      const msg =
+        e instanceof TypeError
+          ? formatBffFetchError(e, "/api/onboarding/document/commit")
+          : e instanceof Error
+            ? e.message
+            : String(e);
+      setReviewError(msg);
       console.error("[onboarding/review-commit]", e);
     } finally {
       setReviewBusy(false);
-      setDocReview(null);
-      void reload();
     }
   };
 
@@ -119,9 +157,20 @@ export function OnboardingGate(props: { children: ReactNode }) {
           proposed={docReview.proposed_wiki}
           outlineBeats={docReview.outline_beats}
           onEdit={(next) => setDocReview({ ...docReview, proposed_wiki: next })}
+          onRemoveBeat={(idx) =>
+            setDocReview({
+              ...docReview,
+              outline_beats: docReview.outline_beats.filter((_, i) => i !== idx),
+            })
+          }
           onSubmit={() => void commitReview("submit", docReview.proposed_wiki)}
+          onSubmitAnyway={() =>
+            void commitReview("submit", docReview.proposed_wiki, { force_commit: true })
+          }
           onCancel={() => void commitReview("cancel", docReview.proposed_wiki)}
           busy={reviewBusy}
+          error={reviewError}
+          showSubmitAnyway={forceCommit}
         />
       ) : null}
     </>

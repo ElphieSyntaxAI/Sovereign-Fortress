@@ -60,6 +60,14 @@ export function getVertexGenerativeModelForId(modelId: string) {
   return getVertexAI().getGenerativeModel({ model: modelId });
 }
 
+export function resolveVertexGeminiModelId(): string {
+  return (
+    process.env.GCP_MODEL_ID?.trim() ||
+    process.env.MSGF_VERTEX_MODEL?.trim() ||
+    DEFAULT_GEMINI_MODEL
+  );
+}
+
 export function getVertexGenerativeModel() {
-  return getVertexGenerativeModelForId(process.env.MSGF_VERTEX_MODEL || DEFAULT_GEMINI_MODEL);
+  return getVertexGenerativeModelForId(resolveVertexGeminiModelId());
 }

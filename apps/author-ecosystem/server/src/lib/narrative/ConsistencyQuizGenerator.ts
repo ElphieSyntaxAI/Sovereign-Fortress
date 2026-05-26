@@ -263,14 +263,19 @@ export class ConsistencyQuizGenerator {
     const key =
       options.geminiApiKey?.trim() ||
       process.env.GEMINI_API_KEY?.trim() ||
-      process.env.GOOGLE_API_KEY?.trim();
+      process.env.GOOGLE_API_KEY?.trim() ||
+      process.env.GCP_API_KEY?.trim();
     if (!key) {
-      throw new Error("Set GEMINI_API_KEY or GOOGLE_API_KEY for ConsistencyQuizGenerator");
+      throw new Error(
+        "Set GCP_API_KEY, GEMINI_API_KEY, or GOOGLE_API_KEY for ConsistencyQuizGenerator"
+      );
     }
     this.apiKey = key;
     this.model =
       options.geminiModel?.trim() ||
+      process.env.GCP_MODEL_ID?.trim() ||
       process.env.GEMINI_MODEL?.trim() ||
+      process.env.GEMINI_CHAT_MODEL?.trim() ||
       GEMINI_DEFAULT_MODEL;
   }
 

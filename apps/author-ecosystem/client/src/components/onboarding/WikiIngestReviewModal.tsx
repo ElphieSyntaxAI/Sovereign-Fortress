@@ -39,10 +39,15 @@ export function WikiIngestReviewModal(props: {
   contentSignals?: ContentSignal[];
   ingestConflicts?: IngestConflict[];
   onEdit: (next: ProposedWiki[]) => void;
+  onRemoveWiki?: (index: number) => void;
+  onRemoveBeat?: (index: number) => void;
   onSubmit: () => void;
   onCancel: () => void;
   onReject?: (reason: string) => void;
+  onSubmitAnyway?: () => void;
   busy: boolean;
+  error?: string | null;
+  showSubmitAnyway?: boolean;
 }) {
   const [local, setLocal] = useState(props.proposed);
 
@@ -62,9 +67,20 @@ export function WikiIngestReviewModal(props: {
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-emerald-600/40 bg-zinc-900 p-6">
         <h2 className="text-lg font-semibold text-emerald-100">Wiki preview — {props.slotLabel}</h2>
         <p className="mt-2 text-sm text-zinc-400">
-          Mapped from document content (not filename). Wiki building blocks, scene/plot cards, and outline beats
-          update the Wiki rail, Plot Sandbox, and manuscript outline. Edit, then submit.
+          Mapped from document content (not filename). Submitting writes live wiki entries and refreshes the Lore
+          Librarian index, Plot Sandbox beats, and the manuscript outline. Edit, then submit.
         </p>
+        {props.error ? (
+          <p className="mt-3 rounded-lg border border-red-900/50 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+            {props.error}
+          </p>
+        ) : null}
+        {props.showSubmitAnyway ? (
+          <p className="mt-2 text-xs text-amber-300/90">
+            Structure review flagged this mapping. You can fix entries above or submit anyway if the preview looks
+            correct.
+          </p>
+        ) : null}
         {props.contentSignals && props.contentSignals.length > 0 ? (
           <p className="mt-2 text-[11px] text-violet-300/80">
             Structure: {props.contentSignals.map((s) => s.kind.replace(/_/g, " ")).join(", ")}
@@ -109,15 +125,27 @@ export function WikiIngestReviewModal(props: {
                 const detail = b.title ? b.synopsis : b.synopsis.slice(label.length).trim();
                 const preview = detail.slice(0, 140) || label.slice(0, 160);
                 return (
-                  <li key={i}>
-                    <span className="text-violet-200/90">{label.slice(0, 100)}</span>
-                    {b.pov_mode === "split" ? (
-                      <span className="ml-1 text-[10px] text-amber-300/90">(split POV)</span>
-                    ) : b.pov_mode === "single" && b.pov_names?.[0] ? (
-                      <span className="ml-1 text-[10px] text-zinc-500">({b.pov_names[0]} POV)</span>
-                    ) : null}
-                    {preview && preview !== label ? (
-                      <span className="text-zinc-500"> — {preview}{preview.length >= 140 ? "…" : ""}</span>
+                  <li key={i} className="flex gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-violet-200/90">{label.slice(0, 100)}</span>
+                      {b.pov_mode === "split" ? (
+                        <span className="ml-1 text-[10px] text-amber-300/90">(split POV)</span>
+                      ) : b.pov_mode === "single" && b.pov_names?.[0] ? (
+                        <span className="ml-1 text-[10px] text-zinc-500">({b.pov_names[0]} POV)</span>
+                      ) : null}
+                      {preview && preview !== label ? (
+                        <span className="text-zinc-500"> — {preview}{preview.length >= 140 ? "…" : ""}</span>
+                      ) : null}
+                    </div>
+                    {props.onRemoveBeat ? (
+                      <button
+                        type="button"
+                        className="shrink-0 text-[10px] text-red-400/90 underline hover:text-red-300"
+                        disabled={props.busy}
+                        onClick={() => props.onRemoveBeat?.(i)}
+                      >
+                        Remove
+                      </button>
                     ) : null}
                   </li>
                 );
@@ -128,6 +156,18 @@ export function WikiIngestReviewModal(props: {
         <ul className="mt-4 space-y-4">
           {local.map((entry, idx) => (
             <li key={idx} className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+              <div className="mb-2 flex items-center justify-end">
+                {props.onRemoveWiki ? (
+                  <button
+                    type="button"
+                    className="text-[10px] text-red-400/90 underline hover:text-red-300"
+                    disabled={props.busy}
+                    onClick={() => sync(local.filter((_, i) => i !== idx))}
+                  >
+                    Remove entry
+                  </button>
+                ) : null}
+              </div>
               <input
                 className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm font-medium text-zinc-100"
                 value={entry.title}
@@ -177,13 +217,26 @@ export function WikiIngestReviewModal(props: {
           >
             Cancel
           </button>
+          {props.showSubmitAnyway && props.onSubmitAnyway ? (
+            <button
+              type="button"
+              className="rounded-lg border border-amber-600/60 bg-amber-950/50 px-4 py-2 text-sm font-semibold text-amber-100 disabled:opacity-40"
+              disabled={props.busy}
+              onClick={props.onSubmitAnyway}
+            >
+              {props.busy ? "Submitting…" : "Submit anyway"}
+            </button>
+          ) : null}
           <button
             type="button"
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-40"
-            disabled={props.busy}
+            disabled={
+              props.busy ||
+              (props.proposed.length === 0 && (props.outlineBeats?.length ?? 0) === 0)
+            }
             onClick={props.onSubmit}
           >
-            {props.busy ? "Updating wiki & RAG…" : "Submit to wiki & brain"}
+            {props.busy ? "Submitting to wiki…" : "Submit to wiki & Lore Librarian"}
           </button>
         </div>
       </div>

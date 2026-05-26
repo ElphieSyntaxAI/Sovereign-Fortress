@@ -49,8 +49,9 @@ import {
 } from "./documentIngestLlmParse.js";
 
 const require = createRequire(import.meta.url);
-const { generateBullets } = require("../services/geminiClient.js") as {
+const { generateBullets, hasGeminiCredentials } = require("../services/geminiClient.js") as {
   generateBullets: (opts: { system: string; user: string; model?: string }) => Promise<string>;
+  hasGeminiCredentials: () => boolean;
 };
 
 export type DocumentIngestMode = "converge" | "heuristic" | "hybrid";
@@ -75,7 +76,8 @@ const CONVERGE_SYSTEM = [
   "Structural signals and optional keywords are HINTS — never invent facts to satisfy a hint.",
   "Forms you may see: scene cards, chapter breakdowns, character cards, world bible, notes, beat sheets, draft prose, bullet outlines, TABLES (markdown | col |), SECTION breaks (--- SECTION ---), GOOGLE DOC TABS (--- TAB: Name ---).",
   "Planning layers (wiki_metadata.planning_layer when supported): front_matter, book_synopsis, macro_outline, chapter_breakdown, scene_grid, notes.",
-  "POV: one POV line → single; two+ POV lines or 'split POV' → split. Do not duplicate macro/blurb across tabs.",
+  "POV: detect any viewpoint name (Name Pov, Name's POV, Summers POV, POV: Name, told in X's POV, POV column with bare name). One POV → single; two+ or split POV → split. Do not duplicate macro/blurb across tabs.",
+  "macro_outline titles must use section headings (Beginning, Middle) or beat text — never generic 'Item 1'.",
   "Do NOT collapse macro_outline and chapter_breakdown. Do NOT merge scene_grid rows into one beat.",
   "Each table DATA ROW → its own outline_beat and/or proposed_wiki when it carries distinct story facts.",
   "Excerpts in proposed_wiki MUST be verbatim substrings from the document (>=40 chars).",
@@ -194,9 +196,7 @@ export async function runMsgfDocumentConverge(params: {
   let usedLlm = false;
   let grounding = { kept: 0, dropped: 0 };
 
-  const key = process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim();
-
-  if (mode !== "heuristic" && key) {
+  if (mode !== "heuristic" && hasGeminiCredentials()) {
     try {
       const raw = await generateBullets({
         system: CONVERGE_SYSTEM,

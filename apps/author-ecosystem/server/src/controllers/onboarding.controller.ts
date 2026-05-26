@@ -13,6 +13,7 @@ import {
 } from "../lib/documentIngestMsgfGuard.js";
 import {
   answerFoundInSource,
+  authorshipQuestionCount,
   countWords,
   DOCUMENT_SLOTS,
   estimatePages,
@@ -566,17 +567,29 @@ onboardingController.post("/api/onboarding/document/verify-clarification", async
   }));
   if (notes) clarification_answers.push({ id: "notes", code: "author_notes", answer: notes });
 
+  const storedQuestions = (session.authorship_questions ?? []) as Array<{
+    id?: string;
+    question?: string;
+    hint?: string;
+  }>;
+  const wordCount = Number(session.word_count ?? 0) || countWords(String(session.source_text ?? ""));
+  const authorshipQuestions =
+    storedQuestions.length >= 3
+      ? storedQuestions
+      : session.requires_authorship_gate
+        ? fallbackAuthorshipQuestions(
+            Math.max(3, authorshipQuestionCount(wordCount) || resolveQuestionCount(String(session.source_text ?? "")))
+          )
+        : [];
+
   const nextStatus =
-    session.requires_authorship_gate &&
-    Array.isArray(session.authorship_questions) &&
-    (session.authorship_questions as unknown[]).length > 0
-      ? "authorship"
-      : "review";
+    session.requires_authorship_gate && authorshipQuestions.length > 0 ? "authorship" : "review";
 
   await supabase
     .from("p4_document_ingest_sessions")
     .update({
       status: nextStatus,
+      authorship_questions: authorshipQuestions,
       clarification_answers,
       updated_at: new Date().toISOString(),
       ...(archiveOnly
@@ -600,6 +613,7 @@ onboardingController.post("/api/onboarding/document/verify-clarification", async
     proposed_wiki: nextStatus === "review" ? session.proposed_wiki : [],
     outline_beats: session.outline_beats ?? [],
     ingest_conflicts: session.ingest_conflicts ?? [],
+    authorship_questions: nextStatus === "authorship" ? authorshipQuestions : [],
     message:
       nextStatus === "authorship"
         ? "Clarification saved. Complete authorship checks next."
@@ -627,9 +641,37 @@ onboardingController.post("/api/onboarding/document/verify-authorship", async (r
   if (error) return res.status(500).json({ error: error.message });
   if (!session) return res.status(404).json({ error: "Session not found" });
 
-  const questions = (session.authorship_questions ?? []) as Array<{ id?: string; question?: string }>;
+  let questions = (session.authorship_questions ?? []) as Array<{ id?: string; question?: string }>;
+  if (questions.length === 0) {
+    const wordCount = Number(session.word_count ?? 0) || countWords(String(session.source_text ?? ""));
+    if (session.requires_authorship_gate) {
+      questions = fallbackAuthorshipQuestions(Math.max(3, authorshipQuestionCount(wordCount)));
+      await supabase
+        .from("p4_document_ingest_sessions")
+        .update({ authorship_questions: questions, updated_at: new Date().toISOString() })
+        .eq("id", sessionId);
+    }
+  }
+  if (questions.length === 0) {
+    await supabase
+      .from("p4_document_ingest_sessions")
+      .update({ status: "review", updated_at: new Date().toISOString() })
+      .eq("id", sessionId);
+    return res.status(200).json({
+      success: true,
+      status: "review",
+      proposed_wiki: session.proposed_wiki,
+      outline_beats: session.outline_beats ?? [],
+      message: "No authorship questions required. Review wiki and outline beats before submitting.",
+    });
+  }
+
   if (answers.length < questions.length) {
-    return res.status(400).json({ error: "Answer every authorship question." });
+    return res.status(400).json({
+      error: "Answer every authorship question.",
+      question_count: questions.length,
+      answer_count: answers.length,
+    });
   }
 
   const source = String(session.source_text ?? "");
@@ -854,7 +896,12 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
       merge_risk: mergeRisk.risk ? mergeRisk : undefined,
       dual_review: dualReview?.ran ? dualReview : undefined,
       message:
-        "Wiki building blocks, scene cards, and outline updated. Open Plot Sandbox or Wiki to continue.",
+        result.wiki_entry_count > 0
+          ? "Wiki building blocks, scene cards, and outline updated. Open Plot Sandbox or Wiki to continue."
+          : "Outline updated. No wiki rows were saved (excerpts may be too short). Check OPENAI_API_KEY for embeddings.",
+      embedding_note: process.env.OPENAI_API_KEY?.trim()
+        ? undefined
+        : "OPENAI_API_KEY missing — wiki rows used degraded embeddings; set the key in packages/msgf/.env.local for Librarian search quality.",
     });
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);

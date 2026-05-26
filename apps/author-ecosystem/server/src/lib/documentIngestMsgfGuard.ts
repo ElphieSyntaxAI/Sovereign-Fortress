@@ -11,8 +11,9 @@ import { extractBeatsFromTables } from "./documentIngestOutline.js";
 import type { ClarifyingQuestion, IngestConflict } from "./documentIngestStructure.js";
 
 const require = createRequire(import.meta.url);
-const { generateBullets } = require("../services/geminiClient.js") as {
+const { generateBullets, hasGeminiCredentials } = require("../services/geminiClient.js") as {
   generateBullets: (opts: { system: string; user: string; model?: string }) => Promise<string>;
+  hasGeminiCredentials: () => boolean;
 };
 
 export type DocumentIngestShadowResult = {
@@ -155,8 +156,7 @@ export async function runDualStructureReview(params: {
   sourceText: string;
   preview: string;
 }): Promise<DualStructureReview> {
-  const key = process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim();
-  if (!key) {
+  if (!hasGeminiCredentials()) {
     return {
       ran: false,
       structure_valid: null,

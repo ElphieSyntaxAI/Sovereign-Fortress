@@ -47,13 +47,30 @@ export function toP4ChunkType(raw: string): "lore" | "plot" | "character" {
   return "lore";
 }
 
+const EMBEDDING_DIM = 1536;
+const ZERO_EMBEDDING: number[] = Array.from({ length: EMBEDDING_DIM }, () => 0);
+
 export async function embedWikiExcerpt(excerpt: string): Promise<number[]> {
   const embedBatch = createOpenAIEmbedder();
   const [embedding] = await embedBatch([excerpt]);
-  if (!embedding || embedding.length !== 1536) {
-    throw new Error(`Embedding dimension mismatch: expected 1536, got ${embedding?.length ?? 0}`);
+  if (!embedding || embedding.length !== EMBEDDING_DIM) {
+    throw new Error(`Embedding dimension mismatch: expected ${EMBEDDING_DIM}, got ${embedding?.length ?? 0}`);
   }
   return embedding;
+}
+
+/** Best-effort embed for ingest commit — never throws (uses zero vector if OPENAI unavailable). */
+export async function embedWikiExcerptForIngest(excerpt: string): Promise<{
+  embedding: number[];
+  embedding_degraded: boolean;
+}> {
+  try {
+    const embedding = await embedWikiExcerpt(excerpt);
+    return { embedding, embedding_degraded: false };
+  } catch (e) {
+    console.warn("[wiki] embedWikiExcerptForIngest degraded", e);
+    return { embedding: ZERO_EMBEDDING, embedding_degraded: true };
+  }
 }
 
 export async function recordWikiHumanEffort(

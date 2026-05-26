@@ -52,6 +52,8 @@ export type PlanningSessionState = {
   setLastSandboxDualAudit: (next: SandboxDualAuditSummary | null) => void;
   /** Apply plot beats from a completed file import (scene cards / outline). */
   applyPlanningFromFileImport: (beats: Array<{ synopsis: string; order: number }>) => void;
+  /** Re-read plot beats from localStorage after ingest on another panel. */
+  reloadPlotBeatsFromStorage: () => void;
 };
 
 /** Wiki scratch + brainstorm block sent to sync-session. */
@@ -129,15 +131,21 @@ export function PlanningSessionProvider({
   }, []);
 
   const applyPlanningFromFileImport = useCallback(
-    (beats: Array<{ synopsis: string; order: number }>) => {
+    (beats: Array<{ synopsis: string; order: number; title?: string }>) => {
       const next: PlotBeat[] = beats
-        .filter((b) => b.synopsis.trim())
+        .filter((b) => b.synopsis.trim() || b.title?.trim())
         .sort((a, b) => a.order - b.order)
-        .map((b, i) => ({
-          id: crypto.randomUUID(),
-          synopsis: b.synopsis.trim(),
-          order: i,
-        }));
+        .map((b, i) => {
+          const title = b.title?.trim();
+          const syn = b.synopsis.trim();
+          const synopsis =
+            title && syn && !syn.startsWith(title) ? `${title}\n${syn}` : title || syn;
+          return {
+            id: crypto.randomUUID(),
+            synopsis,
+            order: i,
+          };
+        });
       setPlotBeats(next);
       if (manuscriptId) {
         try {
@@ -150,7 +158,7 @@ export function PlanningSessionProvider({
     [manuscriptId]
   );
 
-  useEffect(() => {
+  const reloadPlotBeatsFromStorage = useCallback(() => {
     if (!manuscriptId) return;
     try {
       const raw = localStorage.getItem(ingestPlotBeatsStorageKey(manuscriptId));
@@ -163,6 +171,10 @@ export function PlanningSessionProvider({
       /* ignore */
     }
   }, [manuscriptId]);
+
+  useEffect(() => {
+    reloadPlotBeatsFromStorage();
+  }, [reloadPlotBeatsFromStorage]);
 
   const value = useMemo<PlanningSessionState>(
     () => ({
@@ -178,6 +190,7 @@ export function PlanningSessionProvider({
       setBrainstormNotes,
       setLastSandboxDualAudit,
       applyPlanningFromFileImport,
+      reloadPlotBeatsFromStorage,
     }),
     [
       interviewTurns,
@@ -189,6 +202,7 @@ export function PlanningSessionProvider({
       appendPlotBeat,
       setBrainstormNotes,
       applyPlanningFromFileImport,
+      reloadPlotBeatsFromStorage,
     ]
   );
 
@@ -205,4 +219,8 @@ export function usePlanningSession(): PlanningSessionState {
     throw new Error("usePlanningSession must be used within PlanningSessionProvider");
   }
   return ctx;
+}
+
+export function usePlanningSessionOptional(): PlanningSessionState | null {
+  return useContext(PlanningSessionContext);
 }

@@ -59,6 +59,20 @@ Scan responses include `msgf_meta`:
 2. **Heuristics are fallback** — table/chapter parsers fill gaps when LLM is off or in `hybrid` mode.
 3. **Works for any doc layout** — no author-specific regex lists in the CONVERGE path; structure comes from content + signals.
 
+## POV detection (heuristic layer)
+
+Recognizes viewpoint names from many phrasings, not only recurring cast names:
+
+- `Summer Pov`, `Summer's POV`, `Summers POV`
+- `told in X's POV`, `POV: Summer`, `POV shift to …`
+- Chapter table **POV** column with a bare name (`Summer` without the word Pov)
+
+Dedicated chapter tabs are **scoped to one chapter** so Chapter 29 does not absorb Chapter 30 text. When deduping, beats that contain multiple chapter headings in one synopsis are deprioritized.
+
+## Macro outline titles
+
+Numbered bullets (`1. Acina on Earth…`) become titles from the bullet text (e.g. `Acina on Earth discovers the gate`), not generic `Item 1`. Section headings (`Beginning`, `Middle`) are preserved for embedded outline tabs.
+
 ## Related
 
 - [`MSGF_V1_ROADMAP.md`](MSGF_V1_ROADMAP.md) — engine phases

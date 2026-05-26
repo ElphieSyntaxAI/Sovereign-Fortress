@@ -14,7 +14,7 @@ import {
   type IngestPlotBeat,
 } from "./documentIngestOutline.js";
 import { IngestionService } from "./narrative/IngestionService.js";
-import { embedWikiExcerpt, newWikiSourceDocument } from "./wikiEntryHelpers.js";
+import { embedWikiExcerptForIngest, newWikiSourceDocument } from "./wikiEntryHelpers.js";
 import { buildAuthorDocumentSweepFiles } from "./documentIngestMsgfSweep.js";
 import { pipeToMsgfIngestService } from "./fetchManuscript.js";
 
@@ -130,7 +130,7 @@ export async function commitDocumentIngestToBackend(params: {
       const excerpt = b.synopsis.trim();
       if (excerpt.length < 20) continue;
       try {
-        const embedding = await embedWikiExcerpt(excerpt);
+        const { embedding, embedding_degraded } = await embedWikiExcerptForIngest(excerpt);
         await supabase.from("p4_narrative_library_chunks").insert({
           tenant_id: tenantId,
           source_document: `file-import-scene/${manuscriptId}/${i}`,
@@ -154,10 +154,11 @@ export async function commitDocumentIngestToBackend(params: {
             ledger: "wiki_snapshot",
             wiki_visibility: "draft",
             outline_entity_kind: "plot_point",
+            ...(embedding_degraded ? { embedding_degraded: true } : {}),
           },
         });
-      } catch {
-        /* optional per-beat plot row */
+      } catch (plotRowErr) {
+        console.warn("[commitDocumentIngest] per-beat plot row", plotRowErr);
       }
     }
   }
@@ -166,7 +167,16 @@ export async function commitDocumentIngestToBackend(params: {
   for (const entry of normalized) {
     const excerpt = entry.excerpt.trim();
     if (excerpt.length < 20) continue;
-    const embedding = await embedWikiExcerpt(excerpt);
+    let embedding: number[];
+    let embedding_degraded = false;
+    try {
+      const emb = await embedWikiExcerptForIngest(excerpt);
+      embedding = emb.embedding;
+      embedding_degraded = emb.embedding_degraded;
+    } catch (e) {
+      console.warn("[commitDocumentIngest] wiki embed", e);
+      continue;
+    }
     const source_document = newWikiSourceDocument(manuscriptId);
     const meta = {
       ...entry.wiki_metadata,
@@ -175,6 +185,7 @@ export async function commitDocumentIngestToBackend(params: {
       wiki_author_entry: true,
       ingest_slot: slot,
       file_import: true,
+      ...(embedding_degraded ? { embedding_degraded: true } : {}),
     };
     const chunkType =
       entry.chunk_type === "plot" || entry.chunk_type === "event"

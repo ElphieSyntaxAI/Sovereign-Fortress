@@ -376,10 +376,12 @@ function toSqlVectorLiteral(vec: number[]): string {
 function loadGeminiClient(): {
   embedTexts: (texts: string[], opts: Record<string, unknown>) => Promise<number[][]>;
   generateBullets: (opts: { system: string; user: string; model?: string }) => Promise<string>;
+  resolveGeminiChatModel: (override?: string) => string;
 } {
   return require("../services/geminiClient.js") as {
     embedTexts: (texts: string[], opts: Record<string, unknown>) => Promise<number[][]>;
     generateBullets: (opts: { system: string; user: string; model?: string }) => Promise<string>;
+    resolveGeminiChatModel: (override?: string) => string;
   };
 }
 
@@ -732,8 +734,8 @@ export async function runLibrarianLogicRevisionAuditForSession(
 
   let modelUsed: string | null = null;
   try {
-    const { generateBullets } = loadGeminiClient();
-    modelUsed = process.env.GEMINI_CHAT_MODEL?.trim() || "gemini-2.0-flash";
+    const { generateBullets, resolveGeminiChatModel } = loadGeminiClient();
+    modelUsed = resolveGeminiChatModel();
     const user = [
       `## Manuscript title: ${title}`,
       `## Cooldown context`,

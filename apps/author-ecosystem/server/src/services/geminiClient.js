@@ -1,11 +1,38 @@
+/** API key auth — matches `packages/msgf/.env.local` (GCP_API_KEY + GCP_MODEL_ID). */
+function resolveGeminiApiKey() {
+  return (
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.GOOGLE_API_KEY?.trim() ||
+    process.env.GCP_API_KEY?.trim() ||
+    ""
+  );
+}
+
+/** Chat model id — `GCP_MODEL_ID` is the MSGF convention; legacy: GEMINI_CHAT_MODEL / GEMINI_MODEL. */
+function resolveGeminiChatModel(override) {
+  if (override) return override;
+  return (
+    process.env.GCP_MODEL_ID?.trim() ||
+    process.env.GEMINI_CHAT_MODEL?.trim() ||
+    process.env.GEMINI_MODEL?.trim() ||
+    "gemini-2.0-flash"
+  );
+}
+
+function hasGeminiCredentials() {
+  return Boolean(resolveGeminiApiKey());
+}
+
 let _clientPromise = null;
 
 async function getClient() {
   if (!_clientPromise) {
     _clientPromise = (async () => {
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = resolveGeminiApiKey();
       if (!apiKey) {
-        throw new Error("Missing GEMINI_API_KEY");
+        throw new Error(
+          "Missing Gemini API key — set GCP_API_KEY, GEMINI_API_KEY, or GOOGLE_API_KEY"
+        );
       }
 
       // @google/genai is ESM-first; dynamic import works in CommonJS.
@@ -53,7 +80,7 @@ async function embedTexts(texts, { model }) {
 
 async function generateBullets({ system, user, model }) {
   const ai = await getClient();
-  const chatModel = model || process.env.GEMINI_CHAT_MODEL || "gemini-2.0-flash";
+  const chatModel = resolveGeminiChatModel(model);
 
   const resp = await ai.models.generateContent({
     model: chatModel,
@@ -69,5 +96,8 @@ async function generateBullets({ system, user, model }) {
 module.exports = {
   embedTexts,
   generateBullets,
+  hasGeminiCredentials,
+  resolveGeminiApiKey,
+  resolveGeminiChatModel,
 };
 

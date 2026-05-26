@@ -115,6 +115,68 @@ manuscriptsController.post("/api/series", async (req: Request, res: Response) =>
 });
 
 /**
+ * PATCH /api/series/:seriesId
+ * Body: { title }
+ */
+manuscriptsController.patch("/api/series/:seriesId", async (req: Request, res: Response) => {
+  const user = readBearerUser(req, res);
+  if (!user) return;
+
+  const seriesId = String(req.params.seriesId ?? "").trim();
+  const title = String((req.body as { title?: unknown })?.title ?? "").trim();
+  if (!title) return res.status(400).json({ error: "title is required" });
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("p4_series")
+    .update({ title, updated_at: new Date().toISOString() })
+    .eq("id", seriesId)
+    .eq("tenant_id", user.userId)
+    .select("id, tenant_id, title, created_at, updated_at")
+    .maybeSingle();
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data) return res.status(404).json({ error: "Series not found" });
+  return res.status(200).json({ series: data });
+});
+
+/**
+ * DELETE /api/series/:seriesId
+ * Unlinks books (series_id → null); does not delete manuscripts.
+ */
+manuscriptsController.delete("/api/series/:seriesId", async (req: Request, res: Response) => {
+  const user = readBearerUser(req, res);
+  if (!user) return;
+
+  const seriesId = String(req.params.seriesId ?? "").trim();
+  const supabase = getSupabaseAdmin();
+
+  const { data: seriesRow } = await supabase
+    .from("p4_series")
+    .select("id")
+    .eq("id", seriesId)
+    .eq("tenant_id", user.userId)
+    .maybeSingle();
+  if (!seriesRow) return res.status(404).json({ error: "Series not found" });
+
+  const { error: unlinkErr } = await supabase
+    .from("p4_manuscripts")
+    .update({ series_id: null, updated_at: new Date().toISOString() })
+    .eq("series_id", seriesId)
+    .eq("tenant_id", user.userId);
+  if (unlinkErr) return res.status(500).json({ error: unlinkErr.message });
+
+  const { error: delErr } = await supabase
+    .from("p4_series")
+    .delete()
+    .eq("id", seriesId)
+    .eq("tenant_id", user.userId);
+  if (delErr) return res.status(500).json({ error: delErr.message });
+
+  return res.status(200).json({ success: true, deleted: true });
+});
+
+/**
  * POST /api/manuscripts
  * Body: { title, series_id? }
  */

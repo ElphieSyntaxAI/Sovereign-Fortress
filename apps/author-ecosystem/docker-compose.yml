@@ -11,6 +11,8 @@ services:
       DB_SSL: ${DB_SSL:-false}
       JWT_SECRET: change_me_dev
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GCP_API_KEY: ${GCP_API_KEY}
+      GCP_MODEL_ID: ${GCP_MODEL_ID}
       GEMINI_EMBED_MODEL: ${GEMINI_EMBED_MODEL:-text-embedding-004}
       GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-2.0-flash}
       RAG_TOP_K: ${RAG_TOP_K:-8}

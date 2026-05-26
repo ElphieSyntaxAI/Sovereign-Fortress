@@ -14,6 +14,10 @@ import {
   PlanningSessionProvider,
   usePlanningSession,
 } from "../planning/PlanningSessionContext";
+import {
+  DOCUMENT_INGEST_COMMITTED_EVENT,
+  type DocumentIngestCommittedDetail,
+} from "../lib/documentIngestEvents";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 
@@ -64,8 +68,14 @@ function OutlinePageContent(props: { manuscriptId: string; tenantId: string }) {
   const [savingBlank, setSavingBlank] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
-  const { brainstormNotes, setBrainstormNotes, wikiNotes, interviewTurns, plotBeats } =
-    usePlanningSession();
+  const {
+    brainstormNotes,
+    setBrainstormNotes,
+    wikiNotes,
+    interviewTurns,
+    plotBeats,
+    reloadPlotBeatsFromStorage,
+  } = usePlanningSession();
 
   const loadManuscriptOutline = useCallback(async () => {
     try {
@@ -87,6 +97,20 @@ function OutlinePageContent(props: { manuscriptId: string; tenantId: string }) {
   useEffect(() => {
     void loadManuscriptOutline();
   }, [loadManuscriptOutline]);
+
+  useEffect(() => {
+    const onIngest = (ev: Event) => {
+      const detail = (ev as CustomEvent<DocumentIngestCommittedDetail>).detail;
+      if (detail?.manuscriptId !== props.manuscriptId) return;
+      reloadPlotBeatsFromStorage();
+      void loadManuscriptOutline();
+      setStatus(
+        `Document import applied — ${detail.wikiCount} wiki entries, ${detail.beatCount} outline beats.`
+      );
+    };
+    window.addEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
+    return () => window.removeEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
+  }, [props.manuscriptId, reloadPlotBeatsFromStorage, loadManuscriptOutline]);
 
   const saveBlankOutline = async () => {
     setSavingBlank(true);

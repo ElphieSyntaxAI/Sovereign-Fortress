@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { FinishRevisionsDialog } from "./FinishRevisionsDialog";
 import { DocumentIngestFlow } from "./onboarding/DocumentIngestFlow";
+import { PlanningSessionProvider } from "../planning/PlanningSessionContext";
 import { LinkSessionPanel } from "./LinkSessionPanel";
 import { SwitchProjectDialog } from "./SwitchProjectDialog";
 import { useNarrative } from "../context/NarrativeContext";
@@ -122,6 +123,88 @@ function KanbanColumn(props: {
   );
 }
 
+function SeriesBoardMenu(props: {
+  seriesId: string;
+  seriesTitle: string;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const editTitle = async () => {
+    const next = window.prompt("Series folder title", props.seriesTitle)?.trim();
+    if (!next || next === props.seriesTitle) return;
+    setBusy(true);
+    try {
+      await apiJson(`/api/series/${encodeURIComponent(props.seriesId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title: next }),
+      });
+      props.onChanged();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  };
+
+  const deleteSeries = async () => {
+    if (
+      !window.confirm(
+        `Delete series folder "${props.seriesTitle}"? Books in this series will become standalone (not deleted).`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await apiJson(`/api/series/${encodeURIComponent(props.seriesId)}`, { method: "DELETE" });
+      props.onChanged();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        title="Series settings"
+        disabled={busy}
+        className="rounded-md border border-zinc-700 p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Series settings"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+          <path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
+        </svg>
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-20 mt-1 min-w-[9rem] rounded-lg border border-zinc-700 bg-zinc-900 py-1 shadow-lg">
+          <button
+            type="button"
+            className="block w-full px-3 py-1.5 text-left text-xs text-zinc-200 hover:bg-zinc-800"
+            onClick={() => void editTitle()}
+          >
+            Edit title
+          </button>
+          <button
+            type="button"
+            className="block w-full px-3 py-1.5 text-left text-xs text-red-300 hover:bg-zinc-800"
+            onClick={() => void deleteSeries()}
+          >
+            Delete series
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function KanbanBoard(props: {
   title: string;
   columns: PhaseColumns;
@@ -129,10 +212,21 @@ function KanbanBoard(props: {
   onSelect: (row: HubManuscript) => void;
   onMovePhase: (row: HubManuscript, phase: ProjectPhase) => void;
   onFinishRevisions: (row: HubManuscript) => void;
+  seriesId?: string;
+  onSeriesChanged?: () => void;
 }) {
   return (
     <section className="space-y-2">
-      <h3 className="text-sm font-semibold text-zinc-200">{props.title}</h3>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-zinc-200">{props.title}</h3>
+        {props.seriesId && props.onSeriesChanged ? (
+          <SeriesBoardMenu
+            seriesId={props.seriesId}
+            seriesTitle={props.title.replace(/^Series · /, "")}
+            onChanged={props.onSeriesChanged}
+          />
+        ) : null}
+      </div>
       <div className="flex flex-wrap gap-2">
         {PHASES.map((p) => (
           <KanbanColumn
@@ -392,23 +486,25 @@ export function ManuscriptHub() {
             Upload a file or choose a Google Doc after OAuth sync. Builds wiki blocks, scene cards, and an outline
             for Plot Sandbox. Large files may need authorship answers from your text.
           </p>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <DocumentIngestFlow
-              slot="world_bible"
-              manuscriptId={selection.manuscriptId}
-              getAccessToken={getPreferredBffBearer}
-            />
-            <DocumentIngestFlow
-              slot="current_draft"
-              manuscriptId={selection.manuscriptId}
-              getAccessToken={getPreferredBffBearer}
-            />
-            <DocumentIngestFlow
-              slot="character_sheet"
-              manuscriptId={selection.manuscriptId}
-              getAccessToken={getPreferredBffBearer}
-            />
-          </div>
+          <PlanningSessionProvider manuscriptId={selection.manuscriptId}>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <DocumentIngestFlow
+                slot="world_bible"
+                manuscriptId={selection.manuscriptId}
+                getAccessToken={getPreferredBffBearer}
+              />
+              <DocumentIngestFlow
+                slot="current_draft"
+                manuscriptId={selection.manuscriptId}
+                getAccessToken={getPreferredBffBearer}
+              />
+              <DocumentIngestFlow
+                slot="character_sheet"
+                manuscriptId={selection.manuscriptId}
+                getAccessToken={getPreferredBffBearer}
+              />
+            </div>
+          </PlanningSessionProvider>
         </section>
       ) : null}
 
@@ -458,6 +554,8 @@ export function ManuscriptHub() {
             <KanbanBoard
               key={series.id}
               title={`Series · ${series.title}`}
+              seriesId={series.id}
+              onSeriesChanged={() => void load()}
               columns={columns}
               activeId={activeId}
               onSelect={onSelectProject}

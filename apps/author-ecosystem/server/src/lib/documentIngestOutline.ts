@@ -151,29 +151,69 @@ const SCENE_CARD_HEADER =
   /(?=(?:^|\n)\s*(?:scene\s*(?:card)?\s*[#:\d]|(?:int\.|ext\.)\s|[\*\#]{1,3}\s*scene\s))/gim;
 
 const CHAPTER_HEADING_RE = /(?:^|\n)\s*(?:chapter|ch\.?)\s+(\d+)\b/i;
-const POV_RE = /\b([A-Za-z][A-Za-z']+)\s+Pov\b/i;
 const SPLIT_POV_RE =
-  /\b(split\s+pov|dual\s+pov|multiple\s+povs?|two\s+povs?|both\s+povs?|broken\s+into\s+2\s+chapters|split\s+chapter)\b/i;
+  /\b(split\s+pov|dual\s+pov|multiple\s+povs?|two\s+povs?|both\s+povs?|broken\s+into\s+2\s+chapters|split\s+chapter|pov\s+shift|shift(?:s)?\s+to\s+(?:\w+\s+)?pov)\b/i;
+
+/** Name token for POV lines (supports Summer's, Summers, hyphenated). */
+const POV_NAME = "[A-Za-z][A-Za-z'\\-]{1,32}";
+
+function normalizePovDisplayName(raw: string): string {
+  return raw
+    .trim()
+    .replace(/\s+Pov\s*$/i, "")
+    .replace(/\s+perspective\s*$/i, "")
+    .replace(/['']s$/i, "")
+    .trim();
+}
+
+function pushPovName(seen: Set<string>, out: string[], raw: string): void {
+  const name = normalizePovDisplayName(raw);
+  if (name.length < 2 || /^(chapter|scene|part|book|act|notes|outline)$/i.test(name)) return;
+  const key = name.toLowerCase();
+  if (seen.has(key)) return;
+  seen.add(key);
+  out.push(`${name} POV`);
+}
 
 export function parseAllPovs(text: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const m of text.matchAll(/\b([A-Za-z][A-Za-z']+)\s+Pov\b/gi)) {
-    const key = m[1]!.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(`${m[1]} POV`);
-  }
-  const parenPov = text.match(/\(([^)]*\bPov[^)]*)\)/i);
-  if (parenPov?.[1]) {
-    const inner = parenPov[1].replace(/\s*Pov\s*/i, " ").trim();
-    const key = inner.toLowerCase();
-    if (inner.length >= 2 && !seen.has(key)) {
-      seen.add(key);
-      out.push(`${inner} POV`);
+
+  const patterns: RegExp[] = [
+    new RegExp(`\\b(${POV_NAME})\\s*(?:'s|’s)?\\s+Pov\\b`, "gi"),
+    new RegExp(`\\b(?:told in|written in|in|from)\\s+(${POV_NAME})\\s*(?:'s|’s)?\\s+(?:POV|perspective)\\b`, "gi"),
+    new RegExp(`\\bPOV\\s*[:\\-–—]\\s*(${POV_NAME})\\b`, "gi"),
+    new RegExp(`\\b(${POV_NAME})\\s*(?:'s|’s)?\\s+perspective\\b`, "gi"),
+    new RegExp(`\\b(?:pov|perspective)\\s+(?:shift|switch)(?:es)?\\s+(?:to\\s+)?(${POV_NAME})\\b`, "gi"),
+  ];
+
+  for (const re of patterns) {
+    for (const m of text.matchAll(re)) {
+      if (m[1]) pushPovName(seen, out, m[1]);
     }
   }
+
+  for (const m of text.matchAll(/\(([^)]{2,80})\)/g)) {
+    const inner = m[1]!;
+    if (!/\bPov\b/i.test(inner) && !/\bperspective\b/i.test(inner)) continue;
+    const namePart = inner.replace(/\s*Pov\s*/i, " ").replace(/\s*perspective\s*/i, " ").trim();
+    if (namePart.length >= 2) pushPovName(seen, out, namePart);
+  }
+
   return out;
+}
+
+/** POV column cells are often just a name (e.g. "Summer" / "Summers") without the word Pov. */
+export function extractPovFromTableCell(cell: string): string[] {
+  const t = cell.trim();
+  if (!t) return [];
+  const explicit = parseAllPovs(t);
+  if (explicit.length) return explicit;
+  const bare = t.replace(/^(?:pov|perspective)\s*[:\\-–—]\s*/i, "").trim();
+  if (/^[A-Z][a-z]+(?:'s)?$/.test(bare) || /^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(bare)) {
+    return [`${normalizePovDisplayName(bare)} POV`];
+  }
+  return [];
 }
 
 export function resolvePovInfo(text: string): { mode: PovMode; povs: string[] } {
@@ -183,6 +223,57 @@ export function resolvePovInfo(text: string): { mode: PovMode; povs: string[] } 
   }
   if (povs.length === 1) return { mode: "single", povs };
   return { mode: "unknown", povs: [] };
+}
+
+/** When a chapter tab body accidentally contains multiple chapter blocks, keep only this chapter. */
+function isolateChapterTabBody(body: string, chapterNum: number | null): string {
+  if (chapterNum == null) return body;
+  const blocks = body.split(/(?=(?:^|\n)\s*(?:chapter|ch\.?)\s+\d+[^\n]*\n?)/gim);
+  if (blocks.length <= 1) return body;
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (trimmed.length < 8) continue;
+    const n = parseChapterNumber(trimmed);
+    if (n === chapterNum) return trimmed;
+  }
+  return body;
+}
+
+function titleFromMacroLine(synopsis: string): string {
+  const t = synopsis.trim();
+  if (!t) return "Outline point";
+  const firstLine = t.split("\n")[0]!.trim();
+  if (firstLine.length <= 80) return firstLine;
+  return `${firstLine.slice(0, 77).trim()}…`;
+}
+
+function resolveWikiBeatTitle(
+  b: IngestPlotBeat,
+  sectionTitle: string,
+  fallbackIndex: number
+): string {
+  const nameField = b.synopsis.match(/(?:^|\n)name\s*:\s*([^\n]+)/i)?.[1]?.trim();
+  if (nameField && nameField.length >= 2) return nameField.slice(0, 80);
+
+  const rawTitle = b.title?.trim();
+  if (rawTitle && !/^item\s+\d+$/i.test(rawTitle)) return rawTitle.slice(0, 80);
+
+  if (b.planning_layer === "macro_outline" || b.planning_layer === "book_synopsis") {
+    if (rawTitle && rawTitle.length >= 3) return rawTitle.slice(0, 80);
+    const fromLine = titleFromMacroLine(b.synopsis);
+    if (fromLine && !/^item\s+\d+$/i.test(fromLine)) return fromLine;
+    if (sectionTitle && sectionTitle !== "Document") return sectionTitle.slice(0, 80);
+    return "Outline beat";
+  }
+
+  if (b.chapter_number != null) {
+    return (
+      b.title?.trim() ||
+      `Chapter ${b.chapter_number}${b.pov_names?.length ? ` — ${b.pov_names.join(" & ")}` : ""}`
+    ).slice(0, 80);
+  }
+
+  return rawTitle?.slice(0, 80) || `Plot beat ${fallbackIndex + 1}`;
 }
 
 export function parseChapterNumber(text: string): number | null {
@@ -325,6 +416,8 @@ function extractEmbeddedSubsectionBeats(body: string, tabTitle: string): IngestP
     }
 
     if (layer === "notes") {
+      const notesPovSource = `${chunk.heading}\n${sectionBody}`;
+      const povInfo = resolvePovInfo(notesPovSource);
       beats.push(
         makeBeat(
           {
@@ -332,6 +425,8 @@ function extractEmbeddedSubsectionBeats(body: string, tabTitle: string): IngestP
             synopsis: sectionBody.slice(0, 2000),
             planning_layer: "notes",
             tab_title: tabTitle,
+            pov_mode: povInfo.mode !== "unknown" ? povInfo.mode : undefined,
+            pov_names: povInfo.povs.map((p) => p.replace(/\s+POV$/i, "")),
           },
           order++
         )
@@ -484,8 +579,12 @@ function buildChapterTitle(
     const names = povInfo.povs.map((p) => p.replace(/\s+POV$/i, "")).join(" & ");
     return `Chapter ${chapterNum} — Split POV (${names})`;
   }
-  if (chapterNum != null && povInfo.povs.length === 1) {
-    return `Chapter ${chapterNum} — ${povInfo.povs[0]}`;
+  if (chapterNum != null && povInfo.povs.length >= 1) {
+    if (povInfo.povs.length === 1) {
+      return `Chapter ${chapterNum} — ${povInfo.povs[0]}`;
+    }
+    const names = povInfo.povs.map((p) => p.replace(/\s+POV$/i, "")).join(" & ");
+    return `Chapter ${chapterNum} — ${names}`;
   }
   if (chapterNum != null) return `Chapter ${chapterNum}`;
   const fromTab = fallback.match(/^chapter\s+\d+[^\n]*/i)?.[0];
@@ -583,9 +682,12 @@ function scoreChapterBeat(b: IngestPlotBeat): number {
   if (b.title && /^chapter\s+\d+/i.test(b.title)) s += 50;
   if (b.tab_title && isDedicatedChapterTab(b.tab_title)) s += 45;
   if (b.tab_title && b.tab_title !== "Document") s += 15;
-  const len = stripLayerPrefix(b.synopsis).length;
+  const core = stripLayerPrefix(b.synopsis);
+  const len = core.length;
   if (len > 60 && len < 1400) s += 20;
   if (len > 2200) s -= 35;
+  if (countChapterHeadings(core) > 1) s -= 70;
+  if (b.pov_mode === "single" || b.pov_mode === "split") s += 12;
   if (b.chapter_number != null) s += 10;
   return s;
 }
@@ -678,6 +780,7 @@ function extractChapterTableBeats(
     }
 
     const chIdx = header.findIndex((h) => /^chapter$/i.test(h) || /^ch\.?$/i.test(h));
+    const povIdx = header.findIndex((h) => /^pov$/i.test(h) || /^point of view$/i.test(h));
     const chapterCell = chIdx >= 0 ? cells[chIdx]?.trim() : cells[0]?.trim();
     const chapterNum = parseChapterNumber(chapterCell ?? "");
     if (chapterNum == null) continue;
@@ -694,7 +797,15 @@ function extractChapterTableBeats(
     const synopsis = detailCells.join("\n").trim() || cells.filter((_, i) => i !== chIdx).join("\n").trim();
     if (synopsis.length < 8) continue;
 
-    const povSource = `${chapterCell ?? ""}\n${cells.join("\n")}\n${synopsis}`;
+    const povCell = povIdx >= 0 ? cells[povIdx]?.trim() ?? "" : "";
+    const tablePovs = povCell ? extractPovFromTableCell(povCell) : [];
+    const povSource = [
+      chapterCell ?? "",
+      cells.join("\n"),
+      synopsis,
+      povCell,
+      tablePovs.join("\n"),
+    ].join("\n");
     beats.push(
       withChapterPov(
         {
@@ -724,10 +835,11 @@ function extractSingleChapterTabBeat(
   }
 
   const chapterNum = parseChapterNumber(ctx.tabTitle) ?? parseChapterNumber(trimmed);
+  const scopedBody = isolateChapterTabBody(trimmed, chapterNum);
 
-  let synopsis = trimmed;
+  let synopsis = scopedBody;
   if (chapterNum != null) {
-    synopsis = trimmed.replace(/^(?:chapter|ch\.?)\s+\d+[^\n]*\n+/i, "").trim();
+    synopsis = scopedBody.replace(/^(?:chapter|ch\.?)\s+\d+[^\n]*\n+/i, "").trim();
   }
 
   return [
@@ -738,7 +850,7 @@ function extractSingleChapterTabBeat(
         planning_layer: ctx.layer,
         tab_title: ctx.tabTitle,
       },
-      trimmed,
+      scopedBody,
       0
     ),
   ];
@@ -828,7 +940,7 @@ function extractMacroOutlineBeats(text: string, ctx?: { tab?: string }): IngestP
     const synopsis = line.replace(/^(\d+[\.\):]|[\*\-]\s+)/, "").trim().slice(0, 800);
     return makeBeat(
       {
-        title: synopsis.slice(0, 72),
+        title: titleFromMacroLine(synopsis),
         synopsis,
         planning_layer: "macro_outline",
         tab_title: ctx?.tab,
@@ -1064,14 +1176,14 @@ export function heuristicWikiFromTables(
     const kind = wikiKindForPlanningLayer(section.layer);
     for (const b of beats.slice(0, 24)) {
       const title =
-        b.title?.trim() ||
+        resolveWikiBeatTitle(b, section.path ?? section.title, entries.length) ||
         b.synopsis.match(/(?:^|\n)(?:name|character|title)\s*:\s*(.+)/i)?.[1]?.trim() ||
-        `Item ${entries.length + 1}`;
+        `Plot beat ${entries.length + 1}`;
       entries.push({
         title: title.slice(0, 80),
         excerpt: b.synopsis.slice(0, 1200),
         chunk_type: kind === "character" ? "character" : kind === "environment" ? "location" : "event",
-        tags: ["table_row", "file_import", section.layer],
+        tags: ["file_import", section.layer, b.planning_layer ?? section.layer].filter(Boolean),
         wiki_metadata: {
           ...wikiMetaForEntityKind(kind, manuscriptId, slot, {
             planning_layer: section.layer,
@@ -1184,7 +1296,7 @@ export function plotBeatsToSceneWikiEntries(
             ? "chapter"
             : "plot_point";
     const sceneTitle =
-      b.title?.trim() ||
+      resolveWikiBeatTitle(b, b.tab_title ?? "", i) ||
       b.synopsis.match(/scene\s*#?\s*(\d+)/i)?.[0] ||
       (b.chapter_number != null ? `Chapter ${b.chapter_number}` : null) ||
       b.tab_title ||

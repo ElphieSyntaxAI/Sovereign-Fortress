@@ -3,7 +3,9 @@ import { useDropzone } from "react-dropzone";
 import { Link } from "react-router-dom";
 
 import { GoogleDocDrivePicker } from "../GoogleDocDrivePicker";
-import { ingestPlotBeatsStorageKey } from "../../planning/PlanningSessionContext";
+import { dispatchDocumentIngestCommitted } from "../../lib/documentIngestEvents";
+import { formatBffFetchError } from "../../lib/bffFetch";
+import { usePlanningSessionOptional } from "../../planning/PlanningSessionContext";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../../lib/bffFetch";
 import type {
   ClarifyingQuestion,
@@ -77,6 +79,7 @@ export function DocumentIngestFlow(props: {
   const [forceCommit, setForceCommit] = useState(false);
   const [tabDiagnostics, setTabDiagnostics] = useState<IngestTabDiagnostics | null>(null);
   const [outlineBeatCount, setOutlineBeatCount] = useState<number | null>(null);
+  const planning = usePlanningSessionOptional();
 
   const applyScanResponse = useCallback(
     (json: {
@@ -236,6 +239,7 @@ export function DocumentIngestFlow(props: {
         status?: string;
         proposed_wiki?: ProposedWiki[];
         outline_beats?: OutlineBeat[];
+        authorship_questions?: AuthorshipQuestion[];
         ingest_conflicts?: IngestConflict[];
       };
       if (!res.ok) throw new Error(json.error || res.statusText);
@@ -248,9 +252,19 @@ export function DocumentIngestFlow(props: {
       if (Array.isArray(json.ingest_conflicts)) setConflicts(json.ingest_conflicts);
       setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
       if (json.status === "authorship") {
-        setPhase("authorship");
+        const qs = Array.isArray(json.authorship_questions) ? json.authorship_questions : [];
+        if (qs.length) {
+          setQuestions(qs);
+          setAnswers(qs.map(() => ""));
+          setPhase("authorship");
+        } else {
+          setProposed(Array.isArray(json.proposed_wiki) ? json.proposed_wiki : []);
+          setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
+          setPhase("review");
+        }
       } else {
         setProposed(Array.isArray(json.proposed_wiki) ? json.proposed_wiki : []);
+        setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
         setPhase("review");
       }
     } catch (e) {
@@ -324,38 +338,48 @@ export function DocumentIngestFlow(props: {
       if (!res.ok) throw new Error(json.message ?? json.error ?? res.statusText);
       if (action === "submit") {
         const beats = json.planning?.plot_beats ?? outlineBeats;
-        if (beats.length) {
-          const stored = beats.map((b, i) => ({
-            id: crypto.randomUUID(),
+        planning?.applyPlanningFromFileImport(
+          beats.map((b, i) => ({
             synopsis: b.synopsis,
-            order: i,
-          }));
-          try {
-            localStorage.setItem(
-              ingestPlotBeatsStorageKey(props.manuscriptId),
-              JSON.stringify(stored)
-            );
-          } catch {
-            /* ignore */
-          }
-        }
-        setCommitMessage(json.message ?? "Import committed.");
+            title: b.title,
+            order: typeof b.order === "number" ? b.order : i,
+          }))
+        );
+        dispatchDocumentIngestCommitted({
+          manuscriptId: props.manuscriptId,
+          wikiCount: proposed.length,
+          beatCount: beats.length,
+        });
+        setCommitMessage(
+          json.message ??
+            `Imported ${proposed.length} wiki entries and ${beats.length} outline beats. Open Wiki or Outline to continue.`
+        );
       } else if (action === "reject") {
         setCommitMessage(json.message ?? "Import rejected — pattern recorded for future guard.");
       }
       setForceCommit(false);
+      setError(null);
       setPhase("idle");
       setSessionId(null);
       props.onCommitted?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg =
+        e instanceof TypeError
+          ? formatBffFetchError(e, "/api/onboarding/document/commit")
+          : e instanceof Error
+            ? e.message
+            : String(e);
+      setError(msg);
     } finally {
       setBusy(false);
     }
   };
 
-  const commit = async (action: "submit" | "cancel") => {
-    await postCommit(action, action === "submit" && forceCommit ? { force_commit: true } : undefined);
+  const commit = async (action: "submit" | "cancel", opts?: { force_commit?: boolean }) => {
+    await postCommit(
+      action,
+      action === "submit" && (opts?.force_commit || forceCommit) ? { force_commit: true } : undefined
+    );
   };
 
   const meta = SLOT_META[props.slot];
@@ -425,6 +449,11 @@ export function DocumentIngestFlow(props: {
       {phase === "authorship" ? (
         <div className="mt-3 space-y-3">
           <p className="text-sm text-amber-200/90">Prove you wrote this document — answers must appear in your text.</p>
+          {questions.length === 0 ? (
+            <p className="text-xs text-amber-300/80">
+              Loading authorship questions… if this stays empty, scan again or use a smaller excerpt.
+            </p>
+          ) : null}
           {questions.map((q, i) => (
             <label key={q.id} className="block text-xs text-zinc-400">
               {i + 1}. {q.question}
@@ -441,21 +470,16 @@ export function DocumentIngestFlow(props: {
           ))}
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || questions.length === 0}
             onClick={() => void verifyAuthorship()}
-            className="rounded-lg bg-amber-600/90 px-3 py-1.5 text-xs font-semibold text-amber-950"
+            className="rounded-lg bg-amber-600/90 px-3 py-1.5 text-xs font-semibold text-amber-950 disabled:opacity-40"
           >
             Verify authorship
           </button>
         </div>
       ) : null}
 
-      {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
-      {forceCommit ? (
-        <p className="mt-2 text-xs text-amber-300/90">
-          Structure review flagged this mapping. Submit again to commit anyway, or edit entries above.
-        </p>
-      ) : null}
+      {error && phase !== "review" ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
       {commitMessage ? (
         <p className="mt-2 text-xs text-emerald-400/90">
           {commitMessage}{" "}
@@ -475,10 +499,14 @@ export function DocumentIngestFlow(props: {
         contentSignals={signals}
         ingestConflicts={conflicts}
         onEdit={setProposed}
+        onRemoveBeat={(idx) => setOutlineBeats((prev) => prev.filter((_, i) => i !== idx))}
         onSubmit={() => void commit("submit")}
+        onSubmitAnyway={() => void commit("submit", { force_commit: true })}
         onCancel={() => void commit("cancel")}
         onReject={(reason) => void postCommit("reject", { rejection_reason: reason })}
         busy={busy}
+        error={phase === "review" ? error : null}
+        showSubmitAnyway={forceCommit}
       />
     </div>
   );

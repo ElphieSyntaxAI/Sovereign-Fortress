@@ -207,7 +207,9 @@ describe("document ingest outline → wiki building blocks", () => {
   });
 
   test("detects split POV vs single POV chapters", async () => {
-    const { resolvePovInfo } = await import("../src/lib/documentIngestOutline.js");
+    const { resolvePovInfo, parseAllPovs, extractPovFromTableCell } = await import(
+      "../src/lib/documentIngestOutline.js"
+    );
     const split = resolvePovInfo(
       "Chapter 11\nKamals Pov\nAcina Pov\nSplit POV or possibly broken into 2 chapters"
     );
@@ -216,6 +218,46 @@ describe("document ingest outline → wiki building blocks", () => {
     const single = resolvePovInfo("Chapter 3\nAcina Pov\nShe explores the compound.");
     assert.equal(single.mode, "single");
     assert.equal(single.povs[0], "Acina POV");
+
+    const summers = parseAllPovs("Hints at sequel (told in Summers POV)");
+    assert.ok(summers.some((p) => /summer/i.test(p)), summers.join(","));
+
+    const summerTab = resolvePovInfo("Chapter 29\nSummer Pov\nThe vault opens.");
+    assert.equal(summerTab.mode, "single");
+    assert.ok(/summer/i.test(summerTab.povs[0] ?? ""));
+
+    const tableCell = extractPovFromTableCell("Summer");
+    assert.ok(tableCell.some((p) => /summer/i.test(p)));
+  });
+
+  test("chapter 29 tab keeps Summer POV and does not bundle chapter 30", () => {
+    const text = [
+      "--- TAB: Chapter 29 ---",
+      "Chapter 29",
+      "Summer Pov",
+      "The final confrontation in the vault.",
+      "Chapter 30",
+      "Spin off ideas only.",
+    ].join("\n");
+    const beats = extractOutlineBeatsFromText(text);
+    const ch29 = beats.find((b) => b.chapter_number === 29);
+    assert.ok(ch29, "expected chapter 29 beat");
+    assert.match(ch29!.title ?? "", /Summer/i);
+    assert.ok(!/Spin off/i.test(ch29!.synopsis));
+  });
+
+  test("macro outline wiki titles use beat text not Item 1", async () => {
+    const { heuristicWikiFromTables } = await import("../src/lib/documentIngestOutline.js");
+    const text = [
+      "--- TAB: Outline ---",
+      "Beginning",
+      "1. Acina on Earth discovers the gate.",
+      "2. The compound alarm sounds.",
+    ].join("\n");
+    const wiki = heuristicWikiFromTables(text, "world_bible", "00000000-0000-4000-8000-000000000099");
+    assert.ok(wiki.length >= 1);
+    assert.ok(!wiki.some((w) => /^item\s+1$/i.test(w.title)));
+    assert.ok(wiki.some((w) => /Acina on Earth/i.test(w.title) || /Acina on Earth/i.test(w.excerpt)));
   });
 
   test("compileOutlineBeats drops duplicate Beginning sections", async () => {

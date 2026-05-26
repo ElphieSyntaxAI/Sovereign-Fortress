@@ -12,6 +12,10 @@ import type { OutlineLoreKind } from "../lib/outlineLoreKinds";
 import { getOutlineLoreKindConfig } from "../lib/outlineLoreKinds";
 import type { WikiSheetDraft } from "../lib/wikiDraftStore";
 import { parseFormStateFromMetadata } from "../lib/wikiEntityForms";
+import {
+  DOCUMENT_INGEST_COMMITTED_EVENT,
+  type DocumentIngestCommittedDetail,
+} from "../lib/documentIngestEvents";
 
 type WikiChunk = {
   id: string;
@@ -103,6 +107,15 @@ export function WikiAuthorView(props: {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const onIngest = (ev: Event) => {
+      const detail = (ev as CustomEvent<DocumentIngestCommittedDetail>).detail;
+      if (detail?.manuscriptId === props.manuscriptId) void load();
+    };
+    window.addEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
+    return () => window.removeEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
+  }, [props.manuscriptId, load]);
 
   const openSheet = (
     kind: OutlineLoreKind,

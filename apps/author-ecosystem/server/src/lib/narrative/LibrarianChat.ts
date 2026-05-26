@@ -59,7 +59,11 @@ const GEMINI_DETECT_MODEL_DEFAULT = "gemini-2.0-flash";
 export async function detectLibrarianLanguageWithGemini(
   question: string,
   apiKey: string,
-  model: string = process.env.GEMINI_MODEL?.trim() || GEMINI_DETECT_MODEL_DEFAULT
+  model: string =
+    process.env.GCP_MODEL_ID?.trim() ||
+    process.env.GEMINI_MODEL?.trim() ||
+    process.env.GEMINI_CHAT_MODEL?.trim() ||
+    GEMINI_DETECT_MODEL_DEFAULT
 ): Promise<LibrarianLanguage> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const res = await fetch(url, {
@@ -111,7 +115,10 @@ export async function detectLibrarianLanguage(
   if (mode !== "gemini") {
     return detectLibrarianLanguageHeuristic(question);
   }
-  const key = process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim();
+  const key =
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.GOOGLE_API_KEY?.trim() ||
+    process.env.GCP_API_KEY?.trim();
   if (!key) {
     return detectLibrarianLanguageHeuristic(question);
   }
