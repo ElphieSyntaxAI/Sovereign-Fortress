@@ -1,4 +1,5 @@
 import { heuristicWikiFromTables } from "./documentIngestOutline.js";
+import { splitTabSections } from "./documentPlanningTaxonomy.js";
 
 export type DocumentIngestSlot = "world_bible" | "current_draft" | "character_sheet";
 
@@ -38,14 +39,57 @@ export function authorshipQuestionCount(wordCount: number): number {
 }
 
 export function answerFoundInSource(answer: string, source: string): boolean {
-  const a = answer.trim().toLowerCase();
+  const a = answer
+    .trim()
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, "")
+    .toLowerCase();
   if (a.length < 2) return false;
   const src = source.toLowerCase();
   if (src.includes(a)) return true;
-  const tokens = a.split(/\s+/).filter((t) => t.length > 3);
+  const tokens = a.split(/\s+/).filter((t) => t.length > 2);
   if (tokens.length === 0) return false;
   const hits = tokens.filter((t) => src.includes(t)).length;
-  return hits >= Math.ceil(tokens.length * 0.6);
+  return hits >= Math.ceil(tokens.length * 0.55);
+}
+
+/** Authorship Q&A grounded in the uploaded text (avoids generic prompts that fail verification). */
+export function buildAuthorshipQuestionsFromSource(
+  source: string,
+  count: number
+): AuthorshipQuestion[] {
+  const sample = source.slice(0, 80_000);
+  const questions: AuthorshipQuestion[] = [];
+  let id = 0;
+
+  const names = [...new Set(sample.match(/\b[A-Z][a-z]{2,}(?:['’][a-z]+)?\b/g) ?? [])].filter(
+    (n) => !/^(The|And|But|For|With|From|Chapter|Scene|Tab)$/i.test(n)
+  );
+  for (const name of names.slice(0, 4)) {
+    if (questions.length >= count) break;
+    if (!sample.toLowerCase().includes(name.toLowerCase())) continue;
+    questions.push({
+      id: `src-${id++}`,
+      question: `Type the name "${name}" exactly as it appears in your document.`,
+      hint: "proper noun from your file",
+    });
+  }
+
+  const lines = sample
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length >= 18 && l.length <= 220 && !/^---\s*tab:/i.test(l));
+  for (const line of lines) {
+    if (questions.length >= count) break;
+    const snippet = line.replace(/\s+/g, " ").slice(0, 72);
+    if (snippet.length < 12) continue;
+    questions.push({
+      id: `src-${id++}`,
+      question: `Quote this phrase from your document (copy/paste): "${snippet}"`,
+      hint: "must appear verbatim in the upload",
+    });
+  }
+
+  return questions.slice(0, Math.max(3, Math.min(count, 10)));
 }
 
 export type AuthorshipQuestion = {
@@ -196,15 +240,41 @@ export function heuristicProposedWiki(
     }
   }
   if (slot === "world_bible") {
-    const para = sample.split(/\n\s*\n+/).find((p) => p.trim().length > 80);
-    if (para) {
-      entries.push({
-        title: "World bible excerpt",
-        excerpt: para.trim().slice(0, 1200),
-        chunk_type: "location",
-        tags: ["world_bible", "onboarding"],
-        wiki_metadata: meta,
-      });
+    const tabs = splitTabSections(text);
+    if (tabs.length >= 1) {
+      for (const section of tabs.slice(0, 12)) {
+        const body = section.body.trim();
+        if (body.length < 40) continue;
+        const title =
+          section.title.trim().slice(0, 80) ||
+          body.split(/\n/)[0]?.trim().slice(0, 80) ||
+          "World bible section";
+        entries.push({
+          title,
+          excerpt: body.slice(0, 1200),
+          chunk_type: "location",
+          tags: ["world_bible", "onboarding", section.layer].filter(Boolean),
+          wiki_metadata: {
+            ...meta,
+            planning_layer: section.layer,
+            tab_title: section.title,
+          },
+        });
+      }
+    }
+    if (entries.length === 0) {
+      const paras = sample.split(/\n\s*\n+/).filter((p) => p.trim().length > 80);
+      for (const para of paras.slice(0, 8)) {
+        const excerpt = para.trim();
+        const titleLine = excerpt.split(/\n/)[0]?.trim().slice(0, 80) || "World bible excerpt";
+        entries.push({
+          title: titleLine,
+          excerpt: excerpt.slice(0, 1200),
+          chunk_type: "location",
+          tags: ["world_bible", "onboarding"],
+          wiki_metadata: meta,
+        });
+      }
     }
   }
   if (slot === "current_draft" && entries.length === 0 && sample.length > 80) {

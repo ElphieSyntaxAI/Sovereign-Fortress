@@ -86,7 +86,8 @@ export default async function StatusPage() {
             <V32StepRow key={s.step} status={s.status} step={s.step} detail={s.detail} />
           ))}
           <p className="text-xs text-slate-500">
-            Evaluated {new Date(v32.evaluated_at).toLocaleString()}. Load balancers should use{" "}
+            Evaluated{" "}
+            {new Date(v32.evaluated_at).toLocaleString("en-US")}. Load balancers should use{" "}
             <Link href="/health" className="text-cyan-300 hover:underline">
               GET /health
             </Link>

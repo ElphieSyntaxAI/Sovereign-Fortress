@@ -282,6 +282,11 @@ export function parseChapterNumber(text: string): number | null {
     const n = Number(m[1]);
     return Number.isFinite(n) ? n : null;
   }
+  const tabOnly = text.trim().match(/^(?:chapter|ch\.?)\s*(\d{1,3})\b/i);
+  if (tabOnly?.[1]) {
+    const n = Number(tabOnly[1]);
+    return Number.isFinite(n) ? n : null;
+  }
   const digits = text.trim().match(/^(\d{1,3})$/);
   if (digits?.[1]) {
     const n = Number(digits[1]);
@@ -594,7 +599,12 @@ function buildChapterTitle(
 
 function isDedicatedChapterTab(tabTitle: string): boolean {
   if (isFranchisePlanningTab(tabTitle)) return false;
-  return /^chapter\s*\d+\b/i.test(tabTitle.trim());
+  const t = tabTitle.trim();
+  if (/^chapter\s*\d+\b/i.test(t)) return true;
+  if (/^ch\.?\s*\d+\b/i.test(t)) return true;
+  if (/^\d{1,3}$/.test(t)) return true;
+  if (/^(?:chapter|ch\.?)\s*\d+[^\n]{0,48}$/i.test(t)) return true;
+  return false;
 }
 
 function maxChapterNumberInText(text: string): number {

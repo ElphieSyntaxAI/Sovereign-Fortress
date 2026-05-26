@@ -207,7 +207,11 @@ export async function commitDocumentIngestToBackend(params: {
       })
       .select("id")
       .single();
-    if (!error && data?.id) wiki_chunk_ids.push(String(data.id));
+    if (error) {
+      console.warn("[commitDocumentIngest] wiki row insert", error.message, entry.title);
+      continue;
+    }
+    if (data?.id) wiki_chunk_ids.push(String(data.id));
   }
 
   let msgf_ingest: unknown = null;

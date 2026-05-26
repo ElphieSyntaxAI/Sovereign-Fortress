@@ -116,9 +116,14 @@ export function DocumentIngestFlow(props: {
         setPhase("clarification");
       } else if (json.status === "authorship") {
         const qs = Array.isArray(json.authorship_questions) ? json.authorship_questions : [];
-        setQuestions(qs);
-        setAnswers(qs.map(() => ""));
-        setPhase("authorship");
+        if (qs.length === 0) {
+          setProposed(Array.isArray(json.proposed_wiki) ? json.proposed_wiki : []);
+          setPhase("review");
+        } else {
+          setQuestions(qs);
+          setAnswers(qs.map(() => ""));
+          setPhase("authorship");
+        }
       } else {
         setProposed(Array.isArray(json.proposed_wiki) ? json.proposed_wiki : []);
         setPhase("review");
@@ -288,10 +293,17 @@ export function DocumentIngestFlow(props: {
       });
       const json = (await res.json().catch(() => ({}))) as {
         error?: string;
+        failed_indices?: number[];
         proposed_wiki?: ProposedWiki[];
         outline_beats?: OutlineBeat[];
       };
-      if (!res.ok) throw new Error(json.error || res.statusText);
+      if (!res.ok) {
+        const failed =
+          Array.isArray(json.failed_indices) && json.failed_indices.length
+            ? ` (questions ${json.failed_indices.map((i) => i + 1).join(", ")})`
+            : "";
+        throw new Error(`${json.error || res.statusText}${failed}`);
+      }
       setProposed(Array.isArray(json.proposed_wiki) ? json.proposed_wiki : []);
       setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
       setPhase("review");
@@ -320,6 +332,7 @@ export function DocumentIngestFlow(props: {
           action,
           proposed_wiki: proposed,
           outline_beats: outlineBeats,
+          sync_msgf_brain: false,
           ...extra,
         }),
       });
@@ -499,6 +512,7 @@ export function DocumentIngestFlow(props: {
         contentSignals={signals}
         ingestConflicts={conflicts}
         onEdit={setProposed}
+        onRemoveWiki={(idx) => setProposed((prev) => prev.filter((_, i) => i !== idx))}
         onRemoveBeat={(idx) => setOutlineBeats((prev) => prev.filter((_, i) => i !== idx))}
         onSubmit={() => void commit("submit")}
         onSubmitAnyway={() => void commit("submit", { force_commit: true })}

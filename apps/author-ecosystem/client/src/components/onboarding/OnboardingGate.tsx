@@ -91,6 +91,7 @@ export function OnboardingGate(props: { children: ReactNode }) {
           action,
           proposed_wiki: proposed,
           outline_beats: docReview.outline_beats,
+          sync_msgf_brain: false,
           ...(opts?.force_commit ? { force_commit: true } : {}),
         }),
       });
@@ -157,6 +158,12 @@ export function OnboardingGate(props: { children: ReactNode }) {
           proposed={docReview.proposed_wiki}
           outlineBeats={docReview.outline_beats}
           onEdit={(next) => setDocReview({ ...docReview, proposed_wiki: next })}
+          onRemoveWiki={(idx) =>
+            setDocReview({
+              ...docReview,
+              proposed_wiki: docReview.proposed_wiki.filter((_, i) => i !== idx),
+            })
+          }
           onRemoveBeat={(idx) =>
             setDocReview({
               ...docReview,

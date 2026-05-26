@@ -11,6 +11,7 @@
  * Distribution Build ID: MSGF-92d026a-20260522T181651Z-internal
  */
 import type { EcoMetrics } from "@/lib/utils/ecoCalculator";
+import { formatDisplayNumber } from "@/lib/utils/formatLocale";
 
 export type EcoEquivalencyStatements = {
   water_bottles_saved: string;
@@ -23,9 +24,7 @@ export const CO2_LBS_PER_TREE_SEEDLING_10_YEARS = 133;
 export const MWH_PER_TESLA_MODEL_3_CHARGE = 0.077;
 
 function formatNumber(value: number, maximumFractionDigits = 1): string {
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits,
-  });
+  return formatDisplayNumber(value, { maximumFractionDigits });
 }
 
 function assertFiniteNonNegative(value: number, label: string): void {

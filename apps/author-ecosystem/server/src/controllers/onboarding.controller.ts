@@ -310,7 +310,7 @@ onboardingController.post(
         gate && enriched.questions.length >= 3
           ? enriched.questions
           : gate
-            ? fallbackAuthorshipQuestions(qCount)
+            ? fallbackAuthorshipQuestions(qCount, sourceText)
             : [];
 
       const status = resolveNextStatusAfterScan({
@@ -436,7 +436,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
       gate && enriched.questions.length >= 3
         ? enriched.questions
         : gate
-          ? fallbackAuthorshipQuestions(qCount)
+          ? fallbackAuthorshipQuestions(qCount, sourceText)
           : [];
 
     const status = resolveNextStatusAfterScan({
@@ -578,7 +578,8 @@ onboardingController.post("/api/onboarding/document/verify-clarification", async
       ? storedQuestions
       : session.requires_authorship_gate
         ? fallbackAuthorshipQuestions(
-            Math.max(3, authorshipQuestionCount(wordCount) || resolveQuestionCount(String(session.source_text ?? "")))
+            Math.max(3, authorshipQuestionCount(wordCount) || resolveQuestionCount(String(session.source_text ?? ""))),
+            String(session.source_text ?? "")
           )
         : [];
 
@@ -645,7 +646,10 @@ onboardingController.post("/api/onboarding/document/verify-authorship", async (r
   if (questions.length === 0) {
     const wordCount = Number(session.word_count ?? 0) || countWords(String(session.source_text ?? ""));
     if (session.requires_authorship_gate) {
-      questions = fallbackAuthorshipQuestions(Math.max(3, authorshipQuestionCount(wordCount)));
+      questions = fallbackAuthorshipQuestions(
+        Math.max(3, authorshipQuestionCount(wordCount)),
+        source
+      );
       await supabase
         .from("p4_document_ingest_sessions")
         .update({ authorship_questions: questions, updated_at: new Date().toISOString() })
@@ -783,7 +787,15 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
       )
     : false;
 
-  const proposed = (Array.isArray(body.proposed_wiki) ? body.proposed_wiki : session.proposed_wiki) as ProposedWikiEntry[];
+  const proposedRaw = (Array.isArray(body.proposed_wiki)
+    ? body.proposed_wiki
+    : session.proposed_wiki) as ProposedWikiEntry[];
+  const proposed = proposedRaw.filter(
+    (p) =>
+      p &&
+      typeof p === "object" &&
+      String((p as ProposedWikiEntry).excerpt ?? "").trim().length >= 1
+  );
   const outlineBeats = (
     Array.isArray(body.outline_beats) ? body.outline_beats : session.outline_beats
   ) as IngestOutlineBeat[];
@@ -875,7 +887,10 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
       sourceText,
       proposed: normalizedProposed,
       outlineBeats: archiveOnly ? [] : outlineBeats,
-      syncMsgfBrain: body.sync_msgf_brain !== false,
+      syncMsgfBrain:
+        body.sync_msgf_brain === true ||
+        String(body.sync_msgf_brain).toLowerCase() === "true" ||
+        process.env.MSGF_DOCUMENT_INGEST_SYNC_BRAIN === "1",
     });
 
     await supabase

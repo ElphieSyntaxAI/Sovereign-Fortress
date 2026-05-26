@@ -32,12 +32,27 @@ const nextConfig: NextConfig = {
     // Allow importing `DashboardOrchestratorService` from `apps/author-ecosystem/server`.
     externalDir: true,
   },
-  webpack(config) {
+  webpack(config, { dev }) {
     // Author-ecosystem sources use `.js` extensions in TypeScript ESM imports; resolve to `.ts` for bundling.
     config.resolve.extensionAlias = {
       ".js": [".ts", ".tsx", ".js"],
       ".mjs": [".mts", ".mjs"],
     };
+    // Bind-mounting the whole monorepo on Docker Desktop (esp. Windows/OneDrive) makes the
+    // default watcher scan author-ecosystem + node_modules churn — high CPU in `next dev`.
+    if (dev) {
+      const ignored = [
+        "**/node_modules/**",
+        "**/.git/**",
+        path.join(monorepoRoot, "apps/author-ecosystem/client/**"),
+        path.join(monorepoRoot, "apps/author-ecosystem/server/tests/**"),
+      ];
+      const prev = config.watchOptions?.ignored;
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: prev ? (Array.isArray(prev) ? [...prev, ...ignored] : [prev, ...ignored]) : ignored,
+      };
+    }
     return config;
   },
 };

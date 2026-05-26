@@ -470,6 +470,7 @@ import {
   CO2_LBS_PER_TREE_SEEDLING_10_YEARS,
   type EcoEquivalencyStatements,
 } from "@/lib/utils/ecoEquivalencies";
+import { formatDisplayDateTime, formatDisplayNumber } from "@/lib/utils/formatLocale";
 
 type PublicEcoMetricsPayload = {
   ok: true;
@@ -599,7 +600,7 @@ export function PublicEcoMetricsWidget() {
               {loading ? "Loading live metrics" : `${data.source} metrics`}
             </span>
             <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-violet-100">
-              Updated {Number.isNaN(generatedAt.getTime()) ? "recently" : generatedAt.toLocaleString()}
+              Updated {formatDisplayDateTime(generatedAt)}
             </span>
           </div>
         </div>

@@ -7,7 +7,10 @@ import type {
   ProposedWikiEntry,
   ScanThought,
 } from "./documentIngestGate.js";
-import { authorshipQuestionCount } from "./documentIngestGate.js";
+import {
+  authorshipQuestionCount,
+  buildAuthorshipQuestionsFromSource,
+} from "./documentIngestGate.js";
 import type { DocumentIngestMsgfMeta } from "./documentIngestMsgfPipeline.js";
 import { runMsgfDocumentConverge } from "./documentIngestMsgfPipeline.js";
 import type {
@@ -91,7 +94,12 @@ export async function enrichDocumentIngestWithLlm(params: {
   });
 }
 
-export function fallbackAuthorshipQuestions(count: number): AuthorshipQuestion[] {
+export function fallbackAuthorshipQuestions(count: number, sourceText?: string): AuthorshipQuestion[] {
+  const fromDoc = sourceText?.trim()
+    ? buildAuthorshipQuestionsFromSource(sourceText, count)
+    : [];
+  if (fromDoc.length >= 3) return fromDoc;
+
   const pool = [
     {
       id: "q1",

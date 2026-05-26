@@ -57,6 +57,18 @@ describe("platform personas (author)", () => {
 });
 
 describe("document ingest gate", () => {
+  test("buildAuthorshipQuestionsFromSource yields verifiable prompts", async () => {
+    const { buildAuthorshipQuestionsFromSource, answerFoundInSource } = await import(
+      "../src/lib/documentIngestGate.js"
+    );
+    const source = "Chapter 29\nSummer Pov\nThe vault opens beneath Elphine Station.";
+    const qs = buildAuthorshipQuestionsFromSource(source, 3);
+    assert.ok(qs.length >= 3);
+    assert.ok(qs.some((q) => /Summer/i.test(q.question)));
+    const answer = "Summer";
+    assert.ok(answerFoundInSource(answer, source));
+  });
+
   test("authorship gate triggers over 3000 words or 3 pages", () => {
     assert.equal(requiresAuthorshipGate(3001, 1), true);
     assert.equal(requiresAuthorshipGate(100, 4), true);
@@ -228,6 +240,19 @@ describe("document ingest outline → wiki building blocks", () => {
 
     const tableCell = extractPovFromTableCell("Summer");
     assert.ok(tableCell.some((p) => /summer/i.test(p)));
+  });
+
+  test("dedicated chapter tab detects Ch. 29 and numeric tab titles", async () => {
+    const { extractOutlineBeatsFromText } = await import("../src/lib/documentIngestOutline.js");
+    const fromCh = extractOutlineBeatsFromText(
+      ["--- TAB: Ch. 29 ---", "Chapter 29", "Summer Pov", "Vault scene."].join("\n")
+    );
+    assert.ok(fromCh.some((b) => b.chapter_number === 29), "Ch. 29 tab");
+
+    const fromNum = extractOutlineBeatsFromText(
+      ["--- TAB: 29 ---", "Chapter 29", "Summer Pov", "Only this chapter."].join("\n")
+    );
+    assert.ok(fromNum.some((b) => b.chapter_number === 29), "numeric tab 29");
   });
 
   test("chapter 29 tab keeps Summer POV and does not bundle chapter 30", () => {
