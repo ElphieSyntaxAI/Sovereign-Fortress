@@ -67,3 +67,15 @@ export {
   sanitizeAuthorReturnToUrl,
   type OperatorHandoffPayload,
 } from "./lib/operator-handoff-url";
+
+export {
+  ELPHIE_PRODUCT_HOSTS,
+  PLATFORM_HUB_ENTRIES,
+  PLATFORM_HUB_ROADMAP_AS_OF,
+  availabilityLabel,
+  productionMapLine,
+  type PlatformHubAvailability,
+  type PlatformHubEntry,
+  type PlatformHubRoadmapPhase,
+  type PlatformHubTone,
+} from "./lib/platform-hub-content";

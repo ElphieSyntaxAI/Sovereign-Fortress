@@ -3,11 +3,11 @@
 **Status:** Single source of truth for product vision, terminology, phased delivery, tiers, and target system states.  
 **Companion tracker:** Operational repo ↔ pillar mapping lives in `docs/PILLAR_PROGRESS.md` (update both when scope shifts).
 
-**Production URL:** **https://elphiesyntax.com**
+**Production URL:** **https://authorecosystem.elphiesyntax.com** (global hub / picker: **https://elphiesyntax.com**)
 
 **Shared engine:** MSGF (guardrails, Pulse, Vault/Hall) — **https://elphiesgatedai.elphiesyntax.com** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) and [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md).
 
-**Last updated:** 2026-05-15
+**Last updated:** 2026-05-25
 
 ---
 
@@ -37,7 +37,9 @@ ElphieSyntax is a sovereign narrative infrastructure that transitions authors fr
 
 | Feature | Description |
 | :--- | :--- |
+| **Document ingest (MSGF V3.2)** | Uploads & Google Docs → scan → authorship Q&A → review → commit (wiki, outline, world bible). |
 | **HAL v2 Certificate** | Telemetry summary + Vault Seal + Lore-Git chain (exportable proof bundle). |
+| **MSGF Pulse bridge** | HAL chunk-pulse → Gated AI routing; token savings on `tenant_id=author_ecosystem`. |
 | **Author RAG Model** | Sidekick for continuity and outline adherence. |
 | **Progress Tracking** | Word count + outline percentage. |
 | **Unified Registration** | Atomic transaction (Auth + Profile + Pact + Legacy). |

@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
+-- =============================================================================
 -- Repair: clarify columns may be missing if 20260525120000 was claimed by another migration file.
 
 ALTER TABLE public.p4_document_ingest_sessions

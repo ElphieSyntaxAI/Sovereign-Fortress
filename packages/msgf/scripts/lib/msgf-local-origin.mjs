@@ -1,3 +1,15 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
+ */
 /** Keep in sync with `lib/runtime/msgf-dev-defaults.ts` (port 3001 — :3000 reserved for other local apps). */
 export const MSGF_DEV_DEFAULT_PORT = 3001;
 export const MSGF_LOCAL_DEV_ORIGIN_DEFAULT = `http://127.0.0.1:${MSGF_DEV_DEFAULT_PORT}`;

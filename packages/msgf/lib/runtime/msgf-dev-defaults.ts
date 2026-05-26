@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
+ */
+/**
  * Local MSGF dev defaults — port 3001 frees :3000 for other apps (e.g. LIFF / LINE mini-app).
  * Override with PORT, MSGF_LOCAL_DEV_URL, or MSGF_APP_URL in .env.local.
  */

@@ -13,6 +13,20 @@
 # Docs and caches (optional size wins)
 **/*.md
 !README.md
+# Author client Vite ?raw imports + BFF pact hash — explicit paths (Docker negation is picky)
+!apps/
+!apps/author-ecosystem/
+!apps/author-ecosystem/nda/
+!apps/author-ecosystem/nda/vault-pact-bilateral.md
+!apps/author-ecosystem/nda/author-nda.md
+!apps/author-ecosystem/nda/editor-helper-nda.md
+!apps/author-ecosystem/nda/fan-chronicler-nda.md
+!apps/author-ecosystem/nda/publisher-legal-nda.md
+!apps/author-ecosystem/terms/
+!apps/author-ecosystem/terms/author-terms.md
+!apps/author-ecosystem/terms/editor-helper-terms.md
+!apps/author-ecosystem/terms/fan-chronicler-terms.md
+!apps/author-ecosystem/terms/publisher-legal-terms.md
 
 **/.turbo
 **/coverage

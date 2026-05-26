@@ -31,6 +31,11 @@
     "test:author:client:build": "npm run build -w @elphie-syntax/author-ecosystem-client",
     "validate:deployment": "node scripts/validate-deployment.mjs",
     "validate:deployment:env": "node scripts/validate-deployment.mjs --with-env",
+    "deploy:msgf:cloud": "bash ./setup-cloud.sh",
+    "deploy:author:cloud": "bash ./setup-author-cloud.sh",
+    "deploy:domains:map": "bash ./map-product-domains.sh",
+    "deploy:products": "bash ./deploy-product-domains.sh",
+    "deploy:cloudrun:env": "node scripts/prepare-cloudrun-env.mjs",
     "deep-test:solo": "npm run deep-test:solo -w msgf",
     "deep-test:solo:live": "npm run deep-test:solo:live -w msgf",
     "package:pulse-guard": "node tools/package-pulse-guard.js"

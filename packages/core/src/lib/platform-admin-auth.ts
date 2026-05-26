@@ -99,8 +99,9 @@ export function buildMsgfAuthCallbackUrl(options?: {
       env: options?.env,
       hostname: options?.hostname,
     });
+  const search = options?.search ?? "";
   const params = new URLSearchParams(
-    options.search?.startsWith("?") ? options.search.slice(1) : options.search ?? ""
+    search.startsWith("?") ? search.slice(1) : search
   );
   const next =
     params.get("next") ??

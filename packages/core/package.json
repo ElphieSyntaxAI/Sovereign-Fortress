@@ -38,6 +38,11 @@
       "types": "./src/lib/operator-handoff-token.ts",
       "import": "./src/lib/operator-handoff-token.ts",
       "default": "./src/lib/operator-handoff-token.ts"
+    },
+    "./platform-hub-content": {
+      "types": "./src/lib/platform-hub-content.ts",
+      "import": "./src/lib/platform-hub-content.ts",
+      "default": "./src/lib/platform-hub-content.ts"
     }
   },
   "dependencies": {

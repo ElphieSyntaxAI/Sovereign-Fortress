@@ -30,6 +30,9 @@ DOCKERFILE_PATH="${DOCKERFILE_PATH:-Dockerfile}"
 # Image tag (defaults to short git SHA or timestamp).
 IMAGE_TAG="${IMAGE_TAG:-}"
 
+# Set SKIP_CLOUD_BUILD=1 to redeploy an image already in Artifact Registry (skip Cloud Build).
+SKIP_CLOUD_BUILD="${SKIP_CLOUD_BUILD:-0}"
+
 # Cloud Run sizing (override as needed).
 CLOUD_RUN_CPU="${CLOUD_RUN_CPU:-2}"
 CLOUD_RUN_MEMORY="${CLOUD_RUN_MEMORY:-2Gi}"
@@ -183,9 +186,27 @@ echo ""
 echo "=== MSGF — Cloud Build + Cloud Run deploy ==="
 echo ""
 
-# --- Project -----------------------------------------------------------------
+# --- Project (prefer .env.cloudrun before interactive prompt) ---------------
+if [[ -f "${CLOUDRUN_ENV_FILE}" ]]; then
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line="${line//$'\r'/}"
+    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// /}" ]] && continue
+    if [[ "${line}" =~ ^GCP_PROJECT_ID= ]]; then
+      v="${line#GCP_PROJECT_ID=}"
+      v="${v%%[[:space:]]#*}"
+      v="${v%"${v##*[![:space:]]}"}"
+      if [[ -z "${GCP_PROJECT_ID// /}" && -n "${v}" ]]; then
+        GCP_PROJECT_ID="${v}"
+      fi
+      break
+    fi
+  done <"${CLOUDRUN_ENV_FILE}"
+fi
+
 if [[ -z "${GCP_PROJECT_ID// /}" ]]; then
-  read -r -p "Enter GCP_PROJECT_ID: " GCP_PROJECT_ID
+  read -r -p "Enter GCP_PROJECT_ID [msgf-shield]: " GCP_PROJECT_ID
+  GCP_PROJECT_ID="${GCP_PROJECT_ID:-msgf-shield}"
   GCP_PROJECT_ID="${GCP_PROJECT_ID//[[:space:]]/}"
 fi
 if [[ -z "${GCP_PROJECT_ID}" ]]; then
@@ -449,23 +470,36 @@ EOF
   rm -f "${cb_tmp}"
 }
 
-if [[ "${DOCKERFILE_PATH}" == "Dockerfile" ]]; then
-  run_cloud_build_default_dockerfile
+if [[ "${SKIP_CLOUD_BUILD}" == "1" ]]; then
+  echo "SKIP_CLOUD_BUILD=1 — using existing image ${IMAGE_URI}"
 else
-  echo "Using non-default Dockerfile via generated Cloud Build config."
-  run_cloud_build_custom_dockerfile
+  if [[ "${DOCKERFILE_PATH}" == "Dockerfile" ]]; then
+    run_cloud_build_default_dockerfile
+  else
+    echo "Using non-default Dockerfile via generated Cloud Build config."
+    run_cloud_build_custom_dockerfile
+  fi
 fi
 
-# --- Cloud Run deploy env string (RUN_ENV already populated above) ------------
-UPDATE_ENV_FLAGS=()
-ENV_STRING=""
-sep=""
-for k in "${!RUN_ENV[@]}"; do
-  ENV_STRING+="${sep}${k}=${RUN_ENV[$k]}"
-  sep=","
-done
-if [[ -n "${ENV_STRING}" ]]; then
-  UPDATE_ENV_FLAGS=(--update-env-vars="${ENV_STRING}")
+# --- Cloud Run deploy env (YAML file — comma-separated --update-env-vars breaks on URL lists) ---
+_write_cloudrun_env_file() {
+  local out="$1"
+  local k v
+  : >"${out}"
+  for k in "${!RUN_ENV[@]}"; do
+    v="${RUN_ENV[$k]}"
+    [[ -n "${v}" ]] || continue
+    v="${v//\\/\\\\}"
+    v="${v//\"/\\\"}"
+    printf '%s: "%s"\n' "${k}" "${v}" >>"${out}"
+  done
+}
+
+ENV_VARS_FILE=""
+ENV_VARS_TMP="$(mktemp "${TMPDIR:-/tmp}/msgf-cloudrun-env.XXXXXX.yaml")"
+_write_cloudrun_env_file "${ENV_VARS_TMP}"
+if [[ -s "${ENV_VARS_TMP}" ]]; then
+  ENV_VARS_FILE="${ENV_VARS_TMP}"
 fi
 
 # --- Secrets (MASTER_* env vars ← Secret Manager; strict comma syntax, no spaces) ---
@@ -508,14 +542,15 @@ DEPLOY_CMD=(
   --vpc-egress="${CLOUD_RUN_VPC_EGRESS}"
 )
 
-if [[ "${#UPDATE_ENV_FLAGS[@]}" -gt 0 ]]; then
-  DEPLOY_CMD+=("${UPDATE_ENV_FLAGS[@]}")
+if [[ -n "${ENV_VARS_FILE}" ]]; then
+  DEPLOY_CMD+=(--env-vars-file="${ENV_VARS_FILE}")
 fi
 if [[ "${#SECRET_FLAGS[@]}" -gt 0 ]]; then
   DEPLOY_CMD+=("${SECRET_FLAGS[@]}")
 fi
 
 "${DEPLOY_CMD[@]}"
+rm -f "${ENV_VARS_TMP}"
 
 SERVICE_URL="$(
   gcloud run services describe "${CLOUD_RUN_SERVICE}" \

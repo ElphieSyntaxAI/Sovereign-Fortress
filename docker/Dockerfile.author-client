@@ -1,0 +1,50 @@
+# Author Vite SPA — static nginx on Cloud Run (PORT=8080).
+# Build from repo root; pass VITE_* as --build-arg (see setup-author-cloud.sh).
+
+FROM node:20-bookworm-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+COPY packages ./packages
+COPY apps ./apps
+COPY tools ./tools
+# Legal markdown must be present for Vite ?raw imports (see .dockerignore exceptions)
+COPY apps/author-ecosystem/nda ./apps/author-ecosystem/nda
+COPY apps/author-ecosystem/terms ./apps/author-ecosystem/terms
+
+RUN npm ci --no-audit --no-fund \
+  && mkdir -p /app/packages/msgf/node_modules
+
+ARG VITE_SUPABASE_URL=
+ARG VITE_SUPABASE_ANON_KEY=
+ARG VITE_AUTHOR_BFF_URL=
+ARG VITE_AUTHOR_APP_URL=
+ARG VITE_MSGF_APP_URL=
+ARG VITE_EDUCATION_APP_URL=
+
+ENV VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+ENV VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+ENV VITE_AUTHOR_BFF_URL=${VITE_AUTHOR_BFF_URL}
+ENV VITE_AUTHOR_APP_URL=${VITE_AUTHOR_APP_URL}
+ENV VITE_MSGF_APP_URL=${VITE_MSGF_APP_URL}
+ENV VITE_EDUCATION_APP_URL=${VITE_EDUCATION_APP_URL}
+ENV NEXT_PUBLIC_SUPABASE_URL=${VITE_SUPABASE_URL}
+ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_ANON_KEY}
+ENV AUTHOR_APP_URL=${VITE_AUTHOR_APP_URL}
+ENV MSGF_APP_URL=${VITE_MSGF_APP_URL}
+
+RUN npm run build -w @elphie-syntax/author-ecosystem-client
+
+FROM nginx:1.27-alpine AS production
+
+COPY docker/nginx-author-spa.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/apps/author-ecosystem/client/dist /usr/share/nginx/html
+
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]

@@ -137,11 +137,14 @@ npm run validate:deployment
 
 ### 5. DNS / deploy
 
+Full checklist: **[`DEPLOY_PRODUCT_DOMAINS.md`](./DEPLOY_PRODUCT_DOMAINS.md)**
+
 ```powershell
-.\setup-cloud.ps1    # or ./setup-cloud.sh — MSGF Cloud Run
+Copy-Item env.cloudrun.example .env.cloudrun   # fill secrets
+.\deploy-product-domains.ps1                 # or ./deploy-product-domains.sh in Git Bash
 ```
 
-Deploy Author client + BFF to `authorecosystem` (your existing GCP/ hosting path). Map DNS CNAMEs after services are healthy.
+Or stepwise: `.\setup-cloud.ps1` → `.\setup-author-cloud.ps1` → `.\map-product-domains.sh` (Git Bash for the last if no PS wrapper).
 
 ### 6. Post-deploy smoke
 

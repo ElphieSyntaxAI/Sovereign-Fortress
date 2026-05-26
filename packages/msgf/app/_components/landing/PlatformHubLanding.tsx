@@ -8,126 +8,45 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-92d026a-20260522T181651Z-internal
+ * Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
  */
 /**
  * `app/page.tsx` — "What are you looking for?" platform chooser hub.
- *
- * Why this is on `/` (not /hub or /landing):
- *  - `elphiesyntax.com` is the global hub. During testing, the same hub can be
- *    served from the default Cloud Run URL without redirecting away.
- *  - MSGF brand marketing ("Glass box sovereignty…") still lives at `/brain`
- *    (the legacy `HomeLanding`) and stays linkable from the MSGF card.
- *  - Detail pages already exist at `/products/{author,education,msgf}` and
- *    we link straight into them from each card's "Find out more".
- *
- * Twin: `apps/author-ecosystem/client/src/pages/PlatformHubPage.jsx` carries
- * the same chooser for temporary/apex deployments. Keep copy and palette aligned.
+ * Copy SSOT: packages/core/src/lib/platform-hub-content.ts
+ * Twin: apps/author-ecosystem/client/src/pages/PlatformHubPage.jsx
  */
 import Link from "next/link";
+
+import {
+  PLATFORM_HUB_ENTRIES,
+  PLATFORM_HUB_ROADMAP_AS_OF,
+  availabilityLabel,
+  productionMapLine,
+  type PlatformHubAvailability,
+  type PlatformHubEntry,
+  type PlatformHubTone,
+} from "@elphie-syntax/core";
 
 import { canAccessPrelaunchProducts } from "@/lib/prelaunch-product-access";
 
 import { AuthLandingNav } from "./AuthLandingNav";
 import { PublicEcoMetricsWidget } from "./PublicEcoMetricsWidget";
 
-type ToneId = "emerald" | "amethyst" | "topaz";
-
 type PlatformPrimary =
   | { label: string; href: string; external: false }
   | { label: string; href: string; external: true };
 
-type Platform = {
-  id: string;
-  anchor: string;
-  eyebrow: string;
-  title: string;
-  tagline: string;
-  bullets: readonly string[];
-  tone: ToneId;
-  primary: PlatformPrimary;
-  prelaunch: boolean;
-  /** `/products/{id}` on MSGF — internal route. */
-  learnMoreHref: string;
-};
-
 const AUTHOR_HOST =
   process.env.AUTHOR_APP_URL?.trim() ||
   process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim() ||
-  "";
+  "https://authorecosystem.elphiesyntax.com";
 const SYNTAX_EDUCATES_HOST =
   process.env.EDUCATION_APP_URL?.trim() ||
   process.env.NEXT_PUBLIC_EDUCATION_APP_URL?.trim() ||
   "https://syntaxeducates.elphiesyntax.com";
 
-const PLATFORMS: readonly Platform[] = [
-  {
-    id: "author",
-    anchor: "author",
-    eyebrow: "Sovereign · For writers & publishers",
-    title: "Author Ecosystem",
-    tagline:
-      "Sovereign narrative infrastructure — HAL biometric proof, Vault Pact NDA, Cool Down revision locks.",
-    bullets: [
-      "HAL Ledger — biometric proof of human authorship",
-      "Vault Pact — zero-training, no-human-browsing NDA",
-      "Cool Down + Bicameral audit — publisher-grade revision receipts",
-    ],
-    tone: "amethyst",
-    primary: {
-      label: "Open Author Ecosystem",
-      href: AUTHOR_HOST || "/products/author",
-      external: Boolean(AUTHOR_HOST),
-    },
-    prelaunch: true,
-    learnMoreHref: "/products/author",
-  },
-  {
-    id: "education",
-    anchor: "education",
-    eyebrow: "K–12 · LTI 1.3 · Utah-aware",
-    title: "Syntax Education",
-    tagline:
-      "Socratic sandbox with grade-aware AI Allowance, district-approved curriculum slicing, and Canvas LTI 1.3.",
-    bullets: [
-      "Layered Workspace Control — Layer A toolbox · Layer B allowance",
-      "Canvas LTI 1.3 + de-identified privacy gate",
-      "Human Effort Certificate → SpeedGrader passback",
-    ],
-    tone: "topaz",
-    primary: {
-      label: "Open Syntax Education",
-      href: SYNTAX_EDUCATES_HOST,
-      external: true,
-    },
-    prelaunch: true,
-    learnMoreHref: "/products/education",
-  },
-  {
-    id: "msgf",
-    anchor: "msgf",
-    eyebrow: "Brain · For developers & enterprise teams",
-    title: "MSGF — Gated AI",
-    tagline:
-      "Stateful, self-defending AI orchestration. Six pillars, hot/cold storage, dual-model consensus, human tie-breaker.",
-    bullets: [
-      "SWEEP → SHARD → DEFEND → CONVERGE → ARBITRATE → PERSIST",
-      "Vault (positive) vs Hall (negative) cross-reference on every Pulse",
-      "RED immediate · YELLOW 6h · GREEN 24h tiered batching",
-    ],
-    tone: "emerald",
-    primary: {
-      label: "Sign in to MSGF console",
-      href: "/sign-in",
-      external: false,
-    },
-    prelaunch: false,
-    learnMoreHref: "/products/msgf",
-  },
-];
-
 const TONE: Record<
-  ToneId,
+  PlatformHubTone,
   {
     ring: string;
     eyebrow: string;
@@ -137,6 +56,9 @@ const TONE: Record<
     secondary: string;
     sectionAccent: string;
     chipBullet: string;
+    statusLive: string;
+    statusDeploy: string;
+    statusSoon: string;
   }
 > = {
   emerald: {
@@ -149,6 +71,9 @@ const TONE: Record<
     secondary: "text-emerald-200/85 hover:text-emerald-100",
     sectionAccent: "border-emerald-500/20 bg-emerald-500/5",
     chipBullet: "bg-emerald-300/80",
+    statusLive: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
+    statusDeploy: "border-violet-500/35 bg-violet-500/15 text-violet-200",
+    statusSoon: "border-slate-600/50 bg-slate-800/50 text-slate-400",
   },
   amethyst: {
     ring: "border-violet-500/25 hover:border-violet-400/45",
@@ -160,6 +85,9 @@ const TONE: Record<
     secondary: "text-violet-200/85 hover:text-violet-100",
     sectionAccent: "border-violet-500/20 bg-violet-500/5",
     chipBullet: "bg-violet-300/80",
+    statusLive: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
+    statusDeploy: "border-violet-500/35 bg-violet-500/15 text-violet-200",
+    statusSoon: "border-slate-600/50 bg-slate-800/50 text-slate-400",
   },
   topaz: {
     ring: "border-amber-500/25 hover:border-amber-400/45",
@@ -171,14 +99,46 @@ const TONE: Record<
     secondary: "text-amber-200/85 hover:text-amber-100",
     sectionAccent: "border-amber-500/20 bg-amber-500/5",
     chipBullet: "bg-amber-300/80",
+    statusLive: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
+    statusDeploy: "border-violet-500/35 bg-violet-500/15 text-violet-200",
+    statusSoon: "border-slate-600/50 bg-slate-800/50 text-slate-400",
   },
 };
+
+function statusBadgeClass(tone: PlatformHubTone, availability: PlatformHubAvailability) {
+  const styles = TONE[tone];
+  if (availability === "live") return styles.statusLive;
+  if (availability === "deploying") return styles.statusDeploy;
+  return styles.statusSoon;
+}
+
+function resolvePrimary(platform: PlatformHubEntry): PlatformPrimary {
+  if (platform.id === "author") {
+    return {
+      label: "Open Author Ecosystem",
+      href: AUTHOR_HOST,
+      external: true,
+    };
+  }
+  if (platform.id === "education") {
+    return {
+      label: "Open Syntax Education",
+      href: SYNTAX_EDUCATES_HOST,
+      external: true,
+    };
+  }
+  return {
+    label: "Sign in to MSGF console",
+    href: "/sign-in",
+    external: false,
+  };
+}
 
 function PrimaryCta({
   platform,
   canOpenPrelaunch,
 }: {
-  platform: Platform;
+  platform: PlatformHubEntry;
   canOpenPrelaunch: boolean;
 }) {
   const styles = TONE[platform.tone];
@@ -190,24 +150,35 @@ function PrimaryCta({
       </span>
     );
   }
-  if (platform.primary.external) {
+  const primary = resolvePrimary(platform);
+  if (primary.external) {
     return (
       <a
-        href={platform.primary.href}
+        href={primary.href}
         target="_blank"
         rel="noreferrer noopener"
         className={className}
       >
-        {platform.primary.label}
+        {primary.label}
         <span aria-hidden>↗</span>
       </a>
     );
   }
   return (
-    <Link href={platform.primary.href} className={className}>
-      {platform.primary.label}
+    <Link href={primary.href} className={className}>
+      {primary.label}
       <span aria-hidden>→</span>
     </Link>
+  );
+}
+
+function AvailabilityBadge({ platform }: { platform: PlatformHubEntry }) {
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusBadgeClass(platform.tone, platform.availability)}`}
+    >
+      {availabilityLabel(platform.availability)}
+    </span>
   );
 }
 
@@ -215,7 +186,7 @@ function QuickCard({
   platform,
   canOpenPrelaunch,
 }: {
-  platform: Platform;
+  platform: PlatformHubEntry;
   canOpenPrelaunch: boolean;
 }) {
   const styles = TONE[platform.tone];
@@ -223,13 +194,16 @@ function QuickCard({
     <article
       className={`glass-panel flex flex-col gap-4 rounded-2xl border p-5 transition ${styles.ring}`}
     >
-      <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${styles.chipDot}`} aria-hidden />
-        <p
-          className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${styles.eyebrow}`}
-        >
-          {platform.eyebrow}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${styles.chipDot}`} aria-hidden />
+          <p
+            className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${styles.eyebrow}`}
+          >
+            {platform.eyebrow}
+          </p>
+        </div>
+        <AvailabilityBadge platform={platform} />
       </div>
 
       <h3
@@ -237,6 +211,11 @@ function QuickCard({
       >
         {platform.title}
       </h3>
+
+      <p className="text-xs font-medium text-slate-400">{platform.roadmapHeadline}</p>
+      <p className="text-[11px] text-slate-500">
+        <span className="text-slate-400">Host ·</span> {platform.productionHost}
+      </p>
 
       <p className="text-sm leading-relaxed text-slate-300">{platform.tagline}</p>
 
@@ -257,7 +236,7 @@ function QuickCard({
           href={`#${platform.anchor}`}
           className={`text-xs font-semibold underline-offset-4 hover:underline ${styles.secondary}`}
         >
-          Find out more →
+          Roadmap &amp; details →
         </a>
         <PrimaryCta platform={platform} canOpenPrelaunch={canOpenPrelaunch} />
       </div>
@@ -265,31 +244,78 @@ function QuickCard({
   );
 }
 
+function RoadmapPhaseBlock({
+  platform,
+  phase,
+}: {
+  platform: PlatformHubEntry;
+  phase: PlatformHubEntry["phases"][number];
+}) {
+  const styles = TONE[platform.tone];
+  return (
+    <li className="glass-panel rounded-2xl border border-slate-700/60 p-4 text-sm text-slate-200">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-semibold text-slate-100">{phase.label}</p>
+        <span className={`text-[10px] font-medium uppercase tracking-wide ${styles.eyebrow}`}>
+          {phase.status}
+        </span>
+      </div>
+      <ul className="mt-3 space-y-1.5 text-xs text-slate-300">
+        {phase.highlights.map((h) => (
+          <li key={h} className="flex items-start gap-2">
+            <span
+              className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${styles.chipBullet}`}
+              aria-hidden
+            />
+            <span>{h}</span>
+          </li>
+        ))}
+      </ul>
+    </li>
+  );
+}
+
 function DetailSection({
   platform,
   canOpenPrelaunch,
 }: {
-  platform: Platform;
+  platform: PlatformHubEntry;
   canOpenPrelaunch: boolean;
 }) {
   const styles = TONE[platform.tone];
+  const hostUrl = `https://${platform.productionHost}`;
   return (
     <section
       id={platform.anchor}
       className={`scroll-mt-24 rounded-3xl border p-6 sm:p-8 ${styles.sectionAccent}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="space-y-1">
-          <p
-            className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${styles.eyebrow}`}
-          >
-            {platform.eyebrow}
-          </p>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p
+              className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${styles.eyebrow}`}
+            >
+              {platform.eyebrow}
+            </p>
+            <AvailabilityBadge platform={platform} />
+          </div>
           <h2
             className={`bg-gradient-to-r bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl ${styles.titleGradient}`}
           >
             {platform.title}
           </h2>
+          <p className="text-sm text-slate-400">{platform.roadmapHeadline}</p>
+          <p className="text-xs text-slate-500">
+            Production ·{" "}
+            <a
+              href={hostUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className={`underline-offset-4 hover:underline ${styles.secondary}`}
+            >
+              {platform.productionHost} ↗
+            </a>
+          </p>
         </div>
         <PrimaryCta platform={platform} canOpenPrelaunch={canOpenPrelaunch} />
       </div>
@@ -315,14 +341,27 @@ function DetailSection({
         ))}
       </ul>
 
+      <div className="mt-6 space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">
+          Roadmap position
+        </h3>
+        <ul className="grid gap-3 lg:grid-cols-3">
+          {platform.phases.map((phase) => (
+            <RoadmapPhaseBlock key={phase.label} platform={platform} phase={phase} />
+          ))}
+        </ul>
+      </div>
+
       <p className="mt-5 text-xs text-slate-400">
-        Want the deep dive?{" "}
+        Deep dive ·{" "}
         <Link
-          href={platform.learnMoreHref}
+          href={`/products/${platform.id}`}
           className={`font-medium underline-offset-4 hover:underline ${styles.secondary}`}
         >
-          Read the {platform.title} roadmap →
+          {platform.title} product page →
         </Link>
+        <span className="mx-2 text-slate-600">·</span>
+        <span className="text-slate-500">SSOT {platform.roadmapDoc}</span>
       </p>
     </section>
   );
@@ -337,9 +376,9 @@ export async function PlatformHubLanding() {
 
       <main className="mx-auto max-w-6xl space-y-14 px-5 py-12 sm:py-16">
         <section className="text-center">
-          <p className="mb-3 text-xs text-slate-500">
-            Production map: elphiesyntax.com → global hub · authorecosystem ·
-            syntaxeducates · elphiesgatedai
+          <p className="mb-2 text-xs text-slate-500">{productionMapLine()}</p>
+          <p className="mb-3 text-[11px] text-slate-600">
+            Roadmap snapshot · updated {PLATFORM_HUB_ROADMAP_AS_OF}
           </p>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/90">
             Welcome to Elphie Syntax
@@ -348,30 +387,32 @@ export async function PlatformHubLanding() {
             <span className="text-gradient-jewel">What are you looking for?</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            Three surfaces, one shared MSGF brain. Pick the platform that fits how you
-            build — or how you learn — and we&apos;ll take you straight to it.
+            Three surfaces, one shared MSGF brain. MSGF 1.0 RC is live on{" "}
+            <span className="text-emerald-300/90">elphiesgatedai</span>; Author Phase 1 is
+            deploying to <span className="text-violet-300/90">authorecosystem</span>; Syntax
+            Education remains prelaunch.
           </p>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-3" aria-label="Pick a platform">
-          {PLATFORMS.map((p) => (
+          {PLATFORM_HUB_ENTRIES.map((p) => (
             <QuickCard key={p.id} platform={p} canOpenPrelaunch={canOpenPrelaunch} />
           ))}
         </section>
 
         <PublicEcoMetricsWidget />
 
-        <section className="space-y-8" aria-label="What each platform does">
+        <section className="space-y-8" aria-label="Roadmap and platform details">
           <header className="flex flex-wrap items-baseline justify-between gap-3">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              <span className="text-gradient-jewel">Find out what each platform does</span>
+              <span className="text-gradient-jewel">Roadmap &amp; what each platform does</span>
             </h2>
             <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
-              Source · /docs roadmaps
+              As of {PLATFORM_HUB_ROADMAP_AS_OF}
             </span>
           </header>
 
-          {PLATFORMS.map((p) => (
+          {PLATFORM_HUB_ENTRIES.map((p) => (
             <DetailSection key={p.id} platform={p} canOpenPrelaunch={canOpenPrelaunch} />
           ))}
         </section>
@@ -386,11 +427,20 @@ export async function PlatformHubLanding() {
               Sign in here →
             </Link>
             <span className="mx-2 text-slate-700">·</span>
+            <a
+              href={AUTHOR_HOST}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-semibold text-violet-300 underline-offset-4 hover:text-violet-200 hover:underline"
+            >
+              Author on authorecosystem ↗
+            </a>
+            <span className="mx-2 text-slate-700">·</span>
             <Link
               href="/brain"
               className="font-semibold text-violet-300 underline-offset-4 hover:text-violet-200 hover:underline"
             >
-              See the MSGF brand page →
+              MSGF brand page →
             </Link>
           </p>
         </section>

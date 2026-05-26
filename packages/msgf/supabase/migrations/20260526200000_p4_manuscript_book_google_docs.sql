@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
+-- =============================================================================
 -- Multiple Google Docs per manuscript (outlines, chapters, bible) for HAL + link session.
 
 ALTER TABLE public.p4_manuscript_link_sessions

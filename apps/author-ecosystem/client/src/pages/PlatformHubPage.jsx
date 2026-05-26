@@ -1,87 +1,27 @@
 import { Link } from "react-router-dom";
 
+import {
+  PLATFORM_HUB_ENTRIES,
+  PLATFORM_HUB_ROADMAP_AS_OF,
+  availabilityLabel,
+  productionMapLine,
+} from "@elphie-syntax/core";
+
 import { OperatorAdminLink } from "../components/OperatorAdminLink";
 import { getAuthorPrimaryTarget } from "../lib/authorHostRouting";
 
 /**
  * elphiesyntax.com home — "What are you looking for?" platform chooser.
- *
- * Replaces the old login-first landing so first-time visitors can:
- *   1. Pick the platform that fits how they build
- *   2. Read what each platform actually does (jump anchor to a detail block)
- *   3. Enter the live surface — or sign in to the author dashboard hosted here
- *
- * Jewel-tone palette stays in family with the MSGF dashboard / product family
- * (emerald · amethyst-violet · topaz-amber on slate / `landing-mesh` chrome).
+ * Copy SSOT: packages/core/src/lib/platform-hub-content.ts
+ * Twin: packages/msgf/app/_components/landing/PlatformHubLanding.tsx
  */
 
 const GATED_AI_HOST =
   import.meta.env.VITE_MSGF_APP_URL || "https://elphiesgatedai.elphiesyntax.com";
 const EDUCATION_HOST =
   import.meta.env.VITE_EDUCATION_APP_URL || "https://syntaxeducates.elphiesyntax.com";
-
-const PLATFORMS = [
-  {
-    id: "author",
-    anchor: "author",
-    eyebrow: "Sovereign · For writers & publishers",
-    title: "Author Ecosystem",
-    tagline:
-      "Sovereign narrative infrastructure — HAL biometric proof, Vault Pact NDA, Cool Down revision locks.",
-    bullets: [
-      "HAL Ledger — biometric proof of human authorship",
-      "Vault Pact — zero-training, no-human-browsing NDA",
-      "Cool Down + Bicameral audit — publisher-grade revision receipts",
-    ],
-    tone: "amethyst",
-    primary: {
-      label: "Open Author Ecosystem",
-      to: "/sign-in",
-      external: false,
-    },
-    learnMoreHref: `${GATED_AI_HOST}/products/author`,
-  },
-  {
-    id: "education",
-    anchor: "education",
-    eyebrow: "K–12 · LTI 1.3 · Utah-aware",
-    title: "Syntax Education",
-    tagline:
-      "Socratic sandbox with grade-aware AI Allowance, district-approved curriculum slicing, and Canvas LTI 1.3.",
-    bullets: [
-      "Layered Workspace Control — Layer A toolbox · Layer B allowance",
-      "Canvas LTI 1.3 + de-identified privacy gate",
-      "Human Effort Certificate → SpeedGrader passback",
-    ],
-    tone: "topaz",
-    primary: {
-      label: "Open Syntax Education",
-      to: EDUCATION_HOST,
-      external: true,
-    },
-    learnMoreHref: `${GATED_AI_HOST}/products/education`,
-  },
-  {
-    id: "msgf",
-    anchor: "msgf",
-    eyebrow: "Brain · For developers & enterprise teams",
-    title: "MSGF — Gated AI",
-    tagline:
-      "Stateful, self-defending AI orchestration. Six pillars, hot/cold storage, dual-model consensus, human tie-breaker.",
-    bullets: [
-      "SWEEP → SHARD → DEFEND → CONVERGE → ARBITRATE → PERSIST",
-      "Vault (positive) vs Hall (negative) cross-reference on every Pulse",
-      "RED immediate · YELLOW 6h · GREEN 24h tiered batching",
-    ],
-    tone: "emerald",
-    primary: {
-      label: "Open MSGF console",
-      to: GATED_AI_HOST,
-      external: true,
-    },
-    learnMoreHref: `${GATED_AI_HOST}/products/msgf`,
-  },
-];
+const AUTHOR_HOST =
+  import.meta.env.VITE_AUTHOR_APP_URL || "https://authorecosystem.elphiesyntax.com";
 
 const TONE = {
   emerald: {
@@ -94,6 +34,9 @@ const TONE = {
     secondary: "text-emerald-200/85 hover:text-emerald-100",
     sectionAccent: "border-emerald-500/20 bg-emerald-500/5",
     chipBullet: "bg-emerald-300/80",
+    statusLive: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
+    statusDeploy: "border-violet-500/35 bg-violet-500/15 text-violet-200",
+    statusSoon: "border-slate-600/50 bg-slate-800/50 text-slate-400",
   },
   amethyst: {
     ring: "border-violet-500/25 hover:border-violet-400/45",
@@ -105,6 +48,9 @@ const TONE = {
     secondary: "text-violet-200/85 hover:text-violet-100",
     sectionAccent: "border-violet-500/20 bg-violet-500/5",
     chipBullet: "bg-violet-300/80",
+    statusLive: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
+    statusDeploy: "border-violet-500/35 bg-violet-500/15 text-violet-200",
+    statusSoon: "border-slate-600/50 bg-slate-800/50 text-slate-400",
   },
   topaz: {
     ring: "border-amber-500/25 hover:border-amber-400/45",
@@ -116,6 +62,9 @@ const TONE = {
     secondary: "text-amber-200/85 hover:text-amber-100",
     sectionAccent: "border-amber-500/20 bg-amber-500/5",
     chipBullet: "bg-amber-300/80",
+    statusLive: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
+    statusDeploy: "border-violet-500/35 bg-violet-500/15 text-violet-200",
+    statusSoon: "border-slate-600/50 bg-slate-800/50 text-slate-400",
   },
 };
 
@@ -135,13 +84,51 @@ const GLASS_PANEL_STYLE = {
   WebkitBackdropFilter: "blur(16px)",
 };
 
+function statusBadgeClass(tone, availability) {
+  const styles = TONE[tone];
+  if (availability === "live") return styles.statusLive;
+  if (availability === "deploying") return styles.statusDeploy;
+  return styles.statusSoon;
+}
+
+function learnMoreHref(platform) {
+  return `${GATED_AI_HOST}/products/${platform.id}`;
+}
+
+function primaryForPlatform(platform) {
+  if (platform.id === "author") {
+    return {
+      label: "Open Author Ecosystem",
+      ...getAuthorPrimaryTarget(AUTHOR_HOST),
+    };
+  }
+  if (platform.id === "education") {
+    return {
+      label: "Open Syntax Education",
+      to: EDUCATION_HOST,
+      external: true,
+    };
+  }
+  return {
+    label: "Open MSGF console",
+    to: GATED_AI_HOST,
+    external: true,
+  };
+}
+
 function PrimaryCta({ platform }) {
   const styles = TONE[platform.tone];
   const className = `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${styles.primary}`;
-  const primary =
-    platform.id === "author"
-      ? { ...platform.primary, ...getAuthorPrimaryTarget() }
-      : platform.primary;
+
+  if (platform.prelaunch) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-800/40 px-4 py-2 text-sm font-medium text-slate-400">
+        Coming soon
+      </span>
+    );
+  }
+
+  const primary = primaryForPlatform(platform);
   if (primary.external) {
     return (
       <a
@@ -163,6 +150,17 @@ function PrimaryCta({ platform }) {
   );
 }
 
+function AvailabilityBadge({ platform }) {
+  const styles = TONE[platform.tone];
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusBadgeClass(platform.tone, platform.availability)}`}
+    >
+      {availabilityLabel(platform.availability)}
+    </span>
+  );
+}
+
 function QuickCard({ platform }) {
   const styles = TONE[platform.tone];
   return (
@@ -170,11 +168,14 @@ function QuickCard({ platform }) {
       style={GLASS_PANEL_STYLE}
       className={`flex flex-col gap-4 rounded-2xl border p-5 transition ${styles.ring}`}
     >
-      <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${styles.chipDot}`} aria-hidden />
-        <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${styles.eyebrow}`}>
-          {platform.eyebrow}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${styles.chipDot}`} aria-hidden />
+          <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${styles.eyebrow}`}>
+            {platform.eyebrow}
+          </p>
+        </div>
+        <AvailabilityBadge platform={platform} />
       </div>
 
       <h3
@@ -182,6 +183,11 @@ function QuickCard({ platform }) {
       >
         {platform.title}
       </h3>
+
+      <p className="text-xs font-medium text-slate-400">{platform.roadmapHeadline}</p>
+      <p className="text-[11px] text-slate-500">
+        <span className="text-slate-400">Host ·</span> {platform.productionHost}
+      </p>
 
       <p className="text-sm leading-relaxed text-slate-300">{platform.tagline}</p>
 
@@ -202,11 +208,39 @@ function QuickCard({ platform }) {
           href={`#${platform.anchor}`}
           className={`text-xs font-semibold underline-offset-4 hover:underline ${styles.secondary}`}
         >
-          Find out more →
+          Roadmap &amp; details →
         </a>
         <PrimaryCta platform={platform} />
       </div>
     </article>
+  );
+}
+
+function RoadmapPhaseBlock({ platform, phase }) {
+  const styles = TONE[platform.tone];
+  return (
+    <li
+      style={GLASS_PANEL_STYLE}
+      className="rounded-2xl border border-slate-700/60 p-4 text-sm text-slate-200"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-semibold text-slate-100">{phase.label}</p>
+        <span className={`text-[10px] font-medium uppercase tracking-wide ${styles.eyebrow}`}>
+          {phase.status}
+        </span>
+      </div>
+      <ul className="mt-3 space-y-1.5 text-xs text-slate-300">
+        {phase.highlights.map((h) => (
+          <li key={h} className="flex items-start gap-2">
+            <span
+              className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${styles.chipBullet}`}
+              aria-hidden
+            />
+            <span>{h}</span>
+          </li>
+        ))}
+      </ul>
+    </li>
   );
 }
 
@@ -218,15 +252,30 @@ function DetailSection({ platform }) {
       className={`scroll-mt-24 rounded-3xl border p-6 sm:p-8 ${styles.sectionAccent}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="space-y-1">
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${styles.eyebrow}`}>
-            {platform.eyebrow}
-          </p>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${styles.eyebrow}`}>
+              {platform.eyebrow}
+            </p>
+            <AvailabilityBadge platform={platform} />
+          </div>
           <h2
             className={`bg-gradient-to-r bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl ${styles.titleGradient}`}
           >
             {platform.title}
           </h2>
+          <p className="text-sm text-slate-400">{platform.roadmapHeadline}</p>
+          <p className="text-xs text-slate-500">
+            Production ·{" "}
+            <a
+              href={`https://${platform.productionHost}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className={`underline-offset-4 hover:underline ${styles.secondary}`}
+            >
+              {platform.productionHost} ↗
+            </a>
+          </p>
         </div>
         <PrimaryCta platform={platform} />
       </div>
@@ -253,16 +302,29 @@ function DetailSection({ platform }) {
         ))}
       </ul>
 
+      <div className="mt-6 space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">
+          Roadmap position
+        </h3>
+        <ul className="grid gap-3 lg:grid-cols-3">
+          {platform.phases.map((phase) => (
+            <RoadmapPhaseBlock key={phase.label} platform={platform} phase={phase} />
+          ))}
+        </ul>
+      </div>
+
       <p className="mt-5 text-xs text-slate-400">
-        Want the deep dive?{" "}
+        Deep dive ·{" "}
         <a
-          href={platform.learnMoreHref}
+          href={learnMoreHref(platform)}
           target="_blank"
           rel="noreferrer noopener"
           className={`font-medium underline-offset-4 hover:underline ${styles.secondary}`}
         >
-          Read the {platform.title} roadmap ↗
+          {platform.title} product page ↗
         </a>
+        <span className="mx-2 text-slate-600">·</span>
+        <span className="text-slate-500">SSOT {platform.roadmapDoc}</span>
       </p>
     </section>
   );
@@ -291,7 +353,7 @@ export default function PlatformHubPage() {
               to="/sign-in"
               className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
             >
-              Sign in
+              Author sign in
             </Link>
           </nav>
         </div>
@@ -299,9 +361,9 @@ export default function PlatformHubPage() {
 
       <main className="mx-auto max-w-6xl space-y-14 px-5 py-12 sm:py-16">
         <section className="text-center">
-          <p className="mb-3 text-xs text-slate-500">
-            Production map: elphiesyntax.com → global hub · authorecosystem ·
-            syntaxeducates · elphiesgatedai
+          <p className="mb-2 text-xs text-slate-500">{productionMapLine()}</p>
+          <p className="mb-3 text-[11px] text-slate-600">
+            Roadmap snapshot · updated {PLATFORM_HUB_ROADMAP_AS_OF}
           </p>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/90">
             Welcome to Elphie Syntax
@@ -318,13 +380,15 @@ export default function PlatformHubPage() {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            Three surfaces, one shared MSGF brain. Pick the platform that fits how you
-            build — or how you learn — and we&apos;ll take you straight to it.
+            Three surfaces, one shared MSGF brain. MSGF 1.0 RC is live on{" "}
+            <span className="text-emerald-300/90">elphiesgatedai</span>; Author Phase 1 is
+            deploying to <span className="text-violet-300/90">authorecosystem</span>; Syntax
+            Education remains prelaunch.
           </p>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-3" aria-label="Pick a platform">
-          {PLATFORMS.map((p) => (
+          {PLATFORM_HUB_ENTRIES.map((p) => (
             <QuickCard key={p.id} platform={p} />
           ))}
         </section>
@@ -339,27 +403,60 @@ export default function PlatformHubPage() {
                     "linear-gradient(135deg, #6ee7b7 0%, #c4b5fd 45%, #a855f7 100%)",
                 }}
               >
-                Find out what each platform does
+                Roadmap &amp; what each platform does
               </span>
             </h2>
             <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
-              Source · /docs roadmaps
+              As of {PLATFORM_HUB_ROADMAP_AS_OF}
             </span>
           </header>
 
-          {PLATFORMS.map((p) => (
+          {PLATFORM_HUB_ENTRIES.map((p) => (
             <DetailSection key={p.id} platform={p} />
           ))}
         </section>
 
+        <section
+          style={GLASS_PANEL_STYLE}
+          className="rounded-2xl border border-slate-700/50 p-5 text-sm text-slate-300"
+        >
+          <h2 className="text-base font-semibold text-slate-100">Deploying this week</h2>
+          <ul className="mt-3 list-inside list-disc space-y-1 text-xs sm:text-sm">
+            <li>
+              <strong className="text-emerald-300">elphiesgatedai</strong> — MSGF console (
+              <code className="text-slate-400">./setup-cloud.sh</code>)
+            </li>
+            <li>
+              <strong className="text-violet-300">authorecosystem</strong> — Author UI +{" "}
+              <strong className="text-violet-300">api.authorecosystem</strong> BFF (
+              <code className="text-slate-400">./setup-author-cloud.sh</code>)
+            </li>
+            <li>
+              <strong className="text-slate-400">elphiesyntax.com</strong> — this hub (apex DNS →
+              author-client or shared static host)
+            </li>
+          </ul>
+          <p className="mt-3 text-xs text-slate-500">
+            Runbook · <code className="text-slate-400">docs/DEPLOY_PRODUCT_DOMAINS.md</code> in the
+            monorepo
+          </p>
+        </section>
+
         <section className="text-center">
           <p className="text-sm text-slate-400">
-            Already have an Elphie Syntax author account?{" "}
+            Already have an author account?{" "}
+            <a
+              href={AUTHOR_HOST}
+              className="font-semibold text-violet-300 underline-offset-4 hover:text-violet-200 hover:underline"
+            >
+              Sign in on authorecosystem ↗
+            </a>
+            <span className="mx-2 text-slate-700">·</span>
             <Link
               to="/sign-in"
               className="font-semibold text-emerald-300 underline-offset-4 hover:text-emerald-200 hover:underline"
             >
-              Sign in here →
+              Sign in on this host →
             </Link>
           </p>
         </section>

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-92d026a-20260522T181651Z-internal
+ * Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
  */
 /**
  * /products/author — "Find out more" detail page for the Author Ecosystem surface.
@@ -38,8 +38,8 @@ export default async function Page() {
       tone="amethyst"
       eyebrow="Creative Integrity Flywheel"
       title="Author Ecosystem"
-      tagline="From “Protecting the Work” to “Perfecting the Work.” Sovereign narrative infrastructure backed by the same MSGF brain — HAL telemetry, Vault Pact, Cool Down locks, and a bicameral audit path for publisher-grade proofs."
-      vision="ElphieSyntax is a sovereign narrative infrastructure that transitions authors from protecting the work (sovereignty) to perfecting the work (professionalism). HAL Ledger captures biometric authorship proof; the Vault Pact enforces zero-training and no-human-browsing; Cool Down Locks impose professional distance; and the Bicameral Audit (Librarian + Critic) generates publisher-ready receipts."
+      tagline="From “Protecting the Work” to “Perfecting the Work.” Document ingest (MSGF V3.2), HAL telemetry, Vault Pact, planning hub, and MSGF Pulse bridge — on authorecosystem.elphiesyntax.com."
+      vision="ElphieSyntax is sovereign narrative infrastructure: document ingest maps planning docs into wiki, outline, and world bible; HAL Ledger captures biometric authorship proof; the Vault Pact enforces zero-training and no-human-browsing; MSGF Gated AI powers Pulse routing and token-savings visibility; Cool Down locks and bicameral audit (Librarian + Critic) are the Phase 2 professionalization path."
       liveUrl={liveUrl}
       liveLabel="Open Author dashboard"
       roadmapDocPath="docs/AUTHOR_ECOSYSTEM_ROADMAP.md"
@@ -51,13 +51,13 @@ export default async function Page() {
       ]}
       phases={[
         {
-          label: "Phase 1 — The Foundation (current WIP)",
-          status: "In flight",
+          label: "Phase 1 — The Foundation (current)",
+          status: "In flight · deploy-ready",
           highlights: [
-            "HAL v2 Certificate — telemetry + Vault Seal + Lore-Git proof bundle",
-            "Author RAG model — sidekick for continuity & outline adherence",
-            "Progress tracking — word count + outline percentage",
-            "Unified registration — atomic Auth + Profile + Pact + Legacy",
+            "Document ingest (MSGF V3.2) — Google Docs / uploads → wiki, outline, world bible",
+            "HAL + MSGF Pulse bridge — token savings on elphiesgatedai dashboard",
+            "Manuscript hub, planning command center, Vault Pact registration",
+            "BFF on api.authorecosystem · client on authorecosystem",
           ],
         },
         {

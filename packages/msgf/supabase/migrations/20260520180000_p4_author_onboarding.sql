@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
+-- =============================================================================
 -- Author onboarding: HAL startup pace + document ingest review sessions.
 
 ALTER TABLE public.p4_profiles
