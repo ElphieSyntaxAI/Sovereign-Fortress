@@ -15,11 +15,26 @@ export type HubManuscript = {
   project_phase: ProjectPhase | string;
   google_doc_url: string | null;
   google_doc_id: string | null;
+  companion_google_docs?: Array<{
+    google_doc_id: string;
+    google_doc_url: string;
+    google_doc_title?: string;
+  }>;
   hal_extension_enabled: boolean;
   linked_at: string | null;
   revisions_completed_at?: string | null;
   wiki_revision_locked_at?: string | null;
 };
+
+/** HAL-linked on manuscript row (link session confirm or google-doc/connect). */
+export function isManuscriptGoogleLinked(row: {
+  linked_at?: string | null;
+  google_doc_id?: string | null;
+  hal_extension_enabled?: boolean;
+}): boolean {
+  if (row.linked_at) return true;
+  return Boolean(row.google_doc_id && row.hal_extension_enabled);
+}
 
 export type PhaseColumns = {
   working: HubManuscript[];
@@ -40,24 +55,21 @@ export function normalizePhase(raw: string | null | undefined): ProjectPhase {
   return "working";
 }
 
-export function hubRowToSelection(row: HubManuscript): import("../context/NarrativeContext").NarrativeSelection {
-  return {
-    manuscriptId: row.id,
-    tenantId: row.tenant_id,
-    title: row.title,
-    revision_status: row.revision_status,
-    cooldown_revision_status: row.cooldown_revision_status,
-    locked_until: row.locked_until,
-    lock_expires_at: row.lock_expires_at,
-    revision_cooldown_until: row.revision_cooldown_until,
-  };
-}
-
 export function displayTitle(row: { title?: string | null; id: string }): string {
   const t = row.title?.trim();
   return t || `Untitled (${row.id.slice(0, 8)}…)`;
 }
 
 export function hasRevisionCooldownLock(row: HubManuscript): boolean {
-  return row.cooldown_revision_status === "LOCKED" || row.revision_status === "LOCKED";
+  const until = row.revision_cooldown_until ?? row.locked_until;
+  if (!until) return false;
+  return new Date(until).getTime() > Date.now();
+}
+
+export function hubRowToSelection(row: HubManuscript) {
+  return {
+    manuscriptId: row.id,
+    title: row.title,
+    projectPhase: normalizePhase(row.project_phase),
+  };
 }

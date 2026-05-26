@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import VaultProtector from "./components/VaultProtector";
 import { RequireAuthorLens } from "./components/RequireAuthorLens";
 import AuthorAppLayout from "./layouts/AuthorAppLayout";
+import { isApexHubHost, shouldUseAuthorSignInAtRoot } from "./lib/authorHostRouting";
 
 /** Route-level code split — avoid loading dashboard/msgf on the hub and sign-in pages. */
 function lazyPage(importer, label) {
@@ -95,16 +96,14 @@ function PageFallback() {
   );
 }
 
-function isAuthorProductHost() {
-  if (typeof window === "undefined") return false;
-  return window.location.hostname.toLowerCase() === "authorecosystem.elphiesyntax.com";
-}
-
 function HomeRoute() {
-  if (isAuthorProductHost()) {
+  if (shouldUseAuthorSignInAtRoot()) {
     return <Navigate to="/sign-in" replace />;
   }
-  return <PlatformHubPage />;
+  if (isApexHubHost()) {
+    return <PlatformHubPage />;
+  }
+  return <Navigate to="/sign-in" replace />;
 }
 
 export default function App() {

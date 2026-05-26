@@ -8,7 +8,7 @@ Lightweight Chrome extension for **Google Docs** and **Microsoft Word Online** (
 
 - HAL keystroke / paste capture (rolling buffer, no full-doc scrape)
 - ✎ FAB opens the side panel (HAL + Lore Librarian)
-- BFF session via httpOnly cookies (sign in on `http://localhost:5173` or production) or pasted Bearer JWT
+- BFF session via httpOnly cookies (sign in on `http://127.0.0.1:5173` — use the same host as the BFF, not `localhost`) or pasted Bearer JWT
 - Push HAL → `POST /api/hal/session`
 - Ask Librarian → `POST /api/rag/chat` with HUD spoiler/plot filters
 - Active manuscript from `GET /api/manuscripts/active` (set in web dashboard first)
@@ -22,6 +22,13 @@ Lightweight Chrome extension for **Google Docs** and **Microsoft Word Online** (
 5. Optional: copy extension ID into root `.env.local` as `BFF_CHROME_EXTENSION_ID=<id>` (dev allows any `chrome-extension://` origin when `NODE_ENV` is not production).
 6. Open **Google Docs** or **Word Online** (`https://word.cloud.microsoft` or Office 365 web).
 7. Click **✎** or the toolbar icon → **Sync session** → type in the doc → **Push HAL session** or **Ask Librarian**.
+
+### Link session (multiple Google Docs per book)
+
+1. On Manuscripts, **Start link session** for your book.
+2. In the extension side panel → **Book Google Docs** — paste every Doc URL (draft, outline, bible), one per line → **Add URLs to list**.
+3. **Report all listed URLs to link session** (or **Report active tab** for the doc you have open).
+4. On Manuscripts → **Link session** to confirm. Companion docs are saved on the manuscript for HAL/Librarian scope.
 
 ### Word Online notes
 

@@ -88,6 +88,21 @@
       "development": "./lib/hal-author-bridge.ts",
       "import": "./dist/hal-author-bridge.js",
       "default": "./dist/hal-author-bridge.js"
+    },
+    "./lib/msgf-shadow": {
+      "development": "./lib/msgf-shadow.ts",
+      "import": "./lib/msgf-shadow.ts",
+      "default": "./lib/msgf-shadow.ts"
+    },
+    "./lib/services/constraint-ledger": {
+      "development": "./lib/services/constraint-ledger.ts",
+      "import": "./lib/services/constraint-ledger.ts",
+      "default": "./lib/services/constraint-ledger.ts"
+    },
+    "./lib/schemas/vault-hall-metadata": {
+      "development": "./lib/schemas/vault-hall-metadata.ts",
+      "import": "./lib/schemas/vault-hall-metadata.ts",
+      "default": "./lib/schemas/vault-hall-metadata.ts"
     }
   },
   "scripts": {

@@ -65,8 +65,8 @@ function KanbanColumn(props: {
                   ].join(" ")}
                 >
                   <span className="font-medium">{displayTitle(row)}</span>
-                  {row.google_doc_id ? (
-                    <span className="mt-0.5 block text-[10px] text-zinc-500">Doc linked · HAL on</span>
+                  {row.google_doc_id && row.hal_extension_enabled ? (
+                    <span className="mt-0.5 block text-[10px] text-zinc-500">Google Doc linked · HAL on</span>
                   ) : null}
                   {locked ? (
                     <span className="mt-0.5 block text-[10px] text-amber-400/90">Wiki locked</span>
@@ -326,8 +326,8 @@ export function ManuscriptHub() {
       <section className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
         <h2 className="text-sm font-semibold text-zinc-100">Create project</h2>
         <p className="text-xs text-zinc-500">
-          Add a series folder or a standalone / series book. Connect Google, start a link session, report the doc
-          from the HAL extension, then confirm Link session.
+          Add a series folder or a standalone / series book. Connect Google and pick docs from Drive (or paste URLs)
+          in Link session below — the HAL extension is optional.
         </p>
         {googleConnected ? (
           <p className="text-xs text-emerald-400/90">
@@ -387,11 +387,10 @@ export function ManuscriptHub() {
           id="import-documents"
           className="space-y-4 rounded-xl border border-violet-900/30 bg-violet-950/10 p-4"
         >
-          <h2 className="text-sm font-semibold text-violet-100">Import a document (file upload only)</h2>
+          <h2 className="text-sm font-semibold text-violet-100">Import a document</h2>
           <p className="text-xs text-zinc-500">
-            Runs only when you pick a file here — not while planning on the site or typing in the extension.
-            Builds wiki blocks, scene cards, and an outline for Plot Sandbox. Large files need authorship
-            answers from your text.
+            Upload a file or choose a Google Doc after OAuth sync. Builds wiki blocks, scene cards, and an outline
+            for Plot Sandbox. Large files may need authorship answers from your text.
           </p>
           <div className="grid gap-4 lg:grid-cols-3">
             <DocumentIngestFlow
@@ -417,10 +416,10 @@ export function ManuscriptHub() {
         <p className="text-sm text-zinc-500">Loading project hub…</p>
       ) : hub && hub.unlinked.length > 0 ? (
         <section className="space-y-3 rounded-xl border border-amber-900/30 bg-amber-950/15 p-4">
-          <h2 className="text-sm font-semibold text-amber-100">Link session (Google + HAL)</h2>
+          <h2 className="text-sm font-semibold text-amber-100">Link Google Docs</h2>
           <p className="text-xs text-amber-200/70">
-            OAuth lets the Librarian and website exchange doc context securely. You confirm the correct doc with
-            Link session after the extension reports it.
+            Connect Google, select your book docs from Drive (or paste URLs), then confirm. Already-linked books
+            do not appear here.
           </p>
           <ul className="space-y-3">
             {hub.unlinked.map((row) => (

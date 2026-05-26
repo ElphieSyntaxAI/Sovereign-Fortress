@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Link } from "react-router-dom";
 
+import { GoogleDocDrivePicker } from "../GoogleDocDrivePicker";
 import { ingestPlotBeatsStorageKey } from "../../planning/PlanningSessionContext";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../../lib/bffFetch";
 import type {
@@ -34,7 +35,19 @@ const SLOT_META: Record<DocumentSlot, { label: string; hint: string }> = {
 
 type AuthorshipQuestion = { id: string; question: string; hint?: string };
 
-type OutlineBeat = { synopsis: string; order: number };
+type OutlineBeat = {
+  synopsis: string;
+  order: number;
+  title?: string;
+  pov_mode?: "single" | "split" | "unknown";
+  pov_names?: string[];
+};
+
+type IngestTabDiagnostics = {
+  count: number;
+  method?: string;
+  sections?: Array<{ title: string; path?: string; layer: string }>;
+};
 
 export function DocumentIngestFlow(props: {
   slot: DocumentSlot;
@@ -60,6 +73,56 @@ export function DocumentIngestFlow(props: {
   const [clarifyingQuestions, setClarifyingQuestions] = useState<ClarifyingQuestion[]>([]);
   const [clarifyAnswers, setClarifyAnswers] = useState<string[]>([]);
   const [clarifyNotes, setClarifyNotes] = useState("");
+  const [showDrivePicker, setShowDrivePicker] = useState(false);
+  const [forceCommit, setForceCommit] = useState(false);
+  const [tabDiagnostics, setTabDiagnostics] = useState<IngestTabDiagnostics | null>(null);
+  const [outlineBeatCount, setOutlineBeatCount] = useState<number | null>(null);
+
+  const applyScanResponse = useCallback(
+    (json: {
+      error?: string;
+      session_id?: string;
+      status?: string;
+      scan_thoughts?: ScanThought[];
+      authorship_questions?: AuthorshipQuestion[];
+      proposed_wiki?: ProposedWiki[];
+      outline_beats?: OutlineBeat[];
+      outline_beat_count?: number;
+      google_doc_tabs?: IngestTabDiagnostics;
+      content_signals?: ContentSignal[];
+      ingest_conflicts?: IngestConflict[];
+      clarifying_questions?: ClarifyingQuestion[];
+    }) => {
+      setSessionId(String(json.session_id ?? ""));
+      setThoughts(Array.isArray(json.scan_thoughts) ? json.scan_thoughts : []);
+      setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
+      setOutlineBeatCount(
+        typeof json.outline_beat_count === "number"
+          ? json.outline_beat_count
+          : Array.isArray(json.outline_beats)
+            ? json.outline_beats.length
+            : null
+      );
+      setTabDiagnostics(json.google_doc_tabs ?? null);
+      setSignals(Array.isArray(json.content_signals) ? json.content_signals : []);
+      setConflicts(Array.isArray(json.ingest_conflicts) ? json.ingest_conflicts : []);
+      if (json.status === "clarification") {
+        const cqs = Array.isArray(json.clarifying_questions) ? json.clarifying_questions : [];
+        setClarifyingQuestions(cqs);
+        setClarifyAnswers(cqs.map(() => ""));
+        setPhase("clarification");
+      } else if (json.status === "authorship") {
+        const qs = Array.isArray(json.authorship_questions) ? json.authorship_questions : [];
+        setQuestions(qs);
+        setAnswers(qs.map(() => ""));
+        setPhase("authorship");
+      } else {
+        setProposed(Array.isArray(json.proposed_wiki) ? json.proposed_wiki : []);
+        setPhase("review");
+      }
+    },
+    []
+  );
 
   const onDrop = useCallback(
     async (files: File[]) => {
@@ -94,25 +157,7 @@ export function DocumentIngestFlow(props: {
           clarifying_questions?: ClarifyingQuestion[];
         };
         if (!res.ok) throw new Error(json.error || res.statusText);
-        setSessionId(String(json.session_id ?? ""));
-        setThoughts(Array.isArray(json.scan_thoughts) ? json.scan_thoughts : []);
-        setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
-        setSignals(Array.isArray(json.content_signals) ? json.content_signals : []);
-        setConflicts(Array.isArray(json.ingest_conflicts) ? json.ingest_conflicts : []);
-        if (json.status === "clarification") {
-          const cqs = Array.isArray(json.clarifying_questions) ? json.clarifying_questions : [];
-          setClarifyingQuestions(cqs);
-          setClarifyAnswers(cqs.map(() => ""));
-          setPhase("clarification");
-        } else if (json.status === "authorship") {
-          const qs = Array.isArray(json.authorship_questions) ? json.authorship_questions : [];
-          setQuestions(qs);
-          setAnswers(qs.map(() => ""));
-          setPhase("authorship");
-        } else {
-          setProposed(Array.isArray(json.proposed_wiki) ? json.proposed_wiki : []);
-          setPhase("review");
-        }
+        applyScanResponse(json);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         setPhase("idle");
@@ -120,7 +165,41 @@ export function DocumentIngestFlow(props: {
         setBusy(false);
       }
     },
-    [busy, props]
+    [busy, props, applyScanResponse]
+  );
+
+  const scanFromGoogle = useCallback(
+    async (docs: { id: string; name: string }[], primaryId: string) => {
+      const doc = docs.find((d) => d.id === primaryId) ?? docs[0];
+      if (!doc || busy) return;
+      setError(null);
+      setBusy(true);
+      setPhase("scanning");
+      setFilename(doc.name);
+      setShowDrivePicker(false);
+      try {
+        const token = await props.getAccessToken();
+        const res = await fetch(bffUrl("/api/onboarding/document/scan-google"), {
+          method: "POST",
+          ...bffCredentials,
+          headers: { ...bffAuthHeaders(token), "Content-Type": "application/json" },
+          body: JSON.stringify({
+            google_doc_id: doc.id,
+            manuscript_id: props.manuscriptId,
+            slot: props.slot,
+          }),
+        });
+        const json = (await res.json().catch(() => ({}))) as Parameters<typeof applyScanResponse>[0];
+        if (!res.ok) throw new Error(json.error || res.statusText);
+        applyScanResponse(json);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        setPhase("idle");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, props, applyScanResponse]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -209,7 +288,10 @@ export function DocumentIngestFlow(props: {
     }
   };
 
-  const commit = async (action: "submit" | "cancel") => {
+  const postCommit = async (
+    action: "submit" | "cancel" | "reject",
+    extra?: { rejection_reason?: string; force_commit?: boolean }
+  ) => {
     if (!sessionId) return;
     setBusy(true);
     setError(null);
@@ -224,14 +306,22 @@ export function DocumentIngestFlow(props: {
           action,
           proposed_wiki: proposed,
           outline_beats: outlineBeats,
+          ...extra,
         }),
       });
       const json = (await res.json().catch(() => ({}))) as {
         error?: string;
         message?: string;
+        hint?: string;
         planning?: { plot_beats?: OutlineBeat[] };
       };
-      if (!res.ok) throw new Error(json.error || res.statusText);
+      if (res.status === 409 && action === "submit") {
+        setForceCommit(true);
+        throw new Error(
+          `${json.message ?? json.error ?? res.statusText}${json.hint ? ` ${json.hint}` : ""}`
+        );
+      }
+      if (!res.ok) throw new Error(json.message ?? json.error ?? res.statusText);
       if (action === "submit") {
         const beats = json.planning?.plot_beats ?? outlineBeats;
         if (beats.length) {
@@ -250,7 +340,10 @@ export function DocumentIngestFlow(props: {
           }
         }
         setCommitMessage(json.message ?? "Import committed.");
+      } else if (action === "reject") {
+        setCommitMessage(json.message ?? "Import rejected — pattern recorded for future guard.");
       }
+      setForceCommit(false);
       setPhase("idle");
       setSessionId(null);
       props.onCommitted?.();
@@ -259,6 +352,10 @@ export function DocumentIngestFlow(props: {
     } finally {
       setBusy(false);
     }
+  };
+
+  const commit = async (action: "submit" | "cancel") => {
+    await postCommit(action, action === "submit" && forceCommit ? { force_commit: true } : undefined);
   };
 
   const meta = SLOT_META[props.slot];
@@ -274,15 +371,34 @@ export function DocumentIngestFlow(props: {
       </p>
 
       {phase === "idle" ? (
-        <div
-          {...getRootProps()}
-          className={[
-            "mt-3 cursor-pointer rounded-lg border border-dashed px-4 py-6 text-center text-xs",
-            isDragActive ? "border-violet-500 bg-violet-950/20" : "border-zinc-700 text-zinc-500",
-          ].join(" ")}
-        >
-          <input {...getInputProps()} />
-          Drop PDF, DOCX, or TXT — or click to upload
+        <div className="mt-3 space-y-2">
+          <div
+            {...getRootProps()}
+            className={[
+              "cursor-pointer rounded-lg border border-dashed px-4 py-6 text-center text-xs",
+              isDragActive ? "border-violet-500 bg-violet-950/20" : "border-zinc-700 text-zinc-500",
+            ].join(" ")}
+          >
+            <input {...getInputProps()} />
+            Drop PDF, DOCX, or TXT — or click to upload
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setShowDrivePicker((v) => !v)}
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs text-zinc-300 hover:border-violet-500/40"
+          >
+            {showDrivePicker ? "Hide Google Drive" : "Choose from Google Drive"}
+          </button>
+          {showDrivePicker ? (
+            <GoogleDocDrivePicker
+              manuscriptId={props.manuscriptId}
+              oauthReturnPath="/manuscripts#import-documents"
+              busy={busy}
+              primaryLabel="Scan selected Google Doc"
+              onSubmit={scanFromGoogle}
+            />
+          ) : null}
         </div>
       ) : null}
 
@@ -335,6 +451,11 @@ export function DocumentIngestFlow(props: {
       ) : null}
 
       {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
+      {forceCommit ? (
+        <p className="mt-2 text-xs text-amber-300/90">
+          Structure review flagged this mapping. Submit again to commit anyway, or edit entries above.
+        </p>
+      ) : null}
       {commitMessage ? (
         <p className="mt-2 text-xs text-emerald-400/90">
           {commitMessage}{" "}
@@ -349,11 +470,14 @@ export function DocumentIngestFlow(props: {
         slotLabel={meta.label}
         proposed={proposed}
         outlineBeats={outlineBeats}
+        outlineBeatCount={outlineBeatCount ?? outlineBeats.length}
+        tabDiagnostics={tabDiagnostics}
         contentSignals={signals}
         ingestConflicts={conflicts}
         onEdit={setProposed}
         onSubmit={() => void commit("submit")}
         onCancel={() => void commit("cancel")}
+        onReject={(reason) => void postCommit("reject", { rejection_reason: reason })}
         busy={busy}
       />
     </div>

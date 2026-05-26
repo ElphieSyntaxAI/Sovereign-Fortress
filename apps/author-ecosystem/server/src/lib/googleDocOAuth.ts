@@ -1,7 +1,8 @@
 import { drive } from "@googleapis/drive";
 import type { OAuth2Client } from "google-auth-library";
 
-import { cleanGoogleDocExport, normalizeGoogleDocId } from "./fetchManuscript.js";
+import { fetchGoogleDocFullDocumentOAuth } from "./googleDocMultiTab.js";
+import { normalizeGoogleDocId } from "./fetchManuscript.js";
 import { normalizeGoogleDocUrl } from "./googleDocUrl.js";
 
 export type GoogleDocFileMeta = {
@@ -15,14 +16,13 @@ export async function fetchGoogleDocPlainTextOAuth(
   auth: OAuth2Client,
   googleDocId: string
 ): Promise<string> {
-  const id = normalizeGoogleDocId(googleDocId);
-  const d = drive({ version: "v3", auth });
-  const res = await d.files.export(
-    { fileId: id, mimeType: "text/plain" },
-    { responseType: "text" }
-  );
-  const raw = typeof res.data === "string" ? res.data : String(res.data ?? "");
-  return cleanGoogleDocExport(raw);
+  const { text, tabCount, method } = await fetchGoogleDocFullDocumentOAuth(auth, googleDocId);
+  if (tabCount > 1) {
+    console.info(
+      `[googleDocOAuth] Loaded ${tabCount} doc tabs via ${method} (${text.length.toLocaleString()} chars)`
+    );
+  }
+  return text;
 }
 
 export async function fetchGoogleDocMetaOAuth(

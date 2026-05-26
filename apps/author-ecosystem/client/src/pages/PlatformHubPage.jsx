@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { OperatorAdminLink } from "../components/OperatorAdminLink";
+import { getAuthorPrimaryTarget } from "../lib/authorHostRouting";
 
 /**
  * elphiesyntax.com home — "What are you looking for?" platform chooser.
@@ -14,28 +15,10 @@ import { OperatorAdminLink } from "../components/OperatorAdminLink";
  * (emerald · amethyst-violet · topaz-amber on slate / `landing-mesh` chrome).
  */
 
-const AUTHOR_HOST = import.meta.env.VITE_AUTHOR_APP_URL || "";
 const GATED_AI_HOST =
   import.meta.env.VITE_MSGF_APP_URL || "https://elphiesgatedai.elphiesyntax.com";
 const EDUCATION_HOST =
   import.meta.env.VITE_EDUCATION_APP_URL || "https://syntaxeducates.elphiesyntax.com";
-
-function isApexHubHost() {
-  if (typeof window === "undefined") return false;
-  const host = window.location.hostname.toLowerCase();
-  return host === "elphiesyntax.com" || host === "www.elphiesyntax.com";
-}
-
-function getAuthorPrimaryTarget() {
-  if (AUTHOR_HOST) {
-    return { to: AUTHOR_HOST, external: true };
-  }
-  if (isApexHubHost()) {
-    return { to: "https://authorecosystem.elphiesyntax.com", external: true };
-  }
-  // Keep Cloud Run/default test URLs on the current Author app.
-  return { to: "/sign-in", external: false };
-}
 
 const PLATFORMS = [
   {
@@ -53,8 +36,8 @@ const PLATFORMS = [
     tone: "amethyst",
     primary: {
       label: "Open Author Ecosystem",
-      to: AUTHOR_HOST,
-      external: true,
+      to: "/sign-in",
+      external: false,
     },
     learnMoreHref: `${GATED_AI_HOST}/products/author`,
   },

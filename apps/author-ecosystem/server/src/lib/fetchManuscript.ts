@@ -16,6 +16,7 @@ import { GoogleAuth } from "google-auth-library";
 
 import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
+import { structureDocumentText } from "./documentTextStructure.js";
 import { IngestionService, parseManuscriptToText } from "./narrative/IngestionService.js";
 
 const DRIVE_READONLY = "https://www.googleapis.com/auth/drive.readonly";
@@ -45,9 +46,9 @@ export function getVertexAlignedGoogleAuth(): GoogleAuth {
   });
 }
 
-/** Normalize Drive `text/plain` export (same normalization path as `.txt` uploads). */
+/** Normalize Drive export — preserve tables/tabs (do not collapse via plain-text whitespace pass). */
 export async function cleanGoogleDocExport(raw: string): Promise<string> {
-  return parseManuscriptToText(Buffer.from(raw, "utf8"), "google-doc-export.txt");
+  return structureDocumentText(raw);
 }
 
 /**

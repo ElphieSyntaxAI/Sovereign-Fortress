@@ -2,7 +2,15 @@ import { createHash } from "node:crypto";
 import multer from "multer";
 import { Router, type Request, type Response } from "express";
 
-import { commitDocumentIngestToBackend } from "../lib/commitDocumentIngest.js";
+import {
+  buildCommitPreviewText,
+  detectStructureMergeRisk,
+  recordIngestHallRejection,
+  runDocumentIngestShadowPreflight,
+  runDualStructureReview,
+  sessionHadBlockingClarification,
+  sessionHadBlockingConflicts,
+} from "../lib/documentIngestMsgfGuard.js";
 import {
   answerFoundInSource,
   countWords,
@@ -21,8 +29,10 @@ import {
 import {
   resolveNextStatusAfterScan,
   type ClarifyingQuestion,
+  type IngestConflict,
 } from "../lib/documentIngestStructure.js";
-import { normalizeProposedWikiEntry } from "../lib/documentIngestOutline.js";
+import { compileDocumentIngest } from "../lib/documentIngestCompile.js";
+import { normalizeProposedWikiEntry, type IngestPlotBeat } from "../lib/documentIngestOutline.js";
 import type { IngestOutlineBeat } from "../lib/documentIngestGate.js";
 import { assertUuid } from "../lib/halMetrics.js";
 import { recordHalStartupSession } from "../lib/halStartupRecord.js";
@@ -31,6 +41,14 @@ import {
   HAL_STARTUP_TARGET_SECONDS,
   pickHalStartupPrompt,
 } from "../lib/onboardingPrompts.js";
+import { structureDocumentText } from "../lib/documentTextStructure.js";
+import { fetchGoogleDocFullDocumentOAuth } from "../lib/googleDocMultiTab.js";
+import {
+  fetchGoogleDocMetaOAuth,
+  fetchGoogleDocPlainTextOAuth,
+} from "../lib/googleDocOAuth.js";
+import { splitTabSections } from "../lib/documentPlanningTaxonomy.js";
+import { getGoogleOAuthClientForTenant } from "../lib/googleOAuthTokens.js";
 import { parseManuscriptToText } from "../lib/narrative/IngestionService.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
@@ -43,6 +61,26 @@ const upload = multer({
 });
 
 const MAX_SOURCE_CHARS = 400_000;
+
+function compileScanPayload(params: {
+  sourceText: string;
+  proposed: ProposedWikiEntry[];
+  outline_beats: IngestOutlineBeat[];
+}) {
+  const compiled = compileDocumentIngest({
+    outlineBeats: params.outline_beats as IngestPlotBeat[],
+    proposedWiki: params.proposed,
+    sourceText: params.sourceText,
+  });
+  const sourceText = compiled.source_text ?? params.sourceText;
+  return {
+    sourceText,
+    proposed: compiled.proposed_wiki,
+    outline_beats: compiled.outline_beats as IngestOutlineBeat[],
+    compile_stats: compiled.stats,
+    content_digest: createHash("sha256").update(sourceText, "utf8").digest("hex").slice(0, 24),
+  };
+}
 
 async function ensureStarterManuscript(
   supabase: ReturnType<typeof getSupabaseAdmin>,
@@ -234,7 +272,7 @@ onboardingController.post(
 
       const plain = await parseManuscriptToText(f.buffer, f.originalname || "upload.txt");
       if (!plain.trim()) return res.status(400).json({ error: "Document is empty" });
-      const sourceText = plain.slice(0, MAX_SOURCE_CHARS);
+      const sourceText = structureDocumentText(plain).slice(0, MAX_SOURCE_CHARS);
       const wordCount = countWords(sourceText);
       const pageEstimate = estimatePages(wordCount);
       const gate = requiresAuthorshipGate(wordCount, pageEstimate);
@@ -260,7 +298,11 @@ onboardingController.post(
       const proposed = enriched.proposed.map((p) =>
         normalizeProposedWikiEntry(p, manuscriptId, slot)
       );
-      const outline_beats = enriched.outline_beats;
+      const compiledScan = compileScanPayload({
+        sourceText,
+        proposed,
+        outline_beats: enriched.outline_beats,
+      });
 
       const questions =
         gate && enriched.questions.length >= 3
@@ -269,7 +311,6 @@ onboardingController.post(
             ? fallbackAuthorshipQuestions(qCount)
             : [];
 
-      const digest = createHash("sha256").update(sourceText, "utf8").digest("hex").slice(0, 24);
       const status = resolveNextStatusAfterScan({
         gate,
         authorshipQuestionCount: questions.length,
@@ -283,20 +324,20 @@ onboardingController.post(
           manuscript_id: manuscriptId,
           slot,
           original_filename: f.originalname || "upload",
-          word_count: wordCount,
+          word_count: countWords(compiledScan.sourceText),
           page_estimate: pageEstimate,
           requires_authorship_gate: gate,
           authorship_questions: questions,
           scan_thoughts: enriched.thoughts,
-          proposed_wiki: proposed,
-          outline_beats,
+          proposed_wiki: compiledScan.proposed,
+          outline_beats: compiledScan.outline_beats,
           content_signals: enriched.content_signals,
           story_fingerprint: enriched.story_fingerprint,
           ingest_conflicts: enriched.ingest_conflicts,
           clarifying_questions: enriched.clarifying_questions,
           status,
-          content_digest: digest,
-          source_text: sourceText,
+          content_digest: compiledScan.content_digest,
+          source_text: compiledScan.sourceText,
         })
         .select("id, status")
         .single();
@@ -312,8 +353,9 @@ onboardingController.post(
         requires_authorship_gate: gate,
         scan_thoughts: enriched.thoughts,
         authorship_questions: questions,
-        proposed_wiki: status === "review" ? proposed : [],
-        outline_beats,
+        proposed_wiki: status === "review" ? compiledScan.proposed : [],
+        outline_beats: compiledScan.outline_beats,
+        compile_stats: compiledScan.compile_stats,
         content_signals: enriched.content_signals,
         ingest_conflicts: enriched.ingest_conflicts,
         clarifying_questions: enriched.clarifying_questions,
@@ -325,6 +367,140 @@ onboardingController.post(
     }
   }
 );
+
+/**
+ * POST /api/onboarding/document/scan-google
+ * Body: { google_doc_id, manuscript_id, slot }
+ */
+onboardingController.post("/api/onboarding/document/scan-google", async (req: Request, res: Response) => {
+  const user = readBearerUser(req, res);
+  if (!user) return;
+
+  try {
+    const slot = parseSlot((req.body as { slot?: unknown })?.slot);
+    if (!slot) {
+      return res.status(400).json({ error: "slot must be world_bible, current_draft, or character_sheet" });
+    }
+    const manuscriptId = assertUuid(
+      String((req.body as { manuscript_id?: unknown })?.manuscript_id ?? ""),
+      "manuscript_id"
+    );
+    const googleDocId = String((req.body as { google_doc_id?: unknown })?.google_doc_id ?? "").trim();
+    if (!googleDocId) return res.status(400).json({ error: "google_doc_id is required" });
+
+    const supabase = getSupabaseAdmin();
+    const { data: ms } = await supabase
+      .from("p4_manuscripts")
+      .select("id")
+      .eq("id", manuscriptId)
+      .eq("tenant_id", user.userId)
+      .maybeSingle();
+    if (!ms) return res.status(404).json({ error: "Manuscript not found" });
+
+    const { client } = await getGoogleOAuthClientForTenant(supabase, user.userId);
+    const [meta, fetched] = await Promise.all([
+      fetchGoogleDocMetaOAuth(client, googleDocId),
+      fetchGoogleDocFullDocumentOAuth(client, googleDocId),
+    ]);
+    const plain = fetched.text;
+    const tabCount = fetched.tabCount;
+    const tabSections = splitTabSections(plain);
+
+    if (!plain.trim()) return res.status(400).json({ error: "Google Doc is empty" });
+    const sourceText = structureDocumentText(plain).slice(0, MAX_SOURCE_CHARS);
+    const wordCount = countWords(sourceText);
+    const pageEstimate = estimatePages(wordCount);
+    const gate = requiresAuthorshipGate(wordCount, pageEstimate);
+    const qCount = gate ? resolveQuestionCount(sourceText) : 0;
+
+    const enriched = await analyzeDocumentIngest({
+      supabase,
+      text: sourceText,
+      slot,
+      manuscriptId,
+      questionCount: qCount,
+    });
+
+    const proposed = enriched.proposed.map((p) => normalizeProposedWikiEntry(p, manuscriptId, slot));
+    const compiledScan = compileScanPayload({
+      sourceText,
+      proposed,
+      outline_beats: enriched.outline_beats,
+    });
+
+    const questions =
+      gate && enriched.questions.length >= 3
+        ? enriched.questions
+        : gate
+          ? fallbackAuthorshipQuestions(qCount)
+          : [];
+
+    const status = resolveNextStatusAfterScan({
+      gate,
+      authorshipQuestionCount: questions.length,
+      clarifying: enriched.clarifying_questions,
+    });
+
+    const { data: session, error } = await supabase
+      .from("p4_document_ingest_sessions")
+      .insert({
+        tenant_id: user.userId,
+        manuscript_id: manuscriptId,
+        slot,
+        original_filename: `${meta.name}.gdoc`,
+        word_count: countWords(compiledScan.sourceText),
+        page_estimate: pageEstimate,
+        requires_authorship_gate: gate,
+        authorship_questions: questions,
+        scan_thoughts: enriched.thoughts,
+        proposed_wiki: compiledScan.proposed,
+        outline_beats: compiledScan.outline_beats,
+        content_signals: enriched.content_signals,
+        story_fingerprint: enriched.story_fingerprint,
+        ingest_conflicts: enriched.ingest_conflicts,
+        clarifying_questions: enriched.clarifying_questions,
+        status,
+        content_digest: compiledScan.content_digest,
+        source_text: compiledScan.sourceText,
+      })
+      .select("id, status")
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    return res.status(200).json({
+      success: true,
+      session_id: session.id,
+      status: session.status,
+      word_count: wordCount,
+      page_estimate: pageEstimate,
+      requires_authorship_gate: gate,
+      scan_thoughts: enriched.thoughts,
+      authorship_questions: questions,
+      proposed_wiki: status === "review" ? compiledScan.proposed : [],
+      outline_beats: compiledScan.outline_beats,
+      compile_stats: compiledScan.compile_stats,
+      content_signals: enriched.content_signals,
+      ingest_conflicts: enriched.ingest_conflicts,
+      clarifying_questions: enriched.clarifying_questions,
+      used_llm: enriched.usedLlm,
+      google_doc: meta,
+      google_doc_tabs: {
+        count: tabCount,
+        method: fetched.method,
+        sections: tabSections.map((s) => ({
+          title: s.title,
+          path: s.path,
+          layer: s.layer,
+        })),
+      },
+      outline_beat_count: compiledScan.outline_beats.length,
+    });
+  } catch (e) {
+    console.error("[onboarding/document/scan-google]", e);
+    return res.status(500).json({ error: e instanceof Error ? e.message : "Google Doc scan failed" });
+  }
+});
 
 /** POST /api/onboarding/document/verify-clarification */
 onboardingController.post("/api/onboarding/document/verify-clarification", async (req: Request, res: Response) => {
@@ -506,6 +682,45 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
     return res.status(200).json({ success: true, cancelled: true });
   }
 
+  if (action === "reject") {
+    const rejectionReason = String(body.rejection_reason ?? body.reason ?? "").trim()
+      || "Author reported bad document ingest mapping.";
+    const proposedReject = (Array.isArray(body.proposed_wiki)
+      ? body.proposed_wiki
+      : session.proposed_wiki) as ProposedWikiEntry[];
+    const outlineReject = (
+      Array.isArray(body.outline_beats) ? body.outline_beats : session.outline_beats
+    ) as IngestOutlineBeat[];
+    const preview = buildCommitPreviewText({
+      slot: session.slot as DocumentIngestSlot,
+      filename: String(session.original_filename ?? "upload"),
+      sourceText: String(session.source_text ?? ""),
+      proposed: proposedReject,
+      outlineBeats: outlineReject,
+    });
+    const hall = await recordIngestHallRejection({
+      supabase,
+      tenantId: user.userId,
+      entityId: user.userId,
+      manuscriptId: String(session.manuscript_id),
+      slot: session.slot as DocumentIngestSlot,
+      sessionId,
+      reason: rejectionReason,
+      previewText: preview,
+      code: "user_reject",
+    });
+    await supabase
+      .from("p4_document_ingest_sessions")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id", sessionId);
+    return res.status(200).json({
+      success: true,
+      rejected: true,
+      hall_recorded: hall.recorded,
+      message: "Import rejected. This pattern was recorded so future imports can be guarded.",
+    });
+  }
+
   if (session.status === "clarification") {
     return res.status(400).json({ error: "Answer clarifying questions before submitting." });
   }
@@ -527,6 +742,82 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
     Array.isArray(body.outline_beats) ? body.outline_beats : session.outline_beats
   ) as IngestOutlineBeat[];
   const sourceText = String(session.source_text ?? "");
+  const forceCommit = body.force_commit === true || String(body.force_commit).toLowerCase() === "true";
+
+  const normalizedProposed = proposed.map((p) =>
+    normalizeProposedWikiEntry(p, String(session.manuscript_id), session.slot as DocumentIngestSlot)
+  );
+  const previewText = buildCommitPreviewText({
+    slot: session.slot as DocumentIngestSlot,
+    filename: String(session.original_filename ?? "upload"),
+    sourceText,
+    proposed: normalizedProposed,
+    outlineBeats: archiveOnly ? [] : outlineBeats,
+  });
+
+  const mergeRisk = detectStructureMergeRisk(
+    sourceText,
+    normalizedProposed,
+    archiveOnly ? [] : outlineBeats
+  );
+  const needsDualReview =
+    mergeRisk.risk ||
+    sessionHadBlockingClarification(session.clarifying_questions as ClarifyingQuestion[]) ||
+    sessionHadBlockingConflicts(session.ingest_conflicts as IngestConflict[]);
+
+  let dualReview: Awaited<ReturnType<typeof runDualStructureReview>> | null = null;
+  if (needsDualReview && !forceCommit) {
+    dualReview = await runDualStructureReview({ sourceText, preview: previewText });
+    const failDual = dualReview.ran && dualReview.structure_valid === false;
+    const failHeuristic = mergeRisk.risk && !dualReview.ran;
+    if (failDual || failHeuristic) {
+      const reason = failDual
+        ? dualReview!.reason
+        : mergeRisk.reason;
+      await recordIngestHallRejection({
+        supabase,
+        tenantId: user.userId,
+        entityId: user.userId,
+        manuscriptId: String(session.manuscript_id),
+        slot: session.slot as DocumentIngestSlot,
+        sessionId,
+        reason,
+        previewText,
+        code: failDual && dualReview!.models_disagree ? "structure_dual_fail" : "structure_merge_risk",
+      });
+      return res.status(409).json({
+        error: "INGEST_STRUCTURE_REVIEW_FAILED",
+        message: reason,
+        models_disagree: dualReview?.models_disagree ?? false,
+        merge_risk: mergeRisk,
+        dual_review: dualReview,
+        hint: "Fix the mapping in review, or resubmit with force_commit if you accept the risk.",
+      });
+    }
+  }
+
+  const shadow = await runDocumentIngestShadowPreflight(supabase, user.userId, previewText);
+  if (shadow.blocked) {
+    await recordIngestHallRejection({
+      supabase,
+      tenantId: user.userId,
+      entityId: user.userId,
+      manuscriptId: String(session.manuscript_id),
+      slot: session.slot as DocumentIngestSlot,
+      sessionId,
+      reason: shadow.reason,
+      previewText,
+      code: "shadow_block",
+    });
+    return res.status(403).json({
+      error: "INGEST_DEFEND_BLOCKED",
+      tier: shadow.tier,
+      reason: shadow.reason,
+      shadow,
+      message:
+        "MSGF shadow mode blocked this import — it matches a prior bad pattern in your Hall. Adjust the mapping or split the document.",
+    });
+  }
 
   try {
     const result = await commitDocumentIngestToBackend({
@@ -536,9 +827,7 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
       slot: session.slot as DocumentIngestSlot,
       filename: String(session.original_filename ?? "upload"),
       sourceText,
-      proposed: proposed.map((p) =>
-        normalizeProposedWikiEntry(p, String(session.manuscript_id), session.slot as DocumentIngestSlot)
-      ),
+      proposed: normalizedProposed,
       outlineBeats: archiveOnly ? [] : outlineBeats,
       syncMsgfBrain: body.sync_msgf_brain !== false,
     });
@@ -557,11 +846,26 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
       committed: true,
       ...result,
       planning: result.planning,
+      shadow,
+      merge_risk: mergeRisk.risk ? mergeRisk : undefined,
+      dual_review: dualReview?.ran ? dualReview : undefined,
       message:
         "Wiki building blocks, scene cards, and outline updated. Open Plot Sandbox or Wiki to continue.",
     });
   } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
     console.error("[onboarding/document/commit]", e);
-    return res.status(500).json({ error: e instanceof Error ? e.message : "Commit failed" });
+    await recordIngestHallRejection({
+      supabase,
+      tenantId: user.userId,
+      entityId: user.userId,
+      manuscriptId: String(session.manuscript_id),
+      slot: session.slot as DocumentIngestSlot,
+      sessionId,
+      reason: errMsg,
+      previewText,
+      code: "commit_failed",
+    });
+    return res.status(500).json({ error: errMsg });
   }
 });

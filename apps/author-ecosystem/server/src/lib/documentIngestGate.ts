@@ -1,3 +1,5 @@
+import { heuristicWikiFromTables } from "./documentIngestOutline.js";
+
 export type DocumentIngestSlot = "world_bible" | "current_draft" | "character_sheet";
 
 export const DOCUMENT_SLOTS: DocumentIngestSlot[] = [
@@ -135,7 +137,12 @@ export type ProposedWikiEntry = {
 export type IngestOutlineBeat = {
   synopsis: string;
   order: number;
+  title?: string;
   plot_point_order?: number | null;
+  planning_layer?: string;
+  chapter_number?: number | null;
+  pov_mode?: "single" | "split" | "unknown";
+  pov_names?: string[];
 };
 
 export function slotDefaultMetadata(
@@ -165,6 +172,10 @@ export function heuristicProposedWiki(
 ): ProposedWikiEntry[] {
   const meta = slotDefaultMetadata(slot, manuscriptId);
   const sample = text.slice(0, 8000);
+
+  const fromTables = heuristicWikiFromTables(text, slot, manuscriptId);
+  if (fromTables.length >= 2) return fromTables;
+
   const names = [
     ...new Set(sample.match(/\b[A-Z][a-z]{2,}\b/g) ?? []),
   ].slice(0, 6);

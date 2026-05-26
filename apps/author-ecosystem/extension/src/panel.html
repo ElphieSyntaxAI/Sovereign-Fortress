@@ -17,13 +17,32 @@
       <div id="authStatus" class="field-hint session-line" role="status"></div>
       <div id="manuscriptHud" class="field-hint manuscript-hud" role="status"></div>
       <button type="button" id="syncSession" class="btn btn-ghost btn-block">Sync session (cookie + manuscript)</button>
-      <button type="button" id="reportLinkDoc" class="btn btn-ghost btn-block">Report doc for link session</button>
-      <p id="linkSessionHint" class="field-hint">Start a link session on the Manuscripts page, open this Google Doc, then report.</p>
+
+      <span class="field-label">Book Google Docs</span>
+      <p class="field-hint">
+        Paste every Doc for this book (draft, outline, bible). One URL per line — use when tab detection fails.
+      </p>
+      <textarea
+        id="bookDocUrlsPaste"
+        class="field-input field-input--question"
+        rows="3"
+        spellcheck="false"
+        placeholder="https://docs.google.com/document/d/…/edit"
+      ></textarea>
+      <div class="btn-row">
+        <button type="button" id="addBookDocUrls" class="btn btn-ghost">Add URLs to list</button>
+        <button type="button" id="clearBookDocUrls" class="btn btn-ghost">Clear list</button>
+      </div>
+      <ul id="bookDocList" class="book-doc-list" aria-label="Saved book doc links"></ul>
+
+      <button type="button" id="reportLinkDoc" class="btn btn-ghost btn-block">Report active tab</button>
+      <button type="button" id="reportAllBookDocs" class="btn btn-secondary btn-block">Report all listed URLs to link session</button>
+      <p id="linkSessionHint" class="field-hint">Start link session on Manuscripts, add URLs here or report the open tab, then confirm on the site.</p>
     </section>
 
     <section class="panel-section panel-section--settings" aria-label="Connection">
       <label class="field-label" for="apiBase">API (BFF)</label>
-      <input id="apiBase" class="field-input" type="url" autocomplete="off" placeholder="http://localhost:3002" />
+      <input id="apiBase" class="field-input" type="url" autocomplete="off" placeholder="http://127.0.0.1:3002" />
 
       <label class="field-label" for="jwt">Bearer token</label>
       <textarea id="jwt" class="field-input field-input--jwt" spellcheck="false" placeholder="Paste JWT…"></textarea>

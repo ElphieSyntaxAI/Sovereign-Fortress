@@ -295,6 +295,18 @@ export const PULSE_BUG_INDEX = {
     level_1_1_branch: "1.1_SELF_HEAL",
     level_1_1_1_instance: "1.1.1_USER_SENTINEL",
   }),
+  /** Author document ingest — user or system rejected mapping (Hall learning). */
+  authorIngestBadMapping: buildGenealogicalBugIndex({
+    level_1_category: "1.0_AUTHOR",
+    level_1_1_branch: "1.1_INGEST",
+    level_1_1_1_instance: "1.1.1_DOCUMENT_BAD_MAPPING",
+  }),
+  /** Author document ingest — shadow blocked commit (matches prior Hall pattern). */
+  authorIngestShadowBlock: buildGenealogicalBugIndex({
+    level_1_category: "1.0_AUTHOR",
+    level_1_1_branch: "1.1_DEFEND",
+    level_1_1_1_instance: "1.1.1_INGEST_SHADOW_BLOCK",
+  }),
   /** Admin-approved promotion from local_state_cache → vault_core (system DNA). */
   globalPromotionVault: buildGenealogicalBugIndex({
     level_1_category: "1.0_PULSE",

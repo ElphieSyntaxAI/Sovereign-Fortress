@@ -79,12 +79,9 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
     "https://authorecosystem.elphiesyntax.com";
   const authorLocalClient =
     trimUrl(process.env.AUTHOR_CLIENT_DEV_URL) || "http://127.0.0.1:5173";
-  const authorLocalDashboard = joinPath(authorLocalClient, "/dashboard");
-  const authorHandoffLocal = buildMsgfAuthorHandoffUrl(msgfLocal, authorLocalDashboard);
-  const authorHandoffProd = buildMsgfAuthorHandoffUrl(
-    msgfProd,
-    joinPath(authorProd, "/dashboard")
-  );
+  const authorLocalHome = joinPath(authorLocalClient, "/home");
+  const authorHandoffLocal = buildMsgfAuthorHandoffUrl(msgfLocal, authorLocalHome);
+  const authorHandoffProd = buildMsgfAuthorHandoffUrl(msgfProd, joinPath(authorProd, "/home"));
   const authorLocalBff =
     trimUrl(process.env.AUTHOR_ECOSYSTEM_URL) ||
     trimUrl(process.env.AUTHOR_BFF_URL) ||
@@ -170,11 +167,11 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
           href: authorHandoffLocal,
           external: true,
           description:
-            "Uses your MSGF operator session — lands on /dashboard with Author BFF cookies",
+            "Uses your MSGF operator session — lands on /home with Author BFF cookies",
         },
         {
-          label: "Author client (Vite root)",
-          href: authorLocalClient,
+          label: "Author sign-in (localhost)",
+          href: joinPath(authorLocalClient, "/sign-in"),
           external: true,
           description: "npm run dev in apps/author-ecosystem/client (no MSGF SSO)",
         },

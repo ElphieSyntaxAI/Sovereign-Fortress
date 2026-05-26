@@ -11,9 +11,12 @@ import { isPersonaValidForPlatform } from "msgf/lib/platform-persona-auth";
 
 import {
   buildManuscriptOutlineFromBeats,
+  extractBeatsFromTables,
   extractOutlineBeatsFromText,
+  heuristicWikiFromTables,
   normalizeProposedWikiEntry,
 } from "../src/lib/documentIngestOutline.js";
+import { structureDocumentText } from "../src/lib/documentTextStructure.js";
 import {
   buildClarifyingQuestions,
   detectContentSignals,
@@ -25,6 +28,10 @@ import {
   slotDefaultMetadata,
   type DocumentIngestSlot,
 } from "../src/lib/documentIngestGate.js";
+import {
+  buildCommitPreviewText,
+  detectStructureMergeRisk,
+} from "../src/lib/documentIngestMsgfGuard.js";
 import { isPlatformOperatorEmail, parseGlobalAdminEmails } from "../src/lib/isPlatformOperator.js";
 
 const BFF_BASE = (process.env.AUTHOR_ECOSYSTEM_URL ?? "http://127.0.0.1:3002").replace(/\/$/, "");
@@ -58,7 +65,221 @@ describe("document ingest gate", () => {
   });
 });
 
+describe("document text structure (tables & tabs)", () => {
+  test("structureDocumentText preserves tab columns as markdown table", () => {
+    const raw = "Name\tRole\tArc\nElena\tLead\tRedemption\nMarcus\tMentor\tSacrifice";
+    const structured = structureDocumentText(raw);
+    assert.match(structured, /\| Name \| Role \| Arc \|/);
+    assert.match(structured, /\| Elena \| Lead \| Redemption \|/);
+    assert.ok(!structured.includes("Name Role Arc Elena"));
+  });
+
+  test("extractBeatsFromTables yields one beat per data row", () => {
+    const structured = structureDocumentText("Scene\tBeat\n1\tOpening\n2\tTwist");
+    const beats = extractBeatsFromTables(structured);
+    assert.equal(beats.length, 2);
+    assert.match(beats[0]!.synopsis, /Opening/i);
+    assert.match(beats[1]!.synopsis, /Twist/i);
+  });
+
+  test("heuristicWikiFromTables maps rows to character wiki entries", () => {
+    const structured = structureDocumentText("Name\tNotes\nElena\tCautious lead\nBob\tAntagonist");
+    const wiki = heuristicWikiFromTables(structured, "character_sheet", "ms-1");
+    assert.ok(wiki.length >= 2);
+    assert.ok(wiki.some((w) => /Elena/i.test(w.title)));
+  });
+});
+
+describe("document planning taxonomy", () => {
+  test("classifies beginning outline vs chapter breakdown", async () => {
+    const { classifyPlanningLayer, splitTabSections } = await import(
+      "../src/lib/documentPlanningTaxonomy.js"
+    );
+    assert.equal(classifyPlanningLayer("Beginning Outline"), "macro_outline");
+    assert.equal(classifyPlanningLayer("Chapter 3 Breakdown"), "chapter_breakdown");
+    assert.equal(classifyPlanningLayer("Scene List"), "scene_grid");
+    assert.equal(classifyPlanningLayer("Prologue"), "front_matter");
+    assert.equal(classifyPlanningLayer("Epigraph"), "front_matter");
+    assert.equal(classifyPlanningLayer("Book Synopsis"), "book_synopsis");
+    assert.equal(classifyPlanningLayer("Spin off and sequel book Ideas"), "notes");
+    assert.equal(classifyPlanningLayer("Chapter 30"), "chapter_breakdown");
+    assert.equal(classifyPlanningLayer("Chapter 30 Spin off ideas"), "notes");
+
+    const text =
+      "--- TAB: Beginning Outline ---\n\nAct I setup\n\n--- TAB: Scene Grid ---\n\nScene 1: Open\nScene 2: Twist";
+    const sections = splitTabSections(text);
+    assert.equal(sections.length, 2);
+    assert.equal(sections[0]!.layer, "macro_outline");
+    assert.equal(sections[1]!.layer, "scene_grid");
+  });
+});
+
+describe("document ingest MSGF guard", () => {
+  test("detectStructureMergeRisk flags tabular doc with few wiki entries", () => {
+    const structured = structureDocumentText(
+      "Name\tRole\tArc\nElena\tLead\tRedemption\nMarcus\tMentor\tSacrifice\nBob\tAntagonist\tFall"
+    );
+    const risk = detectStructureMergeRisk(
+      structured,
+      [{ title: "Merged blob", excerpt: "x".repeat(50), chunk_type: "other", tags: [], wiki_metadata: {} }],
+      [{ synopsis: "one beat only", order: 0 }]
+    );
+    assert.equal(risk.risk, true);
+    assert.ok(risk.table_row_estimate >= 3);
+  });
+
+  test("buildCommitPreviewText includes wiki and beat summaries", () => {
+    const preview = buildCommitPreviewText({
+      slot: "character_sheet",
+      filename: "cast.gdoc",
+      sourceText: "Name\tNotes\nElena\tLead",
+      proposed: [
+        {
+          title: "Elena",
+          excerpt: "Cautious protagonist with a hidden past in the vault.",
+          chunk_type: "character",
+          tags: [],
+          wiki_metadata: {},
+        },
+      ],
+      outlineBeats: [{ synopsis: "Elena intro", order: 0 }],
+    });
+    assert.match(preview, /PROPOSED_WIKI/);
+    assert.match(preview, /Elena/);
+  });
+});
+
 describe("document ingest outline → wiki building blocks", () => {
+  test("dedupes chapter beats from per-chapter tabs vs aggregate dump", () => {
+    const text = [
+      "--- TAB: Chapter 1 ---",
+      "Chapter 1",
+      "Acina Pov",
+      "Opening beat in compound.",
+      "",
+      "--- TAB: Chapter 2 ---",
+      "Chapter 2",
+      "Acina Pov",
+      "Second chapter beat.",
+      "",
+      "--- TAB: Document ---",
+      "Chapter 1",
+      "Acina Pov",
+      "Opening beat in compound.",
+      "Chapter 2",
+      "Acina Pov",
+      "Second chapter beat.",
+    ].join("\n");
+    const beats = extractOutlineBeatsFromText(text);
+    assert.equal(beats.length, 2);
+    assert.match(beats[0]!.title ?? "", /Chapter 1/i);
+    assert.match(beats[1]!.title ?? "", /Chapter 2/i);
+  });
+
+  test("extracts book synopsis and spin-off ideas from master outline", () => {
+    const text = [
+      "--- TAB: The Quantum Heart Outline ---",
+      "Beginning",
+      "Acina on Earth",
+      "Middle The Luna Trials Begin",
+      "First Trial",
+      "End",
+      "Mating ceremonies",
+      "Book Synopsis",
+      "What happens when the world ends and wolves rise.",
+      "Hints at sequal (told in Summers POV)",
+      "Cliffhanger for Gods Games.",
+      "Spin off and sequel book Ideas",
+      "Sequel - Acina and Kamal conceive after Gods Games.",
+      "Spin off - Perssine demon realm arc.",
+    ].join("\n");
+    const beats = extractOutlineBeatsFromText(text);
+    assert.ok(beats.some((b) => b.title === "Book Synopsis" && /world ends/i.test(b.synopsis)));
+    assert.ok(beats.some((b) => /Sequel/i.test(b.title ?? "") && /Gods Games/i.test(b.synopsis)));
+    assert.ok(beats.some((b) => /Spin-off/i.test(b.title ?? "") && /Perssine/i.test(b.synopsis)));
+  });
+
+  test("detects split POV vs single POV chapters", async () => {
+    const { resolvePovInfo } = await import("../src/lib/documentIngestOutline.js");
+    const split = resolvePovInfo(
+      "Chapter 11\nKamals Pov\nAcina Pov\nSplit POV or possibly broken into 2 chapters"
+    );
+    assert.equal(split.mode, "split");
+    assert.ok(split.povs.length >= 2);
+    const single = resolvePovInfo("Chapter 3\nAcina Pov\nShe explores the compound.");
+    assert.equal(single.mode, "single");
+    assert.equal(single.povs[0], "Acina POV");
+  });
+
+  test("compileOutlineBeats drops duplicate Beginning sections", async () => {
+    const { compileOutlineBeats } = await import("../src/lib/documentIngestCompile.js");
+    const body =
+      "Acina on Earth\nAcinas watch breaks\nAcina goes beyond the compound";
+    const beats = compileOutlineBeats([
+      {
+        synopsis: body,
+        order: 0,
+        title: "Beginning",
+        planning_layer: "macro_outline",
+        tab_title: "Tab A",
+      },
+      {
+        synopsis: body,
+        order: 1,
+        title: "Beginning",
+        planning_layer: "macro_outline",
+        tab_title: "Tab B",
+      },
+      {
+        synopsis: "Chapter beat",
+        order: 2,
+        title: "Chapter 1 — Acina POV",
+        chapter_number: 1,
+        planning_layer: "chapter_breakdown",
+      },
+    ]);
+    assert.equal(beats.filter((b) => b.planning_layer === "macro_outline").length, 1);
+    assert.equal(beats.filter((b) => b.chapter_number === 1).length, 1);
+  });
+
+  test("chapter 30 franchise tab is not a narrative chapter beat", () => {
+    const text = [
+      "--- TAB: Chapter 30 ---",
+      "Spin off and sequel book Ideas",
+      "Sequel - Acina and Kamal are having issues conceiving.",
+      "Spin off - Perssine prison arc on demon worlds.",
+    ].join("\n");
+    const beats = extractOutlineBeatsFromText(text);
+    assert.ok(!beats.some((b) => b.chapter_number === 30));
+    assert.ok(beats.some((b) => /Spin-off.*Perssine/i.test(b.title ?? "")));
+  });
+
+  test("split POV chapter tab gets split title", () => {
+    const text = [
+      "--- TAB: Chapter 11 ---",
+      "Chapter 11",
+      "Kamals Pov",
+      "Acina Pov",
+      "Split POV or possibly broken into 2 chapters",
+      "Ball scene conflict.",
+    ].join("\n");
+    const beats = extractOutlineBeatsFromText(text);
+    assert.equal(beats.length, 1);
+    assert.match(beats[0]!.title ?? "", /Split POV/i);
+    assert.equal(beats[0]!.pov_mode, "split");
+  });
+
+  test("chapter table rows get proper titles", () => {
+    const table = structureDocumentText(
+      "Chapter\tWhat happens\tPOV\n1\tOpens in compound\tAcina Pov\n2\tMarket run\tAcina Pov"
+    );
+    const beats = extractOutlineBeatsFromText(
+      `--- TAB: Middle Chapter Outline ---\n\n${table}`
+    );
+    assert.equal(beats.length, 2);
+    assert.match(beats[0]!.title ?? "", /Chapter 1.*Acina/i);
+  });
+
   test("extractOutlineBeatsFromText finds numbered scenes", () => {
     const text = `
 Chapter 1

@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 
-/** Default API (BFF); used whenever storage is empty or cleared. */
-const DEFAULT_API_BASE = "http://localhost:3002";
+/** Default API (BFF); must match the host you sign in on (127.0.0.1 vs localhost are different cookies). */
+const DEFAULT_API_BASE = "http://127.0.0.1:3002";
 
 /** Last BFF session + active manuscript (from `/api/auth/me` + `/api/manuscripts/active`). */
 let sessionContext = {
@@ -37,6 +37,15 @@ async function resolveWritingTabId() {
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (active?.id != null && isWritingSurfaceUrl(active.url)) {
     return active.id;
+  }
+  const bookIds = new Set(getBookDocListForActiveManuscript().map((d) => d.docId));
+  if (bookIds.size > 0) {
+    const tabs = await chrome.tabs.query({ url: "https://docs.google.com/document/*" });
+    const match = tabs.find((t) => {
+      const id = parseGoogleDocId(t.url || "");
+      return id && bookIds.has(id);
+    });
+    if (match?.id != null) return match.id;
   }
   for (const pattern of WRITING_TAB_URLS) {
     const tabs = await chrome.tabs.query({ url: pattern });
@@ -111,11 +120,29 @@ async function saveSettings() {
   setOutput("Saved.");
 }
 
+/** Extension origins cannot send BFF httpOnly cookies; read mirrored JWT from Chrome cookie jar. */
+async function resolveBearerToken(apiBase) {
+  const { jwt } = await chrome.storage.local.get(["jwt"]);
+  const stored = typeof jwt === "string" ? jwt.trim() : "";
+  if (stored) return stored;
+
+  const base = (String(apiBase ?? "").trim() || DEFAULT_API_BASE).replace(/\/+$/, "");
+  try {
+    const jar = await chrome.cookies.getAll({ url: `${base}/` });
+    const mirrored = jar.find((c) => c.name === "author_bff_jwt")?.value?.trim();
+    if (mirrored) return mirrored;
+  } catch {
+    /* cookies permission missing or URL invalid */
+  }
+  return null;
+}
+
 async function bffRequest(path, { method = "GET", body } = {}) {
-  const { apiBase, jwt } = await chrome.storage.local.get(["apiBase", "jwt"]);
+  const { apiBase } = await chrome.storage.local.get(["apiBase"]);
   const base = (String(apiBase ?? "").trim() || DEFAULT_API_BASE).replace(/\/+$/, "");
   const headers = {};
-  if (jwt) headers.Authorization = `Bearer ${jwt}`;
+  const bearer = await resolveBearerToken(base);
+  if (bearer) headers.Authorization = `Bearer ${bearer}`;
   if (body != null) headers["Content-Type"] = "application/json";
 
   const resp = await fetch(`${base}${path}`, {
@@ -168,18 +195,196 @@ function parseGoogleDocId(url) {
   return m?.[1] ?? null;
 }
 
-/** Report the active Google Doc to the dashboard link session (after author starts session on web). */
-async function reportLinkDoc() {
+const BOOK_DOCS_STORAGE_KEY = "elphieBookDocLinks";
+
+/** @type {Map<string, { docId: string, url: string, title: string }[]>} */
+let bookDocLinksByManuscript = new Map();
+
+function parseGoogleDocUrlsFromText(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const out = [];
+  const seen = new Set();
+  for (const line of lines) {
+    const docId = parseGoogleDocId(line);
+    if (!docId || seen.has(docId)) continue;
+    seen.add(docId);
+    out.push({
+      docId,
+      url: line.includes("docs.google.com") ? line : `https://docs.google.com/document/d/${docId}/edit`,
+      title: "Google Doc",
+    });
+  }
+  return out;
+}
+
+async function loadBookDocLinks(manuscriptId) {
+  if (!manuscriptId) {
+    bookDocLinksByManuscript = new Map();
+    renderBookDocList();
+    return;
+  }
+  const stored = await chrome.storage.local.get([BOOK_DOCS_STORAGE_KEY]);
+  const all = stored[BOOK_DOCS_STORAGE_KEY] && typeof stored[BOOK_DOCS_STORAGE_KEY] === "object"
+    ? stored[BOOK_DOCS_STORAGE_KEY]
+    : {};
+  const list = Array.isArray(all[manuscriptId]) ? all[manuscriptId] : [];
+  bookDocLinksByManuscript = new Map([[manuscriptId, list]]);
+  renderBookDocList();
+}
+
+async function saveBookDocLinks(manuscriptId, list) {
+  if (!manuscriptId) return;
+  const stored = await chrome.storage.local.get([BOOK_DOCS_STORAGE_KEY]);
+  const all = stored[BOOK_DOCS_STORAGE_KEY] && typeof stored[BOOK_DOCS_STORAGE_KEY] === "object"
+    ? { ...stored[BOOK_DOCS_STORAGE_KEY] }
+    : {};
+  all[manuscriptId] = list;
+  await chrome.storage.local.set({ [BOOK_DOCS_STORAGE_KEY]: all });
+  bookDocLinksByManuscript = new Map([[manuscriptId, list]]);
+  renderBookDocList();
+}
+
+function getBookDocListForActiveManuscript() {
+  const mid = sessionContext.activeManuscript?.id;
+  if (!mid) return [];
+  return bookDocLinksByManuscript.get(mid) ?? [];
+}
+
+function renderBookDocList() {
+  const ul = $("bookDocList");
+  if (!ul) return;
+  ul.replaceChildren();
+  const list = getBookDocListForActiveManuscript();
+  for (const item of list) {
+    const li = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = item.title && item.title !== "Google Doc" ? item.title : item.docId.slice(0, 12) + "…";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => {
+      void removeBookDocLink(item.docId);
+    });
+    li.append(link, remove);
+    ul.appendChild(li);
+  }
+}
+
+async function removeBookDocLink(docId) {
+  const mid = sessionContext.activeManuscript?.id;
+  if (!mid) return;
+  const next = getBookDocListForActiveManuscript().filter((d) => d.docId !== docId);
+  await saveBookDocLinks(mid, next);
+}
+
+async function addBookDocUrlsFromPaste() {
+  const mid = sessionContext.activeManuscript?.id;
+  if (!mid) {
+    throw new Error("Select a manuscript on the Manuscripts page first, then Sync session.");
+  }
+  const parsed = parseGoogleDocUrlsFromText($("bookDocUrlsPaste")?.value ?? "");
+  if (parsed.length === 0) {
+    throw new Error("Paste at least one Google Docs URL (one per line).");
+  }
+  const byId = new Map(getBookDocListForActiveManuscript().map((d) => [d.docId, d]));
+  for (const d of parsed) byId.set(d.docId, d);
+  await saveBookDocLinks(mid, [...byId.values()]);
+  if ($("bookDocUrlsPaste")) $("bookDocUrlsPaste").value = "";
+  const hint = $("linkSessionHint");
+  if (hint) hint.textContent = `Added ${parsed.length} URL(s). Report all or pick one as the active tab.`;
+}
+
+async function mergeManuscriptBookDocsFromServer(manuscript) {
+  const mid = manuscript?.id;
+  if (!mid) return;
+  const companions = Array.isArray(manuscript.companion_google_docs) ? manuscript.companion_google_docs : [];
+  const primaryId = manuscript.google_doc_id ? String(manuscript.google_doc_id) : null;
+  const byId = new Map(getBookDocListForActiveManuscript().map((d) => [d.docId, d]));
+
+  if (primaryId && manuscript.google_doc_url) {
+    byId.set(primaryId, {
+      docId: primaryId,
+      url: String(manuscript.google_doc_url),
+      title: manuscript.google_doc_title || manuscript.title || "Primary draft",
+    });
+  }
+  for (const row of companions) {
+    const docId = row?.google_doc_id ? String(row.google_doc_id) : parseGoogleDocId(String(row?.google_doc_url ?? ""));
+    if (!docId) continue;
+    byId.set(docId, {
+      docId,
+      url: String(row.google_doc_url ?? `https://docs.google.com/document/d/${docId}/edit`),
+      title: String(row.google_doc_title ?? "Google Doc"),
+    });
+  }
+  if (byId.size > 0) await saveBookDocLinks(mid, [...byId.values()]);
+}
+
+async function getActiveLinkSessionId() {
   const act = await bffRequest("/api/manuscripts/link-session/active", { method: "GET" });
   if (!act.ok || !act.data?.session?.id) {
     throw new Error(
-      "No active link session. In the web dashboard go to Manuscripts → Start link session, then open this doc and try again."
+      "No active link session. On Manuscripts → Start link session, then report URLs here."
     );
   }
-  const sessionId = act.data.session.id;
+  return act.data.session.id;
+}
+
+async function reportDocsToLinkSession(docs, primaryDocId) {
+  const sessionId = await getActiveLinkSessionId();
+  const report = await bffRequest(`/api/manuscripts/link-session/${encodeURIComponent(sessionId)}/report`, {
+    method: "POST",
+    body: {
+      docs: docs.map((d) => ({
+        google_doc_id: d.docId,
+        google_doc_url: d.url,
+        google_doc_title: d.title,
+      })),
+      primary_google_doc_id: primaryDocId,
+    },
+  });
+  if (!report.ok) {
+    const msg = report.data?.error || `Report failed (${report.status})`;
+    if (report.status === 401 || report.status === 403) {
+      throw new Error(
+        `${msg} — Sign in at http://127.0.0.1:5173/sign-in, Sync session, or paste a Bearer token below.`
+      );
+    }
+    throw new Error(msg);
+  }
+  const session = report.data?.session;
+  const count = Array.isArray(session?.reported_docs) ? session.reported_docs.length : docs.length;
+  const title = session?.google_doc_title || docs[0]?.docId;
+  const hint = $("linkSessionHint");
+  if (hint) {
+    hint.textContent = `Reported ${count} doc(s). Primary: “${title}”. Confirm Link session on Manuscripts.`;
+  }
+  if (Array.isArray(session?.reported_docs)) {
+    const mid = sessionContext.activeManuscript?.id;
+    if (mid) {
+      const list = session.reported_docs.map((r) => ({
+        docId: String(r.google_doc_id),
+        url: String(r.google_doc_url),
+        title: String(r.google_doc_title || "Google Doc"),
+      }));
+      await saveBookDocLinks(mid, list);
+    }
+  }
+  setOutput(report.data);
+  return report.data;
+}
+
+/** Report the active Google Doc tab to the link session. */
+async function reportLinkDoc() {
   const tabId = await resolveWritingTabId();
   if (tabId == null) {
-    throw new Error("Open a Google Doc in this browser, then click Report doc again.");
+    throw new Error("Open a Google Doc, or paste URLs below and use Report all listed URLs.");
   }
   const tab = await chrome.tabs.get(tabId);
   const url = tab.url || "";
@@ -187,22 +392,34 @@ async function reportLinkDoc() {
   if (!docId) {
     throw new Error("The writing tab is not a Google Doc URL.");
   }
-  const report = await bffRequest(`/api/manuscripts/link-session/${encodeURIComponent(sessionId)}/report`, {
-    method: "POST",
-    body: {
-      google_doc_id: docId,
-      google_doc_url: url,
-    },
-  });
-  if (!report.ok) {
-    throw new Error(report.data?.error || `Report failed (${report.status})`);
+  const mid = sessionContext.activeManuscript?.id;
+  if (mid) {
+    const byId = new Map(getBookDocListForActiveManuscript().map((d) => [d.docId, d]));
+    byId.set(docId, { docId, url, title: tab.title || "Google Doc" });
+    await saveBookDocLinks(mid, [...byId.values()]);
   }
-  const title = report.data?.session?.google_doc_title || docId;
-  const hint = $("linkSessionHint");
-  if (hint) {
-    hint.textContent = `Reported “${title}”. Confirm Link session on the Manuscripts page.`;
+  await reportDocsToLinkSession([{ docId, url, title: tab.title || "Google Doc" }], docId);
+}
+
+/** Report every URL in the book list (and optional paste box) to the active link session. */
+async function reportAllBookDocs() {
+  const fromPaste = parseGoogleDocUrlsFromText($("bookDocUrlsPaste")?.value ?? "");
+  const byId = new Map(getBookDocListForActiveManuscript().map((d) => [d.docId, d]));
+  for (const d of fromPaste) byId.set(d.docId, d);
+  const docs = [...byId.values()];
+  if (docs.length === 0) {
+    throw new Error("Add at least one Google Doc URL to the list, or paste URLs above.");
   }
-  setOutput(report.data);
+  const mid = sessionContext.activeManuscript?.id;
+  if (mid) await saveBookDocLinks(mid, docs);
+  const tabId = await resolveWritingTabId();
+  let primary = docs[docs.length - 1].docId;
+  if (tabId != null) {
+    const tab = await chrome.tabs.get(tabId);
+    const activeId = parseGoogleDocId(tab.url || "");
+    if (activeId && byId.has(activeId)) primary = activeId;
+  }
+  await reportDocsToLinkSession(docs, primary);
 }
 
 async function refreshSessionContext() {
@@ -225,8 +442,13 @@ async function refreshSessionContext() {
   const act = await bffRequest("/api/manuscripts/active", { method: "GET" });
   if (!act.ok) {
     sessionContext.activeManuscript = null;
+    await loadBookDocLinks(null);
   } else {
     sessionContext.activeManuscript = act.data?.manuscript ?? null;
+    await loadBookDocLinks(sessionContext.activeManuscript?.id ?? null);
+    if (sessionContext.activeManuscript) {
+      await mergeManuscriptBookDocsFromServer(sessionContext.activeManuscript);
+    }
   }
   updateManuscriptHud();
 }
@@ -594,7 +816,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       .catch((e) => setOutput(e.message))
   );
   $("syncSession").addEventListener("click", () => refreshSessionContext().catch((e) => setOutput(e.message)));
+  $("addBookDocUrls")?.addEventListener("click", () => addBookDocUrlsFromPaste().catch((e) => setOutput(e.message)));
+  $("clearBookDocUrls")?.addEventListener("click", () => {
+    const mid = sessionContext.activeManuscript?.id;
+    if (mid) void saveBookDocLinks(mid, []);
+    if ($("bookDocUrlsPaste")) $("bookDocUrlsPaste").value = "";
+    setOutput("Cleared book doc list.");
+  });
   $("reportLinkDoc").addEventListener("click", () => reportLinkDoc().catch((e) => setOutput(e.message)));
+  $("reportAllBookDocs")?.addEventListener("click", () => reportAllBookDocs().catch((e) => setOutput(e.message)));
   $("pushSession").addEventListener("click", () => pushHalSession().catch((e) => setOutput(e.message)));
   $("endSessionWrapUp").addEventListener("click", () => endSessionAndWrapUp().catch((e) => setOutput(e.message)));
   $("askLibrarian").addEventListener("click", () => askLibrarian().catch((e) => setOutput(e.message)));

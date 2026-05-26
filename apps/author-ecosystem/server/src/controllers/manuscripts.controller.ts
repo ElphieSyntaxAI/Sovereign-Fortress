@@ -15,7 +15,7 @@ import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 export const manuscriptsController = Router();
 
 const MANUSCRIPT_SELECT =
-  "id, tenant_id, title, outline, revision_status, updated_at, lock_expires_at, revision_cooldown_until, cooldown_revision_status, locked_until, cooldown_duration, series_id, project_phase, google_doc_url, google_doc_id, hal_extension_enabled, linked_at, revisions_completed_at, wiki_revision_locked_at";
+  "id, tenant_id, title, outline, revision_status, updated_at, lock_expires_at, revision_cooldown_until, cooldown_revision_status, locked_until, cooldown_duration, series_id, project_phase, google_doc_url, google_doc_id, companion_google_docs, hal_extension_enabled, linked_at, revisions_completed_at, wiki_revision_locked_at";
 
 type HubManuscriptRow = ManuscriptPhaseRow &
   Record<string, unknown> & {
@@ -25,12 +25,11 @@ type HubManuscriptRow = ManuscriptPhaseRow &
   };
 
 function phaseBuckets(rows: HubManuscriptRow[]) {
-  const linked = rows.filter((r) => r.linked_at != null);
   const norm = (r: HubManuscriptRow) => parseProjectPhase(r.project_phase) ?? "working";
   return {
-    working: linked.filter((r) => norm(r) === "working"),
-    editing: linked.filter((r) => norm(r) === "editing"),
-    finished: linked.filter((r) => norm(r) === "finished"),
+    working: rows.filter((r) => norm(r) === "working"),
+    editing: rows.filter((r) => norm(r) === "editing"),
+    finished: rows.filter((r) => norm(r) === "finished"),
   };
 }
 
@@ -66,8 +65,10 @@ manuscriptsController.get("/api/manuscripts/hub", async (req: Request, res: Resp
   }
 
   const all = (msRes.data ?? []) as HubManuscriptRow[];
-  const unlinked = all.filter((r) => r.linked_at == null);
-  const linked = all.filter((r) => r.linked_at != null);
+  const isLinked = (r: HubManuscriptRow) =>
+    Boolean(r.linked_at) || Boolean(r.google_doc_id && r.hal_extension_enabled);
+  const unlinked = all.filter((r) => !isLinked(r));
+  const linked = all.filter((r) => isLinked(r));
   const standaloneLinked = linked.filter((r) => r.series_id == null);
 
   const seriesList = (seriesRes.data ?? []) as { id: string; title: string }[];

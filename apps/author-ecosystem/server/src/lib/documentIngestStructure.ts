@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { DocumentIngestSlot, ProposedWikiEntry } from "./documentIngestGate.js";
+import { MAX_WIKI_PROPOSED } from "./documentIngestLimits.js";
 import { extractOutlineBeatsFromText, type IngestPlotBeat } from "./documentIngestOutline.js";
 
 export type ContentSignalKind =
@@ -68,6 +69,55 @@ export function detectContentSignals(text: string): ContentSignal[] {
   const lower = sample.toLowerCase();
   const signals: ContentSignal[] = [];
 
+  const tabSections = (sample.match(/^---\s*TAB:/gim) ?? []).length;
+  if (tabSections >= 2) {
+    signals.push({
+      kind: "mixed",
+      confidence: "high",
+      evidence: `${tabSections} Google Doc tabs merged (multi-tab planning doc)`,
+    });
+  }
+
+  if (/\b(prologue|epigraph|preface)\b/i.test(sample)) {
+    signals.push({
+      kind: "notes_brainstorm",
+      confidence: "medium",
+      evidence: "front matter (prologue/epigraph/preface)",
+    });
+  }
+
+  if (/\b(book synopsis|logline|elevator pitch)\b/i.test(sample)) {
+    signals.push({
+      kind: "outline_list",
+      confidence: "high",
+      evidence: "book-level synopsis / pitch material",
+    });
+  }
+
+  if (/\b(spin[- ]?off|sequel book ideas|gods games)\b/i.test(sample)) {
+    signals.push({
+      kind: "notes_brainstorm",
+      confidence: "high",
+      evidence: "sequel / spin-off planning (not in-manuscript chapters)",
+    });
+  }
+
+  if (/\b(beginning outline|general outline|master outline)\b/i.test(lower)) {
+    signals.push({
+      kind: "outline_list",
+      confidence: "high",
+      evidence: "macro / beginning outline (not chapter-by-chapter)",
+    });
+  }
+
+  if (/\b(chapter breakdown|chapter outline|chapter by chapter)\b/i.test(lower)) {
+    signals.push({
+      kind: "chapter_breakdown",
+      confidence: "high",
+      evidence: "per-chapter breakdown sections",
+    });
+  }
+
   const sceneHits =
     (sample.match(/\bscene\s*(?:card|#|\d+)/gi) ?? []).length +
     (sample.match(/\b(?:int\.|ext\.)\s/g) ?? []).length;
@@ -112,6 +162,16 @@ export function detectContentSignals(text: string): ContentSignal[] {
       kind: "notes_brainstorm",
       confidence: "medium",
       evidence: "notes / brainstorm markers",
+    });
+  }
+
+  const tableRows = (sample.match(/^\|.+\|$/gm) ?? []).length;
+  const tabRows = (sample.match(/^[^\n]*\t[^\n\t]+\t/gm) ?? []).length;
+  if (tableRows >= 3 || tabRows >= 3) {
+    signals.push({
+      kind: "character_cards",
+      confidence: tableRows + tabRows >= 6 ? "high" : "medium",
+      evidence: `${Math.max(tableRows, tabRows)} tabular rows (table or tab layout)`,
     });
   }
 
@@ -432,5 +492,5 @@ export function inferWikiFromSignals(
     }
   }
 
-  return out.slice(0, 24);
+  return out.slice(0, MAX_WIKI_PROPOSED);
 }

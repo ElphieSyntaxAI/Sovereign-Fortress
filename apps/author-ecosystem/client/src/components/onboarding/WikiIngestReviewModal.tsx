@@ -3,18 +3,45 @@ import { Link } from "react-router-dom";
 
 import type { ContentSignal, IngestConflict, ProposedWiki } from "../../lib/onboardingApi";
 
-type OutlineBeat = { synopsis: string; order: number };
+type OutlineBeat = {
+  synopsis: string;
+  order: number;
+  title?: string;
+  pov_mode?: "single" | "split" | "unknown";
+  pov_names?: string[];
+};
+
+type TabDiagnostics = {
+  count: number;
+  method?: string;
+  sections?: Array<{ title: string; path?: string; layer: string }>;
+};
+
+const LAYER_LABELS: Record<string, string> = {
+  front_matter: "front matter",
+  book_synopsis: "synopsis",
+  macro_outline: "macro outline",
+  chapter_breakdown: "chapter breakdown",
+  scene_grid: "scenes",
+  character_bible: "characters",
+  world_bible: "world",
+  notes: "sequel / spin-off",
+  unknown: "section",
+};
 
 export function WikiIngestReviewModal(props: {
   open: boolean;
   slotLabel: string;
   proposed: ProposedWiki[];
   outlineBeats?: OutlineBeat[];
+  outlineBeatCount?: number;
+  tabDiagnostics?: TabDiagnostics | null;
   contentSignals?: ContentSignal[];
   ingestConflicts?: IngestConflict[];
   onEdit: (next: ProposedWiki[]) => void;
   onSubmit: () => void;
   onCancel: () => void;
+  onReject?: (reason: string) => void;
   busy: boolean;
 }) {
   const [local, setLocal] = useState(props.proposed);
@@ -48,15 +75,53 @@ export function WikiIngestReviewModal(props: {
             ⚠ {c.message}
           </p>
         ))}
+        {props.tabDiagnostics && props.tabDiagnostics.count > 0 ? (
+          <div className="mt-4 rounded-lg border border-sky-900/40 bg-sky-950/20 p-3">
+            <p className="text-xs font-semibold text-sky-200">
+              Google Doc tabs read ({props.tabDiagnostics.count}
+              {props.tabDiagnostics.method ? ` · ${props.tabDiagnostics.method}` : ""})
+            </p>
+            {props.tabDiagnostics.sections && props.tabDiagnostics.sections.length > 0 ? (
+              <ul className="mt-2 max-h-32 space-y-0.5 overflow-y-auto text-[11px] text-zinc-400">
+                {props.tabDiagnostics.sections.map((s, i) => (
+                  <li key={i}>
+                    {s.path ? `${s.path} › ` : ""}
+                    {s.title}
+                    <span className="text-zinc-600">
+                      {" "}
+                      — {LAYER_LABELS[s.layer] ?? s.layer.replace(/_/g, " ")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         {props.outlineBeats && props.outlineBeats.length > 0 ? (
           <div className="mt-4 rounded-lg border border-violet-900/40 bg-violet-950/20 p-3">
             <p className="text-xs font-semibold text-violet-200">
-              Outline / scene cards ({props.outlineBeats.length})
+              Outline / scene cards (
+              {props.outlineBeatCount ?? props.outlineBeats.length})
             </p>
-            <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-zinc-400">
-              {props.outlineBeats.slice(0, 12).map((b, i) => (
-                <li key={i}>{b.synopsis.slice(0, 160)}{b.synopsis.length > 160 ? "…" : ""}</li>
-              ))}
+            <ol className="mt-2 max-h-48 list-decimal space-y-1 overflow-y-auto pl-4 text-xs text-zinc-400">
+              {props.outlineBeats.map((b, i) => {
+                const label = b.title?.trim() || b.synopsis.split("\n")[0]?.trim() || b.synopsis;
+                const detail = b.title ? b.synopsis : b.synopsis.slice(label.length).trim();
+                const preview = detail.slice(0, 140) || label.slice(0, 160);
+                return (
+                  <li key={i}>
+                    <span className="text-violet-200/90">{label.slice(0, 100)}</span>
+                    {b.pov_mode === "split" ? (
+                      <span className="ml-1 text-[10px] text-amber-300/90">(split POV)</span>
+                    ) : b.pov_mode === "single" && b.pov_names?.[0] ? (
+                      <span className="ml-1 text-[10px] text-zinc-500">({b.pov_names[0]} POV)</span>
+                    ) : null}
+                    {preview && preview !== label ? (
+                      <span className="text-zinc-500"> — {preview}{preview.length >= 140 ? "…" : ""}</span>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ol>
           </div>
         ) : null}
@@ -91,6 +156,19 @@ export function WikiIngestReviewModal(props: {
           >
             Edit on Wiki
           </Link>
+          <button
+            type="button"
+            className="rounded-lg border border-amber-700/50 px-4 py-2 text-sm text-amber-200/90 hover:bg-amber-950/40"
+            disabled={props.busy}
+            onClick={() => {
+              const reason = window.prompt(
+                "What went wrong with this mapping? (e.g. table rows merged into one entry)"
+              );
+              if (reason?.trim()) props.onReject?.(reason.trim());
+            }}
+          >
+            Report bad mapping
+          </button>
           <button
             type="button"
             className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"

@@ -1,7 +1,11 @@
 import { drive } from "@googleapis/drive";
 import { Router, type Request, type Response } from "express";
 
-import { extractGoogleDocId, normalizeGoogleDocUrl } from "../lib/googleDocUrl.js";
+import {
+  mergeReportedDocs,
+  parseDocsFromBody,
+  type ReportedGoogleDoc,
+} from "../lib/linkSessionDocs.js";
 import { getGoogleOAuthClientForTenant } from "../lib/googleOAuthTokens.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
@@ -22,9 +26,7 @@ linkSessionController.get("/api/manuscripts/link-session/active", async (req: Re
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("p4_manuscript_link_sessions")
-    .select(
-      "id, status, google_doc_id, google_doc_title, google_doc_url, reported_at, expires_at, manuscript_id"
-    )
+    .select(LINK_SESSION_SELECT)
     .eq("tenant_id", user.userId)
     .in("status", ["pending", "reported"])
     .gt("expires_at", now)
@@ -37,7 +39,40 @@ linkSessionController.get("/api/manuscripts/link-session/active", async (req: Re
 });
 
 const MANUSCRIPT_SELECT =
-  "id, tenant_id, title, revision_status, updated_at, series_id, project_phase, google_doc_url, google_doc_id, hal_extension_enabled, linked_at";
+  "id, tenant_id, title, revision_status, updated_at, series_id, project_phase, google_doc_url, google_doc_id, companion_google_docs, hal_extension_enabled, linked_at";
+
+const LINK_SESSION_SELECT =
+  "id, status, google_doc_id, google_doc_title, google_doc_url, reported_docs, reported_at, expires_at, manuscript_id, confirmed_at";
+
+async function resolveDocTitles(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  tenantId: string,
+  docs: ReportedGoogleDoc[]
+): Promise<ReportedGoogleDoc[]> {
+  let client: Awaited<ReturnType<typeof getGoogleOAuthClientForTenant>>["client"] | null = null;
+  const out: ReportedGoogleDoc[] = [];
+  for (const doc of docs) {
+    if (doc.google_doc_title && doc.google_doc_title !== "Google Doc") {
+      out.push(doc);
+      continue;
+    }
+    try {
+      if (!client) {
+        const o = await getGoogleOAuthClientForTenant(supabase, tenantId);
+        client = o.client;
+      }
+      const d = drive({ version: "v3", auth: client });
+      const meta = await d.files.get({ fileId: doc.google_doc_id, fields: "name" });
+      out.push({
+        ...doc,
+        google_doc_title: meta.data.name ? String(meta.data.name) : doc.google_doc_title,
+      });
+    } catch {
+      out.push(doc);
+    }
+  }
+  return out;
+}
 
 /**
  * POST /api/manuscripts/:manuscriptId/link-session
@@ -95,22 +130,16 @@ linkSessionController.post(
     if (!user) return;
 
     const sessionId = String(req.params.sessionId ?? "").trim();
-    const body = (req.body ?? {}) as {
-      google_doc_url?: string;
-      google_doc_id?: string;
-      google_doc_title?: string;
-    };
-
-    const url = String(body.google_doc_url ?? "").trim();
-    const docId = String(body.google_doc_id ?? "").trim() || (url ? extractGoogleDocId(url) : "");
-    if (!docId) {
-      return res.status(400).json({ error: "google_doc_id or google_doc_url is required" });
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const incoming = parseDocsFromBody(body);
+    if (incoming.length === 0) {
+      return res.status(400).json({ error: "google_doc_id, google_doc_url, or docs[] is required" });
     }
 
     const supabase = getSupabaseAdmin();
     const { data: session, error: fetchErr } = await supabase
       .from("p4_manuscript_link_sessions")
-      .select("id, tenant_id, manuscript_id, status, expires_at")
+      .select("id, tenant_id, manuscript_id, status, expires_at, reported_docs")
       .eq("id", sessionId)
       .eq("tenant_id", user.userId)
       .maybeSingle();
@@ -128,30 +157,24 @@ linkSessionController.post(
       return res.status(410).json({ error: "Session expired — start a new link session" });
     }
 
-    let title = String(body.google_doc_title ?? "").trim();
-    if (!title) {
-      try {
-        const { client } = await getGoogleOAuthClientForTenant(supabase, user.userId);
-        const d = drive({ version: "v3", auth: client });
-        const meta = await d.files.get({ fileId: docId, fields: "name" });
-        title = meta.data.name ? String(meta.data.name) : "Google Doc";
-      } catch {
-        title = "Google Doc";
-      }
-    }
+    const primaryDocId =
+      typeof body.primary_google_doc_id === "string" ? body.primary_google_doc_id.trim() : undefined;
+    const titled = await resolveDocTitles(supabase, user.userId, incoming);
+    const { docs, primary } = mergeReportedDocs(session.reported_docs, titled, primaryDocId);
 
     const now = new Date().toISOString();
     const { data: updated, error } = await supabase
       .from("p4_manuscript_link_sessions")
       .update({
         status: "reported",
-        google_doc_id: docId,
-        google_doc_url: url ? normalizeGoogleDocUrl(url) : normalizeGoogleDocUrl(`https://docs.google.com/document/d/${docId}/edit`),
-        google_doc_title: title,
+        google_doc_id: primary.google_doc_id,
+        google_doc_url: primary.google_doc_url,
+        google_doc_title: primary.google_doc_title,
+        reported_docs: docs,
         reported_at: now,
       })
       .eq("id", sessionId)
-      .select("id, status, google_doc_id, google_doc_title, google_doc_url, reported_at, expires_at, manuscript_id")
+      .select(LINK_SESSION_SELECT)
       .single();
 
     if (error) return res.status(500).json({ error: error.message });
@@ -172,9 +195,7 @@ linkSessionController.get(
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("p4_manuscript_link_sessions")
-      .select(
-        "id, status, google_doc_id, google_doc_title, google_doc_url, reported_at, confirmed_at, expires_at, manuscript_id"
-      )
+      .select(LINK_SESSION_SELECT)
       .eq("id", sessionId)
       .eq("tenant_id", user.userId)
       .maybeSingle();
@@ -239,12 +260,18 @@ linkSessionController.post(
       });
     }
 
+    const reported = Array.isArray(session.reported_docs) ? session.reported_docs : [];
+    const companions = reported.filter(
+      (d: { google_doc_id?: string }) => String(d?.google_doc_id) !== String(session.google_doc_id)
+    );
+
     const now = new Date().toISOString();
     const { error: msErr } = await supabase
       .from("p4_manuscripts")
       .update({
         google_doc_id: session.google_doc_id,
         google_doc_url: session.google_doc_url,
+        companion_google_docs: companions,
         hal_extension_enabled: true,
         linked_at: now,
         project_phase: "working",

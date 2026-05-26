@@ -6,6 +6,7 @@ import type {
   ProposedWikiEntry,
   ScanThought,
 } from "./documentIngestGate.js";
+import { MAX_LLM_DOCUMENT_CHARS, MAX_WIKI_PROPOSED } from "./documentIngestLimits.js";
 import {
   extractOutlineBeatsFromText,
   mergePlotBeats,
@@ -45,7 +46,11 @@ function parseJsonStripFences(text: string): unknown {
 
 const ENRICH_SYSTEM = [
   "You map AUTHOR UPLOADS into a story database. Ignore document type/filename — read CONTENT ONLY.",
-  "Forms you may see mixed in one file: scene cards, chapter breakdowns, character cards, world bible, notes, beat sheets, full draft prose, bullet outlines.",
+  "Forms you may see mixed in one file: scene cards, chapter breakdowns, character cards, world bible, notes, beat sheets, full draft prose, bullet outlines, TABLES (markdown | col | rows or tab-separated rows), SECTION breaks (--- SECTION ---), and GOOGLE DOC TABS (--- TAB: Tab Name ---).",
+  "Planning layers (use in wiki_metadata.planning_layer): front_matter (prologue, epigraph), book_synopsis, macro_outline (beginning/general outline — act-level, NOT per chapter), chapter_breakdown (per-chapter sections), scene_grid (scene 1..N tables or cards).",
+  "POV: if a chapter has one 'Name Pov' line → single POV; if two+ POV lines or text says 'split POV' → split POV. Do not duplicate the same Beginning/macro blurb from multiple tabs.",
+  "Do NOT collapse macro_outline and chapter_breakdown — they are different planning depths. Do NOT merge scene_grid rows into one beat.",
+  "For tables: treat EACH DATA ROW as its own outline_beat and/or proposed_wiki entry. A 30-row scene table must yield ~30 outline_beats unless rows are duplicates.",
   "Output ONLY valid JSON (no markdown).",
   `Schema: {
   "thoughts":["string"],
@@ -197,7 +202,7 @@ export async function analyzeDocumentIngest(params: {
           `Authorship questions to generate: ${params.questionCount}`,
           "",
           "Document:",
-          params.text.slice(0, 14000),
+          params.text.slice(0, MAX_LLM_DOCUMENT_CHARS),
         ].join("\n"),
       });
       const parsed = parseJsonStripFences(raw) as Record<string, unknown>;
@@ -324,7 +329,7 @@ export async function analyzeDocumentIngest(params: {
 
   return {
     thoughts,
-    proposed: proposed.slice(0, 24),
+    proposed: proposed.slice(0, MAX_WIKI_PROPOSED),
     outline_beats,
     questions,
     content_signals: llmSignals,
