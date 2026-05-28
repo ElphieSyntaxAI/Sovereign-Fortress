@@ -9,6 +9,7 @@ import {
 } from "./config";
 import type { IdeStatusBarSnapshot } from "./ide-types";
 import { MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
+import { HalFrictionTracker } from "./halFrictionNotice";
 import { parseTextDocumentEvent } from "./keystrokeCapture";
 import { LocalStateCacheWriter } from "./localStateCache";
 import { TelemetryBuffer } from "./telemetryBuffer";
@@ -26,6 +27,7 @@ export class GuardSession {
   private entityId = "";
   private buffer: TelemetryBuffer | null = null;
   private localCache: LocalStateCacheWriter | null = null;
+  private readonly halFriction = new HalFrictionTracker();
   private readonly disposables: vscode.Disposable[] = [];
   private lastSnapshot: IdeStatusBarSnapshot = {
     logicDriftScore: null,
@@ -125,6 +127,7 @@ export class GuardSession {
       if (!telemetry.length) return;
 
       this.buffer.push(telemetry);
+      this.halFriction.recordEditEvents(telemetry.length);
       this.localCache?.recordDocumentChanges(telemetry);
       this.pushSnapshot({
         ...this.lastSnapshot,

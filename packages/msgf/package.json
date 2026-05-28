@@ -173,6 +173,7 @@
     "deep-test:solo:live": "node scripts/deep-test-solo.mjs --live",
     "smoke:p1-ide": "node scripts/smoke-p1-ide-setup.mjs",
     "smoke:p2-dev": "node scripts/smoke-p2-dev-heal.mjs",
+    "smoke:p3-verify": "node scripts/smoke-p3-verify-mcp.mjs",
     "create:buyer-user": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-buyer-test-user.mjs",
     "create:platform-admin": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-platform-admin-test-user.ts",
     "verify:platform-login": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-platform-login.ts",

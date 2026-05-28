@@ -49,7 +49,7 @@
 | **P0** | Cloud stable, classified IDE errors, canonical docs |
 | **P1** | Connectivity-check, setup wizard, report-issue, agent-context |
 | **P2** | Dev heal cycle, two-tier heal UI, HAL friction notice |
-| **P3** | verify-result, MCP, website refactor directive |
+| **P3** | `POST verify-result`, `GET refactoring-directive`, HAL friction notice, MCP ([MSGF_IDE_MCP.md](./MSGF_IDE_MCP.md)) |
 | **P4** | Long-lived IDE token, disk auto-patch (optional) |
 
 ---

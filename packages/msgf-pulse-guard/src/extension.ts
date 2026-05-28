@@ -5,7 +5,9 @@ import * as vscode from "vscode";
 
 import { readMsgfSettings, settingsReady } from "./config";
 import { registerOpenDashboardCommand } from "./dashboardPanel";
+import { registerGenerateContextPackCommand } from "./generateContextPack";
 import { registerIdeSetupCommands } from "./ideSetupCommands";
+import { registerSubmitVerifyResultCommand } from "./submitVerifyResultCommand";
 import { registerMsgfExternalAuthCommands } from "./openMsgfExternal";
 import { GuardSession } from "./guardSession";
 import {
@@ -34,6 +36,8 @@ export function activate(context: vscode.ExtensionContext): void {
   registerOpenDashboardCommand(context);
   registerMsgfExternalAuthCommands(context);
   registerIdeSetupCommands(context);
+  registerGenerateContextPackCommand(context);
+  registerSubmitVerifyResultCommand(context);
   registerViolationCommands(context);
   sidebarDashboard = registerMsgfDashboardProvider(context);
   bindViolationDashboardProvider(sidebarDashboard);

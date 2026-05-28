@@ -103,6 +103,14 @@
         "title": "MSGF: Copy agent heal prompt"
       },
       {
+        "command": "msgf.generateContextPack",
+        "title": "MSGF: Generate 0-token context pack"
+      },
+      {
+        "command": "msgf.submitVerifyResult",
+        "title": "MSGF: Submit verify result"
+      },
+      {
         "command": "msgf.testConnection",
         "title": "MSGF: Test connection"
       },

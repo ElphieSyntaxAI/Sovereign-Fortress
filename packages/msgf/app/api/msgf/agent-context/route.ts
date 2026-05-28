@@ -8,6 +8,7 @@ import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-co
 import { AgentContextQuerySchema } from "@/lib/schemas/report-issue";
 import { parseHealQueueTenantQuery } from "@/lib/schemas/heal-queue";
 import { buildAgentContextPack } from "@/lib/services/agent-context-service";
+import { buildRefactoringDirectivePack } from "@/lib/services/refactoring-directive-service";
 import { listHealQueueRemediationTasks } from "@/lib/services/heal-queue-service";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -66,7 +67,14 @@ export async function GET(req: NextRequest) {
       trigger_label: trigger_label ?? null,
     });
 
-    return json(req, { ok: true, ...pack });
+    const refactorProfile = sp.get("refactor_profile");
+    let markdown = pack.markdown;
+    if (refactorProfile === "website_modernization") {
+      const directive = buildRefactoringDirectivePack("website_modernization");
+      markdown = `${pack.markdown}\n\n---\n\n## Refactoring directive (${directive.profile})\n\n${directive.directive_markdown}\n\n### Allow\n${directive.allow_list.map((l) => `- ${l}`).join("\n")}\n\n### Deny\n${directive.deny_list.map((l) => `- ${l}`).join("\n")}\n`;
+    }
+
+    return json(req, { ok: true, ...pack, markdown });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "agent-context failed";
     console.error("[agent-context]", e);

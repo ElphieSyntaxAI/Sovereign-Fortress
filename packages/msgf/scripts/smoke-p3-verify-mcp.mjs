@@ -1,0 +1,45 @@
+#!/usr/bin/env node
+/**
+ * P3 smoke — verify-result schema, refactoring directive, extension compile.
+ * Usage: npm run smoke:p3-verify -w msgf
+ */
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(root, "../..");
+const pulseGuard = path.join(repoRoot, "packages", "msgf-pulse-guard");
+
+function run(cmd, args, cwd, label, env = process.env) {
+  const r = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: true, env });
+  if (r.status !== 0) {
+    console.error(`[smoke-p3] FAIL: ${label}`);
+    process.exit(r.status ?? 1);
+  }
+  console.log(`[smoke-p3] OK: ${label}`);
+}
+
+console.log("[smoke-p3] P3 verify + MCP smoke\n");
+
+const testEnv = { ...process.env, MSGF_REPO_ROOT: repoRoot };
+
+run(
+  "npx",
+  ["tsx", "--test", "tests/verify-result-schema.test.ts"],
+  root,
+  "verify-result schema tests",
+  testEnv
+);
+run(
+  "npx",
+  ["tsx", "--test", "tests/refactoring-directive-service.test.ts"],
+  root,
+  "refactoring-directive tests",
+  testEnv
+);
+
+run("npm", ["run", "compile"], pulseGuard, "msgf-pulse-guard compile");
+
+console.log("\n[smoke-p3] All P3 smoke checks passed.");
+console.log("[smoke-p3] Optional: configure MCP per docs/MSGF_IDE_MCP.md");

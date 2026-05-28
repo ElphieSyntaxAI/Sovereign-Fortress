@@ -30,7 +30,7 @@ Action Recommended: Click 'Generate 0-Token Context Pack' to unblock this functi
 
 ## Copy-paste for Codespaces / Cursor
 
-Use the notice text verbatim in extension `halFrictionNotice` (planned). Link command `msgf.generateContextPack` → guided agent-context.
+Use the notice text verbatim in extension `halFrictionNotice` (shipped in msgf-pulse-guard). Command `msgf.generateContextPack` → guided agent-context.
 
 ---
 
