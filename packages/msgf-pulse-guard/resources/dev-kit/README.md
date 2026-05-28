@@ -18,7 +18,7 @@ This folder is managed by **MSGF Pulse Guard**. Use it to connect your project t
 
 ## Dev session (recommended for integrators)
 
-Enable vibe-coding mode in `.vscode/settings.json`:
+Enable vibe-coding mode in `.vscode/settings.json` (Workspace → IDE setup includes this for integrators):
 
 ```json
 {
@@ -26,7 +26,7 @@ Enable vibe-coding mode in `.vscode/settings.json`:
 }
 ```
 
-Pulse flushes on **file save** instead of every keystroke. See `dev/api-cookbook.md` for headers.
+With **MSGF Pulse Guard** reloaded, Pulse flushes on **file save** only (`x-msgf-flush-reason: save`), not every ~3 seconds. Use **MSGF: Flush buffered Pulse now** for a manual flush. See `dev/api-cookbook.md` for headers.
 
 ## VS Code tasks
 

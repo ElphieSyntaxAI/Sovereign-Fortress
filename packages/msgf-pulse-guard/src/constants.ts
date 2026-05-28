@@ -37,3 +37,12 @@ export const MSGF_BYOK_CLAUDE_HEADER = "x-msgf-byok-claude";
 export const MSGF_SMALL_BRAIN_PROVIDER_HEADER = "x-msgf-small-brain-provider";
 export const MSGF_SMALL_BRAIN_MODEL_HEADER = "x-msgf-small-brain-model";
 export const MSGF_SMALL_BRAIN_API_KEY_HEADER = "x-msgf-small-brain-api-key";
+
+/** IDE vibe-coding: save-primary pulse + relaxed drift (server dev-session-profile). */
+export const MSGF_DEV_SESSION_HEADER = "x-msgf-dev-session";
+
+export const MSGF_FLUSH_REASON_HEADER = "x-msgf-flush-reason";
+
+export const MSGF_ACTIVE_FILE_HEADER = "x-msgf-active-file";
+
+export const MSGF_BUILD_ACTIVE_HEADER = "x-msgf-build-active";

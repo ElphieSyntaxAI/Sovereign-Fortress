@@ -9,6 +9,7 @@ import {
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "./constants";
+import { appendDevSessionPulseHeaders, type PulseFlushContext } from "./devSessionPulse";
 import { buildRoleTrackingHeaders, hasValidAuthToken } from "./rolePermissions";
 import { getWorkspaceRoot } from "./workspace/msgfWorkspace";
 
@@ -21,6 +22,7 @@ export function buildPulseAuthHeaders(params: {
   settings: MsgfGuardSettings;
   tenantId: string;
   entityId: string;
+  flushContext?: PulseFlushContext;
 }): PulseAuthHeaders {
   const { settings, tenantId, entityId } = params;
 
@@ -55,6 +57,8 @@ export function buildPulseAuthHeaders(params: {
 
   const byok = readWorkspaceByokKeys(getWorkspaceRoot());
   Object.assign(headers, buildByokPulseHeaders(byok));
+
+  appendDevSessionPulseHeaders(headers, settings, params.flushContext);
 
   return headers;
 }

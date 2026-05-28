@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 
 import { readMsgfSettings, resolveTenantId } from "../config";
+import { isSavePrimaryPulseMode } from "../devSessionPulse";
 import { promptDevHealCycleChoice } from "../devHealCycle";
 import { setLastDevHealChoice } from "../lastDevHealChoice";
 import {
@@ -213,6 +214,9 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     const viewModel: DashboardHealthView = {
       apiUrl: settings.apiUrl,
       tenantId: resolveTenantId(settings),
+      pulseModeHint: isSavePrimaryPulseMode(settings)
+        ? "Dev session: keystrokes buffer locally; Pulse POSTs on file save (x-msgf-flush-reason: save)."
+        : "Live mode: keystroke batches POST to /api/msgf/pulse every few seconds when armed.",
       report: this.healthReport,
       healthError: this.healthError,
       pulseError: this.pulseError,

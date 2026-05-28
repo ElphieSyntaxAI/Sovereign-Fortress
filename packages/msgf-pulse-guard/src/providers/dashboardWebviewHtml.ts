@@ -11,6 +11,8 @@ import {
 export type DashboardHealthView = {
   apiUrl: string;
   tenantId: string;
+  /** Human-readable Pulse cadence (dev session vs live). */
+  pulseModeHint: string;
   report: PillarHealthReport | null;
   healthError: string | null;
   pulseError: string | null;
@@ -123,7 +125,7 @@ export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
   ${
     view.pulseError
       ? `<div class="banner err">${escapeHtml(view.pulseError)}</div>`
-      : `<p class="muted">Keystroke batches POST to /api/msgf/pulse every few seconds when armed.</p>`
+      : `<p class="muted">${escapeHtml(view.pulseModeHint)}</p>`
   }
 
   <h2>Violations</h2>

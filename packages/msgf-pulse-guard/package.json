@@ -167,6 +167,12 @@
           "description": "MSGF API base URL (Cloud Run or local Next app) for POST /api/msgf/pulse.",
           "scope": "resource"
         },
+        "msgf.devSession": {
+          "type": "boolean",
+          "default": false,
+          "description": "Vibe-coding profile: buffer edits locally and POST Pulse on file save only (x-msgf-dev-session). When false, micro-batch flush every ~3s.",
+          "scope": "resource"
+        },
         "msgf.licenseKey": {
           "type": "string",
           "default": "",

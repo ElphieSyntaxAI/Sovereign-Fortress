@@ -2,6 +2,7 @@ import { classifyHttpError } from "./classifyHttpError";
 import type { IdeStatusBarSnapshot } from "./ide-types";
 import { MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
 import type { MsgfGuardSettings } from "./config";
+import type { PulseFlushContext } from "./devSessionPulse";
 import { buildPulseAuthHeaders } from "./pulseAuth";
 import { handlePulseResponseViolations } from "./pulseViolationAlert";
 import { telemetryToKeystrokes } from "./keystrokeCapture";
@@ -87,6 +88,7 @@ export async function flushTelemetryBatch(params: {
   tenantId: string;
   entityId: string;
   batch: TelemetryChangeEvent[];
+  flushContext?: PulseFlushContext;
   fetchImpl?: typeof fetch;
 }): Promise<PulseFlushResult> {
   const keystrokes = telemetryToKeystrokes(params.batch);
@@ -102,6 +104,7 @@ export async function flushTelemetryBatch(params: {
     settings: params.settings,
     tenantId: params.tenantId,
     entityId: params.entityId,
+    flushContext: params.flushContext,
   });
 
   if (!headers.Authorization) {

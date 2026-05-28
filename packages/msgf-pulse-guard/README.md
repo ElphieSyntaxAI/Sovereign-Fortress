@@ -98,6 +98,7 @@ In the **Extension Development Host** window, set User or Workspace settings (`C
 | `msgf.tenantKey` | Sent as `X-MSGF-Tenant-Key` and `x-msgf-tenant-id` |
 | `msgf.authToken` | **Required** — `Authorization: Bearer …` on every Pulse flush |
 | `msgf.apiUrl` | Base URL for `POST …/api/msgf/pulse` (defaults to production gated-AI host) |
+| `msgf.devSession` | When `true`, buffer keystrokes locally and POST Pulse **on file save** (`x-msgf-dev-session: 1`). When `false`, micro-batch flush every ~3s. |
 | `msgf.role` | Optional `global_admin` \| `company_admin` \| `dev` → `x-msgf-access-role` |
 | `msgf.organizationId` | Team org id (`x-msgf-organization-id`). When empty with a personal token, IDE may send `x-msgf-fallback-role: company_admin` for sandbox admin |
 | `msgf.licenseKey` | Legacy `msgf_live_…` fallback if `authToken` is unset |

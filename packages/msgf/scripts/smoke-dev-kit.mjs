@@ -23,6 +23,7 @@ function run(cmd, args, cwd, label) {
 console.log("[smoke-dev-kit] MSGF integrator dev kit smoke\n");
 
 run("npx", ["tsx", "--test", "tests/dev-kit-scaffold.test.ts"], pulseGuard, "dev-kit-scaffold tests");
+run("npx", ["tsx", "--test", "tests/dev-session-pulse.test.ts"], pulseGuard, "dev-session-pulse tests");
 run("npm", ["run", "compile"], pulseGuard, "msgf-pulse-guard compile");
 
 console.log("\n[smoke-dev-kit] All dev kit smoke checks passed.");

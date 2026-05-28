@@ -7,6 +7,7 @@ import {
   settingsReady,
   type MsgfGuardSettings,
 } from "./config";
+import { isSavePrimaryPulseMode } from "./devSessionPulse";
 import type { IdeStatusBarSnapshot } from "./ide-types";
 import { MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
 import { HalFrictionTracker } from "./halFrictionNotice";
@@ -47,9 +48,11 @@ export class GuardSession {
   ) {}
 
   async start(): Promise<void> {
-    await initializeMsgfWorkspace();
+    await initializeMsgfWorkspace(this.context.extensionPath);
     await this.reloadFromSettings();
     this.wireDocumentListener();
+    this.wireSaveListener();
+    this.wireBuildTaskListeners();
   }
 
   dispose(): void {
@@ -84,6 +87,12 @@ export class GuardSession {
       );
     }
 
+    this.localCache = new LocalStateCacheWriter(
+      this.tenantId,
+      this.entityId,
+      this.settings
+    );
+
     this.buffer = new TelemetryBuffer({
       settings: this.settings,
       tenantId: this.tenantId,
@@ -105,15 +114,11 @@ export class GuardSession {
         this.pushSnapshot(this.lastSnapshot);
       },
     });
-    this.localCache = new LocalStateCacheWriter(
-      this.tenantId,
-      this.entityId,
-      this.settings
-    );
 
     this.buffer.start();
+    const mode = isSavePrimaryPulseMode(this.settings) ? "dev-session · save" : "live · 3s";
     console.info(
-      `${LOG_PREFIX} Telemetry buffer armed · tenant=${this.tenantId} · api=${this.settings.apiUrl} · smallBrain=${this.settings.smallBrainProvider}`
+      `${LOG_PREFIX} Telemetry buffer armed (${mode}) · tenant=${this.tenantId} · api=${this.settings.apiUrl}`
     );
     this.pushSnapshot({ ...this.lastSnapshot, routing: "idle", bufferedEventCount: 0 });
   }
@@ -137,6 +142,31 @@ export class GuardSession {
       });
     });
     this.disposables.push(sub);
+  }
+
+  private wireSaveListener(): void {
+    const sub = vscode.workspace.onDidSaveTextDocument((doc) => {
+      if (!this.buffer || this.buffer.isPaused || !isSavePrimaryPulseMode(this.settings)) {
+        return;
+      }
+      if (doc.uri.scheme !== "file" && doc.uri.scheme !== "untitled") return;
+
+      const activeFilePath = vscode.workspace.asRelativePath(doc.uri, false);
+      void this.buffer.flushNow("save", activeFilePath);
+    });
+    this.disposables.push(sub);
+  }
+
+  private wireBuildTaskListeners(): void {
+    const onStart = vscode.tasks.onDidStartTask(() => {
+      this.buffer?.setBuildActive(true);
+    });
+    const onEnd = vscode.tasks.onDidEndTask(() => {
+      if (!this.buffer || !isSavePrimaryPulseMode(this.settings)) return;
+      this.buffer.setBuildActive(false);
+      void this.buffer.flushNow("build_end");
+    });
+    this.disposables.push(onStart, onEnd);
   }
 
   private pushSnapshot(snapshot: IdeStatusBarSnapshot): void {
@@ -167,7 +197,12 @@ export class GuardSession {
       void vscode.window.showWarningMessage(`${LOG_PREFIX} Buffer not armed — check settings.`);
       return;
     }
-    const result = await this.buffer.flushNow();
+    const editor = vscode.window.activeTextEditor;
+    const activeFilePath =
+      editor?.document.uri.scheme === "file" || editor?.document.uri.scheme === "untitled"
+        ? vscode.workspace.asRelativePath(editor.document.uri, false)
+        : null;
+    const result = await this.buffer.flushNow("manual", activeFilePath);
     if (!result.ok && result.snapshot.error) {
       void vscode.window.showErrorMessage(`${LOG_PREFIX} ${result.snapshot.error}`);
     }

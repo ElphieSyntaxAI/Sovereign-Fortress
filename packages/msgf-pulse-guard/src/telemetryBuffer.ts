@@ -1,4 +1,6 @@
 import type { MsgfGuardSettings } from "./config";
+import type { IdeFlushReason, PulseFlushContext } from "./devSessionPulse";
+import { isSavePrimaryPulseMode } from "./devSessionPulse";
 import { LocalStateCacheWriter } from "./localStateCache";
 import { TELEMETRY_FLUSH_INTERVAL_MS } from "./constants";
 import { flushTelemetryBatch, type PulseFlushResult } from "./pulseFlush";
@@ -17,7 +19,7 @@ export type TelemetryBufferOptions = {
 };
 
 /**
- * Rolling buffer — accumulates telemetry locally; flushes every 3s when non-empty.
+ * Rolling buffer — production: 3s micro-batch flush; dev session: save + manual only.
  */
 export class TelemetryBuffer {
   private readonly buffer: TelemetryChangeEvent[] = [];
@@ -25,14 +27,20 @@ export class TelemetryBuffer {
   private inFlight = false;
   private disposed = false;
   private paused = false;
+  private buildActive = false;
+  private readonly savePrimary: boolean;
 
-  constructor(private readonly options: TelemetryBufferOptions) {}
+  constructor(private readonly options: TelemetryBufferOptions) {
+    this.savePrimary = isSavePrimaryPulseMode(options.settings);
+  }
 
   start(): void {
     this.paused = false;
-    this.flushTimer = setInterval(() => {
-      void this.flush();
-    }, TELEMETRY_FLUSH_INTERVAL_MS);
+    if (!this.savePrimary) {
+      this.flushTimer = setInterval(() => {
+        void this.flush("debounce");
+      }, TELEMETRY_FLUSH_INTERVAL_MS);
+    }
   }
 
   dispose(): void {
@@ -41,7 +49,7 @@ export class TelemetryBuffer {
     this.buffer.length = 0;
   }
 
-  /** Stops the 3-second background flush interval (RBAC 403 or manual halt). */
+  /** Stops the background flush interval (RBAC 403 or manual halt). */
   pauseStream(): void {
     this.paused = true;
     if (this.flushTimer != null) {
@@ -54,6 +62,14 @@ export class TelemetryBuffer {
     return this.paused;
   }
 
+  get isSavePrimary(): boolean {
+    return this.savePrimary;
+  }
+
+  setBuildActive(active: boolean): void {
+    this.buildActive = active;
+  }
+
   push(events: TelemetryChangeEvent[]): void {
     if (this.disposed || this.paused || !events.length) return;
     this.buffer.push(...events);
@@ -63,12 +79,30 @@ export class TelemetryBuffer {
     return this.buffer.length;
   }
 
-  /** Force an immediate flush (command palette / status bar). */
-  async flushNow(): Promise<PulseFlushResult> {
-    return this.flush();
+  /** Force flush (save, command palette, or production debounce tick). */
+  async flushNow(
+    reason: IdeFlushReason = "manual",
+    activeFilePath?: string | null
+  ): Promise<PulseFlushResult> {
+    return this.flush(reason, activeFilePath);
   }
 
-  private async flush(): Promise<PulseFlushResult> {
+  private flushContext(
+    reason: IdeFlushReason,
+    activeFilePath?: string | null
+  ): PulseFlushContext {
+    return {
+      devSession: this.savePrimary,
+      flushReason: reason,
+      activeFilePath: activeFilePath ?? null,
+      buildActive: this.buildActive,
+    };
+  }
+
+  private async flush(
+    reason: IdeFlushReason = "debounce",
+    activeFilePath?: string | null
+  ): Promise<PulseFlushResult> {
     if (this.disposed || this.paused || this.inFlight || this.buffer.length === 0) {
       return {
         ok: true,
@@ -97,6 +131,7 @@ export class TelemetryBuffer {
         tenantId: this.options.tenantId,
         entityId: this.options.entityId,
         batch,
+        flushContext: this.flushContext(reason, activeFilePath),
         fetchImpl: this.options.fetchImpl,
       });
 

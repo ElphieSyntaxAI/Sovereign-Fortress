@@ -25,6 +25,10 @@ export type MsgfGuardSettings = {
   tenantKey: string;
   authToken: string;
   apiUrl: string;
+  /**
+   * Vibe-coding profile: buffer edits locally; POST /api/msgf/pulse on file save (not every 3s).
+   */
+  devSession: boolean;
   /** V3.2 tier: `global_admin` | `company_admin` | `dev` */
   role: string;
   /** Team / company silo; when empty, sandbox fallback may apply. */
@@ -49,6 +53,7 @@ export function readMsgfSettings(): MsgfGuardSettings {
     tenantKey: sanitizeMsgfSettingValue(config.get<string>("tenantKey", "")),
     authToken: sanitizeMsgfSettingValue(config.get<string>("authToken", "")),
     apiUrl: sanitizeMsgfSettingValue(config.get<string>("apiUrl", DEFAULT_MSGF_API_URL)),
+    devSession: config.get<boolean>("devSession", false),
     role: config.get<string>("role", "").trim(),
     organizationId: config.get<string>("organizationId", "").trim(),
     licenseKey: config.get<string>("licenseKey", "").trim(),
