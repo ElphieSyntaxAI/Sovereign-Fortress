@@ -771,6 +771,8 @@
 import type { HTMLAttributes } from "react";
 import { useCallback, useEffect, useId, useState } from "react";
 
+import { coerceReportIssueUrl, resolveMsgfReportIssueUrl } from "@/lib/msgf-report-url";
+
 import { cn } from "./lib/cn";
 
 export type MsgfSentinelTenantConfig = {
@@ -806,7 +808,8 @@ export type MsgfSentinelReportSuccess = {
 
 export type MsgfSentinelProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
   tenantConfig?: MsgfSentinelTenantConfig;
-  reportEndpointUrl: string;
+  /** Defaults to `POST /api/msgf/report-issue` on the current origin. */
+  reportEndpointUrl?: string;
   collectDiagnosticSnapshot: () => Promise<DiagnosticSnapshotPayload>;
   getAuthHeaders?: () => HeadersInit | Promise<HeadersInit>;
   submitReport?: (operatorNote: string) => Promise<MsgfSentinelReportSuccess>;
@@ -847,6 +850,9 @@ export function MsgfSentinel({
   ...rest
 }: MsgfSentinelProps) {
   const theme = { ...DEFAULT_MSGF_SENTINEL_TENANT, ...tenantConfig };
+  const resolvedReportUrl = coerceReportIssueUrl(
+    reportEndpointUrl ?? resolveMsgfReportIssueUrl()
+  );
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -906,7 +912,7 @@ export function MsgfSentinel({
 
   const submit = useCallback(async () => {
     const trimmed = message.trim();
-    if (!trimmed || !reportEndpointUrl) return;
+    if (!trimmed || !resolvedReportUrl) return;
 
     setPhase("snapshotting");
     setErrText("");
@@ -930,22 +936,52 @@ export function MsgfSentinel({
         nextGlass = result.escalatedToArbitrate === true;
       } else {
         const snapshot = await collectDiagnosticSnapshot();
-        const payload = { ...snapshot, operator_note: trimmed };
+        const editor =
+          snapshot.editor && typeof snapshot.editor === "object"
+            ? (snapshot.editor as Record<string, unknown>)
+            : {};
+        const tenant_id =
+          typeof snapshot.tenant_id === "string" && snapshot.tenant_id.trim()
+            ? snapshot.tenant_id.trim()
+            : typeof window !== "undefined"
+              ? window.location.origin
+              : "unknown";
+        const location =
+          typeof editor.location_href === "string" && editor.location_href.trim()
+            ? editor.location_href.trim()
+            : typeof window !== "undefined"
+              ? window.location.href
+              : "";
 
         setPhase("sending");
 
         const extraHeaders = getAuthHeaders ? await getAuthHeaders() : {};
-        const res = await fetch(reportEndpointUrl, {
+        const res = await fetch(resolvedReportUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...extraHeaders },
           credentials: "include",
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            message: trimmed,
+            location,
+            tenant_id,
+            source: "sentinel",
+            operator_note: trimmed,
+            entity_id:
+              typeof snapshot.entity_id === "string"
+                ? snapshot.entity_id
+                : typeof snapshot.author_id === "string"
+                  ? snapshot.author_id
+                  : undefined,
+            diagnostic_snapshot: { ...snapshot, operator_note: trimmed },
+          }),
         });
 
         const data = (await res.json().catch(() => ({}))) as {
           ok?: boolean;
           error?: string;
           user_resume_message?: string;
+          dev_handoff?: { dev_cycle_required?: boolean; max_occurrence_count?: number };
+          recommended_path?: string;
           reasoning_summary?: { headline?: string; detail?: string | null };
           logic_drift?: { band?: string; escalated?: boolean; score?: number };
           escalated_to_arbitrate?: boolean;
@@ -961,10 +997,15 @@ export function MsgfSentinel({
           return;
         }
 
+        const devHint =
+          data.dev_handoff?.dev_cycle_required && data.recommended_path === "self"
+            ? " Repeated reports — prefer the 0-token context pack before cloud heal."
+            : "";
+
         userMessage =
           typeof data.user_resume_message === "string" && data.user_resume_message.trim()
-            ? data.user_resume_message.trim()
-            : "Diagnostic snapshot received. Ops may follow up in ARBITRATE if needed.";
+            ? `${data.user_resume_message.trim()}${devHint}`
+            : `Issue recorded (${data.dev_handoff?.max_occurrence_count ?? 1}×).${devHint}`;
 
         const head = typeof data.reasoning_summary?.headline === "string" ? data.reasoning_summary.headline.trim() : "";
         if (head) {
@@ -1004,7 +1045,7 @@ export function MsgfSentinel({
       setPhase("err");
       setErrText(e instanceof Error ? e.message : "Snapshot or report failed.");
     }
-  }, [message, reportEndpointUrl, collectDiagnosticSnapshot, getAuthHeaders, submitReport]);
+  }, [message, resolvedReportUrl, collectDiagnosticSnapshot, getAuthHeaders, submitReport]);
 
   const busy = phase === "snapshotting" || phase === "sending";
   const submitLabel =

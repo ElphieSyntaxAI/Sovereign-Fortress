@@ -1,10 +1,12 @@
 import { BugReporter } from "@elphie-syntax/ui";
 
-const DEFAULT_REPORT_URL = "http://localhost:3000/api/msgf/incidents/report";
+const DEFAULT_REPORT_URL = "http://localhost:3000/api/msgf/report-issue";
 
 export default function App() {
   const reportUrl =
-    import.meta.env.VITE_MSGF_INCIDENT_REPORT_URL?.trim() || DEFAULT_REPORT_URL;
+    import.meta.env.VITE_MSGF_REPORT_ISSUE_URL?.trim() ||
+    import.meta.env.VITE_MSGF_INCIDENT_REPORT_URL?.trim() ||
+    DEFAULT_REPORT_URL;
 
   return (
     <div className="min-h-screen bg-zinc-950 p-8 text-zinc-100">
@@ -14,7 +16,7 @@ export default function App() {
           Health API runs on the server workspace; this shell hosts the MSGF bug
           reporter. Set{" "}
           <code className="rounded bg-zinc-900 px-1 text-zinc-300">
-            VITE_MSGF_INCIDENT_REPORT_URL
+            VITE_MSGF_REPORT_ISSUE_URL
           </code>{" "}
           if your Next app is not on port 3000.
         </p>

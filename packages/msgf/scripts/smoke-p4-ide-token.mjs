@@ -23,6 +23,8 @@ console.log("[smoke-p4] P4 IDE token + workspace smoke\n");
 
 run("npx", ["tsx", "--test", "tests/ide-token-service.test.ts"], root, "ide-token-service tests");
 run("npx", ["tsx", "--test", "tests/heal-queue-bulk-gate.test.ts"], root, "heal-queue-bulk-gate tests");
+run("npx", ["tsx", "--test", "tests/credit-heal-reservation.test.ts"], root, "credit-heal-reservation tests");
+run("npx", ["tsx", "--test", "tests/msgf-report-url.test.ts"], root, "msgf-report-url tests");
 
 run("npm", ["run", "compile"], pulseGuard, "msgf-pulse-guard compile");
 

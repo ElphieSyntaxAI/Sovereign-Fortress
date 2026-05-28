@@ -15,6 +15,8 @@
  * POST /api/msgf/heal-queue — BULK | INDIVIDUAL | SCHEDULED remediation actions
  */
 
+import { randomUUID } from "crypto";
+
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
@@ -38,8 +40,15 @@ import {
   parseIngestRemediationAction,
 } from "@/lib/schemas/heal-queue";
 import { applyHealQueueAudienceScope } from "@/lib/services/heal-queue-audience";
+import {
+  endTenantCreditReservation,
+  resolveHealCreditReserveAmount,
+  shouldReserveForHealAction,
+  startTenantCreditReservation,
+} from "@/lib/credit-reservation";
 import { fetchDevHandoffForTenant } from "@/lib/services/dev-handoff-service";
 import { verifyIdeToken } from "@/lib/services/ide-token-service";
+import { recordSavingsFeatureCount } from "@/lib/services/savings-features-stats";
 import {
   executeHealQueueRemediation,
   listHealQueueRemediationTasks,
@@ -243,13 +252,56 @@ export async function POST(req: NextRequest) {
     const body = parseIngestRemediationAction(raw);
     const { admin, entityId } = await resolveHealQueueActor(req, body.tenant_id);
 
-    const result = await executeHealQueueRemediation({
-      admin,
-      entityId,
-      body,
-    });
+    const taskCount = body.file_paths?.length ?? 0;
+    let creditStart: Awaited<ReturnType<typeof startTenantCreditReservation>> = {
+      enabled: false,
+    };
 
-    return healJson(req, result);
+    if (shouldReserveForHealAction(body.action_type)) {
+      const amount = resolveHealCreditReserveAmount({
+        action_type: body.action_type,
+        taskCount: taskCount || undefined,
+      });
+      creditStart = await startTenantCreditReservation(
+        admin,
+        body.tenant_id,
+        `heal:${body.action_type}:${body.tenant_id}:${randomUUID()}`,
+        amount
+      );
+      if (creditStart.enabled && creditStart.insufficient) {
+        void recordSavingsFeatureCount(body.tenant_id, "credit_reserve_denied");
+        return healJson(
+          req,
+          {
+            ok: false,
+            error: "INSUFFICIENT_CREDITS",
+            message:
+              "Insufficient token credits for cloud heal. Use Fix Myself (0-token context pack) or add credits.",
+          },
+          { status: 402 }
+        );
+      }
+      if (creditStart.enabled && !creditStart.insufficient) {
+        void recordSavingsFeatureCount(body.tenant_id, "credit_reserve_ok");
+      }
+    }
+
+    try {
+      const result = await executeHealQueueRemediation({
+        admin,
+        entityId,
+        body,
+      });
+      if (creditStart.enabled && !creditStart.insufficient) {
+        await endTenantCreditReservation(admin, creditStart, 200);
+      }
+      return healJson(req, result);
+    } catch (healError) {
+      if (creditStart.enabled && !creditStart.insufficient) {
+        await endTenantCreditReservation(admin, creditStart, 500);
+      }
+      throw healError;
+    }
   } catch (e) {
     if (e instanceof HealQueueValidationError) {
       return healJson(

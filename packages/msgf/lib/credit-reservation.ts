@@ -23,6 +23,10 @@ export const MSGF_PULSE_LOCAL_RESERVE_CHUNK =
 export const MSGF_INGEST_LIGHT_RESERVE_CHUNK =
   Number(process.env.MSGF_INGEST_LIGHT_RESERVE_CHUNK?.trim()) || 80;
 
+/** Heal-queue cloud actions (BULK / INDIVIDUAL governance). */
+export const MSGF_HEAL_RESERVE_CHUNK =
+  Number(process.env.MSGF_HEAL_RESERVE_CHUNK?.trim()) || 400;
+
 export type CreditReservationStart =
   | { enabled: false }
   | { enabled: true; insufficient: true }
@@ -70,6 +74,45 @@ export function resolveIngestCreditReserveAmount(changedFileCount: number, runAu
 /** True when ingest will run embeddings (sweep) and/or Gemini audit — reserve before that work. */
 export function shouldReserveForIngestWithFiles(fileCount: number): boolean {
   return isCreditReservationEnabled() && fileCount > 0;
+}
+
+/** Reserve before heal-queue POST actions that spend governance tokens. */
+export function resolveHealCreditReserveAmount(params: {
+  action_type: string;
+  taskCount?: number;
+  with_msgf_tokens?: number;
+}): number {
+  const taskCount = Math.max(1, params.taskCount ?? 1);
+  if (params.action_type === "DEV_CYCLE_START") {
+    return Math.min(MSGF_HEAL_RESERVE_CHUNK, MSGF_INGEST_LIGHT_RESERVE_CHUNK);
+  }
+  if (params.with_msgf_tokens != null && params.with_msgf_tokens > 0) {
+    return Math.min(
+      MSGF_HEAL_RESERVE_CHUNK * 2,
+      Math.max(MSGF_INGEST_LIGHT_RESERVE_CHUNK, Math.ceil(params.with_msgf_tokens * 0.12))
+    );
+  }
+  if (
+    params.action_type === "BULK" ||
+    params.action_type === "BULK_EXPENSIVE" ||
+    params.action_type === "BULK_INEXPENSIVE"
+  ) {
+    return Math.min(MSGF_HEAL_RESERVE_CHUNK * 2, MSGF_HEAL_RESERVE_CHUNK + taskCount * 35);
+  }
+  if (params.action_type === "INDIVIDUAL") {
+    return Math.min(MSGF_HEAL_RESERVE_CHUNK, MSGF_HEAL_RESERVE_CHUNK + (taskCount - 1) * 25);
+  }
+  return MSGF_HEAL_RESERVE_CHUNK;
+}
+
+export function shouldReserveForHealAction(action_type: string): boolean {
+  if (!isCreditReservationEnabled()) return false;
+  return (
+    action_type === "BULK" ||
+    action_type === "BULK_EXPENSIVE" ||
+    action_type === "BULK_INEXPENSIVE" ||
+    action_type === "INDIVIDUAL"
+  );
 }
 
 /**

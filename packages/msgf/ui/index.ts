@@ -21,3 +21,10 @@ export {
   type SentinelBugButtonProps,
   type SentinelReportSuccess,
 } from "./MsgfSentinel";
+
+export {
+  MSGF_REPORT_ISSUE_PATH,
+  MSGF_LEGACY_INCIDENT_REPORT_PATH,
+  resolveMsgfReportIssueUrl,
+  coerceReportIssueUrl,
+} from "@/lib/msgf-report-url";

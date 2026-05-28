@@ -4,12 +4,28 @@ import type { HTMLAttributes } from "react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { cn } from "../lib/cn";
 
+const REPORT_ISSUE_PATH = "/api/msgf/report-issue";
+
+function resolveReportIssueUrl(endpoint?: string): string {
+  if (endpoint?.trim()) {
+    if (endpoint.includes("/api/msgf/incidents/report")) {
+      const base = endpoint.split("/api/msgf/incidents/report")[0];
+      return `${base.replace(/\/$/, "")}${REPORT_ISSUE_PATH}`;
+    }
+    return endpoint;
+  }
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}${REPORT_ISSUE_PATH}`;
+  }
+  return REPORT_ISSUE_PATH;
+}
+
 export type BugReporterProps = Omit<
   HTMLAttributes<HTMLDivElement>,
   "children"
 > & {
-  /** Full URL to MSGF `POST /api/msgf/incidents/report` (e.g. Vite `import.meta.env.VITE_MSGF_INCIDENT_REPORT_URL`). */
-  reportEndpointUrl: string;
+  /** Full URL to `POST /api/msgf/report-issue` (legacy incidents/report URLs are rewritten). */
+  reportEndpointUrl?: string;
 };
 
 function BugIcon({ className }: { className?: string }) {
@@ -38,8 +54,11 @@ export function BugReporter({
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "ok" | "err">("idle");
   const [errText, setErrText] = useState("");
+  const [successDetail, setSuccessDetail] = useState("");
   const baseId = useId();
   const msgId = `${baseId}-msg`;
+
+  const resolvedUrl = resolveReportIssueUrl(reportEndpointUrl);
 
   const tenantId =
     typeof window !== "undefined" ? window.location.origin : "";
@@ -57,22 +76,29 @@ export function BugReporter({
 
   const submit = useCallback(async () => {
     const trimmed = message.trim();
-    if (!trimmed || !reportEndpointUrl) return;
+    if (!trimmed || !resolvedUrl) return;
     setStatus("sending");
     setErrText("");
+    setSuccessDetail("");
     try {
-      const res = await fetch(reportEndpointUrl, {
+      const res = await fetch(resolvedUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           message: trimmed,
           location: locationHref,
           tenant_id: tenantId,
+          source: "web",
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
         error?: string;
+        occurrence_count?: number;
+        dev_handoff?: { dev_cycle_required?: boolean };
+        recommended_path?: string;
+        user_resume_message?: string;
       };
       if (!res.ok || !data.ok) {
         setStatus("err");
@@ -84,16 +110,26 @@ export function BugReporter({
         return;
       }
       setStatus("ok");
+      const count = data.occurrence_count ?? 1;
+      const handoff =
+        data.dev_handoff?.dev_cycle_required && data.recommended_path === "self"
+          ? " Dev handoff recommended — fix locally first."
+          : "";
+      setSuccessDetail(
+        data.user_resume_message?.trim() ||
+          `Report #${count} received.${handoff}`
+      );
       setMessage("");
       setTimeout(() => {
         setOpen(false);
         setStatus("idle");
-      }, 1200);
+        setSuccessDetail("");
+      }, 2200);
     } catch {
       setStatus("err");
       setErrText("Network error");
     }
-  }, [message, reportEndpointUrl, locationHref, tenantId]);
+  }, [message, resolvedUrl, locationHref, tenantId]);
 
   return (
     <div
@@ -130,7 +166,7 @@ export function BugReporter({
             </p>
           )}
           {status === "ok" && (
-            <p className="mt-2 text-xs text-emerald-400">Thanks — report received.</p>
+            <p className="mt-2 text-xs text-emerald-400">{successDetail || "Thanks — report received."}</p>
           )}
           <div className="mt-3 flex justify-end gap-2">
             <button

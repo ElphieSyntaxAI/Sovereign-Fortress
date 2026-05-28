@@ -4,17 +4,20 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
+import {
+  applyIncidentReportCorsHeaders,
+  incidentReportCorsPreflightResponse,
+} from "@/lib/msgf-cors";
 import { ReportIssueBodySchema } from "@/lib/schemas/report-issue";
 import { orchestrateReportIssue } from "@/lib/services/report-issue-orchestrator";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 function json(req: NextRequest, data: unknown, init?: ResponseInit) {
-  return applyAdminCorsHeaders(req, NextResponse.json(data, init));
+  return applyIncidentReportCorsHeaders(req, NextResponse.json(data, init));
 }
 
 export async function OPTIONS(req: NextRequest) {
-  return adminCorsPreflightResponse(req);
+  return incidentReportCorsPreflightResponse(req);
 }
 
 export async function POST(req: NextRequest) {
@@ -35,7 +38,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, location: locRaw, tenant_id: tenantRaw, source } = parsed.data;
+    const {
+      message,
+      location: locRaw,
+      tenant_id: tenantRaw,
+      source,
+      operator_note,
+      entity_id,
+      diagnostic_snapshot,
+    } = parsed.data;
     const location =
       locRaw?.trim() ||
       req.headers.get("referer")?.slice(0, 4000) ||
@@ -53,6 +64,9 @@ export async function POST(req: NextRequest) {
       location,
       tenant_id,
       source,
+      operator_note,
+      entity_id,
+      diagnostic_snapshot,
     });
 
     if (!result.ok) {

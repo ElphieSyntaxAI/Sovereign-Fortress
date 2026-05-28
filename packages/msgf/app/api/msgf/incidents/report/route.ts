@@ -24,6 +24,9 @@ const bodySchema = z.object({
   message: z.string().trim().min(1, "message required").max(8000),
   location: z.string().max(4000).optional(),
   tenant_id: z.string().max(512).optional(),
+  operator_note: z.string().max(8000).optional(),
+  diagnostic_snapshot: z.record(z.string(), z.unknown()).optional(),
+  entity_id: z.string().max(256).optional(),
 });
 
 function incidentJson(req: NextRequest, data: unknown, init?: ResponseInit) {
@@ -74,6 +77,9 @@ export async function POST(req: NextRequest) {
       location,
       tenant_id: originTenant,
       source: "web",
+      operator_note: parsed.data.operator_note,
+      entity_id: parsed.data.entity_id,
+      diagnostic_snapshot: parsed.data.diagnostic_snapshot,
     });
 
     if (!result.ok) {
@@ -96,6 +102,10 @@ export async function POST(req: NextRequest) {
       id: result.incident_id,
       dev_handoff: result.dev_handoff,
       recommended_path: result.recommended_path,
+      user_resume_message: result.user_resume_message,
+      escalated_to_arbitrate: result.escalated_to_arbitrate,
+      reasoning_summary: result.reasoning_summary,
+      logic_drift: result.logic_drift,
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Incident report failed";
