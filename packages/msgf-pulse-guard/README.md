@@ -69,7 +69,12 @@ The left **Operations** sidebar uses `msgf.authToken` directly — it does not u
 
 ### Quick reference in your repo
 
-On first activation, the extension creates **`.msgf/USER-GUIDE.md`** in your workspace root with setup steps, Command Palette commands, web links, and Pulse troubleshooting (user-facing only — no operator CLI).
+On first activation, the extension creates **`.msgf/`** in your workspace root:
+
+- **`USER-GUIDE.md`** — Command Palette commands and Pulse troubleshooting
+- **`README.md`** + **`dev/`** — integrator API cookbook, curl fixtures, PowerShell/bash scripts, and VS Code task snippets
+
+Run **MSGF: Open developer kit** or **MSGF: Sync developer kit** from the Command Palette. See [`docs/MSGF_INTEGRATOR_DEV_KIT.md`](../../docs/MSGF_INTEGRATOR_DEV_KIT.md) in the monorepo.
 
 Run **MSGF: Open quick reference** from the Command Palette to open it anytime.
 

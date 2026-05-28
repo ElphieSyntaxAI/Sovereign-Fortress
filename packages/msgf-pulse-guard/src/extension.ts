@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 import { readMsgfSettings, settingsReady } from "./config";
 import { registerOpenDashboardCommand } from "./dashboardPanel";
 import { registerGenerateContextPackCommand } from "./generateContextPack";
+import { registerDevKitCommands } from "./devKitCommands";
 import { registerIdeSetupCommands } from "./ideSetupCommands";
 import { registerSubmitVerifyResultCommand } from "./submitVerifyResultCommand";
 import { registerMsgfUriHandler, registerWorkspaceWithMsgf } from "./uriHandler";
@@ -37,6 +38,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerOpenDashboardCommand(context);
   registerMsgfExternalAuthCommands(context);
   registerIdeSetupCommands(context);
+  registerDevKitCommands(context);
   registerGenerateContextPackCommand(context);
   registerSubmitVerifyResultCommand(context);
   registerMsgfUriHandler(context);

@@ -14,6 +14,7 @@ const phases = [
   ["smoke:p2-dev", "P2 dev heal"],
   ["smoke:p3-verify", "P3 verify + MCP"],
   ["smoke:p4-ide", "P4 IDE token"],
+  ["smoke:dev-kit", "Integrator dev kit"],
 ];
 
 console.log("[smoke:all] MSGF phased smoke suite\n");

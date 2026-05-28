@@ -3,10 +3,13 @@ import * as path from "node:path";
 
 import * as vscode from "vscode";
 
+import { syncDevKitFromBundle } from "./devKitSync";
+
 const MSGF_DIR = ".msgf";
 const KEYS_DIR = "keys";
 const GITIGNORE = ".gitignore";
 const USER_GUIDE_FILE = "USER-GUIDE.md";
+const DEV_KIT_BUNDLE_DIR = "dev-kit";
 
 const PLACEHOLDER_KEY_CONTENT =
   "# Paste your provider API key on the line below (file is gitignored).\n";
@@ -23,8 +26,16 @@ export function getMsgfKeysDir(workspaceRoot: string): string {
   return path.join(getMsgfDir(workspaceRoot), KEYS_DIR);
 }
 
+export function getDevKitDir(workspaceRoot: string): string {
+  return path.join(getMsgfDir(workspaceRoot), "dev");
+}
+
 export function getLocalStateCachePath(workspaceRoot: string): string {
   return path.join(getMsgfDir(workspaceRoot), "local_state_cache.json");
+}
+
+export function getDevKitBundleRoot(extensionPath: string): string {
+  return path.join(extensionPath, "resources", DEV_KIT_BUNDLE_DIR);
 }
 
 function ensureDir(dirPath: string): void {
@@ -41,7 +52,13 @@ function ensurePlaceholderKey(filePath: string): void {
 
 function ensureMsgfGitignore(msgfDir: string): void {
   const gitignorePath = path.join(msgfDir, GITIGNORE);
-  const body = ["keys/", "*.key", "local_state_cache.json", ""].join("\n");
+  const body = [
+    "keys/",
+    "*.key",
+    "local_state_cache.json",
+    "dev/env.local.json",
+    "",
+  ].join("\n");
   if (!fs.existsSync(gitignorePath)) {
     fs.writeFileSync(gitignorePath, body, "utf8");
   }
@@ -75,10 +92,31 @@ export function getUserGuidePath(workspaceRoot: string): string {
   return path.join(getMsgfDir(workspaceRoot), USER_GUIDE_FILE);
 }
 
+export function getDevKitReadmePath(workspaceRoot: string): string {
+  return path.join(getMsgfDir(workspaceRoot), "README.md");
+}
+
 /**
- * Creates `.msgf/` with keys placeholders and `USER-GUIDE.md` (commands + setup — user-facing only).
+ * Sync integrator templates from extension `resources/dev-kit` into `.msgf/`.
  */
-export async function initializeMsgfWorkspace(extensionPath?: string): Promise<string | null> {
+export function syncMsgfDevKit(
+  extensionPath: string,
+  workspaceRoot: string,
+  options?: { force?: boolean }
+): ReturnType<typeof syncDevKitFromBundle> {
+  const bundleRoot = getDevKitBundleRoot(extensionPath);
+  const msgfDir = getMsgfDir(workspaceRoot);
+  ensureDir(msgfDir);
+  return syncDevKitFromBundle(bundleRoot, msgfDir, options);
+}
+
+/**
+ * Creates `.msgf/` with keys, user guide, and integrator dev kit.
+ */
+export async function initializeMsgfWorkspace(
+  extensionPath?: string,
+  options?: { forceDevKit?: boolean }
+): Promise<string | null> {
   const root = getWorkspaceRoot();
   if (!root) return null;
 
@@ -91,6 +129,10 @@ export async function initializeMsgfWorkspace(extensionPath?: string): Promise<s
   ensurePlaceholderKey(path.join(keysDir, "gemini.key"));
   ensurePlaceholderKey(path.join(keysDir, "claude.key"));
   ensureUserGuide(msgfDir, extensionPath);
+
+  if (extensionPath) {
+    syncMsgfDevKit(extensionPath, root, { force: options?.forceDevKit === true });
+  }
 
   return root;
 }

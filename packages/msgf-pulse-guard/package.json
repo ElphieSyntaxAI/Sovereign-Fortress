@@ -125,6 +125,14 @@
       {
         "command": "msgf.copyIdeTokenSetup",
         "title": "MSGF: Open IDE token setup (browser)"
+      },
+      {
+        "command": "msgf.openDevKit",
+        "title": "MSGF: Open developer kit"
+      },
+      {
+        "command": "msgf.syncDevKit",
+        "title": "MSGF: Sync developer kit"
       }
     ],
     "configuration": {
