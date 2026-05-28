@@ -1,0 +1,7 @@
+{
+  "incident_id": "replace-with-uuid",
+  "outcome": "pass",
+  "summary": "Verified fix locally; tests green.",
+  "product_surface": "ide",
+  "dev_heal_choice": "self_heal"
+}

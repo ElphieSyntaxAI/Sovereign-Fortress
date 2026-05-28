@@ -1,0 +1,9 @@
+{
+  "title": "Example friction report",
+  "description": "Describe what went wrong or what the agent should fix.",
+  "severity": "medium",
+  "source": "integrator_dev_kit",
+  "product_surface": "ide",
+  "file_path": "src/example.ts",
+  "tags": ["dev-kit", "smoke"]
+}

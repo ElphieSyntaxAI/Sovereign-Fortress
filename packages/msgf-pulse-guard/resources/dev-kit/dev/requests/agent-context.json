@@ -1,0 +1,5 @@
+{
+  "_note": "Use GET with query ?mode=guided or ?mode=auto — this file documents typical query params only",
+  "mode": "guided",
+  "refactor_profile": null
+}

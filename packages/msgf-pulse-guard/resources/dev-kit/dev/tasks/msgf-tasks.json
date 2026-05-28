@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "_comment": "Merge these entries into your repo .vscode/tasks.json",
+  "tasks": [
+    {
+      "label": "MSGF: Test connection",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/.msgf/dev/scripts/test-connection.ps1"
+      ],
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "MSGF: Integrator smoke",
+      "type": "shell",
+      "command": "node",
+      "args": ["${workspaceFolder}/.msgf/dev/scripts/smoke-integrator.mjs"],
+      "group": "test",
+      "dependsOn": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    }
+  ]
+}
