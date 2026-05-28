@@ -223,7 +223,8 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
     counters.converge_cache_hits > 0 ||
     counters.dev_events > 0 ||
     counters.pulse_idempotency_replays > 0 ||
-    counters.ingest_hash_files_skipped > 0;
+    counters.ingest_hash_files_skipped > 0 ||
+    counters.agent_context_packs > 0;
 
   return (
     <section
@@ -298,6 +299,11 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
           label="Dev-session pulses"
           value={counters.dev_session_pulses}
           hint="x-msgf-dev-session or IDE pulse"
+        />
+        <Metric
+          label="0-Token context packs"
+          value={counters.agent_context_packs}
+          hint="GET /api/msgf/agent-context (guided/auto)"
         />
       </div>
 

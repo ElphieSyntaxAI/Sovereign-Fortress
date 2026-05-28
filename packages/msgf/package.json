@@ -175,6 +175,7 @@
     "smoke:p2-dev": "node scripts/smoke-p2-dev-heal.mjs",
     "smoke:p3-verify": "node scripts/smoke-p3-verify-mcp.mjs",
     "smoke:p4-ide": "node scripts/smoke-p4-ide-token.mjs",
+    "smoke:all": "node scripts/smoke-all-phases.mjs",
     "create:buyer-user": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-buyer-test-user.mjs",
     "create:platform-admin": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-platform-admin-test-user.ts",
     "verify:platform-login": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-platform-login.ts",

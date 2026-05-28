@@ -45,7 +45,8 @@ export type SavingsFeatureMetricKey =
   | "ingest_hash_files_skipped"
   | "credit_reserve_ok"
   | "credit_reserve_denied"
-  | "dev_session_pulse";
+  | "dev_session_pulse"
+  | "agent_context_pack";
 
 export type SavingsFeatureCatalogEntry = {
   id: string;
@@ -70,6 +71,7 @@ export type SavingsFeatureCounters = {
   credit_reservations: number;
   credit_reservation_denied: number;
   dev_session_pulses: number;
+  agent_context_packs: number;
 };
 
 export type SavingsFeaturesSummary = {
@@ -175,6 +177,13 @@ export function buildSavingsFeatureCatalog(): SavingsFeatureCatalogEntry[] {
       "MSGF_CREDIT_RESERVATION_ENABLED"
     ),
     catalogRow(
+      "agent_context_pack",
+      "0-Token context pack",
+      "Guided/auto agent-context downloads — avoids whole-repo dumps to Cursor.",
+      true,
+      "GET /api/msgf/agent-context · msgf.generateContextPack"
+    ),
+    catalogRow(
       "converge_context_budget",
       "CONVERGE context budget",
       "Reduces unnecessary Big Brain context before escalation.",
@@ -253,6 +262,7 @@ export async function getSavingsFeaturesSummary24h(
     credit_reservations,
     credit_reservation_denied,
     dev_session_pulses,
+    agent_context_packs,
   ] = await Promise.all([
     getPulseRoutingMix24h(tid),
     readCounter(prefix("converge_cache_hit")),
@@ -265,6 +275,7 @@ export async function getSavingsFeaturesSummary24h(
     readCounter(prefix("credit_reserve_ok")),
     readCounter(prefix("credit_reserve_denied")),
     readCounter(prefix("dev_session_pulse")),
+    readCounter(prefix("agent_context_pack")),
   ]);
 
   const smallBrainPulses =
@@ -293,6 +304,7 @@ export async function getSavingsFeaturesSummary24h(
       credit_reservations,
       credit_reservation_denied,
       dev_session_pulses,
+      agent_context_packs,
     },
     pulse_routing,
     small_brain_pulse_pct,

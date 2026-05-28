@@ -46,6 +46,10 @@ Put these in **`.vscode/settings.json`** (workspace scope), not only User settin
 | MSGF: Apply workspace settings from clipboard | Merge web JSON into `.vscode/settings.json` |
 | MSGF: Test connection | `GET /api/msgf/ide/connectivity-check` |
 | MSGF: Open IDE token setup (browser) | `/workspace#ide-setup` |
+| MSGF: Generate 0-token context pack | `GET /api/msgf/agent-context?mode=guided` |
+| MSGF: Submit verify result | `POST /api/msgf/verify-result` (after local fix) |
+
+Full production deploy steps: [MSGF_DEPLOY_CHECKLIST.md](./MSGF_DEPLOY_CHECKLIST.md).
 
 ---
 

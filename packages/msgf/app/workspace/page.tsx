@@ -23,6 +23,7 @@ import type { Metadata } from "next";
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
 
 import { WorkspaceIdeSetup } from "@/app/_components/workspace/WorkspaceIdeSetup";
+import { WorkspaceMsgfSentinel } from "@/app/_components/workspace/WorkspaceMsgfSentinel";
 
 import { loadWorkspaceContext } from "@/lib/workspace-context";
 
@@ -315,6 +316,8 @@ export default async function WorkspacePage() {
         </section>
 
       </main>
+
+      <WorkspaceMsgfSentinel tenantKey={tenantKey} userId={user.id} />
 
     </div>
 

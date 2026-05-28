@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 
 import { readMsgfSettings, resolveTenantId } from "./config";
+import { getLastDevHealChoiceForVerify } from "./lastDevHealChoice";
 import { postVerifyResult } from "./verifyResultClient";
 
 const LOG_PREFIX = "[MSGF Guard]";
@@ -31,6 +32,7 @@ export function registerSubmitVerifyResultCommand(context: vscode.ExtensionConte
         body: {
           passed: passedPick.passed,
           command: command?.trim() || undefined,
+          dev_heal_choice: getLastDevHealChoiceForVerify(),
         },
       });
 

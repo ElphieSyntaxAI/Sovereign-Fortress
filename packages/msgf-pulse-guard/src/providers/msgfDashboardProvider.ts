@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 
 import { readMsgfSettings, resolveTenantId } from "../config";
 import { promptDevHealCycleChoice } from "../devHealCycle";
+import { setLastDevHealChoice } from "../lastDevHealChoice";
 import {
   fetchAgentContextPack,
   fetchHealQueueTasks,
@@ -337,6 +338,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     }
 
     const choice = await promptDevHealCycleChoice(this.healDevHandoff ?? cycle.dev_handoff);
+    setLastDevHealChoice(choice);
     if (choice === "cancel") {
       this.view?.webview.postMessage({
         type: "healQueueStatus",
