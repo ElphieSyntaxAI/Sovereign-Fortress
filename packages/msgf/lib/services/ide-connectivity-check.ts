@@ -12,6 +12,7 @@ import {
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
 import { healthService } from "@/lib/services/HealthService";
+import { verifyIdeToken } from "@/lib/services/ide-token-service";
 import {
   assertPulseLicense,
   extractBearerTokenFromRequest,
@@ -128,7 +129,43 @@ export async function runIdeConnectivityChecks(req: NextRequest): Promise<IdeCon
   }
 
   const authStart = Date.now();
-  if (bearer.startsWith("msgf_live_")) {
+  if (bearer.startsWith("msgf_ide_")) {
+    try {
+      const admin = createAdminClient();
+      const verified = await verifyIdeToken(admin, bearer, tenantKey);
+      checks.push(
+        check({
+          name: "auth_bearer",
+          ok: Boolean(verified),
+          status: verified ? 200 : 401,
+          latency_ms: Date.now() - authStart,
+          error_code: verified ? undefined : "AUTH_INVALID",
+          user_message: verified
+            ? `Long-lived IDE token valid (expires per mint; ${verified.tenant_id}).`
+            : "IDE token invalid, expired, or tenant mismatch.",
+          fix_steps: verified
+            ? undefined
+            : [
+                "Mint a new token at Workspace → IDE setup → Mint long-lived IDE token.",
+                "Align msgf.tenantKey with the mapped project.",
+              ],
+        })
+      );
+      if (!verified) return checks;
+    } catch (e) {
+      checks.push(
+        check({
+          name: "auth_bearer",
+          ok: false,
+          status: 503,
+          latency_ms: Date.now() - authStart,
+          error_code: "AUTH_INVALID",
+          user_message: e instanceof Error ? e.message : "IDE token verification failed.",
+        })
+      );
+      return checks;
+    }
+  } else if (bearer.startsWith("msgf_live_")) {
     try {
       const admin = createAdminClient();
       const license = await assertPulseLicense({ adminSupabase: admin, request: req });

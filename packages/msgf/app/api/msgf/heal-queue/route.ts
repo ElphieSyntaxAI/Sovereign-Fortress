@@ -39,6 +39,7 @@ import {
 } from "@/lib/schemas/heal-queue";
 import { applyHealQueueAudienceScope } from "@/lib/services/heal-queue-audience";
 import { fetchDevHandoffForTenant } from "@/lib/services/dev-handoff-service";
+import { verifyIdeToken } from "@/lib/services/ide-token-service";
 import {
   executeHealQueueRemediation,
   listHealQueueRemediationTasks,
@@ -104,6 +105,18 @@ async function resolveHealQueueActor(
   }
 
   const apiKey = getApiKey(req);
+  if (apiKey?.startsWith("msgf_ide_")) {
+    const verified = await verifyIdeToken(admin, apiKey, tenantId);
+    if (!verified) {
+      throw new HealQueueValidationError(
+        "Invalid or expired IDE token.",
+        [{ path: "authorization", message: "msgf_ide_* rejected" }],
+        401
+      );
+    }
+    return { admin, entityId: verified.user_id };
+  }
+
   if (isTenantApiKeyConfigured() && apiKey) {
     const resolved = resolveTenantIdFromApiKey(apiKey);
     if (!resolved || resolved !== tenantId) {

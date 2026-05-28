@@ -17,12 +17,14 @@
 import { cookies, headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+import { mintIdeToken, ideTokenTtlDays } from "@/lib/services/ide-token-service";
 import {
   buildIdeWorkspaceSettings,
   formatIdeSettingsJson,
   resolveIdeTenantKey,
   resolveMsgfAppOrigin,
 } from "@/lib/workspace-ide-setup";
+import { buildVscodeIdeSetupUri } from "@/lib/workspace-ide-deep-link";
 import { listUserProjects } from "@/lib/services/user-projects";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
@@ -57,10 +59,36 @@ export async function GET(req: NextRequest) {
     process.env.MSGF_DEV_SESSION_DEFAULT?.trim().toLowerCase() !== "0" &&
     process.env.MSGF_DEV_SESSION_DEFAULT?.trim().toLowerCase() !== "false";
 
+  const wantLongLived = req.nextUrl.searchParams.get("long_lived") === "1";
+  let authToken = session.access_token;
+  let expiresAt: string | number | null = session.expires_at ?? null;
+  let longLived: {
+    tokenId: string;
+    expiresAt: string;
+    ttlDays: number;
+  } | null = null;
+
+  if (wantLongLived) {
+    const minted = await mintIdeToken(admin, {
+      userId: session.user.id,
+      tenantId: tenantKey,
+      label: "Workspace IDE setup",
+    });
+    if (!("error" in minted)) {
+      authToken = minted.token;
+      expiresAt = minted.expires_at;
+      longLived = {
+        tokenId: minted.token_id,
+        expiresAt: minted.expires_at,
+        ttlDays: ideTokenTtlDays(),
+      };
+    }
+  }
+
   const settings = buildIdeWorkspaceSettings({
     apiUrl,
     tenantKey,
-    authToken: session.access_token,
+    authToken,
     devSession: devSessionDefault,
   });
 
@@ -68,9 +96,12 @@ export async function GET(req: NextRequest) {
     apiUrl,
     tenantKey,
     accessToken: session.access_token,
-    expiresAt: session.expires_at ?? null,
+    ideToken: longLived ? authToken : undefined,
+    expiresAt,
+    longLived,
     settingsJson: formatIdeSettingsJson(settings),
     settingsPath: ".vscode/settings.json",
+    vscodeUri: buildVscodeIdeSetupUri(settings),
     projectCount: projects.length,
     projects: projects.map((p) => ({
       project_origin: p.project_origin,

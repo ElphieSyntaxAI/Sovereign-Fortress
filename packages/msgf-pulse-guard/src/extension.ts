@@ -8,6 +8,7 @@ import { registerOpenDashboardCommand } from "./dashboardPanel";
 import { registerGenerateContextPackCommand } from "./generateContextPack";
 import { registerIdeSetupCommands } from "./ideSetupCommands";
 import { registerSubmitVerifyResultCommand } from "./submitVerifyResultCommand";
+import { registerMsgfUriHandler, registerWorkspaceWithMsgf } from "./uriHandler";
 import { registerMsgfExternalAuthCommands } from "./openMsgfExternal";
 import { GuardSession } from "./guardSession";
 import {
@@ -38,6 +39,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerIdeSetupCommands(context);
   registerGenerateContextPackCommand(context);
   registerSubmitVerifyResultCommand(context);
+  registerMsgfUriHandler(context);
   registerViolationCommands(context);
   sidebarDashboard = registerMsgfDashboardProvider(context);
   bindViolationDashboardProvider(sidebarDashboard);
@@ -99,6 +101,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   void session.start().then(async () => {
+    void registerWorkspaceWithMsgf();
     const settings = readMsgfSettings();
     const ready = settingsReady(settings);
     if (!ready.ok) {

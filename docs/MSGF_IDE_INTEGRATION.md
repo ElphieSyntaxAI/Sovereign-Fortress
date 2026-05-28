@@ -50,7 +50,7 @@
 | **P1** | Connectivity-check, setup wizard, report-issue, agent-context |
 | **P2** | Dev heal cycle, two-tier heal UI, HAL friction notice |
 | **P3** | `POST verify-result`, `GET refactoring-directive`, HAL friction notice, MCP ([MSGF_IDE_MCP.md](./MSGF_IDE_MCP.md)) |
-| **P4** | Long-lived IDE token, disk auto-patch (optional) |
+| **P4** | `msgf_ide_*` tokens, `POST register-workspace`, `vscode://` deep link, `GET compliance/export`, BULK blocked when HITL pending |
 
 ---
 

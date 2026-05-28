@@ -465,6 +465,13 @@ export async function executeHealQueueRemediation(params: {
     body.action_type === "BULK_INEXPENSIVE"
   ) {
     const listed = await listHealQueueRemediationTasks(admin, tenantId, entityId);
+
+    if (listed.human_arbitration_packages.length > 0) {
+      throw new Error(
+        "BULK blocked: PENDING_HUMAN_ARBITRATION — resolve human arbitration before cloud batch heal."
+      );
+    }
+
     let tasks = (params.tasksForBulk ?? listed.remediation_tasks).filter(
       (t) => !t.circuit_breaker_open
     );

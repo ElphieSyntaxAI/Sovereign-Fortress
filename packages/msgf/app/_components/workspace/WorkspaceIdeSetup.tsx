@@ -453,12 +453,14 @@ type IdeCredentials = {
   apiUrl: string;
   tenantKey: string;
   accessToken: string;
-  expiresAt: number | null;
+  expiresAt: number | string | null;
   settingsJson: string;
   settingsPath: string;
   projectCount: number;
   projects?: Array<{ project_origin: string; label: string }>;
   selectedProjectOrigin?: string | null;
+  vscodeUri?: string;
+  longLived?: { tokenId: string; expiresAt: string; ttlDays: number };
 };
 
 type Props = {
@@ -530,6 +532,7 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
   const [selectedOrigin, setSelectedOrigin] = useState<string>("");
   const [testStatus, setTestStatus] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
+  const [minting, setMinting] = useState(false);
 
   const loadCredentials = useCallback(async (projectOrigin?: string) => {
     setLoading(true);
@@ -554,6 +557,57 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
       setLoading(false);
     }
   }, []);
+
+  const mintLongLivedToken = useCallback(async () => {
+    setMinting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/workspace/ide-token", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_origin: selectedOrigin || undefined,
+          label: "Workspace mint",
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        warning?: string;
+        settingsJson?: string;
+        vscodeUri?: string;
+        longLived?: IdeCredentials["longLived"];
+        expiresAt?: string;
+        apiUrl?: string;
+        tenantKey?: string;
+      };
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error ?? "Could not mint IDE token.");
+      }
+      setCreds((prev) => ({
+        apiUrl: data.apiUrl ?? prev?.apiUrl ?? apiUrl,
+        tenantKey: data.tenantKey ?? prev?.tenantKey ?? tenantKey,
+        accessToken: prev?.accessToken ?? "",
+        settingsJson: data.settingsJson ?? prev?.settingsJson ?? "",
+        settingsPath: prev?.settingsPath ?? ".vscode/settings.json",
+        projectCount: prev?.projectCount ?? projectCount,
+        projects: prev?.projects,
+        selectedProjectOrigin: prev?.selectedProjectOrigin ?? selectedOrigin,
+        vscodeUri: data.vscodeUri,
+        longLived: data.longLived,
+        expiresAt: data.expiresAt ?? prev?.expiresAt ?? null,
+      }));
+      setTestStatus(
+        data.warning ??
+          `Long-lived token minted (${data.longLived?.ttlDays ?? 90} days). Copy settings or open in VS Code.`
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Mint failed.");
+    } finally {
+      setMinting(false);
+    }
+  }, [selectedOrigin]);
 
   const runConnectionTest = useCallback(async () => {
     setTesting(true);
@@ -641,6 +695,14 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
           >
             {testing ? "Testing…" : "Test connection"}
           </button>
+          <button
+            type="button"
+            onClick={() => void mintLongLivedToken()}
+            disabled={minting || loading}
+            className="rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-100 transition hover:bg-violet-500/20 disabled:opacity-50"
+          >
+            {minting ? "Minting…" : "Mint long-lived IDE token"}
+          </button>
         </div>
       </div>
 
@@ -698,12 +760,21 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
               </p>
             </div>
             <CopyField label="VS Code / Cursor workspace settings" value={settingsPreview} />
+            {creds?.vscodeUri ? (
+              <p className="text-xs text-slate-400">
+                <a href={creds.vscodeUri} className="text-violet-300 hover:underline">
+                  Open in VS Code / Cursor
+                </a>{" "}
+                (applies settings via deep link — token visible in URL; use only on your machine).
+              </p>
+            ) : null}
             {creds?.expiresAt ? (
               <p className="text-xs text-slate-500">
-                Session token expires{" "}
-                {new Date(creds.expiresAt * 1000).toLocaleString()}. Use{" "}
-                <strong className="text-slate-400">Refresh token</strong> here, then update{" "}
-                <code className="text-violet-200">msgf.authToken</code> in the IDE when Pulse stops
+                {creds.longLived
+                  ? `Long-lived IDE token expires ${new Date(String(creds.expiresAt)).toLocaleString()}.`
+                  : `Session token expires ${new Date(Number(creds.expiresAt) * 1000).toLocaleString()}.`}{" "}
+                Use <strong className="text-slate-400">Refresh token</strong> or{" "}
+                <strong className="text-slate-400">Mint long-lived IDE token</strong> when Pulse stops
                 authenticating.
               </p>
             ) : null}
