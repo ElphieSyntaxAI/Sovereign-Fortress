@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 
 import { readMsgfSettings, settingsReady } from "./config";
 import { registerOpenDashboardCommand } from "./dashboardPanel";
+import { registerMsgfExternalAuthCommands } from "./openMsgfExternal";
 import { GuardSession } from "./guardSession";
 import {
   bindViolationDashboardProvider,
@@ -23,13 +24,14 @@ let sidebarDashboard: ReturnType<typeof registerMsgfDashboardProvider> | null = 
 export function activate(context: vscode.ExtensionContext): void {
   console.log(`${LOG_PREFIX} Extension successfully initialized.`);
 
-  void initializeMsgfWorkspace().then((root) => {
+  void initializeMsgfWorkspace(context.extensionPath).then((root) => {
     if (root) {
       console.info(`${LOG_PREFIX} Workspace .msgf/ scaffold ready at ${root}`);
     }
   });
 
   registerOpenDashboardCommand(context);
+  registerMsgfExternalAuthCommands(context);
   registerViolationCommands(context);
   sidebarDashboard = registerMsgfDashboardProvider(context);
   bindViolationDashboardProvider(sidebarDashboard);

@@ -47,6 +47,16 @@ npm run dev -w msgf
 npm run probe:solo -w msgf
 ```
 
+**Infra BYOK required for Free / $0 BYOK mode (no Stripe):**
+MSGF Phase 0 readiness requires you to provide your own persistence layer:
+- `NEXT_PUBLIC_SUPABASE_URL` (or `SUPABASE_URL`)
+- `SUPABASE_SERVICE_ROLE_KEY`
+- Redis hot layer via one of:
+  - `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (Upstash Redis REST), or
+  - `REDIS_URL` / `REDIS_HOST` (local/Memorystore TCP)
+
+`verify:msgf-env` will not require Stripe unless `MSGF_STRIPE_WEBHOOK_LIVE=true`.
+
 Save the printed `MSGF_CONTRACT_LICENSE_KEY` — it cannot be recovered from the DB.
 
 **Recommended dev flags** (until Stripe is finished):

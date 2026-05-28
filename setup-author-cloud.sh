@@ -55,6 +55,20 @@ _load_cloudrun_env() {
 
 _load_cloudrun_env
 
+# Align Author BFF Cloud Run env with local SSOT names (Vite build-args vs BFF runtime).
+_normalize_bff_run_env() {
+  if [[ -z "${RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]:-}" && -n "${RUN_ENV[VITE_SUPABASE_URL]:-}" ]]; then
+    RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]="${RUN_ENV[VITE_SUPABASE_URL]}"
+  fi
+  if [[ -z "${RUN_ENV[SUPABASE_URL]:-}" && -n "${RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]:-}" ]]; then
+    RUN_ENV[SUPABASE_URL]="${RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]}"
+  fi
+  if [[ -z "${RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]:-}" && -n "${RUN_ENV[VITE_SUPABASE_ANON_KEY]:-}" ]]; then
+    RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]="${RUN_ENV[VITE_SUPABASE_ANON_KEY]}"
+  fi
+}
+_normalize_bff_run_env
+
 if [[ -z "${GCP_PROJECT_ID// /}" ]]; then
   GCP_PROJECT_ID="${RUN_ENV[GCP_PROJECT_ID]:-}"
 fi
@@ -91,6 +105,8 @@ fi
 # Write a YAML env file for gcloud run deploy --env-vars-file.
 BFF_ENV_KEYS=(
   NODE_ENV
+  NEXT_PUBLIC_SUPABASE_URL
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   SUPABASE_URL
   SUPABASE_SERVICE_ROLE_KEY
   SUPABASE_JWT_SECRET
@@ -102,6 +118,8 @@ BFF_ENV_KEYS=(
   BFF_ALLOWED_ORIGINS
   BFF_ALLOWED_ORIGIN_REGEX
   MSGF_PRODUCTION_AUTHOR_ALLOWED_ORIGINS
+  GEMINI_API_KEY
+  GOOGLE_API_KEY
   OPENAI_API_KEY
   GCP_API_KEY
   GCP_MODEL_ID
@@ -130,7 +148,30 @@ _run_cloud_build() {
     --config="${config_path}"
 }
 
+_assert_bff_cloudrun_env() {
+  local missing=()
+  [[ -n "${RUN_ENV[SUPABASE_SERVICE_ROLE_KEY]:-}" ]] || missing+=("SUPABASE_SERVICE_ROLE_KEY")
+  local url="${RUN_ENV[NEXT_PUBLIC_SUPABASE_URL]:-${RUN_ENV[SUPABASE_URL]:-${RUN_ENV[VITE_SUPABASE_URL]:-}}}"
+  [[ -n "${url}" ]] || missing+=("NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL or VITE_SUPABASE_URL")
+  local pub="${RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]:-${RUN_ENV[VITE_SUPABASE_ANON_KEY]:-}}"
+  [[ -n "${pub}" ]] || missing+=("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY")
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "Error: Author BFF deploy requires in ${CLOUDRUN_ENV_FILE}: ${missing[*]}" >&2
+    exit 1
+  fi
+  if [[ "${url}" == *"YOUR_PROJECT"* || "${url}" == *"your-project.supabase.co"* ]]; then
+    echo "Error: ${CLOUDRUN_ENV_FILE} still has placeholder Supabase URL (${url})." >&2
+    echo "  Copy NEXT_PUBLIC_SUPABASE_URL from packages/msgf/.env.local (real *.supabase.co host)." >&2
+    exit 1
+  fi
+  if [[ "${pub}" == *"eyJ..."* || "${pub}" == "change_me" ]]; then
+    echo "Error: ${CLOUDRUN_ENV_FILE} has placeholder publishable key — set real VITE_SUPABASE_ANON_KEY from .env.local." >&2
+    exit 1
+  fi
+}
+
 _deploy_bff() {
+  _assert_bff_cloudrun_env
   local uri="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REPOSITORY}/${AUTHOR_BFF_IMAGE}:${IMAGE_TAG}"
   echo ""
   echo "=== Building Author BFF: ${uri} ==="

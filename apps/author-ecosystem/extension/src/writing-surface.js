@@ -1,13 +1,16 @@
 /**
  * Shared URL / frame detection for Google Docs + Microsoft Word Online.
  * Desktop Word (Win/Mac app) cannot host Chrome extensions — Word Online only.
+ *
+ * This file is loaded as a classic content-script (no ES modules), so helpers
+ * are attached to `globalThis` for other scripts (e.g. `content.js`).
  */
 
-export function isGoogleDocsUrl(url) {
+function isGoogleDocsUrl(url) {
   return typeof url === "string" && url.includes("://docs.google.com/document/");
 }
 
-export function isWordOnlineUrl(url) {
+function isWordOnlineUrl(url) {
   if (typeof url !== "string" || !url.startsWith("http")) return false;
   try {
     const u = new URL(url);
@@ -22,12 +25,12 @@ export function isWordOnlineUrl(url) {
   return false;
 }
 
-export function isWritingSurfaceUrl(url) {
+function isWritingSurfaceUrl(url) {
   return isGoogleDocsUrl(url) || isWordOnlineUrl(url);
 }
 
 /** Content-script: should this frame capture HAL + show the FAB? */
-export function shouldActivateInFrame() {
+function shouldActivateInFrame() {
   const href = location.href;
   if (isGoogleDocsUrl(href)) {
     return window === window.top;
@@ -42,15 +45,22 @@ export function shouldActivateInFrame() {
   return false;
 }
 
-export function writingSurfaceLabelFromUrl(url) {
+function writingSurfaceLabelFromUrl(url) {
   if (isGoogleDocsUrl(url)) return "google-docs";
   if (isWordOnlineUrl(url)) return "word-online";
   return "unknown";
 }
 
-export const WRITING_TAB_QUERY_URLS = [
+const WRITING_TAB_QUERY_URLS = [
   "https://docs.google.com/document/*",
   "https://word.cloud.microsoft/*",
   "https://*.officeapps.live.com/*",
   "https://*.sharepoint.com/*",
 ];
+
+globalThis.isGoogleDocsUrl = isGoogleDocsUrl;
+globalThis.isWordOnlineUrl = isWordOnlineUrl;
+globalThis.isWritingSurfaceUrl = isWritingSurfaceUrl;
+globalThis.shouldActivateInFrame = shouldActivateInFrame;
+globalThis.writingSurfaceLabelFromUrl = writingSurfaceLabelFromUrl;
+globalThis.WRITING_TAB_QUERY_URLS = WRITING_TAB_QUERY_URLS;

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    /**
+     * Runtime path mapping for `tsx` inside containers.
+     *
+     * `apps/author-ecosystem/server` starts `tsx` from repo root (`/app`), but there
+     * was no root `tsconfig.json`, so TS/tsx couldn’t resolve `msgf` imports like
+     * `import { Msgf } from "@/lib/msgf"`.
+     *
+     * Mapping `@/*` to `packages/msgf/*` matches the expectations of `packages/msgf/tsconfig.json`.
+     */
+    "paths": {
+      "@/*": ["packages/msgf/*"],
+      "@msgf/*": ["packages/msgf/src/*"]
+    }
+  }
+}
+

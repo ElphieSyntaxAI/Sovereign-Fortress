@@ -118,9 +118,8 @@ export default function VaultProtector(props: VaultProtectorProps) {
       }
       setPhraseInput("");
       await loadStatus();
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/home")) {
-        window.location.assign("/home");
-      }
+      // Do not force another location hop here; once status is "signed",
+      // the guard will render children on the current route.
     } finally {
       setSubmitting(false);
     }

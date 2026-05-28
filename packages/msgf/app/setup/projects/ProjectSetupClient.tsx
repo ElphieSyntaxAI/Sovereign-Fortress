@@ -475,6 +475,7 @@ export function ProjectSetupClient() {
     }>
   >([]);
   const [addingPresetId, setAddingPresetId] = useState<string | null>(null);
+  const [presetAudience, setPresetAudience] = useState<"platform" | "customer" | null>(null);
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -499,10 +500,17 @@ export function ProjectSetupClient() {
         const json = (await res.json()) as {
           ok?: boolean;
           presets?: typeof monorepoPresets;
+          audience?: "platform" | "customer";
         };
-        if (json.ok && json.presets) setMonorepoPresets(json.presets);
+        if (json.ok) {
+          setMonorepoPresets(json.presets ?? []);
+          setPresetAudience(json.audience ?? (json.presets?.length ? "platform" : "customer"));
+        }
       })
-      .catch(() => setMonorepoPresets([]));
+      .catch(() => {
+        setMonorepoPresets([]);
+        setPresetAudience("customer");
+      });
   }, [loadProjects]);
 
   async function addMonorepoPreset(presetId: string) {
@@ -613,14 +621,26 @@ export function ProjectSetupClient() {
             repository identity.
           </li>
           <li>
-            Your dashboard pillar health and environmental usage aggregate only across mapped origins —
-            not the entire Elphie Syntax network.
+            Your dashboard pillar health and environmental usage aggregate only across{" "}
+            <strong className="text-cyan-200">your</strong> mapped origins — not other customers or
+            unmapped repos.
           </li>
           <li>
             Public landing pages still show global network totals until you sign in.
           </li>
         </ul>
       </section>
+
+      {presetAudience === "customer" ? (
+        <section className="glass-panel rounded-2xl border border-cyan-500/20 p-6">
+          <h2 className="text-lg font-semibold text-slate-100">Your workspace</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Register each product or repo you guard with MSGF using{" "}
+            <strong className="text-cyan-200">Add a custom project</strong> below. Monorepo shortcuts
+            for Elphie Syntax internal apps are not shown for external accounts.
+          </p>
+        </section>
+      ) : null}
 
       {monorepoPresets.length > 0 ? (
         <section className="glass-panel rounded-2xl border border-violet-500/20 p-6">

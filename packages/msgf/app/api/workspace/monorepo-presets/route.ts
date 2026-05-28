@@ -17,6 +17,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
+import { shouldShowMonorepoWorkspacePresets } from "@/lib/monorepo-presets-access";
 import { MONOREPO_WORKSPACE_PRESETS } from "@/lib/services/monorepo-workspace-presets";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 import { headers } from "next/headers";
@@ -33,9 +34,14 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const showPresets = shouldShowMonorepoWorkspacePresets(user.email);
+
   return NextResponse.json({
     ok: true,
-    presets: MONOREPO_WORKSPACE_PRESETS,
-    note: "Register each app as its own project so dashboard health and ingest scope per workspace, not the whole monorepo root only.",
+    presets: showPresets ? MONOREPO_WORKSPACE_PRESETS : [],
+    audience: showPresets ? "platform" : "customer",
+    note: showPresets
+      ? "Register each app as its own project so dashboard health and ingest scope per workspace, not the whole monorepo root only."
+      : "Add your own repository or local folder below. Elphie Syntax monorepo shortcuts are only shown for platform accounts.",
   });
 }

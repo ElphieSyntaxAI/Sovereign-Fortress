@@ -6,8 +6,24 @@ import jwt from "jsonwebtoken";
 import { getMonorepoRootDir, loadMonorepoRootEnv } from "./database/loadRootEnv.js";
 import {
   isPlaceholderSupabaseUrl,
+  reconcileSupabaseEnv,
   resolveSupabaseProjectUrl,
 } from "./resolveSupabaseProjectUrl.js";
+
+/** Publishable / anon key — Cloud Run `.env.cloudrun` may use VITE_* names only. */
+export function resolveSupabasePublishableKey(): string {
+  const candidates = [
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.VITE_SUPABASE_ANON_KEY,
+    process.env.SUPABASE_ANON_KEY,
+  ];
+  for (const raw of candidates) {
+    const v = raw?.trim();
+    if (v) return v;
+  }
+  return "";
+}
 
 function resolveSupabaseJwtSecret(): string | null {
   const primary = process.env.SUPABASE_JWT_SECRET?.trim();
@@ -34,6 +50,13 @@ function resolveSupabaseJwtSecret(): string | null {
  */
 export function assertBffRequiredEnv(): void {
   loadMonorepoRootEnv();
+  reconcileSupabaseEnv();
+
+  const publishable = resolveSupabasePublishableKey();
+  if (publishable) {
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = publishable;
+  }
+
   const monorepoRoot = resolve(getMonorepoRootDir());
 
   const missing: string[] = [];
@@ -41,19 +64,25 @@ export function assertBffRequiredEnv(): void {
   if (!supabaseUrl) missing.push("SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL)");
   if (supabaseUrl && isPlaceholderSupabaseUrl(supabaseUrl)) {
     missing.push(
-      "real Supabase project URL in packages/msgf/.env.local (NEXT_PUBLIC_SUPABASE_URL; not your-project.supabase.co)"
+      "real Supabase project URL (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_URL; not your-project.supabase.co)"
     );
   }
-  if (!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()) {
-    missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+  if (!publishable) {
+    missing.push(
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY in .env.cloudrun for Cloud Run)"
+    );
   }
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) missing.push("SUPABASE_SERVICE_ROLE_KEY");
 
   if (missing.length) {
     const msgfLocal = join(monorepoRoot, "packages", "msgf", ".env.local");
+    const onCloudRun = Boolean(process.env.K_SERVICE?.trim());
     const hint = [
       `monorepoRoot=${monorepoRoot}`,
       `packages/msgf/.env.local exists=${existsSync(msgfLocal)}`,
+      onCloudRun
+        ? "Cloud Run: set keys in repo-root .env.cloudrun — setup-author-cloud.sh passes them via --env-vars-file"
+        : "local: copy keys to packages/msgf/.env.local",
     ].join("; ");
     throw new Error(
       `BFF startup: missing required environment variables: ${missing.join(", ")} (${hint})`

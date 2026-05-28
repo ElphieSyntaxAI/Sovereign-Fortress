@@ -1,0 +1,40 @@
+import assert from "node:assert/strict";
+import { afterEach, describe, it } from "node:test";
+
+import { shouldShowMonorepoWorkspacePresets } from "../lib/monorepo-presets-access";
+
+const env = process.env;
+
+afterEach(() => {
+  process.env = env;
+});
+
+describe("shouldShowMonorepoWorkspacePresets", () => {
+  it("shows presets for @elphiesyntax.com emails", () => {
+    delete process.env.MSGF_SHOW_MONOREPO_PRESETS;
+    delete process.env.MSGF_MONOREPO_PRESET_EMAIL_SUFFIXES;
+    delete process.env.MSGF_GLOBAL_ADMIN_EMAILS;
+    assert.equal(shouldShowMonorepoWorkspacePresets("dev@elphiesyntax.com"), true);
+  });
+
+  it("hides presets for external customer emails", () => {
+    delete process.env.MSGF_SHOW_MONOREPO_PRESETS;
+    delete process.env.MSGF_MONOREPO_PRESET_EMAIL_SUFFIXES;
+    delete process.env.MSGF_GLOBAL_ADMIN_EMAILS;
+    assert.equal(shouldShowMonorepoWorkspacePresets("jessica@dealstar.io"), false);
+  });
+
+  it("shows presets for MSGF_GLOBAL_ADMIN_EMAILS allowlist", () => {
+    delete process.env.MSGF_SHOW_MONOREPO_PRESETS;
+    process.env.MSGF_GLOBAL_ADMIN_EMAILS = "jessica@dealstar.io";
+    assert.equal(shouldShowMonorepoWorkspacePresets("jessica@dealstar.io"), true);
+  });
+
+  it("respects MSGF_MONOREPO_PRESET_EMAIL_SUFFIXES override", () => {
+    delete process.env.MSGF_SHOW_MONOREPO_PRESETS;
+    delete process.env.MSGF_GLOBAL_ADMIN_EMAILS;
+    process.env.MSGF_MONOREPO_PRESET_EMAIL_SUFFIXES = "dealstar.io";
+    assert.equal(shouldShowMonorepoWorkspacePresets("jessica@dealstar.io"), true);
+    assert.equal(shouldShowMonorepoWorkspacePresets("other@example.com"), false);
+  });
+});

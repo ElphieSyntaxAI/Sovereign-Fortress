@@ -23,7 +23,7 @@ export const PRICING_TIERS: PricingTierConfig[] = [
     bullets: [
       "Fully open local 6-Pillar tracking metrics",
       "Complete local project data isolation",
-      "Requires personal API keys in .msgf/keys/ for cloud consensus checks",
+      "Runs with your local infra: provide Redis + Supabase env (e.g. REDIS_URL, NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) and your model keys in .msgf/keys/ for dual-model consensus",
     ],
     cta: {
       kind: "extension_download",

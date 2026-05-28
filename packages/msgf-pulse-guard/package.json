@@ -83,8 +83,20 @@
         "icon": "$(dashboard)"
       },
       {
+        "command": "msgf.openSignInBrowser",
+        "title": "MSGF: Sign in (open browser)"
+      },
+      {
+        "command": "msgf.openWorkspaceIdeSetup",
+        "title": "MSGF: Open IDE token setup (browser)"
+      },
+      {
         "command": "msgf.openDiagnostics",
         "title": "MSGF: Open violation diagnostics"
+      },
+      {
+        "command": "msgf.openUserGuide",
+        "title": "MSGF: Open quick reference"
       }
     ],
     "configuration": {
@@ -93,13 +105,14 @@
         "msgf.tenantKey": {
           "type": "string",
           "default": "",
-          "description": "Tenant key sent as X-MSGF-Tenant-Key (and x-msgf-tenant-id). Falls back to workspace folder name."
+          "description": "Tenant key sent as X-MSGF-Tenant-Key (and x-msgf-tenant-id). Falls back to workspace folder name.",
+          "scope": "resource"
         },
         "msgf.authToken": {
           "type": "string",
           "default": "",
           "description": "Personal or service token sent as Authorization: Bearer for POST /api/msgf/pulse.",
-          "scope": "application"
+          "scope": "resource"
         },
         "msgf.role": {
           "type": "string",
@@ -115,18 +128,20 @@
         "msgf.apiUrl": {
           "type": "string",
           "default": "https://elphiesgatedai.elphiesyntax.com",
-          "description": "MSGF API base URL (Cloud Run or local Next app) for POST /api/msgf/pulse."
+          "description": "MSGF API base URL (Cloud Run or local Next app) for POST /api/msgf/pulse.",
+          "scope": "resource"
         },
         "msgf.licenseKey": {
           "type": "string",
           "default": "",
           "description": "Contract license or service token (Bearer) for IDE Pulse when not using browser session auth.",
-          "scope": "application"
+          "scope": "resource"
         },
         "msgf.entityId": {
           "type": "string",
           "default": "",
-          "description": "Optional stable developer machine id (x-msgf-entity-id). Defaults to a generated id per machine."
+          "description": "Optional stable developer machine id (x-msgf-entity-id). Defaults to a generated id per machine.",
+          "scope": "resource"
         },
         "msgf.smallBrainProvider": {
           "type": "string",

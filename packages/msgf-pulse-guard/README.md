@@ -57,6 +57,22 @@ A second window opens — the **Extension Development Host**. It loads this exte
 
 **Reload after code changes:** in the Extension Development Host, run **Developer: Reload Window** (`Ctrl+R` / `Cmd+R`), or stop and press **F5** again from the parent window.
 
+### Sign-in (browser only — not inside the dashboard iframe)
+
+The **MSGF Dashboard** editor tab embeds the site in an `<iframe>`. Browsers block Supabase session cookies in that context, so **correct passwords appear to “clear” the form** (you get redirected back to sign-in with no error). Wrong passwords still show an error because no redirect happens.
+
+1. Command palette → **MSGF: Sign in (open browser)** (or open `https://elphiesgatedai.elphiesyntax.com/sign-in` yourself).
+2. After sign-in, open **Workspace → IDE setup** in the browser → **Refresh token**.
+3. Paste `msgf.authToken` (and related fields) into `.vscode/settings.json` and reload the window.
+
+The left **Operations** sidebar uses `msgf.authToken` directly — it does not use the iframe session.
+
+### Quick reference in your repo
+
+On first activation, the extension creates **`.msgf/USER-GUIDE.md`** in your workspace root with setup steps, Command Palette commands, web links, and Pulse troubleshooting (user-facing only — no operator CLI).
+
+Run **MSGF: Open quick reference** from the Command Palette to open it anytime.
+
 ### Configure the test host
 
 In the **Extension Development Host** window, set User or Workspace settings (`Ctrl+,` → search `msgf`):

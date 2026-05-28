@@ -62,17 +62,35 @@ const REQUIRED_ENV = [
     label: "Supabase service role key",
     hint: "Required for admin scripts and LOM DB assertions",
   },
-  {
-    keys: ["STRIPE_SECRET_KEY"],
-    label: "Stripe secret key",
-    hint: "Dashboard → Developers → API keys (test mode for dev)",
-  },
-  {
-    keys: ["STRIPE_WEBHOOK_SECRET"],
-    label: "Stripe webhook signing secret",
-    hint: "From `stripe listen` or Dashboard → Webhooks",
-  },
 ];
+
+// Stripe should not block free-tier / BYOK readiness.
+// Mirror the runtime behavior in `middleware/entitlementGuard.ts`:
+// by default we mock Stripe unless the webhook is explicitly marked live.
+const stripeWebhookLive = process.env.MSGF_STRIPE_WEBHOOK_LIVE?.trim().toLowerCase() === "true";
+const mockStripeActive = (() => {
+  const v = process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE?.trim().toLowerCase();
+  if (v === "0" || v === "false" || v === "no") return false;
+  if (v === "1" || v === "true" || v === "yes") return true;
+  // Default mock ON until Stripe webhook is production-ready.
+  return process.env.MSGF_STRIPE_WEBHOOK_LIVE?.trim().toLowerCase() !== "true";
+})();
+
+// Only require Stripe secrets when Stripe is truly live (mock off).
+if (stripeWebhookLive && !mockStripeActive) {
+  REQUIRED_ENV.push(
+    {
+      keys: ["STRIPE_SECRET_KEY"],
+      label: "Stripe secret key",
+      hint: "Dashboard → Developers → API keys (test mode for dev)",
+    },
+    {
+      keys: ["STRIPE_WEBHOOK_SECRET"],
+      label: "Stripe webhook signing secret",
+      hint: "From `stripe listen` or Dashboard → Webhooks",
+    }
+  );
+}
 
 const RECOMMENDED_ENV = [
   {

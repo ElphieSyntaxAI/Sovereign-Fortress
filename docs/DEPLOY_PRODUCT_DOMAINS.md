@@ -44,6 +44,8 @@ Copy-Item env.cloudrun.example .env.cloudrun
 | `Unable to read file [-]` on `gcloud builds submit` | Fixed in script — uses a temp YAML file, not `--config=-` |
 | `Bad syntax for dict arg` on `--update-env-vars` | Fixed — `setup-cloud.sh` and `setup-author-cloud.sh` use `--env-vars-file` |
 | MSGF image already built, deploy only failed | `SKIP_CLOUD_BUILD=1 IMAGE_TAG=c103094 ./setup-cloud.sh` |
+| `author-bff` failed to start on **PORT=8080** | BFF crashed before `listen`. **(1)** Missing/placeholder Supabase env — run `npm run deploy:cloudrun:env` and redeploy. **(2)** `Container called exit(1)` with env OK — rebuild image with current `docker/Dockerfile.author-bff` (`NODE_OPTIONS=--conditions=development` so `msgf` does not load obfuscated `dist/` that imports `next/server`). Logs: `gcloud run services logs read author-bff --project=msgf-shield --region=us-central1 --limit=50` |
+| API host name | Use **`api.authorecosystem.elphiesyntax.com`** (no underscore). Map with `AUTHOR_BFF_DOMAIN` in `.env.cloudrun`. |
 
 Re-run after fixes: `./setup-author-cloud.sh`
 

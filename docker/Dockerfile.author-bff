@@ -23,6 +23,11 @@ FROM node:20-bookworm-slim AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Cloud Run sets PORT=8080; default here helps local `docker run` without -e PORT.
+ENV PORT=8080
+# Resolve `msgf/*` to TypeScript sources (development export). The bundled `dist/` pulls in
+# `next/server` and crashes the BFF when started with tsx on Cloud Run.
+ENV NODE_OPTIONS=--conditions=development
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \
@@ -31,6 +36,7 @@ RUN apt-get update \
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/msgf/node_modules ./packages/msgf/node_modules
 COPY package.json package-lock.json ./
+COPY tsconfig.json ./tsconfig.json
 COPY packages ./packages
 COPY apps ./apps
 COPY tools ./tools

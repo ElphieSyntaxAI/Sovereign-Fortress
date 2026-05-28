@@ -78,6 +78,16 @@ function loadFile(p) {
   return parseEnv(fs.readFileSync(p, "utf8"));
 }
 
+/** Example-file placeholders must not block values from packages/msgf/.env.local. */
+function isPlaceholderEnvValue(key, value) {
+  const v = String(value ?? "").trim();
+  if (!v) return true;
+  if (/^eyJ\.\.\.$/i.test(v) || v === "change_me") return true;
+  if (key.includes("SUPABASE") && key.includes("URL") && /YOUR_PROJECT/i.test(v)) return true;
+  if (key.includes("UPSTASH") && /YOUR-DB/i.test(v)) return true;
+  return false;
+}
+
 const merged = loadFile(EXAMPLE);
 for (const src of LOCAL_SOURCES) {
   Object.assign(merged, loadFile(src));
@@ -88,11 +98,21 @@ for (const k of COPY_KEYS) {
 }
 Object.assign(merged, PROD_OVERRIDES);
 
-if (merged.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY && !merged.VITE_SUPABASE_ANON_KEY) {
-  merged.VITE_SUPABASE_ANON_KEY = merged.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabaseUrl = merged.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+const publishable = merged.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ?? "";
+
+if (supabaseUrl && !isPlaceholderEnvValue("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl)) {
+  if (isPlaceholderEnvValue("SUPABASE_URL", merged.SUPABASE_URL)) {
+    merged.SUPABASE_URL = supabaseUrl;
+  }
+  if (isPlaceholderEnvValue("VITE_SUPABASE_URL", merged.VITE_SUPABASE_URL)) {
+    merged.VITE_SUPABASE_URL = supabaseUrl;
+  }
 }
-if (merged.NEXT_PUBLIC_SUPABASE_URL && !merged.VITE_SUPABASE_URL) {
-  merged.VITE_SUPABASE_URL = merged.NEXT_PUBLIC_SUPABASE_URL;
+if (publishable && !isPlaceholderEnvValue("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", publishable)) {
+  if (isPlaceholderEnvValue("VITE_SUPABASE_ANON_KEY", merged.VITE_SUPABASE_ANON_KEY)) {
+    merged.VITE_SUPABASE_ANON_KEY = publishable;
+  }
 }
 if (!merged.GCP_PROJECT_ID) merged.GCP_PROJECT_ID = "msgf-shield";
 

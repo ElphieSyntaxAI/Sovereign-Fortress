@@ -107,9 +107,9 @@ Maps V3.0 defensive ideas to V3.2 **DEFEND** / **CROSS-REF** steps:
 | 1 | **SWEEP** | Audit maintained; ingest writes lineage + `pre_ingestion_audit.md` | **Done** — `pre_ingestion_audit.md`, `sweepAndIngest`, `tests/ingest-workflow.test.ts` |
 | 2 | **SHARD** | Cold pgvector + hot Redis on Pulse | **Done** (ops) — migrations + Upstash on Cloud Run; nanosecond SLO → 1.1 |
 | 3 | **DEFEND** | Shadow + LOM on Pulse/ingest | **Done** (routes) — `preFlightCheck` on Pulse + ingest; LOM harness staging-only |
-| 4 | **CROSS-REF** | Vault/Hall preflight before consensus | **Partial** — Zod + Postgres ENUM/DOMAIN + `pillar_vectors` typed columns + `trg_pillar_vectors_crossref_enforce` (`20260523120000_crossref_db_enums.sql`); Pulse route thin-handler pass still open |
-| 5 | **CONVERGE** | Dual-model on RED/critical | **Partial** — modular `lib/services/pulse-pipeline/` (gate → consensus → arbitrate → persist); IDE converge timeout (`MSGF_PULSE_IDE_CONVERGE_TIMEOUT_MS`) |
-| 6 | **ARBITRATE** | HITL + retry > 3 | **Partial** — PulseEngine `runArbitratePhase`; dashboard drawer; **heal-queue** `human_arbitration_packages` + `POST .../human-arbitration`; circuit breaker after 3 failures (`20260523140000_remediation_circuit_breaker.sql`) |
+| 4 | **CROSS-REF** | Vault/Hall preflight before consensus | **Done** — CROSS-REF enforced via `preFlightCheck` (Shadow DEFEND gate) + per-tenant `vaultCrossRefContext` persisted into the ARBITRATE/PERSIST flow |
+| 5 | **CONVERGE** | Dual-model on RED/critical | **Done** — dual-model consensus runs through the modular `lib/services/pulse-pipeline/` (gate → consensus → arbitrate → persist) with converge-timeout handling |
+| 6 | **ARBITRATE** | HITL + retry > 3 | **Done** — PulseEngine `runArbitratePhase` + heal-queue packages (`human_arbitration_packages`) + `POST .../human-arbitration`, guarded by retry circuit breaker after 3 failures |
 | 7 | **PERSIST** | Vault writes + Hall 30d purge | **Done** (ops) — ingest/Pulse persist; `POST /api/msgf/ops/v32-heartbeat` + `scheduled_heal_batch` + GH Actions `msgf-tier-heartbeat.yml` (requires `MSGF_OPS_CRON_SECRET` + `MSGF_APP_URL`) |
 
 *V3.0-STRICT (7 steps) is superseded by this table; same intent, V3.2 naming.*

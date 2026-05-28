@@ -1,8 +1,7 @@
 // HAL capture for Google Docs + Microsoft Word Online (browser only).
-import {
-  shouldActivateInFrame,
-  writingSurfaceLabelFromUrl,
-} from "./writing-surface.js";
+// This script is loaded as a classic content-script (no ES modules), so
+// `shouldActivateInFrame` and `writingSurfaceLabelFromUrl` come from
+// `writing-surface.js` via `globalThis`.
 
 let keystrokes = [];
 let pasteCount = 0;

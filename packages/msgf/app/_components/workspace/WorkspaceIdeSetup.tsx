@@ -675,13 +675,19 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
 
       <details className="mt-6 rounded-xl border border-slate-700/50 bg-slate-900/30 px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium text-slate-300">
-          Optional: bring your own model keys (BYOK)
+          BYOK (free indie) — model keys + local infra
         </summary>
         <p className="mt-3 text-sm text-slate-400">
-          For dual-model consensus on your own API wallet, add keys under{" "}
+          For the <strong className="text-slate-200">Individual Indie (BYOK)</strong> tier ($0),
+          MSGF runs with <strong className="text-slate-200">your</strong> infrastructure.
+          Provide your own Redis + Supabase env for the MSGF instance you point the extension at
+          (e.g. <code className="text-violet-200">REDIS_URL</code> and{" "}
+          <code className="text-violet-200">NEXT_PUBLIC_SUPABASE_URL</code> /
+          <code className="text-violet-200">SUPABASE_SERVICE_ROLE_KEY</code>), plus your model keys for
+          dual-model consensus under{" "}
           <code className="text-violet-200">.msgf/keys/gemini.key</code> and{" "}
-          <code className="text-violet-200">.msgf/keys/claude.key</code> in the repo root. Or use a
-          managed Pro license —{" "}
+          <code className="text-violet-200">.msgf/keys/claude.key</code>.
+          Or use a managed Pro license —{" "}
           <Link href="/pricing" className="text-violet-300 hover:underline">
             compare tiers
           </Link>
