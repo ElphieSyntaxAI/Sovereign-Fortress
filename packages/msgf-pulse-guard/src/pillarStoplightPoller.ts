@@ -1,3 +1,4 @@
+import { classifyHttpError, formatClassifiedErrorForTooltip } from "./classifyHttpError";
 import { readMsgfSettings, resolveTenantId } from "./config";
 import type { PillarHealthReport } from "./pillarHealthTypes";
 import { aggregateStoplight } from "./pillarHealthTypes";
@@ -7,7 +8,7 @@ const LOG_PREFIX = "[MSGF Guard]";
 
 export type StoplightPollResult =
   | { ok: true; report: PillarHealthReport }
-  | { ok: false; error: string };
+  | { ok: false; error: string; errorDetail?: string };
 
 export async function fetchPillarHealthReport(
   fetchImpl: typeof fetch = fetch.bind(globalThis)
@@ -19,7 +20,15 @@ export async function fetchPillarHealthReport(
 
   const headers = buildApiAuthHeaders({ settings, tenantId });
   if (!headers.Authorization) {
-    return { ok: false, error: "msgf.authToken required for pillar health polling." };
+    const c = classifyHttpError({
+      status: 401,
+      body: { error: "msgf.authToken required for pillar health polling." },
+    });
+    return {
+      ok: false,
+      error: c.message,
+      errorDetail: formatClassifiedErrorForTooltip(c),
+    };
   }
 
   try {
@@ -29,22 +38,28 @@ export async function fetchPillarHealthReport(
     };
 
     if (!res.ok) {
-      const message =
-        typeof raw.error === "string"
-          ? raw.error
-          : `Pillar health failed (${res.status})`;
-      return { ok: false, error: message };
+      const c = classifyHttpError({
+        status: res.status,
+        body: raw as Record<string, unknown>,
+      });
+      return {
+        ok: false,
+        error: c.message,
+        errorDetail: formatClassifiedErrorForTooltip(c),
+      };
     }
 
     if (!Array.isArray(raw.pillars)) {
-      return { ok: false, error: "Invalid pillar health response." };
+      const c = classifyHttpError({ status: res.status, body: { error: "Invalid pillar health response." } });
+      return { ok: false, error: c.message, errorDetail: formatClassifiedErrorForTooltip(c) };
     }
 
     return { ok: true, report: raw };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Pillar health network error";
     console.warn(`${LOG_PREFIX} pillar poll error:`, message);
-    return { ok: false, error: message };
+    const c = classifyHttpError({ networkMessage: message });
+    return { ok: false, error: c.message, errorDetail: formatClassifiedErrorForTooltip(c) };
   }
 }
 

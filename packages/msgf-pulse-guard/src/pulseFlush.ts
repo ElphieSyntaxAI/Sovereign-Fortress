@@ -1,3 +1,4 @@
+import { classifyHttpError } from "./classifyHttpError";
 import type { IdeStatusBarSnapshot } from "./ide-types";
 import { MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
 import type { MsgfGuardSettings } from "./config";
@@ -129,14 +130,11 @@ export async function flushTelemetryBatch(params: {
     }
 
     if (!res.ok) {
-      const message =
-        typeof raw.error === "string"
-          ? raw.error
-          : `Pulse failed (${res.status})`;
-      console.warn(`${LOG_PREFIX} flush failed:`, message);
+      const c = classifyHttpError({ status: res.status, body: raw });
+      console.warn(`${LOG_PREFIX} flush failed [${c.code}]:`, c.message);
       return {
         ok: false,
-        snapshot: emptySnapshot("error", message),
+        snapshot: emptySnapshot("error", `[${c.code}] ${c.message}`),
       };
     }
 
@@ -147,11 +145,12 @@ export async function flushTelemetryBatch(params: {
       snapshot: snapshotFromPulseBody(raw),
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Pulse network error";
-    console.warn(`${LOG_PREFIX} flush network error (editor not blocked):`, message);
+    const net = e instanceof Error ? e.message : "Pulse network error";
+    const c = classifyHttpError({ networkMessage: net });
+    console.warn(`${LOG_PREFIX} flush network error [${c.code}] (editor not blocked):`, net);
     return {
       ok: false,
-      snapshot: emptySnapshot("error", message),
+      snapshot: emptySnapshot("error", `[${c.code}] ${c.message}`),
     };
   }
 }

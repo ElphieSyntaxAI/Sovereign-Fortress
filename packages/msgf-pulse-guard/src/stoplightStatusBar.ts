@@ -21,6 +21,7 @@ const THEME = {
 } as const;
 
 export type StoplightAnomalyHandler = (tone: "yellow" | "red") => void;
+export type StoplightPollCompleteHandler = () => void;
 
 /**
  * Six-pillar MSGF stoplight indicator (polls Cloud Run health every 30s).
@@ -31,7 +32,10 @@ export class StoplightStatusBar {
   private inFlight = false;
   private lastTone: "green" | "yellow" | "red" | "init" = "init";
 
-  constructor(private readonly onAnomaly?: StoplightAnomalyHandler) {
+  constructor(
+    private readonly onAnomaly?: StoplightAnomalyHandler,
+    private readonly onPollComplete?: StoplightPollCompleteHandler
+  ) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.item.command = "msgf.openDashboard";
     this.item.text = INITIAL_TEXT;
@@ -89,7 +93,7 @@ export class StoplightStatusBar {
     try {
       const result = await fetchPillarHealthReport();
       if (!result.ok) {
-        this.applyError(result.error);
+        this.applyError(result.error, result.errorDetail);
         return;
       }
 
@@ -123,14 +127,17 @@ export class StoplightStatusBar {
       this.lastTone = "green";
     } finally {
       this.inFlight = false;
+      this.onPollComplete?.();
     }
   }
 
-  private applyError(message: string): void {
-    this.item.text = "$(warning) MSGF: Yellow";
-    this.item.tooltip = `Pillar health unavailable: ${message}`;
-    this.applyJewelState("yellow");
-    this.notifyAnomalyIfNeeded("yellow");
+  private applyError(message: string, detail?: string): void {
+    this.item.text = "$(cloud-off) MSGF: Offline";
+    this.item.tooltip =
+      detail ??
+      `Cannot reach MSGF API — Pulse and pillar health are not updating.\n${message}\n\nRun MSGF: Test connection or MSGF: Open IDE token setup (browser).`;
+    this.applyJewelState("init");
+    this.lastTone = "init";
   }
 
   private notifyAnomalyIfNeeded(tone: "yellow" | "red"): void {

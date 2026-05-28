@@ -457,6 +457,8 @@ type IdeCredentials = {
   settingsJson: string;
   settingsPath: string;
   projectCount: number;
+  projects?: Array<{ project_origin: string; label: string }>;
+  selectedProjectOrigin?: string | null;
 };
 
 type Props = {
@@ -525,17 +527,26 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
   const [creds, setCreds] = useState<IdeCredentials | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOrigin, setSelectedOrigin] = useState<string>("");
+  const [testStatus, setTestStatus] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
 
-  const loadCredentials = useCallback(async () => {
+  const loadCredentials = useCallback(async (projectOrigin?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/workspace/ide-credentials", { credentials: "include" });
+      const q = projectOrigin ? `?project_origin=${encodeURIComponent(projectOrigin)}` : "";
+      const res = await fetch(`/api/workspace/ide-credentials${q}`, { credentials: "include" });
       const data = (await res.json().catch(() => ({}))) as IdeCredentials & { error?: string };
       if (!res.ok) {
         throw new Error(data.error ?? "Could not load IDE credentials.");
       }
       setCreds(data);
+      if (data.selectedProjectOrigin) {
+        setSelectedOrigin(data.selectedProjectOrigin);
+      } else if (data.projects?.[0]?.project_origin) {
+        setSelectedOrigin(data.projects[0].project_origin);
+      }
     } catch (e) {
       setCreds(null);
       setError(e instanceof Error ? e.message : "Could not load IDE credentials.");
@@ -543,6 +554,35 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
       setLoading(false);
     }
   }, []);
+
+  const runConnectionTest = useCallback(async () => {
+    setTesting(true);
+    setTestStatus(null);
+    try {
+      const q = selectedOrigin ? `?project_origin=${encodeURIComponent(selectedOrigin)}` : "";
+      const res = await fetch(`/api/workspace/ide-connectivity-check${q}`, {
+        credentials: "include",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        checks?: Array<{ name: string; ok: boolean; user_message?: string; error_code?: string }>;
+      };
+      if (data.ok) {
+        setTestStatus("All checks passed — paste settings into the IDE and run MSGF: Test connection.");
+      } else {
+        const failed = (data.checks ?? []).filter((c) => !c.ok);
+        setTestStatus(
+          failed.length
+            ? failed.map((c) => `${c.name}: ${c.user_message ?? "failed"}${c.error_code ? ` [${c.error_code}]` : ""}`).join(" · ")
+            : "Connection check failed."
+        );
+      }
+    } catch (e) {
+      setTestStatus(e instanceof Error ? e.message : "Connection test failed.");
+    } finally {
+      setTesting(false);
+    }
+  }, [selectedOrigin]);
 
   useEffect(() => {
     void loadCredentials();
@@ -584,15 +624,60 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
             .
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadCredentials()}
-          disabled={loading}
-          className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-50"
-        >
-          {loading ? "Refreshing…" : "Refresh token"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void loadCredentials(selectedOrigin || undefined)}
+            disabled={loading}
+            className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-50"
+          >
+            {loading ? "Refreshing…" : "Refresh token"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void runConnectionTest()}
+            disabled={testing || loading}
+            className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:bg-cyan-500/20 disabled:opacity-50"
+          >
+            {testing ? "Testing…" : "Test connection"}
+          </button>
+        </div>
       </div>
+
+      {creds?.projects && creds.projects.length > 1 ? (
+        <div className="mt-4">
+          <label className="text-xs font-medium text-slate-400" htmlFor="ide-project-origin">
+            Mapped project (msgf.tenantKey)
+          </label>
+          <select
+            id="ide-project-origin"
+            value={selectedOrigin}
+            onChange={(e) => {
+              setSelectedOrigin(e.target.value);
+              void loadCredentials(e.target.value);
+            }}
+            className="mt-1 w-full max-w-md rounded-lg border border-slate-600/60 bg-slate-900/80 px-3 py-2 text-sm text-slate-100"
+          >
+            {creds.projects.map((p) => (
+              <option key={p.project_origin} value={p.project_origin}>
+                {p.project_origin}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {testStatus ? (
+        <p
+          className={`mt-4 rounded-lg border px-3 py-2 text-sm ${
+            testStatus.startsWith("All checks")
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+              : "border-amber-500/30 bg-amber-500/10 text-amber-100"
+          }`}
+        >
+          {testStatus}
+        </p>
+      ) : null}
 
       {error ? (
         <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">

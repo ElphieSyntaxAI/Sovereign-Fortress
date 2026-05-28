@@ -66,6 +66,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 **Today (interim):**
 
 - Hub UI lives in `apps/author-ecosystem/client/src/pages/PlatformHubPage.jsx` and is intended to be served when the apex host is `elphiesyntax.com` / `www.elphiesyntax.com` (see `App.jsx` routing). Picker copy SSOT: `packages/core/src/lib/platform-hub-content.ts` (twin: `packages/msgf/app/_components/landing/PlatformHubLanding.tsx`).
+- **Deploy gap:** apex DNS must map to **author-client** via `AUTHOR_APEX_DOMAIN` in `map-product-domains.sh` — until then, `elphiesyntax.com` may still show Squarespace parking instead of the picker. See [`DEPLOY_PRODUCT_DOMAINS.md`](./DEPLOY_PRODUCT_DOMAINS.md#apex-hub-elphiesyntaxcom-picker).
 - **authorecosystem** host skips the hub and goes straight to `/sign-in`.
 - Product CTAs already point at the correct production subdomains via `VITE_MSGF_APP_URL`, `VITE_AUTHOR_APP_URL`, `VITE_EDUCATION_APP_URL`.
 - Email confirm / PKCE should complete on **Gated AI** for MSGF admin, or use Author `/auth/callback` → forward to MSGF (see [`AUTHOR_MSGF_WIRING.md`](./AUTHOR_MSGF_WIRING.md)).

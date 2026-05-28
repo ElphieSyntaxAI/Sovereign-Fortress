@@ -75,8 +75,9 @@ export function renderHealingConsole(view: HealingConsoleView): string {
     <div id="healStatus" class="heal-status" role="status" aria-live="polite"></div>
     ${renderPillarGroups(view.tasks)}
     <div class="heal-actions">
-      <button type="button" class="heal-primary" id="healAllBtn">Heal All Now</button>
-      <button type="button" class="heal-secondary" id="approveSelectedBtn">Approve Selected</button>
+      <button type="button" class="heal-prompt" id="copyHealPromptBtn" title="Copy a remediation prompt for Cursor or Claude">Copy agent heal prompt</button>
+      <button type="button" class="heal-primary" id="healAllBtn">Heal All Now (cloud governance)</button>
+      <button type="button" class="heal-secondary" id="approveSelectedBtn">Approve Selected (cloud)</button>
       <div class="schedule-row">
         <label for="schedulePreset">Schedule Auto-Remediation</label>
         <select id="schedulePreset" class="heal-schedule">
@@ -96,6 +97,7 @@ export function renderHealingConsoleBootScript(): string {
   return `
     function initHealingConsole(vscode) {
       const statusEl = document.getElementById('healStatus');
+      const copyPromptBtn = document.getElementById('copyHealPromptBtn');
       const healAllBtn = document.getElementById('healAllBtn');
       const approveBtn = document.getElementById('approveSelectedBtn');
       const scheduleBtn = document.getElementById('scheduleBtn');
@@ -133,6 +135,16 @@ export function renderHealingConsoleBootScript(): string {
           if (cb) { cb.checked = !cb.checked; updateApproveButton(); }
         });
       });
+
+      if (copyPromptBtn) {
+        copyPromptBtn.addEventListener('click', function() {
+          const paths = selectedPaths();
+          vscode.postMessage({
+            type: 'copyHealPrompt',
+            file_paths: paths.length ? paths : undefined
+          });
+        });
+      }
 
       if (healAllBtn) {
         healAllBtn.addEventListener('click', function() {

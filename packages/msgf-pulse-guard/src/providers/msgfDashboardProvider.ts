@@ -11,6 +11,7 @@ import {
 import type { HealConsoleTask, HealQueuePresetInterval } from "../healQueueTypes";
 import { fetchPillarHealthReport } from "../pillarStoplightPoller";
 import type { PillarHealthReport } from "../pillarHealthTypes";
+import { buildHealAgentPrompt } from "../healPromptBuilder";
 import type { WrongLogicViolation } from "../pulseViolationAudit";
 import { runShadowPolicyScan } from "../shadowScan";
 import {
@@ -49,6 +50,8 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   private healQueueError: string | null = null;
   private healTenantUuid: string | null = null;
   private lastScanRuleErrors: string[] = [];
+  private pulseError: string | null = null;
+  private lastPulseErrorToastAt = 0;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -75,6 +78,25 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
         void this.refreshHealth().then(() => this.render());
       }
     });
+  }
+
+  /** Pulse flush failed — surface in sidebar (not only Output console). */
+  clearPulseError(): void {
+    if (!this.pulseError) return;
+    this.pulseError = null;
+    this.render();
+  }
+
+  reportPulseError(message: string): void {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    this.pulseError = trimmed;
+    this.render();
+    const now = Date.now();
+    if (now - this.lastPulseErrorToastAt > 60_000) {
+      this.lastPulseErrorToastAt = now;
+      void vscode.window.showWarningMessage(`[MSGF Guard] Pulse: ${trimmed}`);
+    }
   }
 
   /** External refresh hook (e.g. after config change). */
@@ -162,6 +184,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
       this.healthReport = result.report;
       this.healthError = null;
     } else {
+      this.healthReport = null;
       this.healthError = result.error;
     }
   }
@@ -185,6 +208,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
       tenantId: resolveTenantId(settings),
       report: this.healthReport,
       healthError: this.healthError,
+      pulseError: this.pulseError,
       scanMessage: this.scanMessage,
       scanOk: this.scanOk,
       violationSummary: this.violationSummary,
@@ -195,9 +219,40 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     this.view.webview.html = buildDashboardWebviewHtml(viewModel);
   }
 
+  async copyHealPrompt(selectedPaths?: string[]): Promise<void> {
+    const settings = readMsgfSettings();
+    const folder = vscode.workspace.workspaceFolders?.[0]?.name;
+    const prompt = buildHealAgentPrompt({
+      tenantKey: resolveTenantId(settings),
+      apiUrl: settings.apiUrl,
+      triggerLabel: this.healTriggerLabel,
+      brainSummary: this.healBrainSummary,
+      scanRuleErrors: this.lastScanRuleErrors,
+      pulseError: this.pulseError,
+      healthError: this.healthError,
+      violationSummary: this.violationSummary,
+      tasks: this.healTasks,
+      selectedPaths,
+      workspaceFolderName: folder,
+    });
+
+    await vscode.env.clipboard.writeText(prompt);
+    void vscode.window.showInformationMessage(
+      "MSGF heal prompt copied — paste into Cursor or Claude chat to fix files locally."
+    );
+  }
+
   private async handleMessage(message: unknown): Promise<void> {
     const msg = message as WebviewMessage;
     if (!msg?.type) return;
+
+    if (msg.type === "copyHealPrompt") {
+      const paths = Array.isArray(msg.file_paths)
+        ? msg.file_paths.filter((p): p is string => typeof p === "string")
+        : undefined;
+      await this.copyHealPrompt(paths);
+      return;
+    }
 
     if (msg.type === "refreshHealConsole") {
       await this.refreshHealQueue(this.lastScanRuleErrors);

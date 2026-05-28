@@ -97,6 +97,26 @@
       {
         "command": "msgf.openUserGuide",
         "title": "MSGF: Open quick reference"
+      },
+      {
+        "command": "msgf.copyHealPrompt",
+        "title": "MSGF: Copy agent heal prompt"
+      },
+      {
+        "command": "msgf.testConnection",
+        "title": "MSGF: Test connection"
+      },
+      {
+        "command": "msgf.applyWorkspaceSettings",
+        "title": "MSGF: Apply workspace settings from clipboard"
+      },
+      {
+        "command": "msgf.runSetupWizard",
+        "title": "MSGF: Run setup wizard"
+      },
+      {
+        "command": "msgf.copyIdeTokenSetup",
+        "title": "MSGF: Open IDE token setup (browser)"
       }
     ],
     "configuration": {

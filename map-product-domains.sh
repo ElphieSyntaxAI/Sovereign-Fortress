@@ -18,6 +18,9 @@ AUTHOR_CLIENT_SERVICE="${AUTHOR_CLIENT_SERVICE:-author-client}"
 MSGF_DOMAIN="${MSGF_DOMAIN:-elphiesgatedai.elphiesyntax.com}"
 AUTHOR_CLIENT_DOMAIN="${AUTHOR_CLIENT_DOMAIN:-authorecosystem.elphiesyntax.com}"
 AUTHOR_BFF_DOMAIN="${AUTHOR_BFF_DOMAIN:-api.authorecosystem.elphiesyntax.com}"
+# Platform hub ("What are you looking for?") — same author-client service, apex DNS only.
+AUTHOR_APEX_DOMAIN="${AUTHOR_APEX_DOMAIN:-elphiesyntax.com}"
+AUTHOR_APEX_WWW_DOMAIN="${AUTHOR_APEX_WWW_DOMAIN:-www.elphiesyntax.com}"
 
 if [[ -f "${CLOUDRUN_ENV_FILE}" ]]; then
   while IFS= read -r line || [[ -n "${line}" ]]; do
@@ -66,6 +69,12 @@ echo "Project: ${GCP_PROJECT_ID}"
 _map_one "${MSGF_DOMAIN}" "${MSGF_SERVICE}"
 _map_one "${AUTHOR_CLIENT_DOMAIN}" "${AUTHOR_CLIENT_SERVICE}"
 _map_one "${AUTHOR_BFF_DOMAIN}" "${AUTHOR_BFF_SERVICE}"
+if [[ -n "${AUTHOR_APEX_DOMAIN}" ]]; then
+  _map_one "${AUTHOR_APEX_DOMAIN}" "${AUTHOR_CLIENT_SERVICE}"
+fi
+if [[ -n "${AUTHOR_APEX_WWW_DOMAIN}" ]]; then
+  _map_one "${AUTHOR_APEX_WWW_DOMAIN}" "${AUTHOR_CLIENT_SERVICE}"
+fi
 
 echo ""
 echo "=== DNS checklist (at your registrar) ==="
@@ -73,6 +82,15 @@ echo "For each mapping, run describe and create CNAME/AAAA as instructed."
 echo "  ${MSGF_DOMAIN}           → ${MSGF_SERVICE}"
 echo "  ${AUTHOR_CLIENT_DOMAIN}  → ${AUTHOR_CLIENT_SERVICE}"
 echo "  ${AUTHOR_BFF_DOMAIN}     → ${AUTHOR_BFF_SERVICE}"
+if [[ -n "${AUTHOR_APEX_DOMAIN}" ]]; then
+  echo "  ${AUTHOR_APEX_DOMAIN}        → ${AUTHOR_CLIENT_SERVICE} (platform hub)"
+fi
+if [[ -n "${AUTHOR_APEX_WWW_DOMAIN}" ]]; then
+  echo "  ${AUTHOR_APEX_WWW_DOMAIN}    → ${AUTHOR_CLIENT_SERVICE} (platform hub)"
+fi
+echo ""
+echo "Apex hub: remove Squarespace parking DNS for ${AUTHOR_APEX_DOMAIN:-elphiesyntax.com}"
+echo "before Cloud Run mapping can serve the picker."
 echo ""
 echo "Supabase → Authentication → URL configuration:"
 echo "  Site URL: https://${MSGF_DOMAIN}"

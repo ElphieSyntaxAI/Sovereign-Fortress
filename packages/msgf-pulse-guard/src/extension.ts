@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 
 import { readMsgfSettings, settingsReady } from "./config";
 import { registerOpenDashboardCommand } from "./dashboardPanel";
+import { registerIdeSetupCommands } from "./ideSetupCommands";
 import { registerMsgfExternalAuthCommands } from "./openMsgfExternal";
 import { GuardSession } from "./guardSession";
 import {
@@ -32,19 +33,29 @@ export function activate(context: vscode.ExtensionContext): void {
 
   registerOpenDashboardCommand(context);
   registerMsgfExternalAuthCommands(context);
+  registerIdeSetupCommands(context);
   registerViolationCommands(context);
   sidebarDashboard = registerMsgfDashboardProvider(context);
   bindViolationDashboardProvider(sidebarDashboard);
 
-  stoplightBar = new StoplightStatusBar((tone) => {
-    sidebarDashboard?.onHealthAnomaly(tone);
-  });
+  stoplightBar = new StoplightStatusBar(
+    (tone) => {
+      sidebarDashboard?.onHealthAnomaly(tone);
+    },
+    () => {
+      void sidebarDashboard?.refresh();
+    }
+  );
   stoplightBar.start();
   context.subscriptions.push({ dispose: () => stoplightBar?.dispose() });
 
   session = new GuardSession(context, {
-    onSnapshot: () => {
-      /* Pulse telemetry runs in background; stoplight bar owns status UI. */
+    onSnapshot: (snapshot) => {
+      if (snapshot.routing === "error" && snapshot.error) {
+        sidebarDashboard?.reportPulseError(snapshot.error);
+      } else {
+        sidebarDashboard?.clearPulseError();
+      }
     },
   });
 
@@ -58,6 +69,12 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("msgf.flushPulse", () => {
       void session?.flushNow();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("msgf.copyHealPrompt", () => {
+      void sidebarDashboard?.copyHealPrompt();
     })
   );
 
@@ -77,13 +94,17 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  void session.start().then(() => {
+  void session.start().then(async () => {
     const settings = readMsgfSettings();
     const ready = settingsReady(settings);
     if (!ready.ok) {
-      void vscode.window.showWarningMessage(
-        `${LOG_PREFIX} Set ${ready.missing.join(" and ")} to enable Pulse buffering.`
+      const pick = await vscode.window.showWarningMessage(
+        `${LOG_PREFIX} Set ${ready.missing.join(" and ")} to enable Pulse buffering.`,
+        "Setup wizard"
       );
+      if (pick === "Setup wizard") {
+        void vscode.commands.executeCommand("msgf.runSetupWizard");
+      }
     }
   });
 }

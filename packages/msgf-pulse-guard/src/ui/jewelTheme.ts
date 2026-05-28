@@ -351,6 +351,21 @@ export const JEWEL_SIDEBAR_STYLES = `
     gap: 8px;
     margin-top: 14px;
   }
+  button.heal-prompt {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    background: rgba(14, 116, 144, 0.25);
+    color: #a5f3fc;
+  }
+  button.heal-prompt:hover:not(:disabled) {
+    background: rgba(14, 116, 144, 0.4);
+  }
   button.heal-primary {
     width: 100%;
     padding: 12px 14px;

@@ -13,6 +13,7 @@ export type DashboardHealthView = {
   tenantId: string;
   report: PillarHealthReport | null;
   healthError: string | null;
+  pulseError: string | null;
   scanMessage: string | null;
   scanOk: boolean | null;
   violationSummary: string | null;
@@ -28,7 +29,10 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function renderPillarRows(report: PillarHealthReport | null): string {
+function renderPillarRows(report: PillarHealthReport | null, healthError: string | null): string {
+  if (healthError) {
+    return `<li class="pillar red"><span class="id">API</span> Connection — ${escapeHtml(healthError)}</li>`;
+  }
   if (!report?.pillars?.length) {
     return `<p class="muted">Health data unavailable — check msgf.authToken and apiUrl.</p>`;
   }
@@ -78,10 +82,11 @@ function statCard(label: string, value: string, tone: string): string {
 }
 
 export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
-  const agg = view.report ? aggregateStoplight(view.report) : null;
-  const overall = agg?.tone ?? "unknown";
-  const overallLabel =
-    overall === "green"
+  const agg = view.healthError ? null : view.report ? aggregateStoplight(view.report) : null;
+  const overall = view.healthError ? "offline" : (agg?.tone ?? "unknown");
+  const overallLabel = view.healthError
+    ? "API unreachable"
+    : overall === "green"
       ? "All pillars healthy"
       : overall === "yellow"
         ? "Degraded"
@@ -94,7 +99,7 @@ export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
       ? `<div id="scanBanner" class="banner ${view.scanOk ? "ok" : "err"}">${escapeHtml(view.scanMessage)}</div>`
       : "";
 
-  const pillarCount = view.report?.pillars?.length ?? "—";
+  const pillarCount = view.healthError ? "—" : (view.report?.pillars?.length ?? "—");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -109,11 +114,17 @@ export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
 
   <h2>System health</h2>
   <div class="stat-grid">
-    ${statCard("Stoplight", escapeHtml(overallLabel), overall)}
-    ${statCard("Pillars", String(pillarCount), "unknown")}
+    ${statCard("Stoplight", escapeHtml(overallLabel), view.healthError ? "red" : overall)}
+    ${statCard("Pillars", String(pillarCount), view.healthError ? "red" : "unknown")}
   </div>
-  ${view.healthError ? `<p class="muted">${escapeHtml(view.healthError)}</p>` : ""}
-  <ul class="pillars">${renderPillarRows(view.report)}</ul>
+  <ul class="pillars">${renderPillarRows(view.report, view.healthError)}</ul>
+
+  <h2>Pulse</h2>
+  ${
+    view.pulseError
+      ? `<div class="banner err">${escapeHtml(view.pulseError)}</div>`
+      : `<p class="muted">Keystroke batches POST to /api/msgf/pulse every few seconds when armed.</p>`
+  }
 
   <h2>Violations</h2>
   ${renderViolationDiagnostics(view.violationSummary, view.violationDiagnostics)}

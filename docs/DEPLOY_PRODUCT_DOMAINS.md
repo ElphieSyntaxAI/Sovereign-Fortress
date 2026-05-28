@@ -4,6 +4,8 @@ Production map:
 
 | Host | Cloud Run service | Image |
 |------|-------------------|--------|
+| `https://elphiesyntax.com` | `author-client` | `docker/Dockerfile.author-client` |
+| `https://www.elphiesyntax.com` | `author-client` | same (platform hub) |
 | `https://elphiesgatedai.elphiesyntax.com` | `msgf-api` | root `Dockerfile` |
 | `https://authorecosystem.elphiesyntax.com` | `author-client` | `docker/Dockerfile.author-client` |
 | `https://api.authorecosystem.elphiesyntax.com` | `author-bff` | `docker/Dockerfile.author-bff` |
@@ -68,9 +70,23 @@ Redeploy only Author client after BFF URL change:
 AUTHOR_DEPLOY_TARGET=client ./setup-author-cloud.sh
 ```
 
+## Apex hub (`elphiesyntax.com` picker)
+
+The **“What are you looking for?”** platform chooser only renders when the browser hostname is `elphiesyntax.com` or `www.elphiesyntax.com` (see `apps/author-ecosystem/client/src/lib/authorHostRouting.js`). It is bundled in **author-client**, not MSGF.
+
+If the apex still shows a Squarespace **Coming Soon** page, DNS has not been moved yet. Fix:
+
+1. In your registrar (or Squarespace DNS), **remove** apex/`www` records that point at Squarespace.
+2. Run `./map-product-domains.sh` (maps `AUTHOR_APEX_DOMAIN` / `AUTHOR_APEX_WWW_DOMAIN` from `.env.cloudrun`).
+3. Add the Cloud Run DNS records from `gcloud run domain-mappings describe --domain=elphiesyntax.com`.
+4. Redeploy client if needed: `AUTHOR_DEPLOY_TARGET=client ./setup-author-cloud.sh`
+
+Smoke: `curl -sI https://elphiesyntax.com` should show `server: Google Frontend`, not `Squarespace`.
+
 ## Post-deploy smoke
 
 ```bash
+curl -sI https://elphiesyntax.com
 curl -sI https://elphiesgatedai.elphiesyntax.com/api/health
 curl -sI https://authorecosystem.elphiesyntax.com
 curl -sI https://api.authorecosystem.elphiesyntax.com/api/ping

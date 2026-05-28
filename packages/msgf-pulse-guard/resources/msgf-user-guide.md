@@ -42,6 +42,7 @@ Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run:
 | **Trigger Shadow Scan** | Uploads a sample of repo files to ingest; fills P1–P6 pillar health |
 | Pillar stoplight | Green / yellow / red health per governance pillar |
 | Post-ingest healing console | Remediation tasks after scan or violations |
+| **Copy agent heal prompt** | Builds a markdown prompt for Cursor/Claude to fix files locally; cloud **Heal All** updates governance only |
 
 Requires `msgf.authToken` in settings. If you see **Missing Authorization bearer token**, fix token setup above.
 

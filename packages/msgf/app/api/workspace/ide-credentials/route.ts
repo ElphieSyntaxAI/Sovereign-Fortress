@@ -15,7 +15,7 @@
  */
 
 import { cookies, headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import {
   buildIdeWorkspaceSettings,
@@ -27,7 +27,7 @@ import { listUserProjects } from "@/lib/services/user-projects";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const cookieStore = await cookies();
   const hdrs = await headers();
   const requestHost = requestHostFromHeaders(hdrs);
@@ -44,7 +44,12 @@ export async function GET() {
 
   const admin = createAdminClient();
   const projects = await listUserProjects(admin, session.user.id).catch(() => []);
-  const firstOrigin = projects[0]?.project_origin ?? null;
+  const requestedOrigin = req.nextUrl.searchParams.get("project_origin")?.trim() || null;
+  const matched =
+    requestedOrigin && projects.some((p) => p.project_origin === requestedOrigin)
+      ? requestedOrigin
+      : null;
+  const firstOrigin = matched ?? projects[0]?.project_origin ?? null;
 
   const apiUrl = resolveMsgfAppOrigin(requestHost);
   const tenantKey = resolveIdeTenantKey(session.user.id, firstOrigin);
@@ -67,5 +72,10 @@ export async function GET() {
     settingsJson: formatIdeSettingsJson(settings),
     settingsPath: ".vscode/settings.json",
     projectCount: projects.length,
+    projects: projects.map((p) => ({
+      project_origin: p.project_origin,
+      label: p.project_origin,
+    })),
+    selectedProjectOrigin: firstOrigin,
   });
 }

@@ -9,6 +9,18 @@ export type SmallBrainProvider =
   | "deepseek"
   | "gemini";
 
+/** Strip stray quotes from pasted VS Code settings values. */
+export function sanitizeMsgfSettingValue(value: string): string {
+  let t = value.trim();
+  if (
+    (t.startsWith('"') && t.endsWith('"')) ||
+    (t.startsWith("'") && t.endsWith("'"))
+  ) {
+    t = t.slice(1, -1).trim();
+  }
+  return t;
+}
+
 export type MsgfGuardSettings = {
   tenantKey: string;
   authToken: string;
@@ -34,9 +46,9 @@ export function readMsgfSettings(): MsgfGuardSettings {
     : "gemini";
 
   return {
-    tenantKey: config.get<string>("tenantKey", "").trim(),
-    authToken: config.get<string>("authToken", "").trim(),
-    apiUrl: config.get<string>("apiUrl", DEFAULT_MSGF_API_URL).trim(),
+    tenantKey: sanitizeMsgfSettingValue(config.get<string>("tenantKey", "")),
+    authToken: sanitizeMsgfSettingValue(config.get<string>("authToken", "")),
+    apiUrl: sanitizeMsgfSettingValue(config.get<string>("apiUrl", DEFAULT_MSGF_API_URL)),
     role: config.get<string>("role", "").trim(),
     organizationId: config.get<string>("organizationId", "").trim(),
     licenseKey: config.get<string>("licenseKey", "").trim(),
