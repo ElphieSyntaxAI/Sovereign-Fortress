@@ -10,7 +10,6 @@
  *
  * Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
  */
-import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -18,6 +17,7 @@ import {
   applyIncidentReportCorsHeaders,
   incidentReportCorsPreflightResponse,
 } from "@/lib/msgf-cors";
+import { orchestrateReportIssue } from "@/lib/services/report-issue-orchestrator";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const bodySchema = z.object({
@@ -29,10 +29,6 @@ const bodySchema = z.object({
 function incidentJson(req: NextRequest, data: unknown, init?: ResponseInit) {
   const res = NextResponse.json(data, init);
   return applyIncidentReportCorsHeaders(req, res);
-}
-
-function dedupeInput(message: string, location: string): string {
-  return `${message}\n${location}`;
 }
 
 export async function OPTIONS(req: NextRequest) {
@@ -72,57 +68,34 @@ export async function POST(req: NextRequest) {
       req.headers.get("origin")?.trim() ||
       "unknown";
 
-    const dedupeHash = createHash("sha256")
-      .update(dedupeInput(message, location), "utf8")
-      .digest("hex");
+    const admin = createAdminClient();
+    const result = await orchestrateReportIssue(admin, {
+      message,
+      location,
+      tenant_id: originTenant,
+      source: "web",
+    });
 
-    const supabase = createAdminClient();
-
-    const { data: rpcData, error: rpcError } = await supabase.rpc(
-      "p4_upsert_active_incident",
-      {
-        p_dedupe_hash: dedupeHash,
-        p_tenant_id: originTenant,
-        p_error_message: message,
-        p_location: location,
-        p_severity: "Yellow",
-      }
-    );
-
-    if (rpcError) {
-      console.error("p4_upsert_active_incident", rpcError);
+    if (!result.ok) {
       return incidentJson(
         req,
         {
           ok: false,
-          error:
-            "Database rejected the report. Apply migration 20260506203000_p4_active_incidents.sql if this table is missing.",
-          detail: rpcError.message,
+          error: result.error,
+          detail: result.detail,
         },
         { status: 503 }
       );
     }
 
-    let row = rpcData as unknown;
-    if (typeof row === "string") {
-      try {
-        row = JSON.parse(row) as Record<string, unknown>;
-      } catch {
-        row = null;
-      }
-    }
-    const out = row as {
-      id?: string;
-      occurrence_count?: number;
-      deduplicated?: boolean;
-    } | null;
-
     return incidentJson(req, {
       ok: true,
-      dedupe_hash: dedupeHash,
-      occurrence_count: out?.occurrence_count ?? 1,
-      deduplicated: Boolean(out?.deduplicated),
-      id: out?.id ?? null,
+      dedupe_hash: result.dedupe_hash,
+      occurrence_count: result.occurrence_count,
+      deduplicated: result.deduplicated,
+      id: result.incident_id,
+      dev_handoff: result.dev_handoff,
+      recommended_path: result.recommended_path,
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Incident report failed";

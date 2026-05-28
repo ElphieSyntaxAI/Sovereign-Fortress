@@ -76,7 +76,7 @@ export function renderHealingConsole(view: HealingConsoleView): string {
     ${renderPillarGroups(view.tasks)}
     <div class="heal-actions">
       <button type="button" class="heal-prompt" id="copyHealPromptBtn" title="Copy a remediation prompt for Cursor or Claude">Copy agent heal prompt</button>
-      <button type="button" class="heal-primary" id="healAllBtn">Heal All Now (cloud governance)</button>
+      <button type="button" class="heal-primary" id="healAllBtn">Heal All… (dev cycle)</button>
       <button type="button" class="heal-secondary" id="approveSelectedBtn">Approve Selected (cloud)</button>
       <div class="schedule-row">
         <label for="schedulePreset">Schedule Auto-Remediation</label>
@@ -151,8 +151,8 @@ export function renderHealingConsoleBootScript(): string {
           healAllBtn.disabled = true;
           if (approveBtn) approveBtn.disabled = true;
           if (scheduleBtn) scheduleBtn.disabled = true;
-          setHealStatus('Processing ⚡ — batch healing all pillars…', 'processing');
-          vscode.postMessage({ type: 'healQueueAction', action_type: 'BULK' });
+          setHealStatus('Choose self-fix or cloud heal…', 'processing');
+          vscode.postMessage({ type: 'devHealCycle' });
         });
       }
 

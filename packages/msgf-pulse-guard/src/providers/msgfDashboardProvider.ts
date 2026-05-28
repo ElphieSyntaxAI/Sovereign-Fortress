@@ -1,14 +1,17 @@
 import * as vscode from "vscode";
 
 import { readMsgfSettings, resolveTenantId } from "../config";
+import { promptDevHealCycleChoice } from "../devHealCycle";
 import {
+  fetchAgentContextPack,
   fetchHealQueueTasks,
+  postDevCycleStart,
   postHealQueueAction,
   resolveHealQueueTenantUuid,
   tasksFromScanRuleErrors,
   toHealConsoleTasks,
 } from "../healQueueClient";
-import type { HealConsoleTask, HealQueuePresetInterval } from "../healQueueTypes";
+import type { DevHandoffInfo, HealConsoleTask, HealQueuePresetInterval } from "../healQueueTypes";
 import { fetchPillarHealthReport } from "../pillarStoplightPoller";
 import type { PillarHealthReport } from "../pillarHealthTypes";
 import { buildHealAgentPrompt } from "../healPromptBuilder";
@@ -49,6 +52,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   private healBrainSummary: string | null = null;
   private healQueueError: string | null = null;
   private healTenantUuid: string | null = null;
+  private healDevHandoff: DevHandoffInfo | null = null;
   private lastScanRuleErrors: string[] = [];
   private pulseError: string | null = null;
   private lastPulseErrorToastAt = 0;
@@ -146,6 +150,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     if (result.ok && result.tasks.length > 0) {
       this.healTasks = result.tasks;
       this.healBrainSummary = result.brainSummary;
+      this.healDevHandoff = result.devHandoff;
       this.healQueueError = null;
       this.healConsoleVisible = true;
       return;
@@ -163,6 +168,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     if (result.ok) {
       this.healTasks = [];
       this.healBrainSummary = result.brainSummary;
+      this.healDevHandoff = result.devHandoff;
       this.healQueueError = null;
       if (!fallbackRuleErrors.length) {
         this.healConsoleVisible = false;
@@ -260,6 +266,14 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
       return;
     }
 
+    if (msg.type === "devHealCycle") {
+      const paths = Array.isArray(msg.file_paths)
+        ? msg.file_paths.filter((p): p is string => typeof p === "string")
+        : undefined;
+      await this.runDevHealCycle(paths);
+      return;
+    }
+
     if (msg.type === "healQueueAction") {
       await this.handleHealQueueAction(msg);
       return;
@@ -310,6 +324,76 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
         this.render();
       }
     );
+  }
+
+  private async runDevHealCycle(file_paths?: string[]): Promise<void> {
+    const settings = readMsgfSettings();
+    const tenantKey = resolveTenantId(settings);
+    const tenantUuid = this.healTenantUuid ?? resolveHealQueueTenantUuid(tenantKey);
+
+    const cycle = await postDevCycleStart({ settings, tenantUuid, file_paths });
+    if (cycle.dev_handoff) {
+      this.healDevHandoff = cycle.dev_handoff;
+    }
+
+    const choice = await promptDevHealCycleChoice(this.healDevHandoff ?? cycle.dev_handoff);
+    if (choice === "cancel") {
+      this.view?.webview.postMessage({
+        type: "healQueueStatus",
+        tone: "idle",
+        message: "Heal cancelled — pick self-fix or cloud heal when ready.",
+        reload: false,
+      });
+      return;
+    }
+
+    if (choice === "self_guided") {
+      const markdown =
+        cycle.agent_context_markdown ??
+        (
+          await fetchAgentContextPack({
+            settings,
+            tenantUuid,
+            mode: "guided",
+            file_paths,
+          })
+        ).markdown;
+
+      if (!markdown) {
+        this.view?.webview.postMessage({
+          type: "healQueueStatus",
+          tone: "error",
+          message: cycle.error ?? "Could not fetch agent context pack.",
+          reload: false,
+        });
+        return;
+      }
+
+      await vscode.env.clipboard.writeText(markdown);
+      void vscode.window.showInformationMessage(
+        "MSGF 0-token context pack copied — paste into your agent chat."
+      );
+      this.view?.webview.postMessage({
+        type: "healQueueStatus",
+        tone: "success",
+        message: "Context pack copied — fix files locally, then re-run shadow scan.",
+        reload: false,
+      });
+      return;
+    }
+
+    if (choice === "self_local") {
+      await this.copyHealPrompt(file_paths);
+      this.view?.webview.postMessage({
+        type: "healQueueStatus",
+        tone: "success",
+        message: "Local heal prompt copied.",
+        reload: false,
+      });
+      return;
+    }
+
+    await this.handleHealQueueAction({ action_type: "BULK", file_paths });
   }
 
   private async handleHealQueueAction(msg: WebviewMessage): Promise<void> {

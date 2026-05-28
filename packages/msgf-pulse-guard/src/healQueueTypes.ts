@@ -20,9 +20,17 @@ export type HealQueueRemediationTask = {
   preset_interval: "immediate" | "1h" | "6h" | "nightly" | null;
 };
 
+export type DevHandoffInfo = {
+  threshold: number;
+  max_occurrence_count: number;
+  dev_cycle_required: boolean;
+  incident_id: string | null;
+};
+
 export type HealQueueGetResponse = {
   ok: boolean;
   tenant_id?: string;
+  dev_handoff?: DevHandoffInfo;
   brain_readiness?: {
     readiness_score: number;
     missing_pillars: HealQueueGovernancePillar[];

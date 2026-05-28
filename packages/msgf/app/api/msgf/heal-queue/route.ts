@@ -38,6 +38,7 @@ import {
   parseIngestRemediationAction,
 } from "@/lib/schemas/heal-queue";
 import { applyHealQueueAudienceScope } from "@/lib/services/heal-queue-audience";
+import { fetchDevHandoffForTenant } from "@/lib/services/dev-handoff-service";
 import {
   executeHealQueueRemediation,
   listHealQueueRemediationTasks,
@@ -161,6 +162,7 @@ export async function GET(req: NextRequest) {
 
     const { brain_readiness, remediation_tasks, human_arbitration_packages, heal_token_summary } =
       await listHealQueueRemediationTasks(admin, tenantId, entityId);
+    const dev_handoff = await fetchDevHandoffForTenant(admin, tenantId);
 
     const cookieStore = await cookies();
     const supabase = createSupabaseServerClient(cookieStore, requestHostFromRequest(req));
@@ -184,6 +186,7 @@ export async function GET(req: NextRequest) {
       remediation_tasks,
       human_arbitration_packages,
       heal_token_summary,
+      dev_handoff,
     });
 
     const payload = applyHealQueueAudienceScope(base, isOperator ? "admin" : "user");

@@ -1,0 +1,72 @@
+/**
+ * POST /api/msgf/report-issue — unified incident report + dev handoff metadata.
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+
+import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
+import { ReportIssueBodySchema } from "@/lib/schemas/report-issue";
+import { orchestrateReportIssue } from "@/lib/services/report-issue-orchestrator";
+import { createAdminClient } from "@/utils/supabase/admin";
+
+function json(req: NextRequest, data: unknown, init?: ResponseInit) {
+  return applyAdminCorsHeaders(req, NextResponse.json(data, init));
+}
+
+export async function OPTIONS(req: NextRequest) {
+  return adminCorsPreflightResponse(req);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    let bodyJson: unknown;
+    try {
+      bodyJson = await req.json();
+    } catch {
+      return json(req, { ok: false, error: "Invalid JSON body." }, { status: 400 });
+    }
+
+    const parsed = ReportIssueBodySchema.safeParse(bodyJson);
+    if (!parsed.success) {
+      return json(
+        req,
+        { ok: false, error: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { message, location: locRaw, tenant_id: tenantRaw, source } = parsed.data;
+    const location =
+      locRaw?.trim() ||
+      req.headers.get("referer")?.slice(0, 4000) ||
+      req.headers.get("x-msgf-location")?.slice(0, 4000) ||
+      "";
+    const tenant_id =
+      tenantRaw?.trim() ||
+      req.headers.get("x-msgf-tenant-key")?.trim() ||
+      req.headers.get("origin")?.trim() ||
+      "unknown";
+
+    const admin = createAdminClient();
+    const result = await orchestrateReportIssue(admin, {
+      message,
+      location,
+      tenant_id,
+      source,
+    });
+
+    if (!result.ok) {
+      return json(
+        req,
+        { ok: false, error: result.error, detail: result.detail },
+        { status: 503 }
+      );
+    }
+
+    return json(req, result);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "report-issue failed";
+    console.error("[report-issue]", e);
+    return json(req, { ok: false, error: msg }, { status: 500 });
+  }
+}

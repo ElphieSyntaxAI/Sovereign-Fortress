@@ -37,6 +37,7 @@ export const HealQueueActionTypeSchema = z.enum([
   "BULK_INEXPENSIVE",
   "INDIVIDUAL",
   "SCHEDULED",
+  "DEV_CYCLE_START",
 ]);
 export type HealQueueActionType = z.infer<typeof HealQueueActionTypeSchema>;
 
@@ -228,6 +229,17 @@ export const HealQueueHumanArbitrationBodySchema = z
 
 export type HealQueueHumanArbitrationBody = z.infer<typeof HealQueueHumanArbitrationBodySchema>;
 
+export const DevHandoffSchema = z
+  .object({
+    threshold: z.number().int().min(1),
+    max_occurrence_count: z.number().int().min(0),
+    dev_cycle_required: z.boolean(),
+    incident_id: z.string().uuid().nullable(),
+  })
+  .strict();
+
+export type DevHandoffDto = z.infer<typeof DevHandoffSchema>;
+
 export const HealQueueGetResponseSchema = z
   .object({
     ok: z.literal(true),
@@ -245,6 +257,7 @@ export const HealQueueGetResponseSchema = z
     heal_token_summary: HealQueueTokenSummarySchema,
     audience_scope: z.enum(["user", "admin"]).optional(),
     big_brain_escalations_pending: z.number().int().min(0).optional(),
+    dev_handoff: DevHandoffSchema.optional(),
   })
   .strict();
 

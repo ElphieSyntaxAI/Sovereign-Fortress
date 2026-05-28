@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import type { MsgfGuardSettings } from "./config";
 import { buildApiAuthHeaders } from "./pulseAuth";
 import type {
+  DevHandoffInfo,
   HealConsoleTask,
   HealQueueGetResponse,
   HealQueueGovernancePillar,
@@ -166,6 +167,7 @@ export async function fetchHealQueueTasks(params: {
   tenantUuid: string;
   tasks: HealConsoleTask[];
   brainSummary: string | null;
+  devHandoff: DevHandoffInfo | null;
   error?: string;
 }> {
   const fetchFn = params.fetchImpl ?? fetch;
@@ -184,6 +186,7 @@ export async function fetchHealQueueTasks(params: {
       tenantUuid,
       tasks: [],
       brainSummary: null,
+      devHandoff: null,
       error: "msgf.authToken required for heal queue.",
     };
   }
@@ -198,6 +201,7 @@ export async function fetchHealQueueTasks(params: {
         tenantUuid,
         tasks: [],
         brainSummary: null,
+        devHandoff: null,
         error: raw.message ?? raw.error ?? `Heal queue GET failed (${res.status}).`,
       };
     }
@@ -211,15 +215,142 @@ export async function fetchHealQueueTasks(params: {
       ? `Brain ${brain.readiness_score}% · missing ${brain.missing_pillars.join(", ") || "none"}`
       : null;
 
+    const devHandoff =
+      raw.dev_handoff &&
+      typeof raw.dev_handoff === "object" &&
+      typeof (raw.dev_handoff as DevHandoffInfo).threshold === "number"
+        ? (raw.dev_handoff as DevHandoffInfo)
+        : null;
+
     return {
       ok: true,
       tenantUuid,
       tasks: toHealConsoleTasks(parsed),
       brainSummary,
+      devHandoff,
     };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Heal queue network error";
-    return { ok: false, tenantUuid, tasks: [], brainSummary: null, error: message };
+    return {
+      ok: false,
+      tenantUuid,
+      tasks: [],
+      brainSummary: null,
+      devHandoff: null,
+      error: message,
+    };
+  }
+}
+
+export async function fetchAgentContextPack(params: {
+  settings: MsgfGuardSettings;
+  tenantUuid: string;
+  mode?: "guided" | "auto";
+  file_paths?: string[];
+  fetchImpl?: typeof fetch;
+}): Promise<{ ok: boolean; markdown?: string; error?: string }> {
+  const fetchFn = params.fetchImpl ?? fetch;
+  const baseUrl = params.settings.apiUrl.replace(/\/$/, "");
+  const mode = params.mode ?? "guided";
+  const qp = new URLSearchParams({
+    tenant_id: params.tenantUuid,
+    mode,
+  });
+  if (params.file_paths?.length) {
+    qp.set("file_paths", params.file_paths.join(","));
+  }
+  const url = `${baseUrl}/api/msgf/agent-context?${qp.toString()}`;
+  const headers = buildApiAuthHeaders({
+    settings: params.settings,
+    tenantId: params.settings.tenantKey || params.tenantUuid,
+  });
+
+  try {
+    const res = await fetchFn(url, { method: "GET", headers, cache: "no-store" });
+    const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok || raw.ok !== true || typeof raw.markdown !== "string") {
+      return {
+        ok: false,
+        error:
+          typeof raw.error === "string"
+            ? raw.error
+            : `agent-context failed (${res.status}).`,
+      };
+    }
+    return { ok: true, markdown: raw.markdown };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "agent-context network error",
+    };
+  }
+}
+
+export async function postDevCycleStart(params: {
+  settings: MsgfGuardSettings;
+  tenantUuid: string;
+  file_paths?: string[];
+  fetchImpl?: typeof fetch;
+}): Promise<{
+  ok: boolean;
+  dev_handoff?: DevHandoffInfo;
+  recommended_path?: "self" | "cloud";
+  agent_context_markdown?: string;
+  error?: string;
+}> {
+  const fetchFn = params.fetchImpl ?? fetch;
+  const baseUrl = params.settings.apiUrl.replace(/\/$/, "");
+  const url = `${baseUrl}/api/msgf/heal-queue`;
+  const headers = {
+    ...buildApiAuthHeaders({
+      settings: params.settings,
+      tenantId: params.settings.tenantKey || params.tenantUuid,
+    }),
+    "Content-Type": "application/json",
+  };
+  const body: Record<string, unknown> = {
+    tenant_id: params.tenantUuid,
+    action_type: "DEV_CYCLE_START",
+  };
+  if (params.file_paths?.length) body.file_paths = params.file_paths;
+
+  try {
+    const res = await fetchFn(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok || raw.ok !== true) {
+      return {
+        ok: false,
+        error:
+          typeof raw.message === "string"
+            ? raw.message
+            : typeof raw.error === "string"
+              ? raw.error
+              : `DEV_CYCLE_START failed (${res.status}).`,
+      };
+    }
+    const agentCtx =
+      raw.agent_context && typeof raw.agent_context === "object"
+        ? (raw.agent_context as Record<string, unknown>)
+        : null;
+    return {
+      ok: true,
+      dev_handoff: raw.dev_handoff as DevHandoffInfo | undefined,
+      recommended_path:
+        raw.recommended_path === "self" || raw.recommended_path === "cloud"
+          ? raw.recommended_path
+          : undefined,
+      agent_context_markdown:
+        agentCtx && typeof agentCtx.markdown === "string" ? agentCtx.markdown : undefined,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "DEV_CYCLE_START network error",
+    };
   }
 }
 
@@ -237,7 +368,7 @@ export type HealQueuePostResult = {
 export async function postHealQueueAction(params: {
   settings: MsgfGuardSettings;
   tenantUuid: string;
-  action_type: "BULK" | "INDIVIDUAL" | "SCHEDULED";
+  action_type: "BULK" | "INDIVIDUAL" | "SCHEDULED" | "DEV_CYCLE_START";
   file_paths?: string[];
   preset_interval?: HealQueuePresetInterval;
   fetchImpl?: typeof fetch;

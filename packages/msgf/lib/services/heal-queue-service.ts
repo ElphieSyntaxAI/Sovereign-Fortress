@@ -66,6 +66,9 @@ import {
   filterTasksByHealCostTier,
   type HealQueueTokenSummary,
 } from "@/lib/services/heal-token-estimate";
+import { recommendDevHealPath } from "@/lib/dev-heal-config";
+import { buildAgentContextPack } from "@/lib/services/agent-context-service";
+import { fetchDevHandoffForTenant } from "@/lib/services/dev-handoff-service";
 
 const BASELINE_GAP_BUG_INDEX = buildGenealogicalBugIndex({
   level_1_category: "1.0_PULSE",
@@ -414,6 +417,14 @@ export type HealQueuePostResult =
       preset_interval: HealQueuePresetInterval;
       updated_row_ids: string[];
       file_paths: string[];
+    }
+  | {
+      ok: true;
+      action_type: "DEV_CYCLE_START";
+      dev_handoff: Awaited<ReturnType<typeof fetchDevHandoffForTenant>>;
+      recommended_path: "self" | "cloud";
+      remediation_task_count: number;
+      agent_context: ReturnType<typeof buildAgentContextPack>;
     };
 
 export async function executeHealQueueRemediation(params: {
@@ -424,6 +435,29 @@ export async function executeHealQueueRemediation(params: {
 }): Promise<HealQueuePostResult> {
   const { admin, entityId, body } = params;
   const tenantId = body.tenant_id;
+
+  if (body.action_type === "DEV_CYCLE_START") {
+    const listed = await listHealQueueRemediationTasks(admin, tenantId, entityId);
+    const dev_handoff = await fetchDevHandoffForTenant(admin, tenantId);
+    const recommended_path = recommendDevHealPath(dev_handoff);
+    const brain_summary = `Brain ${listed.brain_readiness.readiness_score}%`;
+    const agent_context = buildAgentContextPack({
+      mode: "guided",
+      tenant_id: tenantId,
+      tasks: listed.remediation_tasks,
+      file_paths: body.file_paths,
+      brain_summary,
+    });
+
+    return {
+      ok: true,
+      action_type: "DEV_CYCLE_START",
+      dev_handoff,
+      recommended_path,
+      remediation_task_count: listed.remediation_tasks.length,
+      agent_context,
+    };
+  }
 
   if (
     body.action_type === "BULK" ||
