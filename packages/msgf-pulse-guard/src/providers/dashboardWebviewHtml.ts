@@ -87,7 +87,9 @@ export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
   const agg = view.healthError ? null : view.report ? aggregateStoplight(view.report) : null;
   const overall = view.healthError ? "offline" : (agg?.tone ?? "unknown");
   const overallLabel = view.healthError
-    ? "API unreachable"
+    ? view.healthError.length > 72
+      ? `${view.healthError.slice(0, 69)}…`
+      : view.healthError
     : overall === "green"
       ? "All pillars healthy"
       : overall === "yellow"

@@ -6,6 +6,8 @@ import { createHash, randomBytes } from "crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
+
 const IDE_TOKEN_PREFIX = "msgf_ide_";
 
 export function mintIdeTokenPlain(): string {
@@ -43,11 +45,13 @@ export async function mintIdeToken(
   const ttlDays = ideTokenTtlDays();
   const expires_at = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
 
+  const tenantId = sanitizeTenantScope(params.tenantId);
+
   const { data, error } = await admin
     .from("msgf_ide_tokens")
     .insert({
       user_id: params.userId,
-      tenant_id: params.tenantId,
+      tenant_id: tenantId,
       token_hash,
       label: params.label ?? "IDE workspace",
       workspace_fingerprint: params.workspaceFingerprint ?? null,
@@ -69,7 +73,7 @@ export async function mintIdeToken(
     token,
     token_id: data.id,
     expires_at,
-    tenant_id: params.tenantId,
+    tenant_id: tenantId,
   };
 }
 
@@ -141,10 +145,9 @@ export async function verifyIdeToken(
 
   if (error || !data) return null;
 
-  if (
-    expectedTenantId?.trim() &&
-    data.tenant_id.trim() !== expectedTenantId.trim()
-  ) {
+  const expected = sanitizeTenantScope(expectedTenantId ?? "");
+  const stored = sanitizeTenantScope(data.tenant_id);
+  if (expected && stored !== expected) {
     return null;
   }
 
@@ -152,5 +155,51 @@ export async function verifyIdeToken(
     user_id: data.user_id,
     tenant_id: data.tenant_id,
     token_id: data.id,
+  };
+}
+
+/** When header tenant ≠ token row, distinguish mismatch from invalid token (for IDE error text). */
+export async function verifyIdeTokenDiagnostic(
+  admin: SupabaseClient,
+  bearer: string,
+  expectedTenantId?: string | null
+): Promise<
+  | { status: "ok"; token: VerifiedIdeToken }
+  | { status: "invalid" }
+  | { status: "tenant_mismatch"; token_tenant_id: string; header_tenant_id: string }
+> {
+  const trimmed = bearer.trim();
+  if (!trimmed.startsWith(IDE_TOKEN_PREFIX)) return { status: "invalid" };
+
+  const token_hash = hashIdeToken(trimmed);
+  const now = new Date().toISOString();
+
+  const { data, error } = await admin
+    .from("msgf_ide_tokens")
+    .select("id, user_id, tenant_id")
+    .eq("token_hash", token_hash)
+    .is("revoked_at", null)
+    .gt("expires_at", now)
+    .maybeSingle();
+
+  if (error || !data) return { status: "invalid" };
+
+  const headerTenant = sanitizeTenantScope(expectedTenantId ?? "");
+  const storedTenant = sanitizeTenantScope(data.tenant_id);
+  if (headerTenant && storedTenant !== headerTenant) {
+    return {
+      status: "tenant_mismatch",
+      token_tenant_id: storedTenant,
+      header_tenant_id: headerTenant,
+    };
+  }
+
+  return {
+    status: "ok",
+    token: {
+      user_id: data.user_id,
+      tenant_id: data.tenant_id,
+      token_id: data.id,
+    },
   };
 }

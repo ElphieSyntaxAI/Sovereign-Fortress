@@ -107,6 +107,14 @@
         "title": "MSGF: Generate 0-token context pack"
       },
       {
+        "command": "msgf.buildTargetedPrompt",
+        "title": "MSGF: Build Targeted Prompt"
+      },
+      {
+        "command": "msgf.confirmPackUsed",
+        "title": "MSGF: Confirm Pack Used"
+      },
+      {
         "command": "msgf.submitVerifyResult",
         "title": "MSGF: Submit verify result"
       },

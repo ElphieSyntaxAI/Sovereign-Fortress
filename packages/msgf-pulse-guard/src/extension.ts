@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 
 import { readMsgfSettings, resolveEntityId, settingsReady } from "./config";
 import { registerOpenDashboardCommand } from "./dashboardPanel";
+import { registerOptimizerCommands } from "./commands/optimizer";
 import { registerGenerateContextPackCommand } from "./generateContextPack";
 import { registerDevKitCommands } from "./devKitCommands";
 import { registerIdeSetupCommands } from "./ideSetupCommands";
@@ -40,6 +41,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerIdeSetupCommands(context);
   registerDevKitCommands(context);
   registerGenerateContextPackCommand(context);
+  registerOptimizerCommands(context);
   registerSubmitVerifyResultCommand(context);
   registerMsgfUriHandler(context);
   registerViolationCommands(context);

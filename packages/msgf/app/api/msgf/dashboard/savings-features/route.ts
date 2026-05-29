@@ -19,6 +19,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { getSavingsFeaturesSummary24h } from "@/lib/services/savings-features-stats";
+import { computeDefensibleSavingsBreakdown } from "@/lib/utils/savings-calculator";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient as createSupabaseServerClient } from "@/utils/supabase/server";
 
 export async function GET(req: NextRequest) {
@@ -38,11 +40,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const summary = await getSavingsFeaturesSummary24h(tenantId, "user");
+    const admin = createAdminClient();
+    const [summary, defensible_breakdown] = await Promise.all([
+      getSavingsFeaturesSummary24h(tenantId, "user"),
+      computeDefensibleSavingsBreakdown(admin, tenantId),
+    ]);
 
     return NextResponse.json({
       ok: true,
       summary,
+      defensible_breakdown,
       note: "Small Brain features and local heals for your workspace(s). Big Brain escalations are reviewed on the admin ops dashboard.",
     });
   } catch (e) {

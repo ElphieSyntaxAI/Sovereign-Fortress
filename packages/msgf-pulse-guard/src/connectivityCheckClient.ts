@@ -1,7 +1,7 @@
 import { readMsgfSettings, resolveEntityId, resolveTenantId, settingsReady } from "./config";
 import type * as vscode from "vscode";
 import { buildApiAuthHeaders } from "./pulseAuth";
-import { MSGF_IDE_PULSE_HEADER } from "./constants";
+import { MSGF_ENTITY_ID_HEADER, MSGF_IDE_PULSE_HEADER } from "./constants";
 
 export type ConnectivityCheckResult = {
   ok: boolean;
@@ -31,8 +31,9 @@ export async function fetchConnectivityCheck(params: {
   const fetchFn = params.fetchImpl ?? fetch.bind(globalThis);
 
   const headers = {
-    ...buildApiAuthHeaders({ settings, tenantId, entityId }),
+    ...buildApiAuthHeaders({ settings, tenantId }),
     [MSGF_IDE_PULSE_HEADER]: "1",
+    [MSGF_ENTITY_ID_HEADER]: entityId,
   };
 
   try {

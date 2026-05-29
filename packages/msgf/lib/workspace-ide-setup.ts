@@ -11,6 +11,7 @@
  * Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
  */
 import { allocatePersonalSandboxTenantId } from "@/lib/msgf-tenant-governance";
+import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
 
 const DEFAULT_ORIGIN = "https://elphiesgatedai.elphiesyntax.com";
 
@@ -30,7 +31,7 @@ export function resolveMsgfAppOrigin(requestHost?: string | null): string {
 }
 
 export function resolveIdeTenantKey(userId: string, preferredProjectOrigin?: string | null): string {
-  const origin = preferredProjectOrigin?.trim();
+  const origin = sanitizeTenantScope(preferredProjectOrigin ?? "");
   if (origin) return origin;
   return allocatePersonalSandboxTenantId(userId);
 }

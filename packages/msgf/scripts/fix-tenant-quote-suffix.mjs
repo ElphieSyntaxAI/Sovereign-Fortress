@@ -1,0 +1,61 @@
+#!/usr/bin/env node
+/**
+ * Remove stray trailing `"` from msgf_user_projects.project_origin and msgf_ide_tokens.tenant_id.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const msgfRoot = path.join(__dirname, "..");
+const repoRoot = path.join(msgfRoot, "..", "..");
+const require = createRequire(import.meta.url);
+
+for (const p of [
+  path.join(repoRoot, ".env"),
+  path.join(repoRoot, ".env.local"),
+  path.join(msgfRoot, ".env.local"),
+]) {
+  if (fs.existsSync(p)) require("dotenv").config({ path: p, override: true });
+}
+
+const { createClient } = await import("@supabase/supabase-js");
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+if (!url || !key) {
+  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  process.exit(1);
+}
+
+const admin = createClient(url, key, { auth: { persistSession: false } });
+
+function stripQuoteSuffix(value) {
+  const t = String(value).trim();
+  if (t.endsWith('"') && !t.startsWith('"')) {
+    return t.slice(0, -1).trim();
+  }
+  return null;
+}
+
+for (const table of ["msgf_ide_tokens", "msgf_user_projects"]) {
+  const col = table === "msgf_ide_tokens" ? "tenant_id" : "project_origin";
+  const { data, error } = await admin.from(table).select(`id, ${col}`);
+  if (error) {
+    console.error(table, error.message);
+    continue;
+  }
+  let fixed = 0;
+  for (const row of data ?? []) {
+    const cleaned = stripQuoteSuffix(row[col]);
+    if (!cleaned || cleaned === row[col]) continue;
+    const { error: upErr } = await admin.from(table).update({ [col]: cleaned }).eq("id", row.id);
+    if (upErr) console.error("update", row.id, upErr.message);
+    else {
+      fixed += 1;
+      console.log(`${table} ${row.id}: ${JSON.stringify(row[col])} → ${JSON.stringify(cleaned)}`);
+    }
+  }
+  console.log(`${table}: ${fixed} row(s) fixed`);
+}

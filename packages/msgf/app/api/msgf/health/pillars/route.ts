@@ -34,7 +34,10 @@ import {
   resolveDashboardOperator,
 } from "@/lib/msgf-operator-access";
 import { healthService } from "@/lib/services/HealthService";
-import { verifyIdeToken } from "@/lib/services/ide-token-service";
+import {
+  verifyIdeToken,
+  verifyIdeTokenDiagnostic,
+} from "@/lib/services/ide-token-service";
 import { extractBearerTokenFromRequest } from "@/lib/services/pulse-license";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
@@ -147,7 +150,20 @@ export async function GET(req: NextRequest) {
         let sessionResolved = false;
 
         if (bearer?.startsWith("msgf_ide_")) {
-          const verified = await verifyIdeToken(admin, bearer, tenantKey || undefined);
+          const diag = await verifyIdeTokenDiagnostic(admin, bearer, tenantKey || undefined);
+          if (diag.status === "tenant_mismatch") {
+            return healthJson(
+              req,
+              {
+                ok: false,
+                error: `Tenant mismatch: IDE token is for "${diag.token_tenant_id}" but X-MSGF-Tenant-Key is "${diag.header_tenant_id}".`,
+                code: "TENANT_MISMATCH",
+              },
+              { status: 403 }
+            );
+          }
+          const verified =
+            diag.status === "ok" ? diag.token : await verifyIdeToken(admin, bearer, tenantKey || undefined);
           if (!verified) {
             return healthJson(req, { ok: false, error: "Unauthorized" }, { status: 401 });
           }

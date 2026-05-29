@@ -12,7 +12,10 @@ import {
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
 import { healthService } from "@/lib/services/HealthService";
-import { verifyIdeToken } from "@/lib/services/ide-token-service";
+import {
+  verifyIdeToken,
+  verifyIdeTokenDiagnostic,
+} from "@/lib/services/ide-token-service";
 import {
   assertPulseLicense,
   extractBearerTokenFromRequest,
@@ -132,7 +135,27 @@ export async function runIdeConnectivityChecks(req: NextRequest): Promise<IdeCon
   if (bearer.startsWith("msgf_ide_")) {
     try {
       const admin = createAdminClient();
-      const verified = await verifyIdeToken(admin, bearer, tenantKey);
+      const diag = await verifyIdeTokenDiagnostic(admin, bearer, tenantKey);
+      if (diag.status === "tenant_mismatch") {
+        checks.push(
+          check({
+            name: "auth_bearer",
+            ok: false,
+            status: 403,
+            latency_ms: Date.now() - authStart,
+            error_code: "TENANT_MISMATCH",
+            user_message: `Token is for "${diag.token_tenant_id}" but msgf.tenantKey is "${diag.header_tenant_id}".`,
+            fix_steps: [
+              `Set msgf.tenantKey to exactly: ${diag.token_tenant_id}`,
+              "Workspace .vscode/settings.json overrides User settings — fix the workspace file.",
+              "Reload the window after saving.",
+            ],
+          })
+        );
+        return checks;
+      }
+      const verified =
+        diag.status === "ok" ? diag.token : await verifyIdeToken(admin, bearer, tenantKey);
       checks.push(
         check({
           name: "auth_bearer",
@@ -142,7 +165,7 @@ export async function runIdeConnectivityChecks(req: NextRequest): Promise<IdeCon
           error_code: verified ? undefined : "AUTH_INVALID",
           user_message: verified
             ? `Long-lived IDE token valid (expires per mint; ${verified.tenant_id}).`
-            : "IDE token invalid, expired, or tenant mismatch.",
+            : "IDE token invalid or expired.",
           fix_steps: verified
             ? undefined
             : [

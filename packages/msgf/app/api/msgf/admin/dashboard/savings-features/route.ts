@@ -23,6 +23,7 @@ import {
   resolveSessionDashboardOperator,
 } from "@/lib/msgf-admin-session";
 import { getSavingsFeaturesSummary24h } from "@/lib/services/savings-features-stats";
+import { computeDefensibleSavingsBreakdown } from "@/lib/utils/savings-calculator";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient as createSupabaseServerClient } from "@/utils/supabase/server";
 
@@ -47,12 +48,16 @@ export async function GET(req: NextRequest) {
     const op = await resolveSessionDashboardOperator(admin, user);
     assertSessionOperatorIsAdmin(op);
 
-    const summary = await getSavingsFeaturesSummary24h(tenantId, "admin");
+    const [summary, defensible_breakdown] = await Promise.all([
+      getSavingsFeaturesSummary24h(tenantId, "admin"),
+      computeDefensibleSavingsBreakdown(admin, tenantId),
+    ]);
 
     return NextResponse.json({
       ok: true,
       operator_role: op.role,
       summary,
+      defensible_breakdown,
       note: "Admin view includes Big Brain (global CONVERGE, promotions) and Small Brain counters per tenant.",
     });
   } catch (e) {

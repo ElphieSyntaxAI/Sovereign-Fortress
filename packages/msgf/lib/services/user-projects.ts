@@ -13,6 +13,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
+
 export type UserProjectSourceType = "local" | "github";
 
 export type UserProjectRow = {
@@ -76,7 +78,7 @@ function parseGithubRepository(githubUrl: string): { fullName: string; projectOr
 }
 
 export function resolveProjectOriginInput(input: CreateUserProjectBody): string {
-  const explicit = input.project_origin?.trim();
+  const explicit = sanitizeTenantScope(input.project_origin ?? "");
   if (explicit) return explicit.slice(0, 256);
 
   if (input.source_type === "local") {

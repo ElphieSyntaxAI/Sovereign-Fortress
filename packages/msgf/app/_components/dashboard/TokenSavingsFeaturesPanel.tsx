@@ -171,6 +171,7 @@
 import { useEffect, useState } from "react";
 
 import type { SavingsFeaturesSummary } from "@/lib/services/savings-features-stats";
+import type { DefensibleSavingsBreakdown } from "@/lib/utils/savings-calculator";
 
 type Props = {
   tenantId: string;
@@ -180,6 +181,7 @@ type Props = {
 
 export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Props) {
   const [summary, setSummary] = useState<SavingsFeaturesSummary | null>(null);
+  const [defensible, setDefensible] = useState<DefensibleSavingsBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -194,15 +196,18 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
         const json = (await res.json()) as {
           ok?: boolean;
           summary?: SavingsFeaturesSummary;
+          defensible_breakdown?: DefensibleSavingsBreakdown;
           error?: string;
         };
         if (!res.ok || !json.ok || !json.summary) {
           throw new Error(json.error ?? `Savings features failed (${res.status})`);
         }
         setSummary(json.summary);
+        setDefensible(json.defensible_breakdown ?? null);
       })
       .catch((e) => {
         setSummary(null);
+        setDefensible(null);
         setError(e instanceof Error ? e.message : "Failed to load savings features.");
       });
   }, [tenantId, operatorView]);
@@ -263,6 +268,29 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
           <strong className="text-cyan-300">{summary.small_brain_pulse_pct}%</strong> of your pulses
           stayed on Small Brain (local / bypass) in the last 24h.
         </p>
+      ) : null}
+
+      {defensible ? (
+        <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-950/20 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300/90">
+            Defensible ROI (24h)
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Metric
+              label="MSGF cloud tokens"
+              value={defensible.msgf_cloud_tokens}
+              hint={defensible.msgf_cloud_formula}
+            />
+            <Metric
+              label="Context savings tokens"
+              value={defensible.context_savings_tokens}
+              hint={`${defensible.guided_sessions_verified} verified pack(s) · ${defensible.context_savings_formula}`}
+            />
+          </div>
+          <p className="mt-3 text-xs text-amber-200/90">
+            ⚠️ Notice: {defensible.footnote}
+          </p>
+        </div>
       ) : null}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
