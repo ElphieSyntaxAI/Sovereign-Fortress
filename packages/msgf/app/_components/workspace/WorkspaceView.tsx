@@ -5,9 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { WorkspaceActiveIdeTab } from "@/app/_components/workspace/WorkspaceActiveIdeTab";
 import { WorkspaceSetupProjectsTab } from "@/app/_components/workspace/WorkspaceSetupProjectsTab";
+import type { SessionPermissions } from "@/lib/platform-rbac";
 import type { UserProjectRow } from "@/lib/services/user-projects";
 
-export type WorkspaceTabId = "setup" | "ide";
+export type WorkspaceTabId = "setup" | "architecture" | "ide";
 
 type Props = {
   apiUrl: string;
@@ -19,15 +20,23 @@ type Props = {
   initialProjectOrigin?: string | null;
   isNewWorkspace?: boolean;
   canAccessAdminDashboard?: boolean;
+  permissions?: SessionPermissions;
 };
 
 function parseTabFromLocation(): WorkspaceTabId {
-  if (typeof window === "undefined") return "setup";
+  if (typeof window === "undefined") return "architecture";
   const params = new URLSearchParams(window.location.search);
   const tab = params.get("tab");
-  if (tab === "ide" || tab === "setup") return tab;
+  if (tab === "ide") return "ide";
+  if (tab === "setup" || tab === "architecture") return "architecture";
   if (window.location.hash === "#ide-setup") return "ide";
-  return "setup";
+  return "architecture";
+}
+
+function normalizeTab(tab: WorkspaceTabId | undefined): WorkspaceTabId {
+  if (tab === "ide") return "ide";
+  if (tab === "setup" || tab === "architecture") return "architecture";
+  return "architecture";
 }
 
 export function WorkspaceView({
@@ -40,8 +49,11 @@ export function WorkspaceView({
   initialProjectOrigin,
   isNewWorkspace = false,
   canAccessAdminDashboard = false,
+  permissions,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<WorkspaceTabId>(initialTab ?? "setup");
+  const [activeTab, setActiveTab] = useState<WorkspaceTabId>(
+    normalizeTab(initialTab) ?? "architecture"
+  );
   const [projects, setProjects] = useState<UserProjectRow[]>(initialProjects);
   const [tabReady, setTabReady] = useState(false);
 
@@ -54,7 +66,7 @@ export function WorkspaceView({
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
-      url.searchParams.set("tab", tab);
+      url.searchParams.set("tab", tab === "architecture" ? "architecture" : tab);
       url.hash = "";
       window.history.replaceState(null, "", url.toString());
     }
@@ -62,9 +74,9 @@ export function WorkspaceView({
 
   const tabs: { id: WorkspaceTabId; label: string; hint: string }[] = [
     {
-      id: "setup",
-      label: "Setup & Projects",
-      hint: "Local Folder / GitHub Repo",
+      id: "architecture",
+      label: "Architecture & Projects",
+      hint: "Mapping · Teams · Onboarding",
     },
     {
       id: "ide",
@@ -73,15 +85,17 @@ export function WorkspaceView({
     },
   ];
 
+  const showGovernanceLink = permissions?.canAccessGovernanceDashboard ?? true;
+
   return (
     <div className="space-y-6">
       {isNewWorkspace ? (
         <section className="glass-panel rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 sm:p-5">
           <p className="text-sm font-medium text-amber-100">Welcome to your workspace</p>
           <p className="mt-2 text-sm text-slate-300">
-            Map a project in <strong className="text-slate-100">Setup & Projects</strong>, then switch
-            to <strong className="text-slate-100">Active IDE Workspace</strong> to mint tokens and
-            install Pulse Guard.
+            Map a project in <strong className="text-slate-100">Architecture & Projects</strong>, then
+            switch to <strong className="text-slate-100">Active IDE Workspace</strong> to mint tokens
+            and install Pulse Guard.
           </p>
         </section>
       ) : null}
@@ -118,11 +132,12 @@ export function WorkspaceView({
         }`}
         role="tabpanel"
       >
-        {activeTab === "setup" ? (
+        {activeTab === "architecture" ? (
           <WorkspaceSetupProjectsTab
             accessRole={accessRole}
             companySilo={companySilo}
             tenantKey={tenantKey}
+            permissions={permissions}
             onProjectsUpdated={setProjects}
           />
         ) : (
@@ -130,6 +145,7 @@ export function WorkspaceView({
             projects={projects}
             apiUrl={apiUrl}
             initialProjectOrigin={initialProjectOrigin}
+            permissions={permissions}
           />
         )}
       </div>
@@ -137,12 +153,16 @@ export function WorkspaceView({
       <section className="glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800/80 px-4 py-3 text-sm">
         <span className="text-slate-500">Quick links</span>
         <div className="flex flex-wrap gap-3">
-          <Link href="/dashboard" className="text-emerald-300 hover:underline">
-            Governance dashboard
-          </Link>
-          <Link href="/dashboard/daily-reports" className="text-violet-300 hover:underline">
-            Daily reports
-          </Link>
+          {showGovernanceLink ? (
+            <>
+              <Link href="/dashboard" className="text-emerald-300 hover:underline">
+                Governance dashboard
+              </Link>
+              <Link href="/dashboard/daily-reports" className="text-violet-300 hover:underline">
+                Daily reports
+              </Link>
+            </>
+          ) : null}
           {canAccessAdminDashboard ? (
             <Link href="/admin/portal" className="text-violet-300 hover:underline">
               Admin portal

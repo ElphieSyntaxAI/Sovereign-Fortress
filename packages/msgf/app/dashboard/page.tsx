@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
+ * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -20,6 +20,7 @@ import { resolveHealQueueTenantIdForUser } from "@/lib/heal-queue-tenant";
 import { ensureGatedAiBuyerAccount } from "@/lib/msgf-onboarding";
 import { healthService } from "@/lib/services/HealthService";
 import { listUserProjects } from "@/lib/services/user-projects";
+import { loadWorkspaceContext } from "@/lib/workspace-context";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
@@ -42,6 +43,11 @@ export default async function DashboardPage() {
   }
 
   const admin = createAdminClient();
+
+  const workspaceCtx = await loadWorkspaceContext(admin, user);
+  if (!workspaceCtx.permissions.canAccessGovernanceDashboard) {
+    redirect("/workspace");
+  }
 
   try {
     await ensureGatedAiBuyerAccount({

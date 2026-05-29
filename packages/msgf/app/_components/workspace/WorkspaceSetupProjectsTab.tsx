@@ -1,9 +1,24 @@
 "use client";
 
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ */
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { InfoTip } from "@/app/_components/workspace/workspace-ui";
+import { TeamManagementModule } from "@/app/_components/workspace/TeamManagementModule";
+import { WorkspaceOnboardingPack } from "@/app/_components/workspace/WorkspaceOnboardingPack";
+import type { SessionPermissions } from "@/lib/platform-rbac";
 import type { UserProjectRow } from "@/lib/services/user-projects";
 
 type MonorepoPreset = {
@@ -17,6 +32,7 @@ type Props = {
   accessRole: string;
   companySilo: string;
   tenantKey: string;
+  permissions?: SessionPermissions;
   onProjectsUpdated?: (projects: UserProjectRow[]) => void;
 };
 
@@ -24,6 +40,7 @@ export function WorkspaceSetupProjectsTab({
   accessRole,
   companySilo,
   tenantKey,
+  permissions,
   onProjectsUpdated,
 }: Props) {
   const [projects, setProjects] = useState<UserProjectRow[]>([]);
@@ -166,13 +183,24 @@ export function WorkspaceSetupProjectsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-slate-400">
+        Map your distributed monorepos into isolated project origins to track precise logic health
+        and map independent RAG data streams.
+      </p>
+
+      <WorkspaceOnboardingPack />
+
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start">
         <form
           onSubmit={(e) => void handleSubmit(e)}
-          className="glass-panel min-w-0 flex-1 space-y-4 rounded-2xl border border-emerald-500/20 p-5 sm:p-6"
+          className="glass-panel min-w-0 space-y-4 rounded-2xl border border-emerald-500/20 p-5 sm:p-6"
         >
           <div>
             <h2 className="text-lg font-semibold text-slate-100">Project mapping</h2>
+            <span className="mt-2 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-200">
+              SWEEP Architectural Ingest Enabled — Supports automated 1.1.1 genealogical module
+              indexing
+            </span>
             <p className="mt-1 text-sm text-slate-400">
               Register each repo or monorepo app you guard with MSGF.
               <InfoTip label="Monorepo mapping rules">
@@ -273,19 +301,25 @@ export function WorkspaceSetupProjectsTab({
           </button>
         </form>
 
-        <aside className="glass-panel w-full shrink-0 rounded-2xl border border-cyan-500/20 p-5 lg:w-80">
+        <aside className="glass-panel w-full shrink-0 rounded-2xl border border-cyan-500/20 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300/90">
-            Infrastructure context
+            Account scope
           </p>
-          <h3 className="mt-2 text-base font-semibold text-slate-100">BYOK · Individual scope</h3>
+          <h3 className="mt-2 text-base font-semibold text-slate-100">Infrastructure context</h3>
           <dl className="mt-4 space-y-3 text-sm">
             <div>
               <dt className="text-slate-500">Access role</dt>
               <dd className="font-medium text-cyan-100">{accessRole}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Company silo</dt>
+              <dt className="text-slate-500">Sandbox status</dt>
               <dd className="font-medium text-slate-200">{companySilo}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Platform roles</dt>
+              <dd className="font-medium text-cyan-100">
+                {permissions?.roles.join(", ") ?? accessRole}
+              </dd>
             </div>
             <div>
               <dt className="text-slate-500">IDE tenant key</dt>
@@ -381,6 +415,8 @@ export function WorkspaceSetupProjectsTab({
           ))}
         </ul>
       </section>
+
+      {permissions?.canManageTeam ? <TeamManagementModule projects={projects} /> : null}
     </div>
   );
 }

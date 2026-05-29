@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
+-- Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
 -- =============================================================================
 -- P4 State Ledger: author "beats" for keystroke-flow verification.
 -- If you use Cognito or another IdP, adjust RLS policies to match how you store author_id.

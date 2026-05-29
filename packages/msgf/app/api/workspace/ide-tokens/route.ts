@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
+ * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
 /**
  * GET /api/workspace/ide-tokens — list active long-lived IDE tokens (metadata only).
@@ -32,6 +32,7 @@ import {
   resolveMsgfAppOrigin,
 } from "@/lib/workspace-ide-setup";
 import { buildVscodeIdeSetupUri } from "@/lib/workspace-ide-deep-link";
+import { getComplianceStatus } from "@/lib/services/company-team";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
@@ -109,6 +110,21 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
+
+  const compliance = await getComplianceStatus(admin, ctx.session.user.id);
+  if (compliance.is_locked) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "pending_signatures",
+        signing_url: compliance.signing_url,
+        message:
+          "Complete your DocuSign compliance packet before minting IDE tokens.",
+      },
+      { status: 403 }
+    );
+  }
+
   const projects = await listUserProjects(admin, ctx.session.user.id).catch(() => []);
   const requestedOrigin = body.project_origin?.trim() || null;
   const projectOrigin = resolveProjectOrigin(projects, requestedOrigin);

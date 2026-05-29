@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
+-- Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
 -- =============================================================================
 -- Legacy Express stack (port 3003): RAG + HUD + local-auth tables live on Supabase Postgres.
 -- Rules for RAG validation / HUD limits are canonical in `public.msgf_rules` (namespace `rag`).

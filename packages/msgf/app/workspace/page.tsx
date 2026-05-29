@@ -1,3 +1,7 @@
+/**
+ * @msgf-license-header
+ * Workspace — unified Architecture & Projects + Active IDE control center.
+ */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -5,6 +9,8 @@ import type { Metadata } from "next";
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
 import { WorkspaceView, type WorkspaceTabId } from "@/app/_components/workspace/WorkspaceView";
 import { WorkspaceMsgfSentinel } from "@/app/_components/workspace/WorkspaceMsgfSentinel";
+import { filterNavLinksForPermissions } from "@/lib/platform-rbac";
+import { DASHBOARD_PRIMARY_LINKS } from "@/app/_components/dashboard/dashboard-nav-links";
 import { loadWorkspaceContext } from "@/lib/workspace-context";
 import { resolveIdeTenantKey, resolveMsgfAppOrigin } from "@/lib/workspace-ide-setup";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -20,7 +26,8 @@ function shortId(uuid: string): string {
 }
 
 function parseTab(raw: string | undefined): WorkspaceTabId | undefined {
-  if (raw === "setup" || raw === "ide") return raw;
+  if (raw === "setup" || raw === "architecture") return "architecture";
+  if (raw === "ide") return "ide";
   return undefined;
 }
 
@@ -49,13 +56,25 @@ export default async function WorkspacePage({
 
   const admin = createAdminClient();
   const ctx = await loadWorkspaceContext(admin, user);
+
+  if (!ctx.permissions.canAccessWorkspace) {
+    redirect("/dashboard");
+  }
+
   const apiUrl = resolveMsgfAppOrigin(requestHost);
   const preferredOrigin = initialProjectOrigin ?? ctx.projects[0]?.project_origin ?? null;
   const tenantKey = resolveIdeTenantKey(user.id, preferredOrigin);
 
-  const companySilo = ctx.companyId
-    ? shortId(ctx.companyId)
-    : "Independent personal sandbox";
+  const companySilo = ctx.isIndependent
+    ? "Independent personal sandbox"
+    : ctx.companyId
+      ? shortId(ctx.companyId)
+      : "Company workspace";
+
+  const navFilter = filterNavLinksForPermissions(
+    DASHBOARD_PRIMARY_LINKS("/dashboard#token-savings"),
+    ctx.permissions
+  );
 
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
@@ -63,6 +82,7 @@ export default async function WorkspacePage({
         userEmail={ctx.email}
         showAdminPortalLink={ctx.canAccessAdminDashboard}
         tokenSavingsHref="/dashboard#token-savings"
+        primaryLinksOverride={navFilter}
       />
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-5 sm:py-10">
         <header className="space-y-2 text-center sm:text-left">
@@ -88,6 +108,7 @@ export default async function WorkspacePage({
           initialProjectOrigin={initialProjectOrigin}
           isNewWorkspace={ctx.isNewWorkspace}
           canAccessAdminDashboard={ctx.canAccessAdminDashboard}
+          permissions={ctx.permissions}
         />
       </main>
       <WorkspaceMsgfSentinel tenantKey={tenantKey} userId={user.id} />

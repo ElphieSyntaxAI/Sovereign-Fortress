@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ */
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -16,6 +28,7 @@ type Props = {
   userEmail: string;
   showAdminPortalLink?: boolean;
   tokenSavingsHref?: string;
+  primaryLinksOverride?: DashboardNavLink[];
 };
 
 function GearIcon({ className }: { className?: string }) {
@@ -120,6 +133,7 @@ export function DashboardNav({
   userEmail,
   showAdminPortalLink = false,
   tokenSavingsHref = "/dashboard#token-savings",
+  primaryLinksOverride,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
@@ -130,7 +144,7 @@ export function DashboardNav({
   const settingsMenuId = useId();
   const mobileDrawerId = useId();
 
-  const primaryLinks = DASHBOARD_PRIMARY_LINKS(tokenSavingsHref);
+  const primaryLinks = primaryLinksOverride ?? DASHBOARD_PRIMARY_LINKS(tokenSavingsHref);
   const settingsLinks = [
     ...DASHBOARD_SETTINGS_LINKS,
     ...(showAdminPortalLink

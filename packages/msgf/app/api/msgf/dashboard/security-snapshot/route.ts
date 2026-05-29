@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ */
+/**
  * GET /api/msgf/dashboard/security-snapshot?tenant_id=&project_origin=
  * Dev + tenant security counters (24h Redis) and IDE workspace settings probe.
  */
@@ -25,7 +37,7 @@ export async function GET(req: NextRequest) {
 
     const cookieStore = await cookies();
     const hdrs = await headers();
-    const requestHost = requestHostFromHeaders(hdrs);
+    const requestHost = requestHostFromHeaders(hdrs) ?? null;
     const supabase = createSupabaseServerClient(cookieStore, requestHost);
     const {
       data: { session },

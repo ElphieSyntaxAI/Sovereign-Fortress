@@ -1,0 +1,62 @@
+"use client";
+
+import Link from "next/link";
+
+type Props = {
+  project_origins: string[];
+  enforce_docusign: boolean;
+  signing_url: string | null;
+  onboarding_pack_count: number;
+};
+
+export function ResetPasswordSuccessPanel({
+  project_origins,
+  enforce_docusign,
+  signing_url,
+  onboarding_pack_count,
+}: Props) {
+  const workspaceHref = enforce_docusign
+    ? "/workspace?tab=architecture&compliance=pending"
+    : "/workspace?tab=architecture&onboarding=ready";
+
+  return (
+    <section className="glass-panel space-y-5 rounded-2xl border border-emerald-500/25 p-6 sm:p-8">
+      <h2 className="text-xl font-bold text-slate-50">
+        {enforce_docusign
+          ? "Password set — complete DocuSign to unlock workspace"
+          : "Account configured — your workspace is ready"}
+      </h2>
+
+      {project_origins.length > 0 ? (
+        <p className="text-sm text-slate-400">
+          Assigned project origins:{" "}
+          <span className="font-mono text-cyan-200">{project_origins.join(", ")}</span>
+        </p>
+      ) : null}
+
+      {onboarding_pack_count > 0 ? (
+        <p className="text-sm text-slate-300">
+          🔒 {onboarding_pack_count} onboarding document(s) will be available in your Workspace
+          {enforce_docusign ? " after DocuSign completion" : ""}.
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {enforce_docusign && signing_url ? (
+          <a
+            href={signing_url}
+            className="inline-flex justify-center rounded-full border border-amber-500/40 bg-amber-500/15 px-5 py-2.5 text-sm font-semibold text-amber-100 hover:bg-amber-500/25"
+          >
+            Continue to DocuSign
+          </a>
+        ) : null}
+        <Link
+          href={workspaceHref}
+          className="inline-flex justify-center rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110"
+        >
+          {enforce_docusign ? "Go to Workspace" : "Continue to Workspace"}
+        </Link>
+      </div>
+    </section>
+  );
+}

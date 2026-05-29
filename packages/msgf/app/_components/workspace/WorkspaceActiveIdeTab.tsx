@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { WorkspaceProjectIdePanel } from "@/app/_components/workspace/WorkspaceProjectIdePanel";
+import { WorkspaceProjectDebugHub } from "@/app/_components/workspace/WorkspaceProjectDebugHub";
 import { CollapsiblePanel } from "@/app/_components/workspace/workspace-ui";
+import type { SessionPermissions } from "@/lib/platform-rbac";
 import type { UserProjectRow } from "@/lib/services/user-projects";
 
 type Props = {
   projects: UserProjectRow[];
   apiUrl: string;
   initialProjectOrigin?: string | null;
+  permissions?: SessionPermissions;
 };
 
 function formatTokenExpiry(project: UserProjectRow, tokenMap: Record<string, string | null>) {
@@ -21,11 +24,30 @@ function formatTokenExpiry(project: UserProjectRow, tokenMap: Record<string, str
   return `Expires ${d.toLocaleDateString(undefined, { dateStyle: "long" })}`;
 }
 
-export function WorkspaceActiveIdeTab({ projects, apiUrl, initialProjectOrigin }: Props) {
+export function WorkspaceActiveIdeTab({
+  projects,
+  apiUrl,
+  initialProjectOrigin,
+  permissions,
+}: Props) {
   const [expandedOrigin, setExpandedOrigin] = useState<string | null>(
     initialProjectOrigin ?? projects[0]?.project_origin ?? null
   );
   const [tokenExpiryByOrigin, setTokenExpiryByOrigin] = useState<Record<string, string | null>>({});
+  const [complianceLocked, setComplianceLocked] = useState(false);
+  const [signingUrl, setSigningUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/msgf/workspace/compliance-status", { credentials: "include" })
+      .then(async (res) => res.json())
+      .then((json: { is_locked?: boolean; signing_url?: string | null }) => {
+        setComplianceLocked(Boolean(json.is_locked));
+        setSigningUrl(json.signing_url ?? null);
+      })
+      .catch(() => {
+        setComplianceLocked(Boolean(permissions?.isDocuSignLocked));
+      });
+  }, [permissions?.isDocuSignLocked]);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,8 +87,8 @@ export function WorkspaceActiveIdeTab({ projects, apiUrl, initialProjectOrigin }
           No mapped projects
         </p>
         <p className="mx-auto mt-3 max-w-md text-sm text-slate-400">
-          Map a local folder or GitHub repo in Setup & Projects first, then return here to mint IDE
-          tokens and connect Pulse Guard.
+          Map a local folder or GitHub repo in Architecture & Projects first, then return here to
+          mint IDE tokens and connect Pulse Guard.
         </p>
       </section>
     );
@@ -74,41 +96,70 @@ export function WorkspaceActiveIdeTab({ projects, apiUrl, initialProjectOrigin }
 
   return (
     <div className="space-y-3" aria-label="Active IDE workspace projects">
+      {complianceLocked ? (
+        <section className="glass-panel rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 sm:p-5">
+          <p className="text-sm font-medium text-amber-100">DocuSign compliance required</p>
+          <p className="mt-2 text-sm text-slate-300">
+            Complete your DocuSign compliance packet to unlock IDE tokens and project workspaces.
+          </p>
+          {signingUrl ? (
+            <a
+              href={signingUrl}
+              className="mt-3 inline-block rounded-full border border-amber-500/40 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-100 hover:bg-amber-500/25"
+            >
+              Continue to DocuSign
+            </a>
+          ) : null}
+        </section>
+      ) : null}
+
       {projects.map((project) => {
-        const isOpen = expandedOrigin === project.project_origin;
+        const isOpen = !complianceLocked && expandedOrigin === project.project_origin;
         const hasToken = Boolean(tokenExpiryByOrigin[project.project_origin]);
         return (
           <article
             key={project.id}
             className={`glass-panel overflow-hidden rounded-2xl border transition-colors duration-300 ${
-              isOpen ? "border-emerald-500/35" : "border-slate-700/60"
+              complianceLocked
+                ? "border-slate-800/60 opacity-75"
+                : isOpen
+                  ? "border-emerald-500/35"
+                  : "border-slate-700/60"
             }`}
           >
             <button
               type="button"
-              onClick={() =>
+              disabled={complianceLocked}
+              onClick={() => {
+                if (complianceLocked) return;
                 setExpandedOrigin((prev) =>
                   prev === project.project_origin ? null : project.project_origin
-                )
-              }
+                );
+              }}
               aria-expanded={isOpen}
-              className="flex w-full flex-col gap-2 p-4 text-left transition hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between"
+              className="flex w-full flex-col gap-2 p-4 text-left transition hover:bg-white/[0.02] disabled:cursor-not-allowed sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <h3 className="text-lg font-semibold text-slate-50">{project.display_name}</h3>
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
-                    hasToken
-                      ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-100"
-                      : "border-amber-500/35 bg-amber-500/15 text-amber-100"
-                  }`}
-                >
+                {complianceLocked ? (
+                  <span className="rounded-full border border-slate-600 px-2.5 py-1 text-xs text-slate-400">
+                    Locked
+                  </span>
+                ) : (
                   <span
-                    className={`h-2 w-2 rounded-full ${hasToken ? "bg-emerald-400" : "bg-amber-400"}`}
-                    aria-hidden
-                  />
-                  {hasToken ? "Active" : "Setup required"}
-                </span>
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+                      hasToken
+                        ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-100"
+                        : "border-amber-500/35 bg-amber-500/15 text-amber-100"
+                    }`}
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full ${hasToken ? "bg-emerald-400" : "bg-amber-400"}`}
+                      aria-hidden
+                    />
+                    {hasToken ? "Active" : "Setup required"}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 sm:text-right">
                 {formatTokenExpiry(project, tokenExpiryByOrigin)}
@@ -116,8 +167,9 @@ export function WorkspaceActiveIdeTab({ projects, apiUrl, initialProjectOrigin }
             </button>
 
             <CollapsiblePanel open={isOpen} id={`ide-project-${project.id}`}>
-              <div className="border-t border-slate-800/80 px-4 pb-5 pt-4 sm:px-5">
+              <div className="grid gap-6 border-t border-slate-800/80 px-4 pb-5 pt-4 lg:grid-cols-2 sm:px-5">
                 <WorkspaceProjectIdePanel project={project} apiUrl={apiUrl} />
+                <WorkspaceProjectDebugHub projectOrigin={project.project_origin} />
               </div>
             </CollapsiblePanel>
           </article>
@@ -126,7 +178,7 @@ export function WorkspaceActiveIdeTab({ projects, apiUrl, initialProjectOrigin }
 
       <p className="text-center text-xs text-slate-600">
         Need another repo?{" "}
-        <Link href="/workspace?tab=setup" className="text-cyan-300 hover:underline">
+        <Link href="/workspace?tab=architecture" className="text-cyan-300 hover:underline">
           Add a project mapping
         </Link>
       </p>

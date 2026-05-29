@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
+ * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
 /**
  * P3 Cryptographic Privacy Gate — strip PII before any analytics / profile persistence.

@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
  */
 /**
@@ -911,6 +923,14 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
           disabled={loading}
           className="w-full rounded-lg border border-violet-500/25 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-100 outline-none ring-violet-500/30 focus:border-violet-500/50 focus:ring-2 disabled:opacity-60"
         />
+        {!isSignUp ? (
+          <Link
+            href="/forgot-password"
+            className="text-xs text-violet-300/90 hover:text-violet-200 hover:underline"
+          >
+            Forgot Password?
+          </Link>
+        ) : null}
       </label>
 
       {error ? (

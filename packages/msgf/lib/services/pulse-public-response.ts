@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
+ * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
 /**
  * Pulse HTTP **public** body — Glass Box `data` vs secret forensic (admin_vault only).

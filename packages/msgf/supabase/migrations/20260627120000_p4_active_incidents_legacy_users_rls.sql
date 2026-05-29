@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
+-- Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
 -- =============================================================================
 -- Lock down backend-only tables: incident ledger + legacy auth rows (password_hash).
 -- App access: service_role (BFF / Next admin) and SECURITY DEFINER RPCs only.
