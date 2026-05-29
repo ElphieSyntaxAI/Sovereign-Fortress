@@ -91,3 +91,17 @@ export function buildApiAuthHeaders(params: {
 
   return headers;
 }
+
+/** IDE extension GETs — same auth as Pulse plus x-msgf-ide-pulse marker. */
+export function buildIdeApiAuthHeaders(params: {
+  settings: MsgfGuardSettings;
+  tenantId: string;
+  entityId?: string;
+}): Record<string, string> {
+  const headers = buildApiAuthHeaders(params);
+  headers[MSGF_IDE_PULSE_HEADER] = "1";
+  if (params.entityId?.trim()) {
+    headers[MSGF_ENTITY_ID_HEADER] = params.entityId.trim();
+  }
+  return headers;
+}

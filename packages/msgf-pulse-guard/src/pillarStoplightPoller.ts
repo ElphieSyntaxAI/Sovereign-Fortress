@@ -2,7 +2,7 @@ import { classifyHttpError, formatClassifiedErrorForTooltip } from "./classifyHt
 import { readMsgfSettings, resolveTenantId } from "./config";
 import type { PillarHealthReport } from "./pillarHealthTypes";
 import { aggregateStoplight } from "./pillarHealthTypes";
-import { buildApiAuthHeaders } from "./pulseAuth";
+import { buildIdeApiAuthHeaders } from "./pulseAuth";
 
 const LOG_PREFIX = "[MSGF Guard]";
 
@@ -10,15 +10,20 @@ export type StoplightPollResult =
   | { ok: true; report: PillarHealthReport }
   | { ok: false; error: string; errorDetail?: string };
 
-export async function fetchPillarHealthReport(
-  fetchImpl: typeof fetch = fetch.bind(globalThis)
-): Promise<StoplightPollResult> {
+export async function fetchPillarHealthReport(params?: {
+  entityId?: string;
+  fetchImpl?: typeof fetch;
+}): Promise<StoplightPollResult> {
   const settings = readMsgfSettings();
   const tenantId = resolveTenantId(settings);
   const baseUrl = settings.apiUrl.replace(/\/$/, "");
   const url = `${baseUrl}/api/msgf/health/pillars?lookback_hours=168`;
 
-  const headers = buildApiAuthHeaders({ settings, tenantId });
+  const headers = buildIdeApiAuthHeaders({
+    settings,
+    tenantId,
+    entityId: params?.entityId,
+  });
   if (!headers.Authorization) {
     const c = classifyHttpError({
       status: 401,
@@ -31,8 +36,10 @@ export async function fetchPillarHealthReport(
     };
   }
 
+  const fetchFn = params?.fetchImpl ?? fetch.bind(globalThis);
+
   try {
-    const res = await fetchImpl(url, { method: "GET", headers });
+    const res = await fetchFn(url, { method: "GET", headers });
     const raw = (await res.json().catch(() => ({}))) as PillarHealthReport & {
       error?: string;
     };

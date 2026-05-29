@@ -98,6 +98,25 @@ for (const k of COPY_KEYS) {
 }
 Object.assign(merged, PROD_OVERRIDES);
 
+// Local REDIS_URL (127.0.0.1 / localhost) must not ship to Cloud Run — use Upstash REST instead.
+const redisUrl = merged.REDIS_URL?.trim() ?? "";
+if (redisUrl && /localhost|127\.0\.0\.1/i.test(redisUrl)) {
+  const upstashReady =
+    merged.UPSTASH_REDIS_REST_URL?.trim() &&
+    merged.UPSTASH_REDIS_REST_TOKEN?.trim() &&
+    !isPlaceholderEnvValue("UPSTASH_REDIS_REST_URL", merged.UPSTASH_REDIS_REST_URL);
+  delete merged.REDIS_URL;
+  if (upstashReady) {
+    console.warn(
+      "Dropped local REDIS_URL from .env.cloudrun (Upstash REST is configured)."
+    );
+  } else {
+    console.warn(
+      "Dropped local REDIS_URL from .env.cloudrun — set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN for hot-layer Redis on Cloud Run."
+    );
+  }
+}
+
 const supabaseUrl = merged.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
 const publishable = merged.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ?? "";
 

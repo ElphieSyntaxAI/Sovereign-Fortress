@@ -21,22 +21,64 @@ export const SERVICE_ACCOUNT_PATH = path.join(
   'service-account.json'
 );
 
+function trimEnv(key: string): string | undefined {
+  const v = process.env[key]?.trim();
+  return v === '' ? undefined : v;
+}
+
+/** Cloud Run / GCE / Cloud Functions expose ADC via the metadata server (no key file). */
+function usesCloudRuntimeAdc(): boolean {
+  return Boolean(
+    trimEnv('K_SERVICE') ||
+      trimEnv('GOOGLE_CLOUD_PROJECT') ||
+      trimEnv('GAE_SERVICE') ||
+      trimEnv('FUNCTION_TARGET')
+  );
+}
+
+function serviceAccountKeyFileExists(): boolean {
+  return fs.existsSync(SERVICE_ACCOUNT_PATH);
+}
+
+function googleApplicationCredentialsPath(): string | undefined {
+  const creds = trimEnv('GOOGLE_APPLICATION_CREDENTIALS');
+  if (!creds) return undefined;
+  return fs.existsSync(creds) ? creds : undefined;
+}
+
+export function hasVertexCredentials(): boolean {
+  if (serviceAccountKeyFileExists()) return true;
+  if (googleApplicationCredentialsPath()) return true;
+  if (trimEnv('GCP_PROJECT_ID') && usesCloudRuntimeAdc()) return true;
+  return false;
+}
+
 export function assertServiceAccountPresent(): void {
-  if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
-    throw new Error(
-      `MSGF: service-account.json not found at ${SERVICE_ACCOUNT_PATH}. Run \`node msgf-init.cjs\` or add the file before starting.`
-    );
-  }
+  if (hasVertexCredentials()) return;
+  throw new Error(
+    `MSGF: Vertex credentials not configured. Local dev: add service-account.json at ${SERVICE_ACCOUNT_PATH} (run \`node msgf-init.cjs\`). Cloud Run: set GCP_PROJECT_ID and attach a service account with Vertex AI access (ADC via metadata server).`
+  );
 }
 
 export function getGcpProjectId(): string {
-  if (process.env.GCP_PROJECT_ID) return process.env.GCP_PROJECT_ID;
-  const raw = fs.readFileSync(SERVICE_ACCOUNT_PATH, 'utf8');
-  const { project_id } = JSON.parse(raw) as { project_id?: string };
-  if (!project_id) {
-    throw new Error('MSGF: service-account.json must include project_id.');
+  const fromEnv = trimEnv('GCP_PROJECT_ID');
+  if (fromEnv) return fromEnv;
+
+  const credsProject = trimEnv('GOOGLE_CLOUD_PROJECT');
+  if (credsProject) return credsProject;
+
+  if (serviceAccountKeyFileExists()) {
+    const raw = fs.readFileSync(SERVICE_ACCOUNT_PATH, 'utf8');
+    const { project_id } = JSON.parse(raw) as { project_id?: string };
+    if (!project_id) {
+      throw new Error('MSGF: service-account.json must include project_id.');
+    }
+    return project_id;
   }
-  return project_id;
+
+  throw new Error(
+    'MSGF: GCP project id not configured. Set GCP_PROJECT_ID or provide service-account.json.'
+  );
 }
 
 let vertexAI: VertexAI | null = null;
@@ -44,13 +86,17 @@ let vertexAI: VertexAI | null = null;
 function getVertexAI(): VertexAI {
   assertServiceAccountPresent();
   if (!vertexAI) {
-    const location = process.env.GCP_LOCATION || 'us-central1';
+    const location =
+      trimEnv('GCP_LOCATION') || trimEnv('GCP_REGION') || 'us-central1';
+    const keyFile =
+      googleApplicationCredentialsPath() ??
+      (serviceAccountKeyFileExists() ? SERVICE_ACCOUNT_PATH : undefined);
     vertexAI = new VertexAI({
       project: getGcpProjectId(),
       location,
-      googleAuthOptions: {
-        keyFile: SERVICE_ACCOUNT_PATH,
-      },
+      ...(keyFile
+        ? { googleAuthOptions: { keyFile } }
+        : {}),
     });
   }
   return vertexAI;

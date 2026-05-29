@@ -34,7 +34,8 @@ export class StoplightStatusBar {
 
   constructor(
     private readonly onAnomaly?: StoplightAnomalyHandler,
-    private readonly onPollComplete?: StoplightPollCompleteHandler
+    private readonly onPollComplete?: StoplightPollCompleteHandler,
+    private readonly resolveEntityId?: () => Promise<string>
   ) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.item.command = "msgf.openDashboard";
@@ -91,7 +92,8 @@ export class StoplightStatusBar {
     this.inFlight = true;
 
     try {
-      const result = await fetchPillarHealthReport();
+      const entityId = this.resolveEntityId ? await this.resolveEntityId() : undefined;
+      const result = await fetchPillarHealthReport({ entityId });
       if (!result.ok) {
         this.applyError(result.error, result.errorDetail);
         return;

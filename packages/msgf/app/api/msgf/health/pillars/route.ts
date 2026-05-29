@@ -20,15 +20,22 @@ import {
 } from "@/lib/msgf-admin-session";
 import {
   parseDashboardHealthScope,
+  personalHealthOptionsForUser,
   resolveHealthOptionsForDashboardRequest,
 } from "@/lib/dashboard-health-scope";
-import { MSGF_PERSONAL_SANDBOX_HEADER } from "@/lib/msgf-http-headers";
+import {
+  MSGF_PERSONAL_SANDBOX_HEADER,
+  MSGF_TENANT_ID_HEADER,
+  MSGF_TENANT_KEY_HEADER,
+} from "@/lib/msgf-http-headers";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
 import {
   listUserIdsForCompany,
   resolveDashboardOperator,
 } from "@/lib/msgf-operator-access";
 import { healthService } from "@/lib/services/HealthService";
+import { verifyIdeToken } from "@/lib/services/ide-token-service";
+import { extractBearerTokenFromRequest } from "@/lib/services/pulse-license";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClient as createSupabaseServerClient,
@@ -129,26 +136,63 @@ export async function GET(req: NextRequest) {
       }
     } catch (e) {
       if (e instanceof MsgfAdminAuthError) {
-        const cookieStore = await cookies();
-        const supabase = createSupabaseServerClient(cookieStore, requestHostFromRequest(req));
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-          return healthJson(req, { ok: false, error: "Unauthorized" }, { status: 401 });
-        }
         const lookbackHours = Number(req.nextUrl.searchParams.get("lookback_hours") ?? "168");
         const lb = Number.isFinite(lookbackHours) ? lookbackHours : 168;
         const scope = parseDashboardHealthScope(req.nextUrl.searchParams.get("scope"));
-        reportOptions = await resolveHealthOptionsForDashboardRequest(admin, user, {
-          lookbackHours: lb,
-          scope,
-        });
-        global =
-          scope === "operator" &&
-          (await resolveSessionDashboardOperator(admin, user)).role === "GLOBAL_ADMIN";
+        const tenantKey =
+          req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() ||
+          req.headers.get(MSGF_TENANT_ID_HEADER)?.trim() ||
+          "";
+        const bearer = extractBearerTokenFromRequest(req);
+        let sessionResolved = false;
+
+        if (bearer?.startsWith("msgf_ide_")) {
+          const verified = await verifyIdeToken(admin, bearer, tenantKey || undefined);
+          if (!verified) {
+            return healthJson(req, { ok: false, error: "Unauthorized" }, { status: 401 });
+          }
+          reportOptions = personalHealthOptionsForUser(
+            verified.user_id,
+            lb,
+            tenantKey ? [tenantKey] : undefined
+          );
+          global = false;
+          sessionResolved = true;
+        } else if (bearer && !bearer.startsWith("msgf_live_")) {
+          const { data, error: jwtError } = await admin.auth.getUser(bearer);
+          if (!jwtError && data.user) {
+            reportOptions = tenantKey
+              ? personalHealthOptionsForUser(data.user.id, lb, [tenantKey])
+              : await resolveHealthOptionsForDashboardRequest(admin, data.user, {
+                  lookbackHours: lb,
+                  scope,
+                });
+            global =
+              scope === "operator" &&
+              (await resolveSessionDashboardOperator(admin, data.user)).role === "GLOBAL_ADMIN";
+            sessionResolved = true;
+          }
+        }
+
+        if (!sessionResolved) {
+          const cookieStore = await cookies();
+          const supabase = createSupabaseServerClient(cookieStore, requestHostFromRequest(req));
+          const {
+            data: { user },
+            error: userError,
+          } = await supabase.auth.getUser();
+
+          if (userError || !user) {
+            return healthJson(req, { ok: false, error: "Unauthorized" }, { status: 401 });
+          }
+          reportOptions = await resolveHealthOptionsForDashboardRequest(admin, user, {
+            lookbackHours: lb,
+            scope,
+          });
+          global =
+            scope === "operator" &&
+            (await resolveSessionDashboardOperator(admin, user)).role === "GLOBAL_ADMIN";
+        }
       } else {
         throw e;
       }

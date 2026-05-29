@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { readMsgfSettings, resolveTenantId } from "../config";
+import { readMsgfSettings, resolveEntityId, resolveTenantId } from "../config";
 import { isSavePrimaryPulseMode } from "../devSessionPulse";
 import { promptDevHealCycleChoice } from "../devHealCycle";
 import { setLastDevHealChoice } from "../lastDevHealChoice";
@@ -59,7 +59,10 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   private pulseError: string | null = null;
   private lastPulseErrorToastAt = 0;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly extensionContext: vscode.ExtensionContext
+  ) {}
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -187,7 +190,9 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   }
 
   private async refreshHealth(): Promise<void> {
-    const result = await fetchPillarHealthReport();
+    const settings = readMsgfSettings();
+    const entityId = await resolveEntityId(this.extensionContext, settings);
+    const result = await fetchPillarHealthReport({ entityId });
     if (result.ok) {
       this.healthReport = result.report;
       this.healthError = null;
@@ -454,7 +459,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
 export function registerMsgfDashboardProvider(
   context: vscode.ExtensionContext
 ): MSGFDashboardProvider {
-  const provider = new MSGFDashboardProvider(context.extensionUri);
+  const provider = new MSGFDashboardProvider(context.extensionUri, context);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(MSGFDashboardProvider.viewType, provider, {
       webviewOptions: { retainContextWhenHidden: true },

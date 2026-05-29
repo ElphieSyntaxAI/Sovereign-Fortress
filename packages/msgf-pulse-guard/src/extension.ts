@@ -3,7 +3,7 @@
  */
 import * as vscode from "vscode";
 
-import { readMsgfSettings, settingsReady } from "./config";
+import { readMsgfSettings, resolveEntityId, settingsReady } from "./config";
 import { registerOpenDashboardCommand } from "./dashboardPanel";
 import { registerGenerateContextPackCommand } from "./generateContextPack";
 import { registerDevKitCommands } from "./devKitCommands";
@@ -52,7 +52,8 @@ export function activate(context: vscode.ExtensionContext): void {
     },
     () => {
       void sidebarDashboard?.refresh();
-    }
+    },
+    async () => resolveEntityId(context, readMsgfSettings())
   );
   stoplightBar.start();
   context.subscriptions.push({ dispose: () => stoplightBar?.dispose() });

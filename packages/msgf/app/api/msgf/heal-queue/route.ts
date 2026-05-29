@@ -26,7 +26,7 @@ import {
   resolveTenantIdFromApiKey,
 } from "@/lib/api-key-tenant";
 import { logIdentityViolation } from "@/lib/identity-violation-log";
-import { MSGF_ENTITY_ID_HEADER } from "@/lib/msgf-http-headers";
+import { MSGF_ENTITY_ID_HEADER, MSGF_TENANT_KEY_HEADER } from "@/lib/msgf-http-headers";
 import {
   assertPulseLicense,
   extractLicenseKeyFromRequest,
@@ -115,7 +115,9 @@ async function resolveHealQueueActor(
 
   const apiKey = getApiKey(req);
   if (apiKey?.startsWith("msgf_ide_")) {
-    const verified = await verifyIdeToken(admin, apiKey, tenantId);
+    const tenantKeyForVerify =
+      req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() || tenantId;
+    const verified = await verifyIdeToken(admin, apiKey, tenantKeyForVerify);
     if (!verified) {
       throw new HealQueueValidationError(
         "Invalid or expired IDE token.",
