@@ -1,6 +1,10 @@
 import * as vscode from "vscode";
 
-import { readMsgfSettings, resolveEntityId, resolveTenantId } from "../config";
+import { buildTargetedPromptWithIntent } from "../commands/optimizer";
+import { runVerifyScript } from "../commands/runScripts";
+import { loadRunScripts, type RunScriptEntry } from "../utils/run-scripts-store";
+import { fetchConnectivityCheck } from "../connectivityCheckClient";
+import { readMsgfSettings, resolveEntityId, resolveTenantId, settingsReady } from "../config";
 import { isSavePrimaryPulseMode } from "../devSessionPulse";
 import { promptDevHealCycleChoice } from "../devHealCycle";
 import { setLastDevHealChoice } from "../lastDevHealChoice";
@@ -21,6 +25,7 @@ import type { WrongLogicViolation } from "../pulseViolationAudit";
 import { runShadowPolicyScan } from "../shadowScan";
 import {
   buildDashboardWebviewHtml,
+  type ConnectionStatusView,
   type DashboardHealthView,
 } from "./dashboardWebviewHtml";
 import type { HealingConsoleView } from "./healingConsoleHtml";
@@ -29,6 +34,8 @@ const SHADOW_SCAN_PROGRESS_TITLE = "Executing Live MSGF Shadow Policy Scan...";
 
 type WebviewMessage = {
   type?: string;
+  userIntent?: string;
+  scriptId?: string;
   action_type?: "BULK" | "INDIVIDUAL" | "SCHEDULED";
   file_paths?: string[];
   preset_interval?: HealQueuePresetInterval;
@@ -58,6 +65,12 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   private lastScanRuleErrors: string[] = [];
   private pulseError: string | null = null;
   private lastPulseErrorToastAt = 0;
+  private connection: ConnectionStatusView = {
+    tone: "offline",
+    label: "Checking connection…",
+    detail: "Probing MSGF API",
+  };
+  private runScripts: RunScriptEntry[] = [];
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -76,6 +89,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this.extensionUri],
     };
 
+    void this.refreshRunScripts();
     void this.refreshHealth().then(() => this.render());
 
     webviewView.webview.onDidReceiveMessage((message: unknown) => {
@@ -84,6 +98,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
 
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
+        this.refreshRunScripts();
         void this.refreshHealth().then(() => this.render());
       }
     });
@@ -110,6 +125,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
 
   /** External refresh hook (e.g. after config change). */
   async refresh(): Promise<void> {
+    this.runScripts = loadRunScripts();
     await this.refreshHealth();
     if (this.healConsoleVisible) {
       await this.refreshHealQueue(this.lastScanRuleErrors);
@@ -189,17 +205,91 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  private refreshRunScripts(): void {
+    this.runScripts = loadRunScripts();
+  }
+
+  private postRunScriptsUpdate(): void {
+    this.view?.webview.postMessage({
+      type: "runScriptsUpdated",
+      scripts: this.runScripts.map((s) => ({
+        id: s.id,
+        label: s.label,
+        command: s.command,
+      })),
+    });
+  }
+
   private async refreshHealth(): Promise<void> {
     const settings = readMsgfSettings();
     const entityId = await resolveEntityId(this.extensionContext, settings);
-    const result = await fetchPillarHealthReport({ entityId });
-    if (result.ok) {
-      this.healthReport = result.report;
+    const [pillarResult, connection] = await Promise.all([
+      fetchPillarHealthReport({ entityId }),
+      this.probeConnection(),
+    ]);
+
+    this.connection = connection;
+
+    if (pillarResult.ok) {
+      this.healthReport = pillarResult.report;
       this.healthError = null;
     } else {
       this.healthReport = null;
-      this.healthError = result.error;
+      this.healthError = pillarResult.error;
     }
+  }
+
+  private async probeConnection(): Promise<ConnectionStatusView> {
+    const settings = readMsgfSettings();
+    const tenantKey = resolveTenantId(settings);
+    const ready = settingsReady(settings);
+
+    if (!ready.ok) {
+      return {
+        tone: "offline",
+        label: "Not configured",
+        detail: `Set ${ready.missing.join(", ")} in workspace settings.`,
+      };
+    }
+
+    const result = await fetchConnectivityCheck({ context: this.extensionContext });
+    if (!("checks" in result) || !result.checks?.length) {
+      return {
+        tone: "offline",
+        label: "Disconnected",
+        detail: "error" in result ? result.error : "Connectivity probe failed.",
+      };
+    }
+
+    const failed = result.checks.filter((c) => !c.ok);
+    const tenantLeaf = tenantKey.split("/").pop() ?? tenantKey;
+
+    if (result.ok && failed.length === 0) {
+      return {
+        tone: "connected",
+        label: "Live · tenant mapped",
+        detail: `${tenantKey} · Gated AI connected`,
+      };
+    }
+
+    if (failed.length === 0) {
+      return {
+        tone: tenantKey ? "connected" : "degraded",
+        label: tenantKey ? "Connected" : "Connected — map tenant",
+        detail: tenantKey
+          ? `${tenantLeaf} · API reachable`
+          : "Set msgf.tenantKey to your mapped project origin.",
+      };
+    }
+
+    const firstFail = failed[0];
+    return {
+      tone: "degraded",
+      label: "Degraded connection",
+      detail:
+        firstFail?.user_message ??
+        `${failed.map((c) => c.name).join(", ")} check failed`,
+    };
   }
 
   private healingConsoleView(): HealingConsoleView {
@@ -219,6 +309,8 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     const viewModel: DashboardHealthView = {
       apiUrl: settings.apiUrl,
       tenantId: resolveTenantId(settings),
+      connection: this.connection,
+      runScripts: this.runScripts,
       pulseModeHint: isSavePrimaryPulseMode(settings)
         ? "Dev session: keystrokes buffer locally; Pulse POSTs on file save (x-msgf-flush-reason: save)."
         : "Live mode: keystroke batches POST to /api/msgf/pulse every few seconds when armed.",
@@ -286,6 +378,59 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
 
     if (msg.type === "healQueueAction") {
       await this.handleHealQueueAction(msg);
+      return;
+    }
+
+    if (msg.type === "runTerminalDiagnostic") {
+      this.view?.webview.postMessage({ type: "terminalDiagnosticStarted" });
+      try {
+        await vscode.commands.executeCommand("msgf.runTerminalDiagnostic");
+      } finally {
+        this.view?.webview.postMessage({ type: "terminalDiagnosticDone" });
+      }
+      return;
+    }
+
+    if (msg.type === "generateOptimizedPrompt") {
+      const userIntent =
+        typeof msg.userIntent === "string" ? msg.userIntent.trim() : "";
+      const result = await buildTargetedPromptWithIntent(
+        this.extensionContext,
+        userIntent
+      );
+
+      this.refreshRunScripts();
+
+      if (result.ok) {
+        void vscode.window.showInformationMessage(
+          `🚀 Prompt copied! ${result.runScriptsCount} verify script(s) in Run Scripts.`
+        );
+      } else {
+        void vscode.window.showErrorMessage(
+          `[MSGF Guard] Prompt optimizer failed: ${result.error}`
+        );
+      }
+
+      this.view?.webview.postMessage({
+        type: "optimizerDone",
+        ok: result.ok,
+        message: result.ok
+          ? `${result.runScriptsCount} auto-verify script(s) registered — use Run Scripts below.`
+          : result.error,
+      });
+      this.postRunScriptsUpdate();
+      return;
+    }
+
+    if (msg.type === "runVerifyScript") {
+      const scriptId =
+        typeof msg.scriptId === "string" ? msg.scriptId : undefined;
+      this.view?.webview.postMessage({ type: "runScriptStarted" });
+      try {
+        await runVerifyScript(scriptId);
+      } finally {
+        this.view?.webview.postMessage({ type: "runScriptDone" });
+      }
       return;
     }
 

@@ -98,8 +98,10 @@ export class GuardSession {
       tenantId: this.tenantId,
       entityId: this.entityId,
       localCache: this.localCache,
-      onRbacForbidden: () => {
-        void vscode.window.showWarningMessage(MSGF_RBAC_FORBIDDEN_WARNING);
+      onRbacForbidden: (message?: string) => {
+        void vscode.window.showWarningMessage(
+          message?.trim() || MSGF_RBAC_FORBIDDEN_WARNING
+        );
       },
       onFlushComplete: (result, pending) => {
         this.lastSnapshot = {

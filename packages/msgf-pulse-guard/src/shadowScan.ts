@@ -16,19 +16,33 @@ async function collectWorkspaceScanFiles(): Promise<IngestFile[]> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (!folder) return [];
 
-  const exclude = "{**/node_modules/**,**/.git/**,**/out/**,**/dist/**}";
-  const uris = await vscode.workspace.findFiles(
-    new vscode.RelativePattern(folder, "**/*.{ts,tsx,js,jsx,md,json}"),
-    exclude,
-    MAX_FILES
-  );
+  const exclude = "{**/node_modules/**,**/.git/**,**/out/**,**/dist/**,**/vendor/**,**/tmp/**,**/coverage/**}";
+  const patterns = [
+    "**/*.{ts,tsx,js,jsx,md,json}",
+    "**/*.{rb,erb,rake}",
+    "**/{Gemfile,Rakefile,config.ru}",
+  ];
+
+  const uriSet = new Map<string, vscode.Uri>();
+  for (const glob of patterns) {
+    const uris = await vscode.workspace.findFiles(
+      new vscode.RelativePattern(folder, glob),
+      exclude,
+      MAX_FILES
+    );
+    for (const uri of uris) {
+      const rel = vscode.workspace.asRelativePath(uri, false);
+      if (!uriSet.has(rel)) uriSet.set(rel, uri);
+      if (uriSet.size >= MAX_FILES) break;
+    }
+    if (uriSet.size >= MAX_FILES) break;
+  }
 
   const files: IngestFile[] = [];
-  for (const uri of uris) {
+  for (const [path, uri] of uriSet) {
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
       const content = doc.getText().slice(0, MAX_BYTES_PER_FILE);
-      const path = vscode.workspace.asRelativePath(uri, false);
       files.push({ path, content });
     } catch {
       /* skip unreadable */
@@ -100,7 +114,7 @@ export async function runShadowPolicyScan(
   }
 
   const folder = vscode.workspace.workspaceFolders?.[0];
-  const projectOrigin = folder?.name ?? tenantId;
+  const projectOrigin = settings.tenantKey.trim() || folder?.name || tenantId;
   const files = await collectWorkspaceScanFiles();
 
   try {

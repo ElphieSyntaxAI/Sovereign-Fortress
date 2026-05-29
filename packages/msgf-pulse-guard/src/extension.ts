@@ -9,6 +9,8 @@ import { registerOptimizerCommands } from "./commands/optimizer";
 import { registerGenerateContextPackCommand } from "./generateContextPack";
 import { registerDevKitCommands } from "./devKitCommands";
 import { registerIdeSetupCommands } from "./ideSetupCommands";
+import { registerRunScriptsCommands } from "./commands/runScripts";
+import { registerTerminalDiagnosticCommand } from "./commands/terminalDiagnostic";
 import { registerSubmitVerifyResultCommand } from "./submitVerifyResultCommand";
 import { registerMsgfUriHandler, registerWorkspaceWithMsgf } from "./uriHandler";
 import { registerMsgfExternalAuthCommands } from "./openMsgfExternal";
@@ -42,6 +44,8 @@ export function activate(context: vscode.ExtensionContext): void {
   registerDevKitCommands(context);
   registerGenerateContextPackCommand(context);
   registerOptimizerCommands(context);
+  registerTerminalDiagnosticCommand(context);
+  registerRunScriptsCommands(context);
   registerSubmitVerifyResultCommand(context);
   registerMsgfUriHandler(context);
   registerViolationCommands(context);

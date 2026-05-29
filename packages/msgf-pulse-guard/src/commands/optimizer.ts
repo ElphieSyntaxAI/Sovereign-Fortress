@@ -2,14 +2,23 @@ import * as vscode from "vscode";
 
 import { readMsgfSettings, resolveEntityId, resolveTenantId } from "../config";
 import { buildIdeApiAuthHeaders } from "../pulseAuth";
+import { collectOptimizerScopePaths } from "../optimizerScopePaths";
+import { inferLocalVerifyScripts, registerRunScripts } from "../utils/run-scripts-store";
 
 const LOG_PREFIX = "[MSGF Guard]";
 const LAST_PACK_ID_KEY = "msgf.lastPackId";
+
+type VerifyScriptPayload = {
+  id: string;
+  label: string;
+  command: string;
+};
 
 type PromptOptimizerResponse = {
   ok?: boolean;
   packId?: string;
   markdown?: string;
+  verifyScripts?: VerifyScriptPayload[];
   error?: string | Record<string, unknown>;
 };
 
@@ -24,51 +33,59 @@ function apiBase(settings: ReturnType<typeof readMsgfSettings>): string {
   return settings.apiUrl.replace(/\/$/, "");
 }
 
-function activeEditorPaths(): string[] {
-  const paths: string[] = [];
-  const active = vscode.window.activeTextEditor;
-  if (active) {
-    const rel = vscode.workspace.asRelativePath(active.document.uri, false);
-    if (rel && !rel.startsWith("..")) paths.push(rel.replace(/\\/g, "/"));
+function formatOptimizerError(
+  res: Response,
+  data: PromptOptimizerResponse
+): string {
+  if (typeof data.error === "string" && data.error.trim()) {
+    return data.error.trim();
   }
-  for (const uri of vscode.window.tabGroups.all.flatMap((g) =>
-    g.tabs
-      .map((t) => (t.input as { uri?: vscode.Uri })?.uri)
-      .filter((u): u is vscode.Uri => u instanceof vscode.Uri)
-  )) {
-    const rel = vscode.workspace.asRelativePath(uri, false);
-    if (rel && !rel.startsWith("..")) paths.push(rel.replace(/\\/g, "/"));
+  if (data.error && typeof data.error === "object") {
+    const errObj = data.error as Record<string, unknown>;
+    const form = errObj._form ?? errObj.formErrors;
+    if (Array.isArray(form) && form.length) {
+      return form.map(String).join("; ");
+    }
+    const parts = Object.entries(errObj)
+      .filter(([k, v]) => k !== "_form" && k !== "formErrors" && v != null)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`);
+    if (parts.length) return parts.join("; ");
   }
-  return [...new Set(paths)].slice(0, 32);
+  if (!data.ok && !data.markdown?.trim()) {
+    return `HTTP ${res.status} — no markdown returned (API may need redeploy).`;
+  }
+  return res.statusText || `HTTP ${res.status}`;
 }
 
-export async function runBuildTargetedPrompt(
-  context: vscode.ExtensionContext
-): Promise<void> {
+export type BuildTargetedPromptResult =
+  | { ok: true; packId?: string; runScriptsCount: number }
+  | { ok: false; error: string };
+
+/** Run prompt optimizer with a caller-supplied intent (sidebar form or palette). */
+export async function buildTargetedPromptWithIntent(
+  context: vscode.ExtensionContext,
+  userIntent: string
+): Promise<BuildTargetedPromptResult> {
   const settings = readMsgfSettings();
   const tenantId = resolveTenantId(settings);
+  const intent = userIntent.trim();
 
   if (!settings.authToken?.trim()) {
-    void vscode.window.showWarningMessage(
-      `${LOG_PREFIX} msgf.authToken required — mint from Workspace → IDE setup.`
-    );
-    return;
+    return {
+      ok: false,
+      error: `${LOG_PREFIX} msgf.authToken required — mint from Workspace → IDE setup.`,
+    };
   }
 
   if (!tenantId) {
-    void vscode.window.showWarningMessage(`${LOG_PREFIX} msgf.tenantKey is required.`);
-    return;
+    return { ok: false, error: `${LOG_PREFIX} msgf.tenantKey is required.` };
   }
 
-  const userIntent = await vscode.window.showInputBox({
-    title: "MSGF targeted prompt",
-    prompt: "What feature or fix are you working on?",
-    placeHolder: "e.g. Fix pillars 403 on wrong tenant key",
-    ignoreFocusOut: true,
-  });
+  if (intent.length < 3) {
+    return { ok: false, error: "Describe what you are building or fixing (at least 3 characters)." };
+  }
 
-  if (!userIntent?.trim()) return;
-
+  const activeFilePaths = await collectOptimizerScopePaths(intent);
   const entityId = await resolveEntityId(context, settings);
   const url = `${apiBase(settings)}/api/msgf/prompt-optimizer`;
 
@@ -81,35 +98,62 @@ export async function runBuildTargetedPrompt(
       },
       body: JSON.stringify({
         tenantKey: tenantId,
-        userIntent: userIntent.trim(),
-        activeFilePaths: activeEditorPaths(),
+        userIntent: intent,
+        activeFilePaths,
         goalType: "fix",
       }),
     });
 
     const data = (await res.json()) as PromptOptimizerResponse;
-    if (!res.ok || !data.ok || !data.markdown) {
-      const err =
-        typeof data.error === "string"
-          ? data.error
-          : JSON.stringify(data.error ?? res.statusText);
-      void vscode.window.showErrorMessage(`${LOG_PREFIX} Prompt optimizer failed: ${err}`);
-      return;
+    if (!res.ok || !data.ok || !data.markdown?.trim()) {
+      return { ok: false, error: formatOptimizerError(res, data) };
     }
 
     if (data.packId) {
       await context.globalState.update(LAST_PACK_ID_KEY, data.packId);
     }
 
+    let runScriptsCount = 0;
+    if (data.verifyScripts?.length) {
+      runScriptsCount = registerRunScripts(data.verifyScripts, {
+        packId: data.packId,
+        userIntent: intent,
+      }).length;
+    } else {
+      runScriptsCount = inferLocalVerifyScripts(intent, activeFilePaths, data.packId).length;
+    }
+
     await vscode.env.clipboard.writeText(data.markdown);
-    void vscode.window.showInformationMessage(
-      "🚀 Token-optimized prompt copied to clipboard! Paste into Cursor Composer."
-    );
+    return { ok: true, packId: data.packId, runScriptsCount };
   } catch (e) {
-    void vscode.window.showErrorMessage(
-      `${LOG_PREFIX} ${e instanceof Error ? e.message : "Prompt optimizer network error"}`
-    );
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Prompt optimizer network error",
+    };
   }
+}
+
+export async function runBuildTargetedPrompt(
+  context: vscode.ExtensionContext
+): Promise<void> {
+  const userIntent = await vscode.window.showInputBox({
+    title: "MSGF targeted prompt",
+    prompt: "What feature or fix are you working on?",
+    placeHolder: "e.g. Fix pillars 403 on wrong tenant key",
+    ignoreFocusOut: true,
+  });
+
+  if (!userIntent?.trim()) return;
+
+  const result = await buildTargetedPromptWithIntent(context, userIntent);
+  if (!result.ok) {
+    void vscode.window.showErrorMessage(`${LOG_PREFIX} Prompt optimizer failed: ${result.error}`);
+    return;
+  }
+
+  void vscode.window.showInformationMessage(
+    `🚀 Token-optimized prompt copied! ${result.runScriptsCount} verify script(s) added to Run Scripts.`
+  );
 }
 
 export async function runConfirmPackUsed(

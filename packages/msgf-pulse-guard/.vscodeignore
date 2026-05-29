@@ -3,6 +3,7 @@
 src/**
 tsconfig.json
 .gitignore
+gcp-msgf-deploy.log
 **/*.map
 **/*.ts
 !out/**/*.js

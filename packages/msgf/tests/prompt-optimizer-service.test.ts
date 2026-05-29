@@ -16,6 +16,7 @@ import { describe, test } from "node:test";
 import {
   appendPackSignature,
   PILLAR_6_CONSTRAINTS_BLOCK,
+  sanitizeActiveFilePaths,
 } from "../lib/services/prompt-optimizer-service.js";
 
 describe("prompt-optimizer-service", () => {
@@ -29,5 +30,43 @@ describe("prompt-optimizer-service", () => {
   test("Pillar 6 constraints mention env and verify", () => {
     assert.ok(PILLAR_6_CONSTRAINTS_BLOCK.includes(".env"));
     assert.ok(PILLAR_6_CONSTRAINTS_BLOCK.includes("npm run build"));
+  });
+
+  test("sanitizeActiveFilePaths drops absolute and junk paths", () => {
+    const clean = sanitizeActiveFilePaths([
+      "app/controllers/teams_controller.rb",
+      "c:/Users/jessi/OneDrive/Desktop/ElphieSyntaxLLC/without",
+      "tunnelHostService",
+      "test/controllers/teams_controller_test.rb",
+    ]);
+    assert.deepEqual(clean, [
+      "app/controllers/teams_controller.rb",
+      "test/controllers/teams_controller_test.rb",
+    ]);
+  });
+});
+
+describe("feature-verify-scripts", () => {
+  test("buildFeatureVerifyScripts emits Rails test for scoped Ruby paths", async () => {
+    const { buildFeatureVerifyScripts } = await import("../lib/services/feature-verify-scripts.js");
+    const scripts = buildFeatureVerifyScripts(
+      "add team membership controller tests",
+      ["test/controllers/teams_controller_test.rb"],
+      "11111111-1111-4111-8111-111111111111"
+    );
+    assert.ok(scripts.some((s) => s.command.includes("teams_controller_test.rb")));
+    assert.ok(scripts.some((s) => s.command.includes("rails test")));
+  });
+});
+
+describe("sweep-ingest-index", () => {
+  test("buildComposerAttachments emits @file and @folder lines", async () => {
+    const { buildComposerAttachments } = await import("../lib/services/sweep-ingest-index.js");
+    const block = buildComposerAttachments([
+      "test/controllers/teams_controller_test.rb",
+      "app/controllers/teams_controller.rb",
+    ]);
+    assert.ok(block.file_lines.includes("@test/controllers/teams_controller_test.rb"));
+    assert.ok(block.folder_lines.some((l) => l.startsWith("@folder/")));
   });
 });

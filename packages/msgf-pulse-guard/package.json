@@ -2,7 +2,7 @@
   "name": "msgf-pulse-guard",
   "displayName": "MSGF Pulse Guard",
   "description": "V3.2-ULTRA IDE guard — buffers keystroke Pulses and routes to MSGF (SHARD / CROSS-REF / CONVERGE).",
-  "version": "0.1.0",
+  "version": "0.1.7",
   "publisher": "elphiesyntax",
   "license": "UNLICENSED",
   "private": true,
@@ -66,16 +66,16 @@
     "views": {
       "msgf-ops": [
         {
-          "type": "webview",
           "id": "msgf.dashboard",
-          "name": "Operations"
+          "name": "Command Center"
         }
       ]
     },
     "commands": [
       {
         "command": "msgf.flushPulse",
-        "title": "MSGF: Flush buffered Pulse now"
+        "title": "MSGF: Flush buffered Pulse now",
+        "category": "MSGF"
       },
       {
         "command": "msgf.openDashboard",
@@ -104,15 +104,28 @@
       },
       {
         "command": "msgf.generateContextPack",
-        "title": "MSGF: Generate 0-token context pack"
+        "title": "MSGF: Generate 0-token context pack",
+        "category": "MSGF"
       },
       {
         "command": "msgf.buildTargetedPrompt",
-        "title": "MSGF: Build Targeted Prompt"
+        "title": "MSGF: Build Targeted Prompt (prompt optimizer)",
+        "category": "MSGF"
       },
       {
         "command": "msgf.confirmPackUsed",
-        "title": "MSGF: Confirm Pack Used"
+        "title": "MSGF: Confirm Pack Used",
+        "category": "MSGF"
+      },
+      {
+        "command": "msgf.runVerifyScripts",
+        "title": "MSGF: Run verify scripts",
+        "category": "MSGF"
+      },
+      {
+        "command": "msgf.runTerminalDiagnostic",
+        "title": "MSGF: Run Terminal Diagnostic (Safe Build)",
+        "category": "MSGF"
       },
       {
         "command": "msgf.submitVerifyResult",
@@ -120,7 +133,8 @@
       },
       {
         "command": "msgf.testConnection",
-        "title": "MSGF: Test connection"
+        "title": "MSGF: Test connection",
+        "category": "MSGF"
       },
       {
         "command": "msgf.applyWorkspaceSettings",

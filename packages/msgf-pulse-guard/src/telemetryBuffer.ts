@@ -14,7 +14,7 @@ export type TelemetryBufferOptions = {
   entityId: string;
   localCache?: LocalStateCacheWriter | null;
   onFlushComplete: (result: PulseFlushResult, pendingCount: number) => void;
-  onRbacForbidden?: () => void;
+  onRbacForbidden?: (message?: string) => void;
   fetchImpl?: typeof fetch;
 };
 
@@ -138,7 +138,7 @@ export class TelemetryBuffer {
       if (result.forbidden) {
         this.buffer.unshift(...batch);
         this.pauseStream();
-        this.options.onRbacForbidden?.();
+        this.options.onRbacForbidden?.(result.snapshot.error ?? undefined);
       }
 
       this.options.onFlushComplete(result, this.buffer.length);

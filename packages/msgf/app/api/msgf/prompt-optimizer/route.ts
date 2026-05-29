@@ -42,9 +42,16 @@ export async function POST(req: NextRequest) {
 
     const parsed = PromptOptimizerBodySchema.safeParse(raw);
     if (!parsed.success) {
+      const flat = parsed.error.flatten();
       return json(
         req,
-        { ok: false, error: parsed.error.flatten().fieldErrors },
+        {
+          ok: false,
+          error: {
+            ...flat.fieldErrors,
+            ...(flat.formErrors.length ? { _form: flat.formErrors } : {}),
+          },
+        },
         { status: 400 }
       );
     }
@@ -60,6 +67,7 @@ export async function POST(req: NextRequest) {
       goalType: parsed.data.goalType,
       entityId,
       userId: token.user_id,
+      projectOrigin: parsed.data.projectOrigin ?? parsed.data.tenantKey,
     });
 
     void recordSavingsFeatureCount(tenantKey, "agent_context_pack");
@@ -72,6 +80,7 @@ export async function POST(req: NextRequest) {
       shardedCharCount: result.shardedCharCount,
       task_count: result.task_count,
       shadow_files_indexed: result.shadow_files_indexed,
+      verifyScripts: result.verifyScripts,
     });
   } catch (e) {
     if (e instanceof IdePackAuthError) {

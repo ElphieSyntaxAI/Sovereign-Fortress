@@ -124,11 +124,17 @@ export async function flushTelemetryBatch(params: {
     const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
 
     if (res.status === 403) {
-      console.warn(`${LOG_PREFIX} RBAC 403:`, raw.error ?? MSGF_RBAC_FORBIDDEN_WARNING);
+      const c = classifyHttpError({ status: 403, body: raw });
+      const detail =
+        typeof raw.error === "string" && raw.error.trim()
+          ? raw.error.trim()
+          : c.message;
+      const userMessage = `[${c.code}] ${detail}`;
+      console.warn(`${LOG_PREFIX} RBAC 403:`, userMessage, raw);
       return {
         ok: false,
         forbidden: true,
-        snapshot: emptySnapshot("error", MSGF_RBAC_FORBIDDEN_WARNING),
+        snapshot: emptySnapshot("error", userMessage),
       };
     }
 

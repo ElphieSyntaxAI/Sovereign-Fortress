@@ -20,6 +20,7 @@ export const PromptOptimizerBodySchema = z
     userIntent: z.string().min(3).max(4_000),
     activeFilePaths: z.array(z.string().min(1).max(512)).max(32).default([]),
     goalType: PromptOptimizerGoalTypeSchema.optional(),
+    projectOrigin: z.string().min(1).max(256).optional(),
   })
   .strict();
 
