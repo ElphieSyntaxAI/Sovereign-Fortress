@@ -2,6 +2,11 @@
  * Deterministic feature verify scripts — no LLM, paired with prompt optimizer.
  */
 
+import {
+  assertAllowedVerifyCommand,
+  isSafeRepoRelativePath,
+} from "@/lib/utils/shell-safe-path";
+
 export type FeatureVerifyScript = {
   id: string;
   label: string;
@@ -89,12 +94,19 @@ export function buildFeatureVerifyScripts(
   }
 
   const seen = new Set<string>();
-  return scripts.filter((s) => {
-    const key = s.command.trim();
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 3);
+  return scripts
+    .filter((s) => {
+      const key = s.command.trim();
+      if (!key || seen.has(key)) return false;
+      try {
+        assertAllowedVerifyCommand(key);
+      } catch {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 3);
 }
 
 export function formatVerifyShellScript(commands: readonly string[]): string {
@@ -123,6 +135,7 @@ export function formatVerifyPowerShellScript(commands: readonly string[]): strin
 
 export function formatRunScriptsMarkdownSection(scripts: readonly FeatureVerifyScript[]): string[] {
   if (!scripts.length) return [];
+  const primary = scripts[0]!.command;
   return [
     "## Auto-verify (Run Scripts)",
     "",
@@ -130,7 +143,68 @@ export function formatRunScriptsMarkdownSection(scripts: readonly FeatureVerifyS
     "",
     ...scripts.map((s) => `- **${s.label}** — \`${s.command}\``),
     "",
-    "After the agent implements the feature, click **Run Scripts** in the sidebar to verify without re-pasting context.",
+    `**Agent:** your work is not done until \`${primary}\` would pass locally.`,
+    "**Operator:** after the agent finishes, click **Run Scripts** in the sidebar — no new prompt required.",
+    "",
+  ];
+}
+
+function stripMarkdownCommand(hint: string): string {
+  return hint.replace(/`/g, "").trim();
+}
+
+/** Mandatory agent execution rules — MSGF V1 structured prompt block. */
+export function formatAgentInstructionsSection(input: {
+  userIntent: string;
+  paths: readonly string[];
+  verifyScripts: readonly FeatureVerifyScript[];
+  verifyHint: string;
+}): string[] {
+  const primaryVerify =
+    input.verifyScripts[0]?.command ?? stripMarkdownCommand(input.verifyHint);
+
+  const testPaths = input.paths.filter((p) =>
+    /test\/|\.(test|spec)\.(rb|ts|tsx|js|jsx)$/i.test(p)
+  );
+  const implPaths = input.paths.filter(
+    (p) => !/test\/|\.(test|spec)\.(rb|ts|tsx|js|jsx)$/i.test(p)
+  );
+
+  const featureSurfaceHint =
+    implPaths.length > 0
+      ? implPaths.slice(0, 6).map((p) => `\`${p}\``).join(", ")
+      : "the scoped production paths listed above";
+
+  const existingTestHint =
+    testPaths.length > 0
+      ? testPaths.map((p) => `\`${p}\``).join(", ")
+      : "a conventional test file mirroring the changed production path (e.g. `*_test.rb`, `*.test.ts`)";
+
+  return [
+    "### 📋 MANDATORY AGENT EXECUTION RULES",
+    "",
+    "**Composer setup:** Attach the **@** files/folders from this pack first — never paste whole-repo context.",
+    "",
+    "1. **IMPLEMENTATION:** Apply the user's goal using microscopic, targeted file diffs. Do not rewrite whole functions or structures unless structurally broken.",
+    "",
+    "2. **SMART TEST COVERAGE:**",
+    "   - **FIRST:** Scan the repository for an existing test file matching this feature surface.",
+    `   - **Scoped production surface:** ${featureSurfaceHint}`,
+    `   - **Known test candidates from this pack:** ${existingTestHint}`,
+    "   - **IF PRESENT:** Review the existing test cases. If the new logic is already covered, **SKIP** creating new tests. If it is not covered, **EXTEND** the existing test file with targeted cases. **DO NOT** duplicate or create a parallel test file.",
+    "   - **IF MISSING:** Create a single, native test file (e.g. `*_test.rb`, `*.test.ts`) that strictly targets the new paths or modified logic.",
+    "",
+    "3. **LOCAL VERIFICATION:** Before declaring success, you must run the local verification harness via:",
+    `   \`${primaryVerify}\``,
+    "   - Fix all failures before finishing. This command is synced to **MSGF → Run Scripts**; the operator will re-run it without regenerating this prompt.",
+    "",
+    "4. **OUTPUT SUMMARY:** Conclude your execution with a clear Markdown table mapping exactly:",
+    "",
+    "| File | Change | Test spec executed | Pass/Fail |",
+    "|------|--------|-------------------|-----------|",
+    "| _(path)_ | _(brief)_ | _(command or example)_ | _(status)_ |",
+    "",
+    "Include every modified file, every test file touched or intentionally skipped (with reason), and the final terminal status of the verify command.",
     "",
   ];
 }

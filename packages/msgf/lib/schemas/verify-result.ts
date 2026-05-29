@@ -29,6 +29,7 @@ export const VerifyResultBodySchema = z
       .enum(["gatedai", "author", "education", "integrator", "ide"])
       .optional(),
     actor_id: z.string().max(256).optional(),
+    pack_id: z.string().uuid().optional(),
   })
   .strict();
 

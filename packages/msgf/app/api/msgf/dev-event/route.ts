@@ -23,6 +23,7 @@ import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
 import { DevEventValidationError, parseDevEventBody } from "@/lib/schemas/dev-event";
 import { resolveDevEventActor } from "@/lib/services/dev-event-auth";
+import { IdeApiAuthError } from "@/lib/services/ide-api-auth";
 import { runDevEventBuildHeal } from "@/lib/services/dev-event-build-heal";
 import { isCostRunawayError } from "@/lib/services/cost-runaway-guard";
 
@@ -73,6 +74,9 @@ export async function POST(req: NextRequest) {
         { ok: false, error: e.code, message: e.message, issues: e.issues },
         { status: e.status }
       );
+    }
+    if (e instanceof IdeApiAuthError) {
+      return devEventJson(req, { ok: false, error: e.message }, { status: e.status });
     }
     if (e instanceof MsgfAdminAuthError) {
       return devEventJson(req, { ok: false, error: e.message }, { status: e.status });

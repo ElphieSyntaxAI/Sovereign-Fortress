@@ -12,11 +12,13 @@ export type VerifyResultPayload = {
   dev_heal_choice?: "self_guided" | "self_local" | "cloud";
   incident_id?: string | null;
   actor_id?: string;
+  pack_id?: string;
 };
 
 export async function postVerifyResult(params: {
   settings: MsgfGuardSettings;
   tenantKey: string;
+  entityId?: string;
   body: VerifyResultPayload;
   fetchImpl?: typeof fetch;
 }): Promise<{ ok: boolean; narrative_log_id?: string | null; error?: string }> {
@@ -25,13 +27,17 @@ export async function postVerifyResult(params: {
   const baseUrl = params.settings.apiUrl.replace(/\/$/, "");
   const url = `${baseUrl}/api/msgf/verify-result`;
 
-  const headers = {
+  const headers: Record<string, string> = {
     ...buildApiAuthHeaders({
       settings: params.settings,
       tenantId: params.tenantKey,
     }),
     "Content-Type": "application/json",
   };
+
+  if (params.entityId?.trim()) {
+    headers["x-msgf-entity-id"] = params.entityId.trim();
+  }
 
   try {
     const res = await fetchFn(url, {
@@ -40,6 +46,7 @@ export async function postVerifyResult(params: {
       body: JSON.stringify({
         tenant_id: tenantUuid,
         product_surface: "ide",
+        actor_id: params.entityId?.trim() || undefined,
         ...params.body,
       }),
     });

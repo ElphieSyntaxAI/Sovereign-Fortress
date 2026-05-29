@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import { assertAllowedVerifyCommand } from "./shell-safe-path";
 import { getMsgfDir, getWorkspaceRoot } from "../workspace/msgfWorkspace";
 
 export type RunScriptEntry = {
@@ -101,14 +102,22 @@ export function registerRunScripts(
 
   const store = readStore(root);
   const now = new Date().toISOString();
-  const incoming: RunScriptEntry[] = scripts.map((s) => ({
-    id: s.id,
-    label: s.label,
-    command: s.command.trim(),
-    packId: s.packId ?? meta?.packId,
-    userIntent: meta?.userIntent ?? s.userIntent,
-    createdAt: now,
-  }));
+  const incoming: RunScriptEntry[] = [];
+  for (const s of scripts) {
+    try {
+      incoming.push({
+        id: s.id,
+        label: s.label,
+        command: assertAllowedVerifyCommand(s.command.trim()),
+        packId: s.packId ?? meta?.packId,
+        userIntent: meta?.userIntent ?? s.userIntent,
+        createdAt: now,
+      });
+    } catch {
+      /* drop disallowed commands from tampered or stale payloads */
+    }
+  }
+  if (!incoming.length) return store.scripts;
 
   const merged: RunScriptEntry[] = [];
   const seen = new Set<string>();

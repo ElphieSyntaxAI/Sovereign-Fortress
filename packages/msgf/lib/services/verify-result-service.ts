@@ -17,11 +17,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { VerifyResultBody } from "@/lib/schemas/verify-result";
+import { applyVerifyResultLedgerEffects } from "@/lib/services/verify-result-ledger";
+import { redactTerminalSnippet } from "@/lib/utils/shell-safe-path";
 
 export type VerifyResultPersisted = {
   ok: true;
   narrative_log_id: string | null;
   severity: "Info" | "Warning" | "Violation";
+  hall_persisted?: boolean;
+  vault_persisted?: boolean;
+  verify_fail_count?: number;
 };
 
 export async function persistVerifyResult(
@@ -46,8 +51,12 @@ export async function persistVerifyResult(
     dev_heal_choice: body.dev_heal_choice ?? null,
     incident_id: body.incident_id ?? null,
     product_surface: body.product_surface ?? "ide",
-    stdout_snippet: body.stdout_snippet?.slice(0, 2000) ?? null,
-    stderr_snippet: body.stderr_snippet?.slice(0, 2000) ?? null,
+    stdout_snippet: body.stdout_snippet
+      ? redactTerminalSnippet(body.stdout_snippet, 2000)
+      : null,
+    stderr_snippet: body.stderr_snippet
+      ? redactTerminalSnippet(body.stderr_snippet, 2000)
+      : null,
     bug_index: {
       level_1_category: "1.0_PULSE",
       level_1_1_branch: "1.1_INGEST",
@@ -73,9 +82,15 @@ export async function persistVerifyResult(
     return { ok: true, narrative_log_id: null, severity };
   }
 
+  const actorId = body.actor_id?.trim() || null;
+  const ledger = await applyVerifyResultLedgerEffects(admin, body, actorId);
+
   return {
     ok: true,
     narrative_log_id: typeof data?.id === "string" ? data.id : null,
     severity,
+    hall_persisted: ledger.hall_persisted,
+    vault_persisted: ledger.vault_persisted,
+    verify_fail_count: ledger.verify_fail_count,
   };
 }

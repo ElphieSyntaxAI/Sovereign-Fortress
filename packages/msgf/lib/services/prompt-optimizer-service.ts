@@ -19,6 +19,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RemediationTask } from "@/lib/schemas/heal-queue";
 import {
   buildFeatureVerifyScripts,
+  formatAgentInstructionsSection,
   formatRunScriptsMarkdownSection,
   type FeatureVerifyScript,
 } from "@/lib/services/feature-verify-scripts";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/services/sweep-ingest-index";
 import { listUserProjects, type UserProjectRow } from "@/lib/services/user-projects";
 import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
+import { isSafeRepoRelativePath } from "@/lib/utils/shell-safe-path";
 
 export const PILLAR_6_CONSTRAINTS_BLOCK = [
   "## Pillar 6 constraints",
@@ -83,9 +85,7 @@ export function sanitizeActiveFilePaths(paths: readonly string[]): string[] {
   for (const raw of paths) {
     const p = normalizePath(raw.trim());
     if (!p || seen.has(p)) continue;
-    if (/^[a-zA-Z]:/.test(p) || p.startsWith("/") || p.includes("://")) continue;
-    if (p.startsWith("..")) continue;
-    if (!p.includes("/") && !/^(Gemfile|Rakefile|Dockerfile|package\.json)$/.test(p)) continue;
+    if (!isSafeRepoRelativePath(p)) continue;
     if (!p.includes(".") && !p.endsWith("Gemfile")) continue;
     seen.add(p);
     out.push(p);
@@ -358,13 +358,12 @@ export async function buildOptimizedPrompt(
   lines.push(PILLAR_6_CONSTRAINTS_BLOCK);
 
   lines.push(
-    "## Agent instructions",
-    "",
-    "1. Attach the **@** files/folders above in Composer — do not paste whole-repo context.",
-    "2. Implement the goal with minimal diffs; add or extend tests where the goal mentions tests.",
-    `3. Verify with ${verifyHint}.`,
-    "4. Summarize files touched and commands run.",
-    ""
+    ...formatAgentInstructionsSection({
+      userIntent: input.userIntent.trim(),
+      paths,
+      verifyScripts,
+      verifyHint,
+    })
   );
 
   const markdown = appendPackSignature(lines.filter(Boolean).join("\n"), packId);

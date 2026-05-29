@@ -1,18 +1,27 @@
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
-
 import * as vscode from "vscode";
 
-const execAsync = promisify(exec);
+import { readMsgfSettings } from "../config";
+import { postDevEventBuildFailed } from "../devEventClient";
+import { postVerifyResult } from "../verifyResultClient";
+import { redactTerminalSnippet } from "./shell-safe-path";
+import { safeExecVerifyCommand } from "./safe-exec";
 
 const MAX_OUTPUT_CHARS = 4000;
-const EXEC_MAX_BUFFER = 256 * 1024;
 const RUN_TIMEOUT_MS = 600_000;
 
 export type RunScriptResult = {
   ok: boolean;
   command: string;
   output: string;
+  exitCode: number;
+};
+
+export type RunScriptSyncContext = {
+  tenantKey: string;
+  entityId?: string;
+  packId?: string;
+  filePaths?: string[];
+  fetchImpl?: typeof fetch;
 };
 
 function capOutput(text: string | undefined): string {
@@ -21,31 +30,84 @@ function capOutput(text: string | undefined): string {
   return t.slice(-MAX_OUTPUT_CHARS);
 }
 
-/** Execute a single verify command in the workspace root (no shell hooks). */
+/** Execute a single allowlisted verify command (no shell) and optionally sync to MSGF API. */
 export async function executeRunScriptCommand(
   workspacePath: string,
-  command: string
+  command: string,
+  sync?: RunScriptSyncContext
 ): Promise<RunScriptResult> {
   const cmd = command.trim();
   if (!cmd) {
-    return { ok: false, command: cmd, output: "Empty command." };
+    return { ok: false, command: cmd, output: "Empty command.", exitCode: 1 };
   }
 
   try {
-    const { stdout, stderr } = await execAsync(cmd, {
-      cwd: workspacePath,
-      maxBuffer: EXEC_MAX_BUFFER,
-      timeout: RUN_TIMEOUT_MS,
-      windowsHide: true,
-    });
-    const output = capOutput(`${stdout ?? ""}\n${stderr ?? ""}`.trim());
-    return { ok: true, command: cmd, output: output || "Command completed with no output." };
+    const result = await safeExecVerifyCommand(workspacePath, cmd, RUN_TIMEOUT_MS);
+    const output = capOutput(`${result.stdout}\n${result.stderr}`.trim());
+
+    if (sync) {
+      const settings = readMsgfSettings();
+      if (result.ok) {
+        void postVerifyResult({
+          settings,
+          tenantKey: sync.tenantKey,
+          entityId: sync.entityId,
+          body: {
+            passed: true,
+            command: cmd,
+            exit_code: 0,
+            stdout_snippet: redactTerminalSnippet(output),
+            file_paths: sync.filePaths,
+            pack_id: sync.packId,
+          },
+          fetchImpl: sync.fetchImpl,
+        });
+      } else {
+        void postDevEventBuildFailed({
+          settings,
+          tenantKey: sync.tenantKey,
+          entityId: sync.entityId,
+          body: {
+            activeFile: sync.filePaths?.[0] ?? "verify",
+            excerpt: redactTerminalSnippet(output || "Verify command failed."),
+            exitCode: result.exitCode,
+          },
+          fetchImpl: sync.fetchImpl,
+        });
+        void postVerifyResult({
+          settings,
+          tenantKey: sync.tenantKey,
+          entityId: sync.entityId,
+          body: {
+            passed: false,
+            command: cmd,
+            exit_code: result.exitCode,
+            stderr_snippet: redactTerminalSnippet(output),
+            file_paths: sync.filePaths,
+          },
+          fetchImpl: sync.fetchImpl,
+        });
+      }
+    }
+
+    if (result.ok) {
+      return {
+        ok: true,
+        command: cmd,
+        output: output || "Command completed with no output.",
+        exitCode: 0,
+      };
+    }
+
+    return {
+      ok: false,
+      command: cmd,
+      output: output || "Verify command failed.",
+      exitCode: result.exitCode,
+    };
   } catch (e) {
-    const err = e as { stdout?: string; stderr?: string; message?: string };
-    const output = capOutput(
-      `${err.stderr ?? ""}\n${err.stdout ?? ""}\n${err.message ?? ""}`.trim()
-    );
-    return { ok: false, command: cmd, output: output || "Verify command failed." };
+    const message = e instanceof Error ? e.message : "Verify command rejected.";
+    return { ok: false, command: cmd, output: message, exitCode: 1 };
   }
 }
 

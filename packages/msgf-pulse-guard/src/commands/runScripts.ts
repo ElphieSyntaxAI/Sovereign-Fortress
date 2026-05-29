@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 
+import { readMsgfSettings, resolveEntityId, resolveTenantId } from "../config";
 import {
   executeRunScriptCommand,
   showRunScriptResult,
@@ -16,7 +17,10 @@ function resolveScript(scriptId?: string): RunScriptEntry | null {
   return scripts.find((s) => s.id === scriptId) ?? scripts[0] ?? null;
 }
 
-export async function runVerifyScript(scriptId?: string): Promise<void> {
+export async function runVerifyScript(
+  context: vscode.ExtensionContext,
+  scriptId?: string
+): Promise<void> {
   const root = getWorkspaceRoot();
   if (!root) {
     void vscode.window.showWarningMessage(
@@ -33,6 +37,15 @@ export async function runVerifyScript(scriptId?: string): Promise<void> {
     return;
   }
 
+  const settings = readMsgfSettings();
+  const tenantKey = resolveTenantId(settings);
+  if (!tenantKey) {
+    void vscode.window.showWarningMessage(`${LOG_PREFIX} msgf.tenantKey is required.`);
+    return;
+  }
+
+  const entityId = await resolveEntityId(context, settings);
+
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -40,7 +53,11 @@ export async function runVerifyScript(scriptId?: string): Promise<void> {
       cancellable: false,
     },
     async () => {
-      const result = await executeRunScriptCommand(root, script.command);
+      const result = await executeRunScriptCommand(root, script.command, {
+        tenantKey,
+        entityId,
+        packId: script.packId,
+      });
       await showRunScriptResult(result);
     }
   );
@@ -49,7 +66,7 @@ export async function runVerifyScript(scriptId?: string): Promise<void> {
 export function registerRunScriptsCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("msgf.runVerifyScripts", (scriptId?: string) => {
-      void runVerifyScript(typeof scriptId === "string" ? scriptId : undefined);
+      void runVerifyScript(context, typeof scriptId === "string" ? scriptId : undefined);
     })
   );
 }

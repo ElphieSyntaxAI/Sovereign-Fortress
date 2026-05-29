@@ -27,6 +27,15 @@ describe("verify-result schema", () => {
     assert.equal(parsed.success, true);
   });
 
+  test("accepts pack_id on pass payload", () => {
+    const parsed = VerifyResultBodySchema.safeParse({
+      tenant_id: "deckhostwmsgf/deck_host",
+      passed: true,
+      pack_id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+    assert.equal(parsed.success, true);
+  });
+
   test("rejects missing tenant_id", () => {
     const parsed = VerifyResultBodySchema.safeParse({ passed: false });
     assert.equal(parsed.success, false);

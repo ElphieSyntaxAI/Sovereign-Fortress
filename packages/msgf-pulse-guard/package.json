@@ -2,7 +2,7 @@
   "name": "msgf-pulse-guard",
   "displayName": "MSGF Pulse Guard",
   "description": "V3.2-ULTRA IDE guard — buffers keystroke Pulses and routes to MSGF (SHARD / CROSS-REF / CONVERGE).",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "publisher": "elphiesyntax",
   "license": "UNLICENSED",
   "private": true,

@@ -57,6 +57,29 @@ describe("feature-verify-scripts", () => {
     assert.ok(scripts.some((s) => s.command.includes("teams_controller_test.rb")));
     assert.ok(scripts.some((s) => s.command.includes("rails test")));
   });
+
+  test("formatAgentInstructionsSection requires tests and exact verify command", async () => {
+    const { buildFeatureVerifyScripts, formatAgentInstructionsSection } = await import(
+      "../lib/services/feature-verify-scripts.js"
+    );
+    const scripts = buildFeatureVerifyScripts(
+      "add team membership controller tests",
+      ["test/controllers/teams_controller_test.rb", "app/controllers/teams_controller.rb"],
+      "11111111-1111-4111-8111-111111111111"
+    );
+    const block = formatAgentInstructionsSection({
+      userIntent: "add team membership controller tests",
+      paths: ["test/controllers/teams_controller_test.rb", "app/controllers/teams_controller.rb"],
+      verifyScripts: scripts,
+      verifyHint: "`bin/rails test`",
+    }).join("\n");
+    assert.ok(block.includes("MANDATORY AGENT EXECUTION RULES"));
+    assert.ok(block.includes("SMART TEST COVERAGE"));
+    assert.ok(block.includes("teams_controller_test.rb"));
+    assert.ok(block.includes("EXTEND"));
+    assert.ok(block.includes(scripts[0]!.command));
+    assert.ok(block.includes("| File | Change | Test spec executed | Pass/Fail |"));
+  });
 });
 
 describe("sweep-ingest-index", () => {

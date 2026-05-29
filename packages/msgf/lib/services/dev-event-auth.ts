@@ -23,6 +23,7 @@ import {
 } from "@/lib/api-key-tenant";
 import { logIdentityViolation } from "@/lib/identity-violation-log";
 import { MSGF_ENTITY_ID_HEADER } from "@/lib/msgf-http-headers";
+import { tryResolveIdeTokenActor } from "@/lib/services/ide-api-auth";
 import { DevEventValidationError } from "@/lib/schemas/dev-event";
 import {
   assertPulseLicense,
@@ -49,6 +50,11 @@ export async function resolveDevEventActor(
 ): Promise<{ admin: ReturnType<typeof createAdminClient>; entityId: string }> {
   const admin = createAdminClient();
   const tid = tenantId.trim();
+
+  const ideActor = await tryResolveIdeTokenActor(req, tid);
+  if (ideActor) {
+    return { admin: ideActor.admin, entityId: ideActor.entityId };
+  }
 
   const contractLicense = extractLicenseKeyFromRequest(req);
   if (contractLicense?.startsWith("msgf_live_")) {

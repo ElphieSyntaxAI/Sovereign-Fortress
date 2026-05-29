@@ -16,13 +16,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import {
   applyIncidentReportCorsHeaders,
   incidentReportCorsPreflightResponse,
 } from "@/lib/msgf-cors";
+import { DevEventValidationError } from "@/lib/schemas/dev-event";
 import { ReportIssueBodySchema } from "@/lib/schemas/report-issue";
+import { IdeApiAuthError } from "@/lib/services/ide-api-auth";
+import { resolveReportIssueActor } from "@/lib/services/report-issue-auth";
 import { orchestrateReportIssue } from "@/lib/services/report-issue-orchestrator";
-import { createAdminClient } from "@/utils/supabase/admin";
 
 function json(req: NextRequest, data: unknown, init?: ResponseInit) {
   return applyIncidentReportCorsHeaders(req, NextResponse.json(data, init));
@@ -91,6 +94,15 @@ export async function POST(req: NextRequest) {
 
     return json(req, result);
   } catch (e: unknown) {
+    if (e instanceof DevEventValidationError) {
+      return json(req, { ok: false, error: e.message, issues: e.issues }, { status: e.status });
+    }
+    if (e instanceof IdeApiAuthError) {
+      return json(req, { ok: false, error: e.message }, { status: e.status });
+    }
+    if (e instanceof MsgfAdminAuthError) {
+      return json(req, { ok: false, error: e.message }, { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : "report-issue failed";
     console.error("[report-issue]", e);
     return json(req, { ok: false, error: msg }, { status: 500 });

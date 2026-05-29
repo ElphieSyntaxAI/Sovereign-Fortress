@@ -427,7 +427,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
         typeof msg.scriptId === "string" ? msg.scriptId : undefined;
       this.view?.webview.postMessage({ type: "runScriptStarted" });
       try {
-        await runVerifyScript(scriptId);
+        await runVerifyScript(this.extensionContext, scriptId);
       } finally {
         this.view?.webview.postMessage({ type: "runScriptDone" });
       }

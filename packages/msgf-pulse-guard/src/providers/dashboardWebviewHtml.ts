@@ -291,6 +291,15 @@ export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
       });
     }
 
+    function escapeHtml(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function renderRunScriptsList(scripts) {
       if (!runScriptsList) return;
       if (!scripts || !scripts.length) {
@@ -301,10 +310,10 @@ export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
       runScriptsList.innerHTML = scripts.map((s) =>
         '<li class="run-script-row">' +
         '<div class="run-script-meta">' +
-        '<span class="run-script-label">' + (s.label || '') + '</span>' +
-        '<code class="run-script-cmd">' + (s.command || '') + '</code>' +
+        '<span class="run-script-label">' + escapeHtml(s.label) + '</span>' +
+        '<code class="run-script-cmd">' + escapeHtml(s.command) + '</code>' +
         '</div>' +
-        '<button class="run-script-one" type="button" data-script-id="' + (s.id || '') + '">Run</button>' +
+        '<button class="run-script-one" type="button" data-script-id="' + escapeHtml(s.id) + '">Run</button>' +
         '</li>'
       ).join('');
       if (runLatestScriptBtn) runLatestScriptBtn.disabled = false;
