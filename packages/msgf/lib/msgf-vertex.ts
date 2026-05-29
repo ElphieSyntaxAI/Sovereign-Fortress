@@ -83,9 +83,19 @@ export function getGcpProjectId(): string {
 
 let vertexAI: VertexAI | null = null;
 
+/** Invalid GAC env breaks ADC on Cloud Run even when we omit keyFile. */
+function clearBrokenGoogleApplicationCredentialsEnv(): void {
+  const creds = trimEnv('GOOGLE_APPLICATION_CREDENTIALS');
+  if (!creds) return;
+  if (!fs.existsSync(creds)) {
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  }
+}
+
 function getVertexAI(): VertexAI {
   assertServiceAccountPresent();
   if (!vertexAI) {
+    clearBrokenGoogleApplicationCredentialsEnv();
     const location =
       trimEnv('GCP_LOCATION') || trimEnv('GCP_REGION') || 'us-central1';
     const keyFile =

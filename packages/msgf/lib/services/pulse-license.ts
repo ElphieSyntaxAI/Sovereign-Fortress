@@ -28,6 +28,7 @@ import {
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
 import { allocatePersonalSandboxTenantId } from "@/lib/msgf-tenant-governance";
+import { verifyIdeToken } from "@/lib/services/ide-token-service";
 import { PulseHttpError } from "@/lib/services/pulse-http-error";
 
 export type PulseLicenseContext = {
@@ -151,6 +152,45 @@ async function resolveSessionPulseLicense(
   };
 }
 
+/**
+ * IDE Pulse: msgf_ide_* long-lived tokens and Supabase session JWTs (not msgf_live_ contracts).
+ */
+async function resolveIdeBearerPulseLicense(
+  adminSupabase: SupabaseClient,
+  request: NextRequest
+): Promise<PulseLicenseContext | null> {
+  if (!isIdePulseRequest(request)) return null;
+
+  const bearer = extractBearerTokenFromRequest(request);
+  if (!bearer) return null;
+
+  const tenantKey = resolveIdeTenantKey(request);
+
+  if (bearer.startsWith("msgf_ide_")) {
+    const verified = await verifyIdeToken(adminSupabase, bearer, tenantKey ?? undefined);
+    if (!verified) {
+      throw new PulseHttpError(403, {
+        error: "Invalid or expired IDE token, or tenant mismatch.",
+        code: "ERR_IDE_TOKEN_INVALID",
+      });
+    }
+    return {
+      licenseId: `ide-token-${verified.token_id}`,
+      tenantId: verified.tenant_id,
+      tierId: process.env.MSGF_PULSE_LICENSE_TIER?.trim() || "brain_contract",
+    };
+  }
+
+  if (!bearer.startsWith("msgf_live_")) {
+    const { data, error } = await adminSupabase.auth.getUser(bearer);
+    if (!error && data.user?.id) {
+      return resolveSessionPulseLicense(adminSupabase, data.user.id);
+    }
+  }
+
+  return null;
+}
+
 export async function assertPulseLicense(params: {
   adminSupabase: SupabaseClient;
   request: NextRequest;
@@ -168,6 +208,14 @@ export async function assertPulseLicense(params: {
   const sandboxLicense = assertPromotedPersonalSandboxLicense(params.request);
   if (sandboxLicense) {
     return sandboxLicense;
+  }
+
+  const ideLicense = await resolveIdeBearerPulseLicense(
+    params.adminSupabase,
+    params.request
+  );
+  if (ideLicense) {
+    return ideLicense;
   }
 
   const plainKey = extractLicenseKeyFromRequest(params.request);

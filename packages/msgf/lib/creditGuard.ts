@@ -15,6 +15,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 import { isTenantApiKeyConfigured, resolveTenantIdFromApiKey } from "@/lib/api-key-tenant";
+import { DEFAULT_GEMINI_MODEL } from "@/lib/msgf-vertex";
 
 async function sha256HexPrefix(input: string, maxLen = 24): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
@@ -30,8 +31,8 @@ export const MSGF_TOKEN_HARD_CAP = 1_000_000;
 /** Default billing soft cap (USD) when `MSGF_BILLING_SOFT_CAP_USD` is unset. */
 export const MSGF_DEFAULT_BILLING_SOFT_CAP_USD = 50;
 
-/** Beta / default Gemini when `DEEP_AUDIT` is not active (middleware sets request header). */
-export const MSGF_BETA_GEMINI_MODEL = "gemini-1.5-flash";
+/** Default Gemini when `DEEP_AUDIT` is not active (middleware sets request header). */
+export const MSGF_BETA_GEMINI_MODEL = DEFAULT_GEMINI_MODEL;
 
 export const CREDIT_GUARD_HEADER_MODEL = "x-msgf-credit-guard-model";
 const DEEP_AUDIT_HEADER = "x-msgf-deep-audit";
@@ -44,9 +45,10 @@ export function isDeepAuditRequest(request: NextRequest): boolean {
 }
 
 export function pickForcedGeminiModelForMsgf(request: NextRequest): string {
-  return isDeepAuditRequest(request)
-    ? process.env.MSGF_VERTEX_MODEL?.trim() || "gemini-2.5-flash"
-    : MSGF_BETA_GEMINI_MODEL;
+  const fromEnv =
+    process.env.GCP_MODEL_ID?.trim() || process.env.MSGF_VERTEX_MODEL?.trim();
+  if (fromEnv) return fromEnv;
+  return isDeepAuditRequest(request) ? DEFAULT_GEMINI_MODEL : MSGF_BETA_GEMINI_MODEL;
 }
 
 export function resolveCreditGuardGeminiModelId(request: NextRequest): string {

@@ -135,6 +135,25 @@ if (publishable && !isPlaceholderEnvValue("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
 }
 if (!merged.GCP_PROJECT_ID) merged.GCP_PROJECT_ID = "msgf-shield";
 
+// Cloud Run uses the runtime service account (ADC). Local key paths break Vertex on Linux.
+const gac = merged.GOOGLE_APPLICATION_CREDENTIALS?.trim() ?? "";
+if (gac) {
+  const looksLocal =
+    /^[A-Za-z]:\\/.test(gac) ||
+    gac.includes("OneDrive") ||
+    gac.includes("service-account.json") ||
+    gac.includes("gcp-key.json");
+  if (looksLocal) {
+    delete merged.GOOGLE_APPLICATION_CREDENTIALS;
+    console.warn(
+      "Dropped GOOGLE_APPLICATION_CREDENTIALS from .env.cloudrun (use Cloud Run ADC + GCP_PROJECT_ID)."
+    );
+  }
+}
+if (merged.GCP_PROJECT_ID) {
+  merged.GOOGLE_CLOUD_PROJECT = merged.GCP_PROJECT_ID;
+}
+
 const order = [
   ...new Set([
     ...Object.keys(parseEnv(fs.readFileSync(EXAMPLE, "utf8"))),

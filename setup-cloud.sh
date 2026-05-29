@@ -309,6 +309,10 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
   --member="serviceAccount:${RUNTIME_SA}" \
   --role="roles/vpcaccess.user" \
   --quiet 2>/dev/null || true
+gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
+  --member="serviceAccount:${RUNTIME_SA}" \
+  --role="roles/aiplatform.user" \
+  --quiet 2>/dev/null || true
 
 # --- Image URI ---------------------------------------------------------------
 if [[ -z "${IMAGE_TAG// /}" ]]; then
