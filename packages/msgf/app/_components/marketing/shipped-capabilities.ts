@@ -65,7 +65,7 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
 
 export const DASHBOARD_QUICK_LINKS = [
   { label: "Workspace & extension", href: "/workspace" },
-  { label: "Map a project", href: "/setup/projects" },
+  { label: "Map a project", href: "/workspace?tab=setup" },
   { label: "Features & IDE", href: "/features" },
   { label: "Token savings", href: "#token-savings" },
 ] as const;

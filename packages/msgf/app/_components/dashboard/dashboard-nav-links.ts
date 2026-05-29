@@ -21,7 +21,6 @@ export const DASHBOARD_PRIMARY_LINKS = (
     href: "/dashboard#security-view",
     matchPath: "/dashboard",
   },
-  { label: "Setup Project", href: "/setup/projects", matchPath: "/setup/projects" },
   { label: "Workspace", href: "/workspace", matchPath: "/workspace" },
 ];
 

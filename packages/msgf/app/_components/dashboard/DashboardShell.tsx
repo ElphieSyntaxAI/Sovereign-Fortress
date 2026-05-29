@@ -1146,11 +1146,11 @@ export function DashboardShell({
               {report.scope.project_origins?.length
                 ? ` for ${report.scope.project_origins.length} mapped project(s).`
                 : " for your account."}{" "}
-              <Link href="/workspace#ide-setup" className="text-cyan-300 hover:underline">
-                IDE setup
+              <Link href="/workspace?tab=ide" className="text-cyan-300 hover:underline">
+                IDE workspace
               </Link>{" "}
               ·{" "}
-              <Link href="/setup/projects" className="text-cyan-300 hover:underline">
+              <Link href="/workspace?tab=setup" className="text-cyan-300 hover:underline">
                 Map projects
               </Link>
             </p>
@@ -1290,7 +1290,7 @@ export function DashboardShell({
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href="/setup/projects"
+                href="/workspace?tab=setup"
                 className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:from-emerald-500 hover:to-violet-500"
               >
                 Add your first project

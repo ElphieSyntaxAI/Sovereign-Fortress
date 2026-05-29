@@ -85,7 +85,7 @@ export function ProjectIdeTokenControls({ projectOrigin }: Props) {
     }
   }, [projectOrigin, refreshStatus]);
 
-  const workspaceHref = `/workspace?project_origin=${encodeURIComponent(projectOrigin)}#ide-setup`;
+  const workspaceHref = `/workspace?tab=ide&project_origin=${encodeURIComponent(projectOrigin)}`;
 
   return (
     <div className="flex flex-col items-end gap-1.5 text-right">

@@ -123,7 +123,7 @@ export function GovernanceEnvironmentalShelf() {
       ) : null}
 
       <p className="mt-4 text-center text-xs text-slate-500">
-        <Link href="/setup/projects" className="text-cyan-300 hover:underline">
+        <Link href="/workspace?tab=setup" className="text-cyan-300 hover:underline">
           Map projects
         </Link>{" "}
         to scope metrics · Auto-refresh 30s

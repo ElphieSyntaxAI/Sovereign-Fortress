@@ -1,0 +1,155 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+
+import { WorkspaceActiveIdeTab } from "@/app/_components/workspace/WorkspaceActiveIdeTab";
+import { WorkspaceSetupProjectsTab } from "@/app/_components/workspace/WorkspaceSetupProjectsTab";
+import type { UserProjectRow } from "@/lib/services/user-projects";
+
+export type WorkspaceTabId = "setup" | "ide";
+
+type Props = {
+  apiUrl: string;
+  accessRole: string;
+  companySilo: string;
+  tenantKey: string;
+  initialProjects: UserProjectRow[];
+  initialTab?: WorkspaceTabId;
+  initialProjectOrigin?: string | null;
+  isNewWorkspace?: boolean;
+  canAccessAdminDashboard?: boolean;
+};
+
+function parseTabFromLocation(): WorkspaceTabId {
+  if (typeof window === "undefined") return "setup";
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get("tab");
+  if (tab === "ide" || tab === "setup") return tab;
+  if (window.location.hash === "#ide-setup") return "ide";
+  return "setup";
+}
+
+export function WorkspaceView({
+  apiUrl,
+  accessRole,
+  companySilo,
+  tenantKey,
+  initialProjects,
+  initialTab,
+  initialProjectOrigin,
+  isNewWorkspace = false,
+  canAccessAdminDashboard = false,
+}: Props) {
+  const [activeTab, setActiveTab] = useState<WorkspaceTabId>(initialTab ?? "setup");
+  const [projects, setProjects] = useState<UserProjectRow[]>(initialProjects);
+  const [tabReady, setTabReady] = useState(false);
+
+  useEffect(() => {
+    setActiveTab(parseTabFromLocation());
+    setTabReady(true);
+  }, []);
+
+  const switchTab = useCallback((tab: WorkspaceTabId) => {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tab);
+      url.hash = "";
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, []);
+
+  const tabs: { id: WorkspaceTabId; label: string; hint: string }[] = [
+    {
+      id: "setup",
+      label: "Setup & Projects",
+      hint: "Local Folder / GitHub Repo",
+    },
+    {
+      id: "ide",
+      label: "Active IDE Workspace",
+      hint: `${projects.length} mapped`,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {isNewWorkspace ? (
+        <section className="glass-panel rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 sm:p-5">
+          <p className="text-sm font-medium text-amber-100">Welcome to your workspace</p>
+          <p className="mt-2 text-sm text-slate-300">
+            Map a project in <strong className="text-slate-100">Setup & Projects</strong>, then switch
+            to <strong className="text-slate-100">Active IDE Workspace</strong> to mint tokens and
+            install Pulse Guard.
+          </p>
+        </section>
+      ) : null}
+
+      <nav
+        className="flex flex-col gap-2 sm:flex-row sm:rounded-2xl sm:border sm:border-slate-800/80 sm:bg-slate-950/40 sm:p-1"
+        aria-label="Workspace sections"
+      >
+        {tabs.map((tab) => {
+          const selected = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => switchTab(tab.id)}
+              className={`flex flex-1 flex-col rounded-xl px-4 py-3 text-left transition duration-200 sm:rounded-lg sm:py-2.5 ${
+                selected
+                  ? "bg-gradient-to-r from-emerald-600/25 to-violet-600/25 text-slate-50 ring-1 ring-violet-400/30"
+                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+              }`}
+              aria-selected={selected}
+              role="tab"
+            >
+              <span className="text-sm font-semibold">{tab.label}</span>
+              <span className="text-[11px] text-slate-500">{tab.hint}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div
+        className={`transition-opacity duration-300 motion-reduce:transition-none ${
+          tabReady ? "opacity-100" : "opacity-0"
+        }`}
+        role="tabpanel"
+      >
+        {activeTab === "setup" ? (
+          <WorkspaceSetupProjectsTab
+            accessRole={accessRole}
+            companySilo={companySilo}
+            tenantKey={tenantKey}
+            onProjectsUpdated={setProjects}
+          />
+        ) : (
+          <WorkspaceActiveIdeTab
+            projects={projects}
+            apiUrl={apiUrl}
+            initialProjectOrigin={initialProjectOrigin}
+          />
+        )}
+      </div>
+
+      <section className="glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800/80 px-4 py-3 text-sm">
+        <span className="text-slate-500">Quick links</span>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/dashboard" className="text-emerald-300 hover:underline">
+            Governance dashboard
+          </Link>
+          <Link href="/dashboard/daily-reports" className="text-violet-300 hover:underline">
+            Daily reports
+          </Link>
+          {canAccessAdminDashboard ? (
+            <Link href="/admin/portal" className="text-violet-300 hover:underline">
+              Admin portal
+            </Link>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
