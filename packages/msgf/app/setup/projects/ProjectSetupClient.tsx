@@ -451,6 +451,8 @@
  */
 
 import Link from "next/link";
+
+import { ProjectIdeTokenControls } from "@/app/setup/projects/ProjectIdeTokenControls";
 import { useCallback, useEffect, useState } from "react";
 
 import type { UserProjectRow } from "@/lib/services/user-projects";
@@ -662,7 +664,7 @@ export function ProjectSetupClient() {
                     <p className="text-xs text-slate-600">{preset.suggested_local_path}</p>
                   </div>
                   {mapped ? (
-                    <span className="text-xs text-emerald-400">Mapped</span>
+                    <ProjectIdeTokenControls projectOrigin={preset.project_origin} />
                   ) : (
                     <button
                       type="button"
@@ -785,13 +787,16 @@ export function ProjectSetupClient() {
                 <p className="font-medium text-slate-100">{project.display_name}</p>
                 <p className="text-xs text-slate-500 font-mono">{project.project_origin}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => void handleDelete(project.id)}
-                className="text-xs text-rose-300 underline-offset-4 hover:underline"
-              >
-                Remove
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <ProjectIdeTokenControls projectOrigin={project.project_origin} />
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(project.id)}
+                  className="text-xs text-rose-300 underline-offset-4 hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
             </li>
           ))}
         </ul>

@@ -53,7 +53,13 @@ function shortId(uuid: string): string {
 
 
 
-export default async function WorkspacePage() {
+export default async function WorkspacePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ project_origin?: string }>;
+}) {
+  const params = await searchParams;
+  const initialProjectOrigin = params.project_origin?.trim() || null;
 
   const cookieStore = await cookies();
 
@@ -130,13 +136,10 @@ export default async function WorkspacePage() {
 
 
         <WorkspaceIdeSetup
-
           apiUrl={apiUrl}
-
           tenantKey={tenantKey}
-
           projectCount={ctx.projectCount}
-
+          initialProjectOrigin={initialProjectOrigin}
         />
 
 

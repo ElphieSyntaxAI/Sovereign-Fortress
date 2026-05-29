@@ -17,7 +17,11 @@
 import { cookies, headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { mintIdeToken, ideTokenTtlDays } from "@/lib/services/ide-token-service";
+import {
+  ideTokenTtlDays,
+  listActiveIdeTokens,
+  mintIdeToken,
+} from "@/lib/services/ide-token-service";
 import {
   buildIdeWorkspaceSettings,
   formatIdeSettingsJson,
@@ -85,10 +89,18 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const activeTokens = await listActiveIdeTokens(admin, session.user.id, tenantKey);
+  const hasActiveIdeToken = activeTokens.length > 0;
+  const settingsAuthToken = longLived
+    ? authToken
+    : hasActiveIdeToken
+      ? "REPLACE_VIA_MINT_OR_PASTE_SAVED_msgf_ide_TOKEN"
+      : "← Mint long-lived IDE token (session JWT expires in ~1 hour — do not paste into the IDE)";
+
   const settings = buildIdeWorkspaceSettings({
     apiUrl,
     tenantKey,
-    authToken,
+    authToken: settingsAuthToken,
     devSession: devSessionDefault,
   });
 
@@ -97,8 +109,15 @@ export async function GET(req: NextRequest) {
     tenantKey,
     accessToken: session.access_token,
     ideToken: longLived ? authToken : undefined,
-    expiresAt,
+    expiresAt: longLived ? expiresAt : activeTokens[0]?.expires_at ?? session.expires_at ?? null,
     longLived,
+    hasActiveIdeToken,
+    activeTokenCount: activeTokens.length,
+    tokenKind: longLived
+      ? "long_lived"
+      : hasActiveIdeToken
+        ? "long_lived_active"
+        : "needs_mint",
     settingsJson: formatIdeSettingsJson(settings),
     settingsPath: ".vscode/settings.json",
     vscodeUri: buildVscodeIdeSetupUri(settings),

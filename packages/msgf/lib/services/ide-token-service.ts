@@ -79,6 +79,47 @@ export type VerifiedIdeToken = {
   token_id: string;
 };
 
+export type IdeTokenSummary = {
+  token_id: string;
+  tenant_id: string;
+  label: string | null;
+  expires_at: string;
+  created_at: string;
+};
+
+/** Active (non-revoked, unexpired) IDE tokens for workspace UI — plaintext not stored. */
+export async function listActiveIdeTokens(
+  admin: SupabaseClient,
+  userId: string,
+  tenantId?: string | null
+): Promise<IdeTokenSummary[]> {
+  let query = admin
+    .from("msgf_ide_tokens")
+    .select("id, tenant_id, label, expires_at, created_at")
+    .eq("user_id", userId)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  if (tenantId?.trim()) {
+    query = query.eq("tenant_id", tenantId.trim());
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.warn("[ide-token-service] listActiveIdeTokens:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    token_id: String(row.id),
+    tenant_id: String(row.tenant_id),
+    label: typeof row.label === "string" ? row.label : null,
+    expires_at: String(row.expires_at),
+    created_at: String(row.created_at),
+  }));
+}
+
 export async function verifyIdeToken(
   admin: SupabaseClient,
   bearer: string,

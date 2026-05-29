@@ -55,6 +55,8 @@ import { recordSavingsFeatureCount } from "@/lib/services/savings-features-stats
 import { isCostRunawayError, runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 import { preFlightCheck } from "@/lib/msgf-shadow";
+import { verifyIdeToken } from "@/lib/services/ide-token-service";
+import { MSGF_TENANT_KEY_HEADER } from "@/lib/msgf-http-headers";
 
 function normalizeRelPath(p: string): string | null {
   const x = p.replace(/\\/g, "/").replace(/^\.\/+/, "");
@@ -69,6 +71,19 @@ function getApiKey(req: NextRequest): string | null {
   if (auth?.toLowerCase().startsWith("bearer "))
     return auth.slice(7).trim();
   return null;
+}
+
+async function resolveIngestEntityId(
+  admin: ReturnType<typeof createAdminClient>,
+  req: NextRequest,
+  tenantId: string
+): Promise<string | undefined> {
+  const apiKey = getApiKey(req);
+  if (!apiKey?.startsWith("msgf_ide_")) return undefined;
+  const tenantKey =
+    req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() || tenantId;
+  const verified = await verifyIdeToken(admin, apiKey, tenantKey);
+  return verified?.user_id;
 }
 
 function buildLineageMap(files: IngestFile[]) {
@@ -308,7 +323,12 @@ export async function POST(req: NextRequest) {
         await updateIngestHashesAfterSweep(tenantId, filesToSweep);
       }
 
-      const readiness = await computeBrainReadiness(admin, tenantId);
+      const ingestEntityId = await resolveIngestEntityId(admin, req, tenantId);
+      const readiness = await computeBrainReadiness(
+        admin,
+        tenantId,
+        ingestEntityId
+      );
 
       const skipAudit =
         isIngestAuditSkipOnHashHit() &&

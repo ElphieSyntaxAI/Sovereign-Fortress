@@ -461,12 +461,17 @@ type IdeCredentials = {
   selectedProjectOrigin?: string | null;
   vscodeUri?: string;
   longLived?: { tokenId: string; expiresAt: string; ttlDays: number };
+  hasActiveIdeToken?: boolean;
+  activeTokenCount?: number;
+  tokenKind?: "long_lived" | "long_lived_active" | "needs_mint";
+  ideToken?: string;
 };
 
 type Props = {
   apiUrl: string;
   tenantKey: string;
   projectCount: number;
+  initialProjectOrigin?: string | null;
 };
 
 function CopyField({
@@ -525,11 +530,16 @@ function StepBadge({ n, done }: { n: number; done?: boolean }) {
   );
 }
 
-export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
+export function WorkspaceIdeSetup({
+  apiUrl,
+  tenantKey,
+  projectCount,
+  initialProjectOrigin = null,
+}: Props) {
   const [creds, setCreds] = useState<IdeCredentials | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOrigin, setSelectedOrigin] = useState<string>("");
+  const [selectedOrigin, setSelectedOrigin] = useState<string>(initialProjectOrigin ?? "");
   const [testStatus, setTestStatus] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
   const [minting, setMinting] = useState(false);
@@ -562,7 +572,7 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
     setMinting(true);
     setError(null);
     try {
-      const res = await fetch("/api/workspace/ide-token", {
+      const res = await fetch("/api/workspace/ide-tokens", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -571,16 +581,10 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
           label: "Workspace mint",
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await res.json().catch(() => ({}))) as IdeCredentials & {
         ok?: boolean;
         error?: string;
         warning?: string;
-        settingsJson?: string;
-        vscodeUri?: string;
-        longLived?: IdeCredentials["longLived"];
-        expiresAt?: string;
-        apiUrl?: string;
-        tenantKey?: string;
       };
       if (!res.ok || data.ok === false) {
         throw new Error(data.error ?? "Could not mint IDE token.");
@@ -588,26 +592,30 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
       setCreds((prev) => ({
         apiUrl: data.apiUrl ?? prev?.apiUrl ?? apiUrl,
         tenantKey: data.tenantKey ?? prev?.tenantKey ?? tenantKey,
-        accessToken: prev?.accessToken ?? "",
+        accessToken: data.ideToken ?? "",
         settingsJson: data.settingsJson ?? prev?.settingsJson ?? "",
-        settingsPath: prev?.settingsPath ?? ".vscode/settings.json",
+        settingsPath: data.settingsPath ?? prev?.settingsPath ?? ".vscode/settings.json",
         projectCount: prev?.projectCount ?? projectCount,
         projects: prev?.projects,
-        selectedProjectOrigin: prev?.selectedProjectOrigin ?? selectedOrigin,
+        selectedProjectOrigin: selectedOrigin || prev?.selectedProjectOrigin,
         vscodeUri: data.vscodeUri,
         longLived: data.longLived,
         expiresAt: data.expiresAt ?? prev?.expiresAt ?? null,
+        hasActiveIdeToken: true,
+        activeTokenCount: (prev?.activeTokenCount ?? 0) + 1,
+        tokenKind: "long_lived",
+        ideToken: data.ideToken,
       }));
       setTestStatus(
         data.warning ??
-          `Long-lived token minted (${data.longLived?.ttlDays ?? 90} days). Copy settings or open in VS Code.`
+          `Long-lived token minted (${data.longLived?.ttlDays ?? 90} days). Copy settings below — shown once.`
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Mint failed.");
     } finally {
       setMinting(false);
     }
-  }, [selectedOrigin]);
+  }, [apiUrl, projectCount, selectedOrigin, tenantKey]);
 
   const runConnectionTest = useCallback(async () => {
     setTesting(true);
@@ -639,8 +647,8 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
   }, [selectedOrigin]);
 
   useEffect(() => {
-    void loadCredentials();
-  }, [loadCredentials]);
+    void loadCredentials(initialProjectOrigin ?? undefined);
+  }, [initialProjectOrigin, loadCredentials]);
 
   const settingsPreview =
     creds?.settingsJson ??
@@ -648,7 +656,7 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
       {
         "msgf.apiUrl": apiUrl,
         "msgf.tenantKey": tenantKey,
-        "msgf.authToken": "<click Refresh token after sign-in>",
+        "msgf.authToken": "<click Mint long-lived IDE token>",
         "msgf.role": "dev",
       },
       null,
@@ -667,15 +675,15 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
           </p>
           <h2 className="mt-1 text-lg font-semibold text-slate-100">Connect Cursor or VS Code</h2>
           <p className="mt-2 max-w-xl text-sm text-slate-400">
-            Three steps: paste settings, install the guard extension, then open your repo. Pulse uses
-            your sign-in token and personal sandbox tenant — no manual license minting. Settings
-            include <code className="text-violet-200">msgf.devSession</code> for vibe-coding (save-primary
-            flush, relaxed drift during builds). Build failures can post to{" "}
-            <code className="text-violet-200">/api/msgf/dev-event</code> (Heal Cheap). Track savings on{" "}
-            <a href="/dashboard#token-savings" className="text-amber-300 hover:underline">
-              dashboard → Token savings
-            </a>
-            .
+            Three steps: mint a <strong className="text-slate-300">long-lived IDE token</strong>{" "}
+            (<code className="text-violet-200">msgf_ide_*</code>, ~90 days), paste settings, install
+            the guard extension, then open your repo. Do not put your browser session JWT (
+            <code className="text-violet-200">eyJ…</code>) in the IDE — it expires in about an hour.
+            Mapped projects can mint tokens on{" "}
+            <Link href="/setup/projects" className="text-cyan-300 hover:underline">
+              Setup projects
+            </Link>{" "}
+            without re-mapping.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -685,7 +693,7 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
             disabled={loading}
             className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-50"
           >
-            {loading ? "Refreshing…" : "Refresh token"}
+            {loading ? "Reloading…" : "Reload preview"}
           </button>
           <button
             type="button"
@@ -706,7 +714,14 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
         </div>
       </div>
 
-      {creds?.projects && creds.projects.length > 1 ? (
+      {creds?.hasActiveIdeToken && creds.tokenKind === "long_lived_active" ? (
+        <p className="mt-4 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+          You already have an active long-lived token for this project. Mint a new one only if you
+          lost the saved secret — old tokens stay valid until expiry.
+        </p>
+      ) : null}
+
+      {creds?.projects && creds.projects.length > 0 ? (
         <div className="mt-4">
           <label className="text-xs font-medium text-slate-400" htmlFor="ide-project-origin">
             Mapped project (msgf.tenantKey)
@@ -749,7 +764,10 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
 
       <ol className="mt-6 space-y-6">
         <li className="flex gap-4">
-          <StepBadge n={1} done={Boolean(creds?.accessToken)} />
+          <StepBadge
+            n={1}
+            done={Boolean(creds?.longLived || creds?.ideToken || creds?.hasActiveIdeToken)}
+          />
           <div className="min-w-0 flex-1 space-y-3">
             <div>
               <h3 className="font-medium text-slate-100">Paste into your repo</h3>
@@ -770,12 +788,11 @@ export function WorkspaceIdeSetup({ apiUrl, tenantKey, projectCount }: Props) {
             ) : null}
             {creds?.expiresAt ? (
               <p className="text-xs text-slate-500">
-                {creds.longLived
+                {creds.longLived || creds.hasActiveIdeToken
                   ? `Long-lived IDE token expires ${new Date(String(creds.expiresAt)).toLocaleString()}.`
-                  : `Session token expires ${new Date(Number(creds.expiresAt) * 1000).toLocaleString()}.`}{" "}
-                Use <strong className="text-slate-400">Refresh token</strong> or{" "}
-                <strong className="text-slate-400">Mint long-lived IDE token</strong> when Pulse stops
-                authenticating.
+                  : `Sign-in session expires ${new Date(Number(creds.expiresAt) * 1000).toLocaleString()} — mint a long-lived token for the IDE.`}{" "}
+                Use <strong className="text-slate-400">Mint long-lived IDE token</strong> when Pulse
+                stops authenticating.
               </p>
             ) : null}
           </div>
