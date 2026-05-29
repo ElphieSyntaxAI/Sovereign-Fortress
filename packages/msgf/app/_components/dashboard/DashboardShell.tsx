@@ -482,10 +482,19 @@ import {
   type HealConsoleStatus,
 } from "@/app/_components/dashboard/PostIngestHealingConsole";
 import { BigBrainIssuesPanel } from "@/app/_components/dashboard/BigBrainIssuesPanel";
+import { GovernanceEnvironmentalShelf } from "@/app/_components/dashboard/GovernanceEnvironmentalShelf";
+import { GovernanceLatestActivityLog } from "@/app/_components/dashboard/GovernanceLatestActivityLog";
+import { ProjectGovernanceAccordion } from "@/app/_components/dashboard/ProjectGovernanceAccordion";
 import { SecurityViewSection } from "@/app/_components/dashboard/SecurityViewSection";
-import { ShippedCapabilitiesStrip } from "@/app/_components/dashboard/ShippedCapabilitiesStrip";
+import { TokenSavingsRouteSection } from "@/app/_components/dashboard/TokenSavingsRouteSection";
 import { TokenSavingsFeaturesPanel } from "@/app/_components/dashboard/TokenSavingsFeaturesPanel";
-import { UserBlueprintEcoPanel } from "@/app/_components/dashboard/UserBlueprintEcoPanel";
+import {
+  overallLabel,
+  PillarCard,
+  PillarDrilldown,
+  PillarTerminalDrawer,
+  statusStyles,
+} from "@/app/_components/dashboard/governance-pillar-blocks";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
 import {
   fetchHealQueueForTenant,
@@ -571,63 +580,6 @@ type ArbitrationApiResponse =
 
 const REFRESH_MS = 30_000;
 
-function statusStyles(status: PillarStoplightStatus): {
-  dot: string;
-  ring: string;
-  badge: string;
-} {
-  switch (status) {
-    case "green":
-      return {
-        dot: "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.55)]",
-        ring: "border-emerald-500/30",
-        badge: "bg-emerald-500/15 text-emerald-200",
-      };
-    case "yellow":
-    case "yellow_self_healing":
-      return {
-        dot: "bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.45)]",
-        ring: "border-amber-500/30",
-        badge: "bg-amber-500/15 text-amber-200",
-      };
-    case "red":
-      return {
-        dot: "bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.55)]",
-        ring: "border-rose-500/35",
-        badge: "bg-rose-500/15 text-rose-200",
-      };
-    case "predicted":
-      return {
-        dot: "bg-violet-400 shadow-[0_0_12px_rgba(167,139,250,0.5)] animate-pulse",
-        ring: "border-violet-500/35",
-        badge: "bg-violet-500/15 text-violet-200",
-      };
-    default:
-      return {
-        dot: "bg-slate-500",
-        ring: "border-slate-600/40",
-        badge: "bg-slate-500/15 text-slate-300",
-      };
-  }
-}
-
-function overallLabel(status: PillarStoplightStatus): string {
-  switch (status) {
-    case "green":
-      return "All pillars nominal";
-    case "yellow_self_healing":
-      return "Elevated — self-healing active";
-    case "yellow":
-      return "Elevated watch";
-    case "red":
-      return "Intervention required";
-    case "predicted":
-      return "Predictive drift alert";
-    default:
-      return "Unknown";
-  }
-}
-
 function MetricCard({
   label,
   value,
@@ -697,320 +649,32 @@ function GlobalNotificationTicker({ events }: { events: GlobalNotificationTicker
   );
 }
 
-function PillarCard({
-  pillarId,
-  title,
-  subtitle,
-  v32Step,
-  status,
-  statusLabel,
-  pending,
-  hall,
-  vault,
-  summary,
-  selected,
-  healMisalignmentCount,
-  healConsoleOpen,
-  onSelect,
-}: {
-  pillarId: string;
-  title: string;
-  subtitle: string;
-  v32Step: string;
-  status: PillarStoplightStatus;
-  statusLabel: string;
-  pending: number;
-  hall: number;
-  vault: number;
-  summary: string;
-  selected: boolean;
-  healMisalignmentCount: number;
-  healConsoleOpen: boolean;
-  onSelect: () => void;
-}) {
-  const styles = statusStyles(status);
-  const healActive = healMisalignmentCount > 0;
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={healActive ? healConsoleOpen : selected}
-      aria-label={
-        healActive
-          ? `${pillarId} — ${healMisalignmentCount} misalignment(s), open healing console`
-          : `${pillarId} governance pillar`
-      }
-      className={`glass-panel glass-panel-emerald relative flex h-full flex-col gap-4 rounded-2xl border p-5 text-left transition hover:border-violet-400/40 hover:bg-white/[0.03] focus:outline-none focus:ring-2 focus:ring-violet-400/40 ${styles.ring} ${
-        healActive ? "heal-pillar-active border-amber-500/50" : ""
-      } ${healConsoleOpen ? "border-amber-400/70 bg-amber-500/[0.08]" : ""} ${
-        !healActive && selected ? "border-violet-400/60 bg-violet-500/10" : ""
-      }`}
-    >
-      {healActive ? (
-        <span
-          className="absolute -right-2 -top-2 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full border border-amber-400/60 bg-amber-500 px-2 text-xs font-bold text-amber-950 shadow-[0_0_14px_rgba(251,191,36,0.5)]"
-          title={`${healMisalignmentCount} pending heal task(s)`}
-        >
-          {healMisalignmentCount}
-        </span>
-      ) : null}
-
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300/80">{pillarId}</p>
-          <h3 className="mt-1 text-lg font-semibold text-slate-50">{title}</h3>
-          <p className="mt-0.5 text-sm text-slate-400">{subtitle}</p>
-        </div>
-        <span
-          className={`inline-flex shrink-0 items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${styles.badge}`}
-        >
-          <span className={`h-2 w-2 rounded-full ${styles.dot}`} aria-hidden />
-          {healActive ? "Heal approval" : statusLabel}
-        </span>
-      </div>
-
-      <p className="text-sm leading-relaxed text-slate-300">{summary}</p>
-
-      <dl className="grid grid-cols-3 gap-2 text-center text-xs">
-        <div className="rounded-lg bg-slate-900/50 px-2 py-2">
-          <dt className="text-slate-500">Queue</dt>
-          <dd className="mt-0.5 font-semibold text-slate-100">{pending}</dd>
-        </div>
-        <div className="rounded-lg bg-slate-900/50 px-2 py-2">
-          <dt className="text-slate-500">Hall</dt>
-          <dd className="mt-0.5 font-semibold text-rose-200/90">{hall}</dd>
-        </div>
-        <div className="rounded-lg bg-slate-900/50 px-2 py-2">
-          <dt className="text-slate-500">Vault</dt>
-          <dd className="mt-0.5 font-semibold text-emerald-200/90">{vault}</dd>
-        </div>
-      </dl>
-
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-violet-400/70">
-          V3.2 · {v32Step}
-        </p>
-        <span className="text-xs font-medium text-emerald-200">
-          {healActive ? "Open healing console →" : "View latest →"}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function eventKindStyles(kind: PillarHealthEvent["kind"]): string {
-  switch (kind) {
-    case "incident":
-      return "border-amber-500/25 bg-amber-500/10 text-amber-100";
-    case "hall":
-      return "border-rose-500/25 bg-rose-500/10 text-rose-100";
-    case "vault":
-      return "border-emerald-500/25 bg-emerald-500/10 text-emerald-100";
-    default:
-      return "border-violet-500/25 bg-violet-500/10 text-violet-100";
-  }
-}
-
-function PillarDrilldown({ pillar }: { pillar: PillarHealthEntry }) {
-  return (
-    <section className="glass-panel rounded-2xl border border-violet-500/20 p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-            {pillar.pillar} latest activity
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold text-slate-50">{pillar.label}</h2>
-          <p className="mt-1 max-w-2xl text-sm text-slate-400">
-            Latest MSGF issues, Vault changes, Hall bugs, and incident activity in the current dashboard scope.
-          </p>
-        </div>
-        <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-100">
-          {pillar.latest_events.length} recent item{pillar.latest_events.length === 1 ? "" : "s"}
-        </span>
-      </div>
-
-      {pillar.latest_events.length > 0 ? (
-        <div className="mt-5 space-y-3">
-          {pillar.latest_events.map((event) => (
-            <article
-              key={`${event.kind}-${event.id}`}
-              className="rounded-xl border border-slate-800/80 bg-slate-950/55 p-4"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${eventKindStyles(event.kind)}`}>
-                  {event.kind}
-                </span>
-                <time className="text-xs text-slate-500" dateTime={event.created_at}>
-                  {new Date(event.created_at).toLocaleString()}
-                </time>
-              </div>
-              <h3 className="mt-3 text-sm font-semibold text-slate-100">{event.title}</h3>
-              <p className="mt-1 text-sm text-slate-400">{event.summary}</p>
-              <p className="mt-2 text-[11px] uppercase tracking-wider text-violet-300/70">
-                {event.bug_index.level_1_category} → {event.bug_index.level_1_1_branch} →{" "}
-                {event.bug_index.level_1_1_1_instance}
-              </p>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-5 rounded-xl border border-emerald-500/15 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-100/90">
-          No recent issues, changes, or bugs were recorded for this pillar in the current lookback window.
-        </div>
-      )}
-    </section>
-  );
-}
-
-function HardFailureActions({
-  failure,
-  pillar,
-  onAction,
-}: {
-  failure: TerminalHardFailureLog;
-  pillar: MsgfGovernancePillar;
-  onAction: (failure: TerminalHardFailureLog, action: ArbitrationAction) => Promise<void>;
-}) {
-  return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      <button
-        type="button"
-        onClick={() => void onAction(failure, "APPROVE_BYPASS")}
-        className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
-      >
-        APPROVE & BYPASS {pillar}
-      </button>
-      <button
-        type="button"
-        onClick={() => void onAction(failure, "DENY_PURGE")}
-        className="rounded-full border border-rose-500/25 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/20"
-      >
-        DENY & PURGE
-      </button>
-    </div>
-  );
-}
-
-function TerminalArray({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 font-mono">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-emerald-300">{title}</p>
-      {children}
-    </section>
-  );
-}
-
-function PillarTerminalDrawer({
-  logs,
-  actionResult,
-  onAction,
-}: {
-  logs: PillarLiveLogs | null;
-  actionResult: ArbitrationStateMachineResult | null;
-  onAction: (failure: TerminalHardFailureLog, action: ArbitrationAction) => Promise<void>;
-}) {
-  if (!logs) return null;
-  return (
-    <section className="glass-panel rounded-2xl border border-emerald-500/15 p-5">
-      <div className="mb-4 flex flex-col gap-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-          In-pillar live logs & arbitration drawer
-        </p>
-        <h2 className="text-xl font-semibold text-slate-50">{logs.pillar} terminal arrays</h2>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <TerminalArray title="Autonomous Self-Healed">
-          {logs.autonomous_self_healed.length ? (
-            logs.autonomous_self_healed.map((item) => (
-              <p key={item.id} className="mb-2 text-xs text-slate-300">
-                [{item.attempt_count}/3] {new Date(item.timestamp).toLocaleString()} · {item.source_string}
-              </p>
-            ))
-          ) : (
-            <p className="text-xs text-slate-500">No autonomous recovery entries.</p>
-          )}
-        </TerminalArray>
-        <TerminalArray title="Hard Failures Pending Queue">
-          {logs.hard_failures_pending_queue.length ? (
-            logs.hard_failures_pending_queue.map((item) => (
-              <div key={item.id} className="mb-3 rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-                <p className="text-xs text-rose-100">{item.reason} · {item.state}</p>
-                <p className="mt-1 text-xs text-slate-400">{item.source_string}</p>
-                <HardFailureActions failure={item} pillar={logs.pillar} onAction={onAction} />
-              </div>
-            ))
-          ) : (
-            <p className="text-xs text-slate-500">No hard failures waiting for Human Arbitrate.</p>
-          )}
-        </TerminalArray>
-        <TerminalArray title="Manual Realignments">
-          {logs.manual_realignments.length ? (
-            logs.manual_realignments.map((item) => (
-              <p key={item.id} className="mb-2 text-xs text-slate-300">
-                {new Date(item.timestamp).toLocaleString()} · {item.file_path} · {item.source_string}
-              </p>
-            ))
-          ) : (
-            <p className="text-xs text-slate-500">No SSoT realignment entries.</p>
-          )}
-        </TerminalArray>
-      </div>
-      {actionResult ? (
-        <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          {actionResult.message} State: {actionResult.next_state}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function DailyNetworkReportPanel({ report }: { report: DailyNetworkReport | null }) {
-  if (!report) return null;
+function DailyReportsLinkCard() {
   return (
     <section
       id="daily-reports"
-      className="glass-panel scroll-mt-24 rounded-2xl border border-violet-500/20 p-5"
+      className="glass-panel scroll-mt-24 rounded-2xl border border-violet-500/20 p-5 sm:p-6"
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/90">
-            Daily network report aggregator
+            Daily reports
           </p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-50">24h MSGF network summary</h2>
+          <h2 className="mt-1 text-xl font-semibold text-slate-50">
+            Year → month → day archive
+          </h2>
+          <p className="mt-2 max-w-xl text-sm text-slate-400">
+            Browse reverse-chronological governance snapshots with per-day pillar status, token
+            savings, and exportable JSON/PDF summaries.
+          </p>
         </div>
-        <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100">
-          P5 saved {report.financial_overhead_summary.p5_context_savings_pct}%
-        </span>
+        <Link
+          href="/dashboard/daily-reports"
+          className="shrink-0 rounded-full bg-gradient-to-r from-violet-600 to-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:from-violet-500 hover:to-emerald-500"
+        >
+          Open daily reports →
+        </Link>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <MetricCard
-          label="Tokens processed"
-          value={report.financial_overhead_summary.total_token_compute_processed}
-          hint={`${report.financial_overhead_summary.total_token_compute_saved_by_p5} saved by P5`}
-        />
-        <MetricCard
-          label="Anomalies"
-          value={report.governance_integrity_metrics.total_anomalies}
-          hint={`Drift slope ${report.governance_integrity_metrics.global_logic_drift_slope}`}
-          accent="amber"
-        />
-        <MetricCard
-          label="Self-heal rate"
-          value={`${report.governance_integrity_metrics.self_healing_success_rate_pct}%`}
-          hint="Resolved before Human Arbitrate"
-          accent="emerald"
-        />
-      </div>
-      <pre className="mt-4 max-h-64 overflow-auto rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-xs text-slate-300">
-        {report.markdown}
-      </pre>
     </section>
   );
 }
@@ -1401,47 +1065,63 @@ export function DashboardShell({
   );
 
   const overallStyles = statusStyles(report.overall_status);
+  const useProjectAccordion =
+    healthScope === "personal" && mappedProjects.length > 0 && showGovernanceMatrix;
 
   const content = (
       <main className="mx-auto max-w-6xl space-y-8 px-5 py-8 sm:py-10">
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <section className="flex flex-col items-center gap-4 text-center">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
               Glass-box overview
             </p>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              <span className="text-gradient-jewel">{dashboardLabel}</span>
+              <span className="text-gradient-jewel">
+                {useProjectAccordion ? "Your Governance Dashboard" : dashboardLabel}
+              </span>
             </h1>
-            <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-              Six-pillar governance, IDE verify loop, and{" "}
-              <a href="#token-savings" className="text-amber-300/90 underline-offset-4 hover:underline">
-                token savings
-              </a>{" "}
-              for {scopeDescription}. Refreshes every 30s.{" "}
-              <Link
-                href="/getting-started#six-pillars"
-                className="text-emerald-400/90 underline-offset-4 hover:underline"
-              >
-                How pillars work
-              </Link>
+            <p className="mx-auto max-w-2xl text-sm text-slate-400 sm:text-base">
+              {useProjectAccordion ? (
+                <>
+                  Six-pillar governance that refreshes every 30 seconds.{" "}
+                  <Link
+                    href="/getting-started#six-pillars"
+                    className="text-emerald-400/90 underline-offset-4 hover:underline"
+                  >
+                    How pillars work
+                  </Link>
+                </>
+              ) : (
+                <>
+                  Six-pillar governance for {scopeDescription}. Refreshes every 30s.{" "}
+                  <Link
+                    href="/getting-started#six-pillars"
+                    className="text-emerald-400/90 underline-offset-4 hover:underline"
+                  >
+                    How pillars work
+                  </Link>
+                </>
+              )}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium ${overallStyles.badge} ${overallStyles.ring}`}
-            >
-              <span className={`h-2.5 w-2.5 rounded-full ${overallStyles.dot}`} aria-hidden />
-              {overallLabel(report.overall_status)}
-            </span>
-            <button
-              type="button"
-              onClick={() => void refresh()}
-              disabled={loading}
-              className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-50"
-            >
-              {loading ? "Refreshing…" : "Refresh now"}
-            </button>
-          </div>
+          {!useProjectAccordion ? (
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium ${overallStyles.badge} ${overallStyles.ring}`}
+              >
+                <span className={`h-2.5 w-2.5 rounded-full ${overallStyles.dot}`} aria-hidden />
+                {overallLabel(report.overall_status)}
+              </span>
+              <button
+                type="button"
+                onClick={() => void refresh()}
+                disabled={loading}
+                className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-50"
+              >
+                {loading ? "Refreshing…" : "Refresh now"}
+              </button>
+            </div>
+          ) : null}
         </section>
 
         {error ? (
@@ -1450,9 +1130,16 @@ export function DashboardShell({
           </div>
         ) : null}
 
+        {useProjectAccordion ? (
+          <div className="space-y-6">
+            <GovernanceEnvironmentalShelf />
+            <GovernanceLatestActivityLog report={report} mappedProjects={mappedProjects} />
+          </div>
+        ) : null}
+
         {showNetworkStreams ? <GlobalNotificationTicker events={tickerEvents} /> : null}
 
-        {healthScope === "personal" ? (
+        {healthScope === "personal" && !useProjectAccordion ? (
           <section className="glass-panel rounded-2xl border border-cyan-500/15 p-4">
             <p className="text-sm text-slate-300">
               Showing <strong className="text-cyan-100">your</strong> pillar health
@@ -1530,9 +1217,16 @@ export function DashboardShell({
           </>
         ) : null}
 
-        {!showMasterEcoLeaderboard ? <UserBlueprintEcoPanel /> : null}
-
-        {showGovernanceMatrix ? (
+        {useProjectAccordion ? (
+          <ProjectGovernanceAccordion
+            projects={mappedProjects}
+            healthScope={healthScope}
+            authRedirectPath={authRedirectPath}
+            healQueueTenantId={healQueueTenantId}
+            embeddedInAdminPortal={embeddedInAdminPortal}
+            onGlobalError={setError}
+          />
+        ) : showGovernanceMatrix ? (
           <section
             className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             aria-label="Six governance pillars"
@@ -1617,37 +1311,46 @@ export function DashboardShell({
           </section>
         )}
 
-        <PostIngestHealingConsole
-          open={healingConsoleOpen}
-          onClose={() => {
-            setHealingConsoleOpen(false);
-            setHealConsolePillar(null);
-          }}
-          tenantId={healQueueTenantId}
-          queue={healQueue}
-          pillarFilter={healConsolePillar}
-          onQueueRefresh={() => void refreshHealQueue()}
-          externalStatus={healConsoleStatus}
-          onStatusChange={setHealConsoleStatus}
-          allowHumanArbitration={embeddedInAdminPortal}
-        />
+        {!useProjectAccordion ? (
+          <>
+            <PostIngestHealingConsole
+              open={healingConsoleOpen}
+              onClose={() => {
+                setHealingConsoleOpen(false);
+                setHealConsolePillar(null);
+              }}
+              tenantId={healQueueTenantId}
+              queue={healQueue}
+              pillarFilter={healConsolePillar}
+              onQueueRefresh={() => void refreshHealQueue()}
+              externalStatus={healConsoleStatus}
+              onStatusChange={setHealConsoleStatus}
+              allowHumanArbitration={embeddedInAdminPortal}
+            />
 
-        {selectedPillar ? <PillarDrilldown pillar={selectedPillar} /> : null}
+            {selectedPillar ? <PillarDrilldown pillar={selectedPillar} /> : null}
 
-        <PillarTerminalDrawer
-          logs={pillarLogs}
-          actionResult={actionResult}
-          onAction={applyArbitrationAction}
-        />
+            <PillarTerminalDrawer
+              logs={pillarLogs}
+              actionResult={actionResult}
+              onAction={applyArbitrationAction}
+            />
+          </>
+        ) : null}
 
-        <DailyNetworkReportPanel report={dailyReport} />
+        <DailyReportsLinkCard />
 
-        <ShippedCapabilitiesStrip />
-
-        <TokenSavingsFeaturesPanel
-          tenantId={healQueueTenantId}
-          operatorView={embeddedInAdminPortal}
-        />
+        {useProjectAccordion ? (
+          <TokenSavingsRouteSection
+            tenantId={healQueueTenantId}
+            operatorView={embeddedInAdminPortal}
+          />
+        ) : (
+          <TokenSavingsFeaturesPanel
+            tenantId={healQueueTenantId}
+            operatorView={embeddedInAdminPortal}
+          />
+        )}
 
         {embeddedInAdminPortal ? (
           <BigBrainIssuesPanel tenantId={healQueueTenantId} />

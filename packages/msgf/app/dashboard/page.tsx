@@ -81,7 +81,7 @@ export default async function DashboardPage() {
 
   const mappedProjects = projects.map((p) => ({
     project_origin: p.project_origin,
-    label: p.project_origin,
+    label: p.display_name?.trim() || p.project_origin,
   }));
 
   return (

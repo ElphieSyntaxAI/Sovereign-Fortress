@@ -214,6 +214,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const projectOrigin = req.nextUrl.searchParams.get("project_origin")?.trim();
+    if (projectOrigin && reportOptions.userId) {
+      reportOptions = {
+        ...reportOptions,
+        projectOrigins: [projectOrigin],
+      };
+    }
+
     const report = await healthService.getPillarHealth(admin, reportOptions);
 
     return healthJson(req, {

@@ -12,8 +12,8 @@ export const DASHBOARD_PRIMARY_LINKS = (
   { label: "Dashboard", href: "/dashboard", matchPath: "/dashboard" },
   {
     label: "Daily Reports",
-    href: "/dashboard#daily-reports",
-    matchPath: "/dashboard",
+    href: "/dashboard/daily-reports",
+    matchPath: "/dashboard/daily-reports",
   },
   { label: "Token Savings", href: tokenSavingsHref, matchPath: "/dashboard", accent: "amber" },
   {

@@ -59,10 +59,18 @@ export async function resolveHealthOptionsForDashboardRequest(
   return healthOptionsForSessionOperator(admin, op, params.lookbackHours);
 }
 
-export function healthPillarsQuery(scope: DashboardHealthScopeMode, lookbackHours = 168): string {
+export function healthPillarsQuery(
+  scope: DashboardHealthScopeMode,
+  lookbackHours = 168,
+  projectOrigin?: string
+): string {
   const params = new URLSearchParams({
     lookback_hours: String(lookbackHours),
     scope,
   });
+  const origin = projectOrigin?.trim();
+  if (origin) {
+    params.set("project_origin", origin);
+  }
   return `/api/msgf/health/pillars?${params.toString()}`;
 }
