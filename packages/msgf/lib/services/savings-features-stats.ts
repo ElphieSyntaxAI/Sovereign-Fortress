@@ -46,7 +46,12 @@ export type SavingsFeatureMetricKey =
   | "credit_reserve_ok"
   | "credit_reserve_denied"
   | "dev_session_pulse"
-  | "agent_context_pack";
+  | "agent_context_pack"
+  | "verify_result_pass"
+  | "verify_result_fail"
+  | "verify_result_vault"
+  | "verify_result_hall"
+  | "run_script_rerun";
 
 export type SavingsFeatureCatalogEntry = {
   id: string;
@@ -72,6 +77,13 @@ export type SavingsFeatureCounters = {
   credit_reservation_denied: number;
   dev_session_pulses: number;
   agent_context_packs: number;
+  verify_result_passes: number;
+  verify_result_failures: number;
+  verify_result_vault_writes: number;
+  verify_result_hall_writes: number;
+  verify_result_vault_tokens_saved: number;
+  run_script_reruns: number;
+  run_script_rerun_tokens_saved: number;
 };
 
 export type SavingsFeaturesSummary = {
@@ -178,10 +190,24 @@ export function buildSavingsFeatureCatalog(): SavingsFeatureCatalogEntry[] {
     ),
     catalogRow(
       "agent_context_pack",
-      "0-Token context pack",
-      "Guided/auto agent-context downloads — avoids whole-repo dumps to Cursor.",
+      "0-Token prompt + context pack",
+      "Prompt optimizer and guided agent-context — sharded @ attachments vs whole-repo paste.",
       true,
-      "GET /api/msgf/agent-context · msgf.generateContextPack"
+      "POST /api/msgf/prompt-optimizer · GET /api/msgf/agent-context"
+    ),
+    catalogRow(
+      "verify_result",
+      "IDE verify-result loop",
+      "Safe Build + Run Scripts — pass → Vault (pack-linked), repeated fail → Hall (deduped).",
+      true,
+      "POST /api/msgf/verify-result · MSGF_VERIFY_HALL_FAIL_THRESHOLD"
+    ),
+    catalogRow(
+      "run_scripts",
+      "Run Scripts (zero re-prompt)",
+      "Re-run .msgf/run-scripts.json verify commands without regenerating the optimizer prompt.",
+      true,
+      "IDE Command Center → Run Scripts · msgf.runVerifyScripts"
     ),
     catalogRow(
       "converge_context_budget",
@@ -229,7 +255,12 @@ export async function recordSavingsFeatureCount(
 
 export async function recordSavingsFeatureTokensSaved(
   tenantId: string,
-  metric: "converge_cache_hit" | "dev_event" | "dev_event_vault_hit",
+  metric:
+    | "converge_cache_hit"
+    | "dev_event"
+    | "dev_event_vault_hit"
+    | "verify_result_vault"
+    | "run_script_rerun",
   tokensSaved: number
 ): Promise<void> {
   const tid = tenantId.trim();
@@ -247,8 +278,14 @@ export async function getSavingsFeaturesSummary24h(
   const tid = tenantId.trim();
   const prefix = (metric: SavingsFeatureMetricKey) =>
     msgfRedisKey("savings", tid, metric, "count");
-  const tokenKey = (metric: "converge_cache_hit" | "dev_event" | "dev_event_vault_hit") =>
-    msgfRedisKey("savings", tid, metric, "tokens_saved");
+  const tokenKey = (
+    metric:
+      | "converge_cache_hit"
+      | "dev_event"
+      | "dev_event_vault_hit"
+      | "verify_result_vault"
+      | "run_script_rerun"
+  ) => msgfRedisKey("savings", tid, metric, "tokens_saved");
 
   const [
     pulse_routing,
@@ -263,6 +300,13 @@ export async function getSavingsFeaturesSummary24h(
     credit_reservation_denied,
     dev_session_pulses,
     agent_context_packs,
+    verify_result_passes,
+    verify_result_failures,
+    verify_result_vault_writes,
+    verify_result_hall_writes,
+    verify_result_vault_tokens_saved,
+    run_script_reruns,
+    run_script_rerun_tokens_saved,
   ] = await Promise.all([
     getPulseRoutingMix24h(tid),
     readCounter(prefix("converge_cache_hit")),
@@ -276,6 +320,13 @@ export async function getSavingsFeaturesSummary24h(
     readCounter(prefix("credit_reserve_denied")),
     readCounter(prefix("dev_session_pulse")),
     readCounter(prefix("agent_context_pack")),
+    readCounter(prefix("verify_result_pass")),
+    readCounter(prefix("verify_result_fail")),
+    readCounter(prefix("verify_result_vault")),
+    readCounter(prefix("verify_result_hall")),
+    readCounter(tokenKey("verify_result_vault")),
+    readCounter(prefix("run_script_rerun")),
+    readCounter(tokenKey("run_script_rerun")),
   ]);
 
   const smallBrainPulses =
@@ -305,6 +356,13 @@ export async function getSavingsFeaturesSummary24h(
       credit_reservation_denied,
       dev_session_pulses,
       agent_context_packs,
+      verify_result_passes,
+      verify_result_failures,
+      verify_result_vault_writes,
+      verify_result_hall_writes,
+      verify_result_vault_tokens_saved,
+      run_script_reruns,
+      run_script_rerun_tokens_saved,
     },
     pulse_routing,
     small_brain_pulse_pct,

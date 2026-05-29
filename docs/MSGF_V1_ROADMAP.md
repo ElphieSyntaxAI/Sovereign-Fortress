@@ -13,7 +13,9 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-05-20 (Small/Big Brain audience routing + monorepo workspaces; [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md); **Stripe deferred until post-test signoff**)
+**Last updated:** 2026-05-28 (IDE Command Center: prompt optimizer, Run Scripts, Safe Build, verify-result Vault/Hall, savings dashboard wiring, security hardening — see [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md))
+
+**Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — use cases, personas, marketing angles.
 
 **Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) · **Brain routing:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf`
 
@@ -208,6 +210,7 @@ Aligned with `packages/msgf/.cursorrules`:
 | **M4** | Multi-tenant ops | Dashboard live data; RED→HITL; tier cron; Hall purge; heal queue + human arbitration | **Partial** — heal queue + arbitration **Done**; confirm prod `MSGF_OPS_CRON_SECRET` + live dashboard (not mocks) |
 | **M5** | Ecosystem wiring | Author + Education smoke: register → pledge → Pulse | **Partial** — `msgf/hal-author-bridge` (175w/10 overlap, lossless rhythm, `x-msgf-author-hal`); Author `chunk-pulse` + extension flush; **prod Author deploy + probe green** open |
 | **M4b** | IDE remediation UX | `msgf-pulse-guard` stoplight + shadow scan → healing console | **Done** — pillar-grouped checkboxes; Heal All / Approve Selected / Schedule presets; optimistic status |
+| **M4c** | IDE Command Center + verify loop | Prompt optimizer, Run Scripts, Safe Build, verify-result → Vault/Hall | **Done** — extension **v0.1.8**; savings counters; allowlisted `execFile`; IDE token auth on dev-event / verify-result / report-issue |
 | **M6** | 1.0 RC | §2.6 all green in staging; load test; Prancer; runbook | **Partial** — `npm run validate:deployment` (unit + `npm run build -w msgf`); Cloud deploy via `./deploy.sh` / `setup-cloud.sh` |
 
 **Suggested gate for tag `msgf-v1.0.0`:** M1, M4, M4b, M5 (staging), M6 sign-off with green `validate:deployment` + staging smoke. **M3 (Stripe)** follows immediately after test signoff — not a prerequisite for first RC tag unless product requires paid-only launch.
@@ -231,6 +234,12 @@ Aligned with `packages/msgf/.cursorrules`:
 | Author chunked MSGF sync | `apps/author-ecosystem/server/src/lib/authorHalMsgfSync.ts`, `POST /api/hal/chunk-pulse` |
 | Web healing console | `packages/msgf/app/_components/dashboard/PostIngestHealingConsole.tsx`, `DashboardShell.tsx` |
 | IDE healing console | `packages/msgf-pulse-guard/` (`healQueueClient.ts`, `healingConsoleHtml.ts`, `msgfDashboardProvider.ts`) |
+| IDE Command Center | `packages/msgf-pulse-guard/` — `commands/optimizer.ts`, `utils/run-scripts-store.ts`, `utils/safe-exec.ts`, `utils/terminal-interceptor.ts`, `devEventClient.ts` |
+| Prompt optimizer API | `packages/msgf/app/api/msgf/prompt-optimizer/route.ts`, `lib/services/prompt-optimizer-service.ts`, `lib/services/feature-verify-scripts.ts` |
+| Verify-result + ledger | `app/api/msgf/verify-result/route.ts`, `lib/services/verify-result-ledger.ts`, `lib/services/verify-result-savings.ts` |
+| Pack registry / confirm-pack | `lib/services/pack-registry.ts`, `app/api/msgf/confirm-pack/route.ts` |
+| Shell-safe guards | `lib/utils/shell-safe-path.ts` (server + extension mirror) |
+| Product overview | `docs/MSGF_PRODUCT_OVERVIEW.md` |
 | Ops heartbeat | `packages/msgf/app/api/msgf/ops/v32-heartbeat/route.ts`, `.github/workflows/msgf-tier-heartbeat.yml` |
 | Credit guard | `packages/msgf/lib/creditGuard.ts`, `middleware.ts` |
 | Stripe (skeleton) | `packages/msgf/app/api/webhooks/stripe/route.ts`, `src/lib/stripe.ts` |
@@ -266,9 +275,9 @@ Aligned with `packages/msgf/.cursorrules`:
 | SHARD — cold (Postgres/pgvector) | **Done** |
 | SHARD — hot (Redis active slices) | **Done** (when `UPSTASH_*` / `REDIS_URL` set) |
 | DEFEND — shadow + LOM | **Done** on Pulse/ingest; LOM integration test = staging |
-| CROSS-REF — Vault/Hall preflight | **Partial** — DB enums + trigger enforce `governance_pillar`, `vault`/`hall`, 1.0/1.1/1.1.1 coherence; Zod mirrors via `MSG_DB_*` constants |
-| CONVERGE — dual-model consensus | **Partial** — `pulse-pipeline/` modular phases; Pulse route still delegates to `PulseEngine` |
-| ARBITRATE — HITL / retry > 3 | **Partial** — dashboard drawer + heal-queue human arbitration packages; Pulse `runArbitratePhase`; max-3 circuit → `PENDING_HUMAN_ARBITRATION` |
+| CROSS-REF — Vault/Hall preflight | **Done (behavior)** — `preFlightCheck` + vault context in converge; DB enum hardening remains ongoing |
+| CONVERGE — dual-model consensus | **Done (behavior)** — `pulse-pipeline/` + `PulseEngine.converge()`; prove on env with `npm run smoke:pulse-converge -w msgf` |
+| ARBITRATE — HITL / retry > 3 | **Done (behavior)** — `runArbitratePhase` + heal-queue arbitration; **refactor** (thin route) → 1.1 |
 | PERSIST — Vault writes + Hall purge | **Done** (ops) — writes OK; `v32-heartbeat` + GH Actions when secrets configured |
 | Stripe billing | **Deferred (post-test)** — mock entitlements default ON; finish webhook → `p4_profiles` after test signoff |
 | Public gatedai site | **Partial** — Next app: landing, pricing, workspace, `/status`, extension download |
@@ -368,6 +377,11 @@ Model-based estimates and Redis counters — **not** Stripe billing truth. Full 
 | **usage_monitor** | ✅ | `lib/usage-monitor.ts` · `msgf_usage_monitor_add` RPC | Catalog (Postgres cumulative; no per-row UI in 1.0) |
 | **Credit reservation** | ✅ | `lib/credit-reservation.ts` · 402 on insufficient | Catalog + reserve / denied counters |
 | **CONVERGE context budget** | ✅ | `lib/services/converge-context-budget.ts` · `MSGF_CONVERGE_MAX_CONTEXT_TOKENS` | Catalog (env cap; wired in `PulseEngine`) |
+| **0-Token prompt optimizer** | ✅ | `POST /api/msgf/prompt-optimizer` · `feature-verify-scripts.ts` | Command Center · `agent_context_packs` counter |
+| **Run Scripts (zero re-prompt)** | ✅ | `.msgf/run-scripts.json` · extension `safe-exec.ts` | Token savings · `run_script_reruns` + tokens avoided |
+| **Safe Build / verify-result** | ✅ | `POST /api/msgf/verify-result` · `verify-result-ledger.ts` | Pass → Vault (pack); 3× fail → Hall; savings metrics |
+| **confirm-pack** | ✅ | `POST /api/msgf/confirm-pack` · `pack-registry.ts` | Defensible ROI · guided session count |
+| **IDE API auth hardening** | ✅ | `ide-api-auth.ts` · allowlisted commands · webview escape | Required `msgf_ide_*` on IDE POST surfaces |
 
 **Audience routing** — Big Brain issues map to **admin**; Small Brain issues map to **users**. Full matrix: [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) §3.
 
@@ -392,7 +406,23 @@ Model-based estimates and Redis counters — **not** Stripe billing truth. Full 
 | Tenant / buyer | `/dashboard#token-savings` | `GET /api/msgf/dashboard/savings-features?tenant_id=` (Small Brain catalog only) |
 | Operator (GLOBAL / COMPANY admin) | `/admin/dashboard#token-savings` · `#big-brain-issues` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` |
 
-**QA:** `npm run test:savings -w msgf` · `npm run test:brain-routing -w msgf` · `npm run test:heal-queue-audience -w msgf` (checkpoints 18–19 in `tests/savings-qa-checkpoints.test.ts`).
+**QA:** `npm run test:savings -w msgf` · `npm run test:brain-routing -w msgf` · `npm run test:heal-queue-audience -w msgf` · `tests/verify-result-savings.test.ts` · `tests/shell-safe-path.test.ts` (checkpoints 18–19 in `tests/savings-qa-checkpoints.test.ts`).
+
+### 7.7 IDE Command Center & verify loop (M4c — 2026-05-28)
+
+End-to-end path for **Deckhost-class** Rails/Node workspaces without re-prompting agents for every verify.
+
+| Layer | Shipped | Notes |
+| :--- | :---: | :--- |
+| **Prompt optimizer** | ✅ | Deterministic markdown + `verifyScripts[]` + MANDATORY AGENT EXECUTION RULES |
+| **Run Scripts** | ✅ | Registers allowlisted commands; sidebar run; syncs cloud on pass/fail |
+| **Safe Build** | ✅ | `resolveBuildCommand` → pass=`verify-result`, fail=`dev-event` (not unauthenticated `report-issue`) |
+| **Vault on verify pass + pack** | ✅ | `verify-result-ledger` → `persistToVault` when pack in Redis |
+| **Hall on repeat verify fail** | ✅ | Redis counter; Hall after `MSGF_VERIFY_HALL_FAIL_THRESHOLD` (default 3) |
+| **Savings dashboard** | ✅ | `verify_result_*`, `run_script_rerun` counters + defensible ROI rollup |
+| **Extension security** | ✅ | `execFile` only; path/command allowlist; `escapeHtml` in webview |
+
+**Extension version:** `msgf-pulse-guard@0.1.8` — redeploy API + reinstall VSIX after pull.
 
 ### 7.4 Deployment & release path
 
@@ -518,6 +548,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-05-28 | **M4c IDE Command Center:** prompt optimizer, Run Scripts, Safe Build, verify-result Vault/Hall, savings dashboard counters, security hardening; [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md). |
 | 2026-05-20 | **Small Brain / Big Brain:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md); §7.6 audience + heal-queue scope + monorepo workspace presets; `test:brain-routing`, `test:heal-queue-audience`. |
 | 2026-05-23 | **Solo deep-test:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md), `bootstrap:solo`, `probe:solo`, `deep-test:solo`. **§10** + Stripe deferred post-test. **HAL portable:** `msgf/hal-author-bridge`, §7.5. |
 

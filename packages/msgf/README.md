@@ -9,6 +9,8 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | Doc | Purpose |
 | :--- | :--- |
 | [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) | **1.0 vision & release plan** (MSGF V3.2-ULTRA) |
+| [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) | **Product capabilities, use cases & marketing** |
+| [`docs/MSGF_LEARNING_AND_BIG_BRAIN.md`](../../docs/MSGF_LEARNING_AND_BIG_BRAIN.md) | **Learning loop** — Vault without Big Brain; `smoke:pulse-converge` |
 | [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
 | [`docs/MSGF_SOLO_INTEGRATION.md`](../../docs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |
 | [`docs/MSGF_BUYER_WALKTHROUGH.md`](../../docs/MSGF_BUYER_WALKTHROUGH.md) | **Buyer / SaaS** — new user sign-up, pricing, session Pulse (not integrator license) |
@@ -48,6 +50,10 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | `MSGF_DEV_SESSION_DEFAULT` / `MSGF_DEV_SESSION_DRIFT_RELAX` | IDE vibe-coding: relaxed logic drift, save-primary flush |
 | `x-msgf-dev-session`, `x-msgf-build-active`, `x-msgf-active-file`, `x-msgf-flush-reason` | IDE Pulse headers (see `IdeConnector`) |
 | `POST /api/msgf/dev-event` | IDE `build_failed` — vault-first Heal Cheap, no keystroke/biometric pipeline |
+| `POST /api/msgf/verify-result` | Safe Build / Run Scripts pass-fail → narrative log + Vault/Hall ledger |
+| `POST /api/msgf/prompt-optimizer` | 0-token structured prompt + verify script list (no server LLM) |
+| `POST /api/msgf/confirm-pack` | Confirm pack used → guided session + context savings tokens |
+| `MSGF_VERIFY_HALL_FAIL_THRESHOLD` | Repeated verify failures before Hall persist (default `3`) |
 | `MSGF_DEV_EVENT_VAULT_MATCH_MIN` / `MSGF_DEV_EVENT_GEMINI_MODEL` | Vault-only resolve threshold; Flash model (default `gemini-2.0-flash`) |
 | `MSGF_CONVERGE_CACHE_ENABLED` / `MSGF_CONVERGE_CACHE_TTL_SEC` | Redis replay of global dual-model CONVERGE (default 600s); eco rollup on cache hit |
 
@@ -86,6 +92,8 @@ Register **each app** as its own `msgf_user_projects` row (not only the git root
 | GLOBAL / COMPANY admin | `/admin/dashboard#token-savings` · `#big-brain-issues` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` (full catalog) |
 
 The **Token savings layer** panel lists 24h Redis counters and a feature catalog with brain badges. Users see Small Brain features only; operators see Big Brain rows (global CONVERGE, arbitration, rule promotion).
+
+**IDE Command Center (extension v0.1.8+):** Prompt optimizer → `.msgf/run-scripts.json` → **Run Scripts** / **Safe Build** → `verify-result` / `dev-event` → savings counters (`verify_result_*`, `run_script_rerun`). See [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) §3.
 
 **Heal queue:** Session users get Small Brain tasks only; `big_brain_escalations_pending` counts items waiting on admin. **API key** callers receive the full queue. Human arbitration UI and `POST .../human-arbitration` require an operator session on the admin dashboard.
 

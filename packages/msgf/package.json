@@ -169,6 +169,7 @@
     "track:author-tokens:live": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/track-author-msgf-token-savings.ts --live",
     "bootstrap:solo": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/bootstrap-solo-deep-test.ts",
     "probe:solo": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-msgf-solo.mjs",
+    "smoke:pulse-converge": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/smoke-pulse-converge.mjs",
     "deep-test:solo": "node scripts/deep-test-solo.mjs",
     "deep-test:solo:live": "node scripts/deep-test-solo.mjs --live",
     "smoke:p1-ide": "node scripts/smoke-p1-ide-setup.mjs",

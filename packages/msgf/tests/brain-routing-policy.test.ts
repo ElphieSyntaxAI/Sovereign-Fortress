@@ -58,6 +58,10 @@ describe("brain-routing-policy", () => {
     assert.equal(dev.brain_tier, MSGF_BRAIN_SMALL);
     assert.equal(dev.requires_admin_for_global, false);
 
+    const verify = catalog.find((e) => e.id === "verify_result");
+    assert.ok(verify);
+    assert.equal(verify.brain_tier, MSGF_BRAIN_SMALL);
+
     const big = catalog.find((e) => e.id === "big_brain_admin_promotion");
     assert.ok(big);
     assert.equal(big.brain_tier, MSGF_BRAIN_BIG);

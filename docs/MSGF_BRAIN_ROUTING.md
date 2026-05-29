@@ -2,7 +2,9 @@
 
 **Audience:** Engineering / operators. Describes how tenant-local work stays on **Small Brain** while global platform work routes to **Big Brain** and **admin-only** surfaces.
 
-**Last updated:** 2026-05-20
+**Last updated:** 2026-05-28
+
+**Product overview (use cases & marketing):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md)
 
 **Companion:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §7.6 · [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`packages/msgf/README.md`](../packages/msgf/README.md)
 
@@ -34,6 +36,7 @@ Policy catalog (every feature has `tier` + `audience`): [`packages/msgf/lib/serv
 **Never** on these IDE paths (Small Brain only):
 
 - **`POST /api/msgf/dev-event`** — vault-first Heal Cheap; no biometric Pulse → CONVERGE chain (`dev_event` logic delta, `globalize: false` by default).
+- **`POST /api/msgf/verify-result`** — Safe Build / Run Scripts audit; pass + pack → tenant Vault; repeated fail → Hall (deduped). Small Brain only.
 - **Dev-session headers** (`x-msgf-dev-session`, build-active discount) — relaxed drift, longer local gateway.
 
 `classifyPulseRoutingBrain()` maps Pulse routing kinds to catalog feature ids (`pulse_local_gateway`, `pulse_global_converge`, etc.).
@@ -114,11 +117,16 @@ Redis counters + model estimates (not Stripe billing truth). Summary builder: [`
 | usage_monitor | Small | ✅ | ✅ |
 | Credit reservation | Small | ✅ | ✅ |
 | CONVERGE context budget | Small | ✅ | ✅ |
+| 0-Token prompt + context pack | Small | ✅ | ✅ |
+| IDE verify-result loop | Small | ✅ | ✅ |
+| Run Scripts (zero re-prompt) | Small | ✅ | ✅ |
 | Human arbitration (global) | Big | — | ✅ |
 | Rule submission promotion | Big | — | ✅ |
 | Pulse global CONVERGE | Big | — | ✅ (via admin savings + Big Brain panel) |
 
 **QA checkpoints 18–19:** `tests/savings-qa-checkpoints.test.ts` (dev-event CHEAP routing; CONVERGE cache replay savings).
+
+**24h counter keys (verify loop):** `verify_result_pass`, `verify_result_fail`, `verify_result_vault`, `verify_result_hall`, `run_script_rerun` — wired from `verify-result-savings.ts` on each `POST /api/msgf/verify-result`.
 
 ---
 
@@ -144,6 +152,7 @@ Redis counters + model estimates (not Stripe billing truth). Summary builder: [`
 | Monorepo presets | `packages/msgf/lib/services/monorepo-workspace-presets.ts` |
 | User savings API | `packages/msgf/app/api/msgf/dashboard/savings-features/route.ts` |
 | Admin savings API | `packages/msgf/app/api/msgf/admin/dashboard/savings-features/route.ts` |
+| Verify-result savings | `packages/msgf/lib/services/verify-result-savings.ts` |
 | Big Brain UI | `packages/msgf/app/_components/dashboard/BigBrainIssuesPanel.tsx` |
 
 ---
@@ -152,4 +161,5 @@ Redis counters + model estimates (not Stripe billing truth). Summary builder: [`
 
 | Date | Change |
 | :--- | :--- |
+| 2026-05-28 | Verify-result loop + Run Scripts in savings catalog; counter keys; [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md). |
 | 2026-05-20 | Initial SSoT: audience mapping, heal-queue scope, monorepo workspaces, APIs/UI/tests. |

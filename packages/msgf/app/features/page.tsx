@@ -1,24 +1,15 @@
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
- */
 import Link from "next/link";
 
+import { FeatureGrid } from "@/app/_components/marketing/FeatureGrid";
 import { MarketingPillarList, MarketingSection } from "@/app/_components/marketing/MarketingSection";
 import { MarketingShell } from "@/app/_components/marketing/MarketingShell";
+import { SHIPPED_FEATURE_CARDS } from "@/app/_components/marketing/shipped-capabilities";
+import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
 
 export const metadata = {
   title: "Features | Elphie's Gated AI",
   description:
-    "MSGF elite real-time governance — 6-pillar ingest, IDE Bug Button, and multi-file CONVERGE batch-fixing.",
+    "MSGF V3.2 — six-pillar ingest, IDE Command Center, 0-token prompt optimizer, Run Scripts, Safe Build, Vault/Hall verify loop, and token savings dashboard.",
 };
 
 const PILLARS = [
@@ -50,7 +41,26 @@ const PILLARS = [
   {
     id: "P6",
     title: "Constraint Ledger",
-    body: "Automatically captures local compilation histories and negative patterns.",
+    body: "The Vault (what worked) and the Hall (what failed) — differential learning for every fix.",
+  },
+];
+
+const IDE_FEATURES = [
+  {
+    title: "0-Token Prompt Optimizer",
+    body: "Describe your task once. MSGF builds a sharded, @-attachment-ready prompt with mandatory agent verify rules — no server-side LLM burn.",
+  },
+  {
+    title: "Run Scripts",
+    body: "Auto-registered verify commands in .msgf/run-scripts.json. Re-run tests without regenerating the prompt. Counters show up on your token savings dashboard.",
+  },
+  {
+    title: "Safe Build",
+    body: "One-click local build/test. Pass syncs to verify-result; fail triggers Heal Cheap via dev-event — not a blind incident dump.",
+  },
+  {
+    title: "Command Center sidebar",
+    body: "Connection status, optimizer, Run Scripts, Safe Build, and advanced Pulse/heal ops in one Cursor/VS Code panel.",
   },
 ];
 
@@ -58,20 +68,29 @@ export default function FeaturesPage() {
   return (
     <MarketingShell className="pricing-page">
       <main className="mx-auto max-w-4xl px-5 pb-24 pt-12 sm:pt-16">
-        <header className="mx-auto mb-14 max-w-3xl text-center">
+        <header className="mx-auto mb-10 max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300/90">
-            Capabilities
+            Capabilities · shipped
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
-            <span className="text-gradient-jewel">Elite</span> real-time governance
-            <span className="block text-slate-200">&amp; hotfix automation</span>
+            <span className="text-gradient-jewel">Elite</span> governance
+            <span className="block text-slate-200">&amp; zero re-prompt verify</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-400">
-            Glass-box AI that maps your active project to six isolated local ledger slices inside
-            a hidden <code className="text-emerald-300/90">.msgf/</code> directory — eliminating
-            lag and context noise.
+            Glass-box AI that maps your project to six isolated ledger slices in{" "}
+            <code className="text-emerald-300/90">.msgf/</code>, routes routine work on{" "}
+            <strong className="text-cyan-300/90">Small Brain</strong>, and escalates to dual-model{" "}
+            <strong className="text-violet-300/90">CONVERGE</strong> only when logic drift demands it.
           </p>
         </header>
+
+        <div className="mb-12">
+          <WorkflowStrip />
+        </div>
+
+        <div className="mb-12">
+          <FeatureGrid items={SHIPPED_FEATURE_CARDS} />
+        </div>
 
         <div className="space-y-8">
           <MarketingSection
@@ -87,29 +106,70 @@ export default function FeaturesPage() {
           </MarketingSection>
 
           <MarketingSection
-            eyebrow="IDE integration"
-            title='The Native IDE "Bug Button"'
+            eyebrow="IDE — Command Center"
+            title="MSGF Pulse Guard for Cursor & VS Code"
+            variant="featured"
           >
+            <p className="mb-6">
+              The native extension ships a <strong className="text-emerald-200">Command Center</strong>{" "}
+              sidebar: connect once, generate targeted prompts, run allowlisted verify scripts, and
+              sync outcomes to your{" "}
+              <Link href="/dashboard#token-savings" className="text-cyan-300 hover:underline">
+                token savings
+              </Link>{" "}
+              dashboard.
+            </p>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {IDE_FEATURES.map((f) => (
+                <li
+                  key={f.title}
+                  className="rounded-xl border border-emerald-500/20 bg-slate-950/60 p-4"
+                >
+                  <p className="font-semibold text-slate-100">{f.title}</p>
+                  <p className="mt-1 text-sm text-slate-400">{f.body}</p>
+                </li>
+              ))}
+            </ul>
+          </MarketingSection>
+
+          <MarketingSection eyebrow="Verify loop" title="Vault on pass · Hall on repeat failure">
             <p>
-              Highlight broken architecture and press the <strong className="text-[#f8fafc]">Bug Button</strong>.
-              The extension streams the P6 error ledger directly to our Cloud Run network, spinning
-              up a silent <strong className="text-violet-200">Shadow Mode</strong> simulation to
-              draft a fix without blocking your local compilation environment.
+              When verify passes with a linked context pack, MSGF writes a positive beat to the{" "}
+              <strong className="text-emerald-200">Vault</strong>. Repeated failures on the same
+              command pattern dedupe into the <strong className="text-amber-200">Hall</strong> after
+              three strikes — so you get signal without noise. Safe execution uses{" "}
+              <code className="text-violet-300/90">execFile</code> with an allowlisted command set
+              (no shell injection from tampered script files).
             </p>
           </MarketingSection>
 
-          <MarketingSection
-            eyebrow="Step 5 CONVERGE"
-            title="Multi-File Batch-Fixing Protocol"
-            variant="featured"
-          >
+          <MarketingSection eyebrow="Token savings" title="Defensible ROI on your dashboard">
+            <p>
+              After you map a project and run the IDE loop, your{" "}
+              <Link href="/dashboard#token-savings" className="text-amber-300 hover:underline">
+                governance dashboard
+              </Link>{" "}
+              shows grouped counters: IDE verify (pass/fail/Vault/Hall), Run Script reruns, 0-token
+              optimizer packs, ingest hash skips, and pulse routing mix. A 24h rollup separates MSGF
+              cloud tokens from context savings you can defend to finance.
+            </p>
+          </MarketingSection>
+
+          <MarketingSection eyebrow="Step 5 CONVERGE" title="Multi-File Batch-Fixing Protocol">
             <p>
               Stop playing whack-a-mole with errors. MSGF executes a project-wide sweep, leveraging
-              our Step 5 (<strong className="text-emerald-200">CONVERGE</strong>) cross-model
-              consensus loop to push an elite arbitration check between{" "}
-              <strong className="text-[#f8fafc]">Gemini</strong> and{" "}
-              <strong className="text-[#f8fafc]">Claude</strong> — delivering a perfectly unified
-              multi-file git patch.
+              Step 5 (<strong className="text-emerald-200">CONVERGE</strong>) cross-model consensus
+              between <strong className="text-[#f8fafc]">Gemini</strong> and{" "}
+              <strong className="text-[#f8fafc]">Claude</strong> — with Redis replay when the same
+              content hash hits again.
+            </p>
+          </MarketingSection>
+
+          <MarketingSection eyebrow="Heal Cheap" title="IDE build failures without full Pulse">
+            <p>
+              <strong className="text-[#f8fafc]">dev-event</strong> handles IDE build failures:
+              tenant Vault lexical match or a single Flash heal — never the full biometric Pulse →
+              CONVERGE chain. Your keystrokes stay on Small Brain unless drift truly escalates.
             </p>
           </MarketingSection>
         </div>
@@ -120,6 +180,12 @@ export default function FeaturesPage() {
             className="w-full rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-8 py-3.5 text-center text-sm font-semibold text-white shadow-xl shadow-violet-900/25 transition hover:brightness-110 sm:w-auto"
           >
             Quickstart runbook
+          </Link>
+          <Link
+            href="/workspace"
+            className="w-full rounded-full border border-emerald-400/30 bg-emerald-500/10 px-8 py-3.5 text-center text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/20 sm:w-auto"
+          >
+            Workspace setup
           </Link>
           <Link
             href="/pricing"

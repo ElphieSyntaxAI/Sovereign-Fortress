@@ -180,7 +180,7 @@
  *
  * Distribution Build ID: MSGF-0265450-20260522T170607Z-internal
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { SavingsFeaturesSummary } from "@/lib/services/savings-features-stats";
 import type { DefensibleSavingsBreakdown } from "@/lib/utils/savings-calculator";
@@ -241,7 +241,10 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
     counters.dev_events > 0 ||
     counters.pulse_idempotency_replays > 0 ||
     counters.ingest_hash_files_skipped > 0 ||
-    counters.agent_context_packs > 0;
+    counters.agent_context_packs > 0 ||
+    counters.verify_result_passes > 0 ||
+    counters.verify_result_failures > 0 ||
+    counters.run_script_reruns > 0;
 
   return (
     <section
@@ -283,7 +286,7 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
       ) : null}
 
       {defensible ? (
-        <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-950/20 p-4">
+        <div className="mt-5 rounded-xl border border-cyan-500/25 bg-gradient-to-br from-cyan-950/30 to-slate-950/50 p-4 sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300/90">
             Defensible ROI (24h)
           </p>
@@ -292,11 +295,13 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
               label="MSGF cloud tokens"
               value={defensible.msgf_cloud_tokens}
               hint={defensible.msgf_cloud_formula}
+              variant="highlight"
             />
             <Metric
               label="Context savings tokens"
               value={defensible.context_savings_tokens}
-              hint={`${defensible.guided_sessions_verified} verified pack(s) · ${defensible.context_savings_formula}`}
+              hint={`${defensible.guided_sessions_verified} confirm-pack(s) · ${defensible.verify_result_vault_tokens_saved.toLocaleString()} verify→Vault · ${defensible.run_script_rerun_tokens_saved.toLocaleString()} Run Scripts`}
+              variant="highlight"
             />
           </div>
           <p className="mt-3 text-xs text-amber-200/90">
@@ -305,7 +310,41 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
         </div>
       ) : null}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <MetricGroup title="IDE verify loop" subtitle="Safe Build · Run Scripts · dev-event">
+        <Metric
+          label="Verify passes"
+          value={counters.verify_result_passes}
+          hint={`${counters.verify_result_vault_writes} → Vault · ${counters.verify_result_vault_tokens_saved.toLocaleString()} tokens saved`}
+        />
+        <Metric
+          label="Verify failures"
+          value={counters.verify_result_failures}
+          hint={`${counters.verify_result_hall_writes} → Hall (deduped)`}
+        />
+        <Metric
+          label="Run Scripts reruns"
+          value={counters.run_script_reruns}
+          hint={`${counters.run_script_rerun_tokens_saved.toLocaleString()} re-prompt tokens avoided (est.)`}
+        />
+        <Metric
+          label="IDE dev-events"
+          value={counters.dev_events}
+          hint={`${counters.dev_event_vault_hits} vault hits · ${counters.dev_event_tokens_saved.toLocaleString()} tokens saved`}
+        />
+      </MetricGroup>
+
+      <MetricGroup title="Efficiency & context" subtitle="Optimizer · ingest · credits">
+        <Metric
+          label="0-Token prompts"
+          value={counters.agent_context_packs}
+          hint="Prompt optimizer + agent-context packs"
+        />
+        <Metric
+          label="Ingest skipped (hash)"
+          value={counters.ingest_hash_files_skipped}
+          hint="Unchanged content SHA"
+          disabled={!catalog.find((c) => c.id === "ingest_hash")?.enabled}
+        />
         <Metric
           label="CONVERGE cache hits"
           value={counters.converge_cache_hits}
@@ -313,45 +352,71 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
           disabled={!catalog.find((c) => c.id === "converge_cache")?.enabled}
         />
         <Metric
-          label="IDE dev-events"
-          value={counters.dev_events}
-          hint={`${counters.dev_event_vault_hits} vault hits · ${counters.dev_event_tokens_saved.toLocaleString()} tokens saved`}
-        />
-        <Metric
-          label="Pulse idempotency replays"
-          value={counters.pulse_idempotency_replays}
-          hint="Duplicate Idempotency-Key within TTL"
-          disabled={!catalog.find((c) => c.id === "pulse_idempotency")?.enabled}
-        />
-        <Metric
-          label="Ingest files skipped (hash)"
-          value={counters.ingest_hash_files_skipped}
-          hint="Unchanged content SHA"
-          disabled={!catalog.find((c) => c.id === "ingest_hash")?.enabled}
-        />
-        <Metric
           label="Credit reservations"
           value={counters.credit_reservations}
           hint={`${counters.credit_reservation_denied} denied (402)`}
           disabled={!catalog.find((c) => c.id === "credit_reservation")?.enabled}
         />
+      </MetricGroup>
+
+      <MetricGroup title="Pulse routing" subtitle="Small Brain vs Big Brain (24h)">
         <Metric
           label="Dev-session pulses"
           value={counters.dev_session_pulses}
           hint="x-msgf-dev-session or IDE pulse"
         />
         <Metric
-          label="0-Token context packs"
-          value={counters.agent_context_packs}
-          hint="GET /api/msgf/agent-context (guided/auto)"
+          label="Idempotency replays"
+          value={counters.pulse_idempotency_replays}
+          hint="Duplicate Idempotency-Key within TTL"
+          disabled={!catalog.find((c) => c.id === "pulse_idempotency")?.enabled}
         />
-      </div>
+        <Metric
+          label="Global CONVERGE"
+          value={pulse_routing.global_converge}
+          hint={
+            pulse_routing.global_converge === 0
+              ? "Idle — IDE verify handles routine work"
+              : "Escalations in operator queue"
+          }
+        />
+        <Metric
+          label="Local / bypass"
+          value={pulse_routing.total_pulses > 0 ? pulse_routing.local_or_bypass_pct : 0}
+          hint={
+            pulse_routing.total_pulses > 0
+              ? `${pulse_routing.estimated_tokens_saved_vs_naive.toLocaleString()} tokens saved vs naive dual-cloud`
+              : "No pulses in window yet"
+          }
+          suffix={pulse_routing.total_pulses > 0 ? "%" : undefined}
+        />
+      </MetricGroup>
 
       {pulse_routing.total_pulses > 0 ? (
         <p className="mt-4 text-sm text-slate-300">
           Pulse routing: <strong className="text-emerald-300">{pulse_routing.local_or_bypass_pct}%</strong>{" "}
           local/bypass · {pulse_routing.estimated_tokens_saved_vs_naive.toLocaleString()} tokens saved vs
           naive dual-cloud (24h).
+          {pulse_routing.global_converge === 0 ? (
+            <>
+              {" "}
+              <span className="text-cyan-200/90">
+                Big Brain idle (0 global CONVERGE) — expected when dev-session, Run Scripts, and Safe Build
+                handle verify. Tenant memory still grows via Vault/Hall on verify, dev-event, and ingest.
+              </span>
+            </>
+          ) : (
+            <>
+              {" "}
+              <span className="text-violet-200/90">
+                {pulse_routing.global_converge} global CONVERGE pulse(s) in 24h — see{" "}
+                <a href="#big-brain-issues" className="underline">
+                  operator queue
+                </a>{" "}
+                if tie-breakers are pending.
+              </span>
+            </>
+          )}
         </p>
       ) : null}
 
@@ -396,26 +461,56 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
   );
 }
 
+function MetricGroup({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mt-5">
+      <div className="mb-3 border-b border-slate-800/80 pb-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-300">{title}</p>
+        <p className="text-[11px] text-slate-500">{subtitle}</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
+    </div>
+  );
+}
+
 function Metric({
   label,
   value,
   hint,
   disabled,
+  variant = "default",
+  suffix,
 }: {
   label: string;
   value: number;
   hint: string;
   disabled?: boolean;
+  variant?: "default" | "highlight";
+  suffix?: string;
 }) {
+  const shell =
+    variant === "highlight"
+      ? "border-cyan-500/25 bg-cyan-950/30"
+      : disabled
+        ? "border-slate-800 opacity-50"
+        : "border-amber-500/20 bg-slate-950/60";
+
   return (
-    <div
-      className={`rounded-xl border p-3 ${
-        disabled ? "border-slate-800 opacity-50" : "border-amber-500/20 bg-slate-950/60"
-      }`}
-    >
+    <div className={`rounded-xl border p-3 ${shell}`}>
       <p className="text-[11px] uppercase tracking-wider text-amber-400/80">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-50">{value.toLocaleString()}</p>
-      <p className="mt-1 text-[10px] text-slate-500">{hint}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-50">
+        {value.toLocaleString()}
+        {suffix ? <span className="ml-0.5 text-lg font-medium text-slate-400">{suffix}</span> : null}
+      </p>
+      <p className="mt-1 text-[10px] leading-snug text-slate-500">{hint}</p>
     </div>
   );
 }

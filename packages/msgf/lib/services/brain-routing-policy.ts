@@ -46,6 +46,9 @@ export type BrainFeatureId =
   | "credit_reservation"
   | "usage_monitor"
   | "converge_context_budget"
+  | "agent_context_pack"
+  | "verify_result_loop"
+  | "run_script_rerun"
   | "human_arbitration_global"
   | "rule_submission_promotion";
 
@@ -189,6 +192,33 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     description: "Caps shardable context before Big Brain CONVERGE to reduce unnecessary escalation cost.",
   },
   {
+    id: "agent_context_pack",
+    label: "0-Token context pack",
+    tier: MSGF_BRAIN_SMALL,
+    audience: "user",
+    requires_admin_for_global: false,
+    description:
+      "Prompt optimizer + guided agent-context downloads — sharded attachments instead of whole-repo dumps.",
+  },
+  {
+    id: "verify_result_loop",
+    label: "IDE verify-result loop",
+    tier: MSGF_BRAIN_SMALL,
+    audience: "user",
+    requires_admin_for_global: false,
+    description:
+      "Safe Build + Run Scripts outcomes — pass logs to Vault (pack-linked), repeated fails dedupe to Hall.",
+  },
+  {
+    id: "run_script_rerun",
+    label: "Run Scripts (zero re-prompt)",
+    tier: MSGF_BRAIN_SMALL,
+    audience: "user",
+    requires_admin_for_global: false,
+    description:
+      "Re-run optimizer verify commands from .msgf/run-scripts.json without regenerating the 0-token prompt.",
+  },
+  {
     id: "human_arbitration_global",
     label: "Human arbitration (global)",
     tier: MSGF_BRAIN_BIG,
@@ -239,6 +269,9 @@ export function savingsCatalogFeatureIdToBrainId(
     usage_monitor: "usage_monitor",
     credit_reservation: "credit_reservation",
     converge_context_budget: "converge_context_budget",
+    agent_context_pack: "agent_context_pack",
+    verify_result: "verify_result_loop",
+    run_scripts: "run_script_rerun",
   };
   return map[savingsId] ?? null;
 }

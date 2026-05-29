@@ -35,6 +35,8 @@ export type DefensibleSavingsBreakdown = {
   context_savings_tokens: number;
   context_savings_formula: string;
   guided_sessions_verified: number;
+  verify_result_vault_tokens_saved: number;
+  run_script_rerun_tokens_saved: number;
   pulse_routing_tokens_saved_estimate: number;
   combined_msgf_impact_tokens: number;
   footnote: string;
@@ -97,7 +99,10 @@ export async function computeDefensibleSavingsBreakdown(
   const devEventCloud = counters.dev_events > 0 ? counters.dev_event_tokens_saved : 0;
   const msgf_cloud_tokens = usageMonitorTotal + pulseCloudEstimate + devEventCloud;
 
-  const context_savings_tokens = contextSavingsRedis;
+  const context_savings_tokens =
+    contextSavingsRedis +
+    counters.verify_result_vault_tokens_saved +
+    counters.run_script_rerun_tokens_saved;
 
   const combined_msgf_impact_tokens =
     msgf_cloud_tokens + context_savings_tokens + pulseMix.estimated_tokens_saved_vs_naive;
@@ -110,8 +115,10 @@ export async function computeDefensibleSavingsBreakdown(
       "usage_monitor (IDE users on tenant) + pulse global/local routing estimate + dev-event cloud heal",
     context_savings_tokens,
     context_savings_formula:
-      "sum over verified packs: max(0, (naiveCharCount - shardedCharCount) / 4) per confirm-pack",
+      "confirm-pack verified savings + verify→Vault pack delta + Run Scripts re-prompt avoidance (24h Redis)",
     guided_sessions_verified: guidedSessions,
+    verify_result_vault_tokens_saved: counters.verify_result_vault_tokens_saved,
+    run_script_rerun_tokens_saved: counters.run_script_rerun_tokens_saved,
     pulse_routing_tokens_saved_estimate: pulseMix.estimated_tokens_saved_vs_naive,
     combined_msgf_impact_tokens,
     footnote:

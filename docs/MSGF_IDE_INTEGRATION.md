@@ -12,6 +12,7 @@
 | [MSGF_AGENT_EXECUTION_MATRIX.md](./MSGF_AGENT_EXECUTION_MATRIX.md) | Two-tier remediation (Fix Myself / Auto-Apply), token budgeting |
 | [MSGF_DX_ELEVATION_PLAN.md](./MSGF_DX_ELEVATION_PLAN.md) | HAL friction → 0-Token Context Pack |
 | [MSGF_IDE_SETUP_RUNBOOK.md](./MSGF_IDE_SETUP_RUNBOOK.md) | Production 504/auth, workspace settings, connectivity |
+| [MSGF_PRODUCT_OVERVIEW.md](./MSGF_PRODUCT_OVERVIEW.md) | Product capabilities, use cases, marketing by persona |
 
 ---
 
@@ -51,6 +52,7 @@
 | **P2** | Dev heal cycle, two-tier heal UI, HAL friction notice |
 | **P3** | `POST verify-result`, `GET refactoring-directive`, HAL friction notice, MCP ([MSGF_IDE_MCP.md](./MSGF_IDE_MCP.md)) |
 | **P4** | `msgf_ide_*` tokens, `POST register-workspace`, `vscode://` deep link, `GET compliance/export`, BULK blocked when HITL pending |
+| **P5 (M4c)** | Command Center: prompt optimizer, Run Scripts, Safe Build; verify-result Vault/Hall; savings dashboard; allowlisted `execFile` — extension **v0.1.8** |
 
 ---
 

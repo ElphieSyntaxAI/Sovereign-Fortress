@@ -24,6 +24,7 @@ import { VerifyResultBodySchema } from "@/lib/schemas/verify-result";
 import { IdeApiAuthError } from "@/lib/services/ide-api-auth";
 import { resolveVerifyResultActor } from "@/lib/services/verify-result-auth";
 import { persistVerifyResult } from "@/lib/services/verify-result-service";
+import { recordVerifyResultSavingsEffects } from "@/lib/services/verify-result-savings";
 
 function json(req: NextRequest, data: unknown, init?: ResponseInit) {
   return applyAdminCorsHeaders(req, NextResponse.json(data, init));
@@ -57,6 +58,16 @@ export async function POST(req: NextRequest) {
     const result = await persistVerifyResult(admin, {
       ...parsed.data,
       actor_id: parsed.data.actor_id?.trim() || entityId,
+    });
+
+    void recordVerifyResultSavingsEffects({
+      tenantKey,
+      body: parsed.data,
+      ledger: {
+        hall_persisted: result.hall_persisted ?? false,
+        vault_persisted: result.vault_persisted ?? false,
+        verify_fail_count: result.verify_fail_count ?? 0,
+      },
     });
 
     return json(req, {
