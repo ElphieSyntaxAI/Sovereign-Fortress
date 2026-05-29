@@ -21,6 +21,7 @@ import {
   applyIncidentReportCorsHeaders,
   incidentReportCorsPreflightResponse,
 } from "@/lib/msgf-cors";
+import { MSGF_TENANT_KEY_HEADER } from "@/lib/msgf-http-headers";
 import { DevEventValidationError } from "@/lib/schemas/dev-event";
 import { ReportIssueBodySchema } from "@/lib/schemas/report-issue";
 import { IdeApiAuthError } from "@/lib/services/ide-api-auth";
@@ -69,18 +70,19 @@ export async function POST(req: NextRequest) {
       "";
     const tenant_id =
       tenantRaw?.trim() ||
+      req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() ||
       req.headers.get("x-msgf-tenant-key")?.trim() ||
       req.headers.get("origin")?.trim() ||
       "unknown";
 
-    const admin = createAdminClient();
+    const { admin, entityId } = await resolveReportIssueActor(req, tenant_id);
     const result = await orchestrateReportIssue(admin, {
       message,
       location,
       tenant_id,
       source,
       operator_note,
-      entity_id,
+      entity_id: entity_id?.trim() || entityId,
       diagnostic_snapshot,
     });
 

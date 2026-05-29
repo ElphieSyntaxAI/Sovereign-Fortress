@@ -60,11 +60,11 @@ const PRODUCTS: ProductCard[] = [
     title: "MSGF — Gated AI",
     tagline: "Stateful, self-defending AI orchestration",
     summary:
-      "MSGF V3.2-ULTRA: six isolated pillars, 1.1.1 genealogical lineage, Redis hot + Postgres cold, dual-model consensus, mandatory human tie-breaker on RED disagreement.",
+      "MSGF V3.2: six-pillar glass box, IDE Command Center (optimizer, Run Scripts, Safe Build), verify→Vault/Hall, and a defensible token savings dashboard.",
     bullets: [
-      "SWEEP → SHARD → DEFEND → CROSS-REF → CONVERGE → ARBITRATE → PERSIST",
-      "Vault (positive) vs Hall (negative) cross-reference on every Pulse",
-      "Tiered batching: RED immediate · YELLOW 6h · GREEN 24h",
+      "0-token prompt optimizer + allowlisted Run Scripts / Safe Build",
+      "Pass → verify-result · fail → dev-event (Heal Cheap, not blind incidents)",
+      "Small Brain default · CONVERGE only when logic drift escalates",
     ],
     detailHref: "/products/msgf",
     liveUrl: MSGF_APP_URL,

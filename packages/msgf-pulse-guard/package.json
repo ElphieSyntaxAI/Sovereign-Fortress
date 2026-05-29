@@ -2,7 +2,7 @@
   "name": "msgf-pulse-guard",
   "displayName": "MSGF Pulse Guard",
   "description": "V3.2-ULTRA IDE guard — buffers keystroke Pulses and routes to MSGF (SHARD / CROSS-REF / CONVERGE).",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "publisher": "elphiesyntax",
   "license": "UNLICENSED",
   "private": true,
@@ -13,7 +13,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:msgf.dashboard"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -66,6 +67,7 @@
     "views": {
       "msgf-ops": [
         {
+          "type": "webview",
           "id": "msgf.dashboard",
           "name": "Command Center"
         }

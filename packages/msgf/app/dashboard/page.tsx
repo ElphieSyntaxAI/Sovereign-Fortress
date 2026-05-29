@@ -79,11 +79,17 @@ export default async function DashboardPage() {
       ? `your account and ${mappedCount} mapped project${mappedCount === 1 ? "" : "s"}`
       : "your account (map projects in Workspace to scope by repository)";
 
+  const mappedProjects = projects.map((p) => ({
+    project_origin: p.project_origin,
+    label: p.project_origin,
+  }));
+
   return (
     <DashboardShell
       userEmail={user.email ?? "Signed in"}
       initialReport={initialReport}
       healQueueTenantId={healQueueTenantId}
+      mappedProjects={mappedProjects}
       healthScope="personal"
       canAccessAdminDashboard={access.canAccessAdminDashboard}
       scopeDescription={scopeDescription}

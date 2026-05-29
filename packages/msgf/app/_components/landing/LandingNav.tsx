@@ -47,6 +47,12 @@ export function LandingNav({ userEmail = null }: Props) {
                 Dashboard
               </Link>
               <Link
+                href="/features"
+                className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white md:inline-block"
+              >
+                Features
+              </Link>
+              <Link
                 href="/other-products"
                 className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:inline-block"
               >

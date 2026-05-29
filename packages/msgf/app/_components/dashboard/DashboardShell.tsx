@@ -482,6 +482,8 @@ import {
   type HealConsoleStatus,
 } from "@/app/_components/dashboard/PostIngestHealingConsole";
 import { BigBrainIssuesPanel } from "@/app/_components/dashboard/BigBrainIssuesPanel";
+import { SecurityViewSection } from "@/app/_components/dashboard/SecurityViewSection";
+import { ShippedCapabilitiesStrip } from "@/app/_components/dashboard/ShippedCapabilitiesStrip";
 import { TokenSavingsFeaturesPanel } from "@/app/_components/dashboard/TokenSavingsFeaturesPanel";
 import { UserBlueprintEcoPanel } from "@/app/_components/dashboard/UserBlueprintEcoPanel";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
@@ -495,7 +497,6 @@ import type {
 } from "@/lib/services/EcoAggregatorClient";
 import type {
   DailyNetworkReport,
-  PulseRoutingMixSummary,
   GlobalNotificationTickerEvent,
   PillarLiveLogs,
   TerminalHardFailureLog,
@@ -532,6 +533,8 @@ type Props = {
   embeddedInAdminPortal?: boolean;
   /** UUID tenant silo for GET/POST /api/msgf/heal-queue (from signed-in user). */
   healQueueTenantId: string;
+  /** Mapped repos for Security View IDE settings + Redis stats scope. */
+  mappedProjects?: { project_origin: string; label: string }[];
   /** False for new accounts with no mapped projects — show onboarding empty state. */
   showGovernanceMatrix?: boolean;
 };
@@ -968,64 +971,13 @@ function PillarTerminalDrawer({
   );
 }
 
-function PulseRoutingMixPanel({ tenantId }: { tenantId: string }) {
-  const [mix, setMix] = useState<PulseRoutingMixSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!tenantId.trim()) return;
-    setError(null);
-    fetch(
-      `/api/msgf/dashboard/pulse-routing?tenant_id=${encodeURIComponent(tenantId)}`,
-      { credentials: "include", cache: "no-store" }
-    )
-      .then(async (res) => {
-        const json = (await res.json()) as { ok?: boolean; mix?: PulseRoutingMixSummary; error?: string };
-        if (!res.ok || !json.ok || !json.mix) {
-          throw new Error(json.error ?? `Pulse routing stats failed (${res.status})`);
-        }
-        setMix(json.mix);
-      })
-      .catch((e) => {
-        setMix(null);
-        setError(e instanceof Error ? e.message : "Failed to load routing mix.");
-      });
-  }, [tenantId]);
-
-  if (error) {
-    return (
-      <p className="text-xs text-slate-500">
-        Pulse routing mix unavailable ({error}). Counters populate after Pulses hit Redis.
-      </p>
-    );
-  }
-
-  if (!mix || mix.total_pulses === 0) return null;
-
-  return (
-    <section className="glass-panel rounded-2xl border border-cyan-500/20 p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300/90">
-        Pulse routing (24h)
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-slate-50">Small Brain vs Big Brain (24h)</h2>
-      <p className="mt-2 text-sm text-slate-300">
-        <strong className="text-cyan-300">{mix.local_or_bypass_pct}%</strong> stayed on Small Brain
-        (local gateway or bypass: {mix.local_gateway + mix.converge_bypass} of {mix.total_pulses}).
-        Big Brain global CONVERGE: {mix.global_converge}. Tokens saved vs naive dual-cloud:{" "}
-        <strong>{mix.estimated_tokens_saved_vs_naive.toLocaleString()}</strong>.
-      </p>
-      <p className="mt-2 text-[10px] text-slate-500">
-        Per-pulse estimates also appear on API responses as <code>token_usage_estimate</code>.
-        Account eco totals are in your Blueprint panel above.
-      </p>
-    </section>
-  );
-}
-
 function DailyNetworkReportPanel({ report }: { report: DailyNetworkReport | null }) {
   if (!report) return null;
   return (
-    <section className="glass-panel rounded-2xl border border-violet-500/20 p-5">
+    <section
+      id="daily-reports"
+      className="glass-panel scroll-mt-24 rounded-2xl border border-violet-500/20 p-5"
+    >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/90">
@@ -1269,6 +1221,7 @@ export function DashboardShell({
   showNetworkStreams = false,
   embeddedInAdminPortal = false,
   healQueueTenantId,
+  mappedProjects = [],
   showGovernanceMatrix = true,
 }: Props) {
   const [report, setReport] = useState<PillarHealthReport>(initialReport);
@@ -1460,13 +1413,16 @@ export function DashboardShell({
               <span className="text-gradient-jewel">{dashboardLabel}</span>
             </h1>
             <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-              Real-time stoplight matrix for MSGF V3.0 six-pillar governance and V3.2-ULTRA execution
-              (SHARD → PERSIST). Data refreshes every 30 seconds from {scopeDescription}.{" "}
+              Six-pillar governance, IDE verify loop, and{" "}
+              <a href="#token-savings" className="text-amber-300/90 underline-offset-4 hover:underline">
+                token savings
+              </a>{" "}
+              for {scopeDescription}. Refreshes every 30s.{" "}
               <Link
                 href="/getting-started#six-pillars"
                 className="text-emerald-400/90 underline-offset-4 hover:underline"
               >
-                How each pillar works
+                How pillars work
               </Link>
             </p>
           </div>
@@ -1551,32 +1507,19 @@ export function DashboardShell({
 
         {showGovernanceMatrix ? (
           <>
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Platform metrics">
-              <MetricCard
-                label="Incident queue"
-                value={pendingTotal}
-                hint="Pending ARBITRATE items across pillars"
-                accent={pendingTotal > 0 ? "amber" : "emerald"}
-              />
-              <MetricCard
-                label="Hall events (7d)"
-                value={hallTotal}
-                hint="Recent failure / constraint signals"
-                accent={hallTotal > 5 ? "rose" : "violet"}
-              />
-              <MetricCard
-                label="Logic drift"
-                value={report.logic_drift.trend}
-                hint={`Slope ${report.logic_drift.slope.toFixed(3)} · ${report.logic_drift.sample_count} samples`}
-                accent="violet"
-              />
-              <MetricCard
-                label="Stability forecast"
-                value={`${report.logic_drift.predicted_stability_pct}%`}
-                hint={`Next ${report.logic_drift.predictive_pulse_horizon} pulses`}
-                accent={report.logic_drift.predicted_future_issue ? "amber" : "emerald"}
-              />
-            </section>
+            <SecurityViewSection
+              healTenantId={healQueueTenantId}
+              mappedProjects={mappedProjects}
+              governance={{
+                pendingTotal,
+                hallTotal,
+                logicDriftTrend: report.logic_drift.trend,
+                logicDriftSlope: report.logic_drift.slope,
+                predictedStabilityPct: report.logic_drift.predicted_stability_pct,
+                predictedFutureIssue: report.logic_drift.predicted_future_issue,
+                sampleCount: report.logic_drift.sample_count,
+              }}
+            />
 
             <section className="glass-panel rounded-2xl border border-violet-500/15 p-4 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
@@ -1699,7 +1642,7 @@ export function DashboardShell({
 
         <DailyNetworkReportPanel report={dailyReport} />
 
-        <PulseRoutingMixPanel tenantId={healQueueTenantId} />
+        <ShippedCapabilitiesStrip />
 
         <TokenSavingsFeaturesPanel
           tenantId={healQueueTenantId}
