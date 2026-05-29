@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-c103094-20260526T230730Z-internal
+-- Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
 -- =============================================================================
 -- Per-tenant isolation for `msgf_rules` (P2 roadmap, global_mitigations, etc.).
 ALTER TABLE public.msgf_rules

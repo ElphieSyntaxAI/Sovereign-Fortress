@@ -1,5 +1,17 @@
 #!/usr/bin/env node
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-3ea5d0e-20260529T033030Z-internal
+ */
+/**
  * P1 smoke — IDE setup + connectivity unit tests, extension compile.
  * Usage: npm run smoke:p1-ide -w msgf
  */
