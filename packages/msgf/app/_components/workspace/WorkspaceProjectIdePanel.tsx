@@ -154,7 +154,20 @@ export function WorkspaceProjectIdePanel({ project, apiUrl }: Props) {
       if (!res.ok) {
         throw new Error(data.error ?? "Could not load IDE credentials.");
       }
-      setCreds(data);
+      // GET never returns plaintext tokens — keep a just-minted settings block visible.
+      setCreds((prev) => {
+        const keepMintedPreview =
+          Boolean(prev?.settingsJson?.includes("msgf_ide_")) &&
+          !data.settingsJson?.includes("msgf_ide_");
+        if (!keepMintedPreview) return data;
+        return {
+          ...data,
+          settingsJson: prev!.settingsJson,
+          ideToken: prev!.ideToken ?? data.ideToken,
+          tokenKind: prev!.tokenKind ?? data.tokenKind,
+          longLived: prev!.longLived ?? data.longLived,
+        };
+      });
     } catch (e) {
       setCreds(null);
       setError(e instanceof Error ? e.message : "Could not load IDE credentials.");
@@ -200,7 +213,14 @@ export function WorkspaceProjectIdePanel({ project, apiUrl }: Props) {
         warning?: string;
       };
       if (!res.ok || data.ok === false) {
-        throw new Error(data.error ?? "Could not mint IDE token.");
+        const msg =
+          (data as { message?: string }).message ??
+          data.error ??
+          "Could not mint IDE token.";
+        throw new Error(msg);
+      }
+      if (!data.ideToken || !data.settingsJson?.includes("msgf_ide_")) {
+        throw new Error("Mint succeeded but no token was returned. Try again or contact support.");
       }
       setCreds((prev) => ({
         apiUrl: data.apiUrl ?? prev?.apiUrl ?? apiUrl,
@@ -220,7 +240,6 @@ export function WorkspaceProjectIdePanel({ project, apiUrl }: Props) {
           `Long-lived token minted (${data.longLived?.ttlDays ?? 90} days). Copy settings in Step 2.`
       );
       await refreshTokenStatus();
-      await loadCredentials();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Mint failed.");
     } finally {

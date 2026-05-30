@@ -224,23 +224,29 @@ _deploy_client() {
   local author_app="${RUN_ENV[VITE_AUTHOR_APP_URL]:-${RUN_ENV[NEXT_PUBLIC_AUTHOR_APP_URL]:-https://authorecosystem.elphiesyntax.com}}"
   local msgf_app="${RUN_ENV[VITE_MSGF_APP_URL]:-${RUN_ENV[NEXT_PUBLIC_MSGF_APP_URL]:-https://elphiesgatedai.elphiesyntax.com}}"
   local edu="${RUN_ENV[VITE_EDUCATION_APP_URL]:-${RUN_ENV[NEXT_PUBLIC_EDUCATION_APP_URL]:-https://syntaxeducates.elphiesyntax.com}}"
-  local vite_bff="${RUN_ENV[VITE_AUTHOR_BFF_URL]:-}"
-
-  if [[ -z "${vite_bff}" && -n "${bff_url}" ]]; then
-    vite_bff="${bff_url%/}"
+  # Empty = same-origin `/api` (nginx proxies to BFF). Cross-origin only when explicitly enabled.
+  local vite_bff=""
+  local bff_upstream="${bff_url:-}"
+  if [[ -n "${RUN_ENV[AUTHOR_USE_CROSS_ORIGIN_BFF]:-}" ]]; then
+    vite_bff="${RUN_ENV[VITE_AUTHOR_BFF_URL]:-${bff_upstream}}"
+  fi
+  if [[ -z "${bff_upstream}" ]]; then
+    bff_upstream="${RUN_ENV[AUTHOR_BFF_UPSTREAM]:-}"
   fi
   if [[ -z "${supa}" || -z "${anon}" ]]; then
     echo "Error: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or NEXT_PUBLIC_*) required in ${CLOUDRUN_ENV_FILE}." >&2
     exit 1
   fi
-  if [[ -z "${vite_bff}" ]]; then
-    echo "Error: VITE_AUTHOR_BFF_URL unset and BFF URL unknown. Deploy BFF first or set VITE_AUTHOR_BFF_URL." >&2
+  if [[ -z "${bff_upstream}" ]]; then
+    echo "Error: Deploy BFF first (need upstream URL for nginx /api proxy)." >&2
     exit 1
   fi
+  bff_upstream="${bff_upstream%/}"
+  echo "Author client: VITE_AUTHOR_BFF_URL=${vite_bff:-<same-origin /api>}  nginx→${bff_upstream}"
 
   local uri="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REPOSITORY}/${AUTHOR_CLIENT_IMAGE}:${IMAGE_TAG}"
   echo ""
-  echo "=== Building Author client (BFF=${vite_bff}): ${uri} ==="
+  echo "=== Building Author client (vite BFF=${vite_bff:-same-origin}): ${uri} ==="
   local cb_tmp
   cb_tmp="$(mktemp "${TMPDIR:-/tmp}/author-client-cloudbuild.XXXXXX.yaml")"
   trap 'rm -f "${cb_tmp:-}"' RETURN
@@ -265,6 +271,8 @@ steps:
       - VITE_MSGF_APP_URL=${msgf_app}
       - --build-arg
       - VITE_EDUCATION_APP_URL=${edu}
+      - --build-arg
+      - AUTHOR_BFF_UPSTREAM=${bff_upstream}
       - .
 images:
   - ${uri}
@@ -303,11 +311,18 @@ case "${AUTHOR_DEPLOY_TARGET}" in
     BFF_URL="$(_deploy_bff)"
     ;;
   client)
-    _deploy_client ""
+    if [[ -z "${RUN_ENV[AUTHOR_BFF_UPSTREAM]:-}" ]]; then
+      BFF_URL="$(gcloud run services describe "${AUTHOR_BFF_SERVICE}" \
+        --project="${GCP_PROJECT_ID}" \
+        --region="${GCP_REGION}" \
+        --format='value(status.url)' 2>/dev/null || true)"
+    else
+      BFF_URL="${RUN_ENV[AUTHOR_BFF_UPSTREAM]}"
+    fi
+    _deploy_client "${BFF_URL}"
     ;;
   both|*)
     BFF_URL="$(_deploy_bff)"
-    RUN_ENV[VITE_AUTHOR_BFF_URL]="${BFF_URL%/}"
     CLIENT_URL="$(_deploy_client "${BFF_URL}")"
     echo ""
     echo "=== Done ==="

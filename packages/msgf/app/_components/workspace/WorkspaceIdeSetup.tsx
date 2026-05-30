@@ -638,7 +638,19 @@ export function WorkspaceIdeSetup({
       if (!res.ok) {
         throw new Error(data.error ?? "Could not load IDE credentials.");
       }
-      setCreds(data);
+      setCreds((prev) => {
+        const keepMintedPreview =
+          Boolean(prev?.settingsJson?.includes("msgf_ide_")) &&
+          !data.settingsJson?.includes("msgf_ide_");
+        if (!keepMintedPreview) return data;
+        return {
+          ...data,
+          settingsJson: prev!.settingsJson,
+          ideToken: prev!.ideToken ?? data.ideToken,
+          tokenKind: prev!.tokenKind ?? data.tokenKind,
+          longLived: prev!.longLived ?? data.longLived,
+        };
+      });
       if (data.selectedProjectOrigin) {
         setSelectedOrigin(data.selectedProjectOrigin);
       } else if (data.projects?.[0]?.project_origin) {
@@ -671,7 +683,14 @@ export function WorkspaceIdeSetup({
         warning?: string;
       };
       if (!res.ok || data.ok === false) {
-        throw new Error(data.error ?? "Could not mint IDE token.");
+        const msg =
+          (data as { message?: string }).message ??
+          data.error ??
+          "Could not mint IDE token.";
+        throw new Error(msg);
+      }
+      if (!data.ideToken || !data.settingsJson?.includes("msgf_ide_")) {
+        throw new Error("Mint succeeded but no token was returned. Try again or contact support.");
       }
       setCreds((prev) => ({
         apiUrl: data.apiUrl ?? prev?.apiUrl ?? apiUrl,

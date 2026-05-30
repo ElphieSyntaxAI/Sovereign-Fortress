@@ -101,6 +101,7 @@ export const HealQueueTenantQuerySchema = z
 
 export const HealTaskTokenEstimateSchema = z
   .object({
+    file_path: z.string().min(1).max(512),
     cost_tier: z.enum(["expensive", "inexpensive"]),
     strategy_scope: z.enum(["global", "local", "unknown"]),
     consequence_score: z.number().int().min(0).max(100),
@@ -132,6 +133,7 @@ export const HealQueueTokenSummarySchema = z
       with_msgf_batch_total: z.number().int().min(0),
       tokens_saved: z.number().int().min(0),
     }),
+    per_item: z.array(HealTaskTokenEstimateSchema),
   })
   .strict();
 

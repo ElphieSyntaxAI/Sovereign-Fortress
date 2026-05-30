@@ -87,7 +87,15 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 
 **Integration pattern (Author ↔ MSGF):** Author BFF proxies or calls MSGF routes (e.g. `/api/msgf/pulse`, `/api/msgf/ingest`); shared Supabase auth/cookies when `MSGF_AUTH_COOKIE_DOMAIN` is aligned. Ops guide: [`AUTHOR_MSGF_WIRING.md`](./AUTHOR_MSGF_WIRING.md). Probe: `packages/msgf/scripts/probe-author-ecosystem.mjs`.
 
-**Workspace mapping (Small Brain per app):** On MSGF, users register **one `msgf_user_projects` row per monorepo app** (not only the git root) via `/setup/projects` or presets from `GET /api/workspace/monorepo-presets`. Each row’s `project_origin` scopes personal dashboard health and ingest metadata for that silo. **Big Brain** (global CONVERGE, human arbitration, rule promotion) is **admin-only** on `/admin/dashboard` — see [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md).
+**Workspace mapping (Small Brain per app):** On MSGF, users register **one `msgf_user_projects` row per monorepo app** (not only the git root) via `/setup/projects` or presets from `GET /api/workspace/monorepo-presets`. Each row’s `project_origin` scopes personal dashboard health, daily reports, Pulse telemetry, and ingest metadata for that silo. **Big Brain** (global CONVERGE, human arbitration, rule promotion) is **admin-only** on `/admin/dashboard` — see [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md).
+
+| App | `project_origin` (use as `msgf.tenantKey` in IDE) | Local folder to register |
+| :--- | :--- | :--- |
+| MSGF Gated AI | `elphiesyntax/msgf` | `packages/msgf` |
+| Author Ecosystem | `elphiesyntax/author-ecosystem` | `apps/author-ecosystem` (or client/server subfolder you actively edit) |
+| Syntax Educates | `elphiesyntax/syntax-educates` | `apps/syntax-educates` |
+
+When you switch which app you are coding, **change `msgf.tenantKey`** in `.vscode/settings.json` to match that row (or open that app’s folder as the workspace root). Operator token savings for Author stress tests still filter `?tenant_id=author_ecosystem` on MSGF admin dashboards.
 
 | Preset id | App | `project_origin` | Typical local path |
 | :--- | :--- | :--- | :--- |

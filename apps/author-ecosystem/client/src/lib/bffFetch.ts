@@ -24,10 +24,18 @@ export function bffUrl(path: string): string {
   return `${bffOrigin}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+const BFF_FETCH_TIMEOUT_MS = 20_000;
+
 export function bffFetch(path: string, init?: RequestInit): Promise<Response> {
+  const signal =
+    init?.signal ??
+    (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+      ? AbortSignal.timeout(BFF_FETCH_TIMEOUT_MS)
+      : undefined);
   return fetch(bffUrl(path), {
     ...bffCredentials,
     ...init,
+    signal,
     credentials: init?.credentials ?? bffCredentials.credentials,
   });
 }

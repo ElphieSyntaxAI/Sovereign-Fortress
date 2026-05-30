@@ -35,6 +35,18 @@ Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run:
 
 ---
 
+## Cursor / VS Code — show the MSGF side panel
+
+1. **Install the extension** — open `packages/msgf-pulse-guard` in the editor and run **Run Extension** (F5), or install a packaged `.vsix` if you have one.
+2. **Open the Activity Bar** (left vertical strip). If it is hidden: **View → Appearance → Activity Bar** (or **Primary Side Bar**).
+3. Click the **MSGF** icon (custom logo). That opens **Command Center** — the webview side panel (`msgf.dashboard`).
+4. Or run **MSGF: Open Dashboard** from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
+5. If the panel is empty or asks you to sign in, use **MSGF: Sign in (open browser)** and **MSGF: Open IDE token setup (browser)** first, then **Developer: Reload Window**.
+
+The panel hosts pillar stoplight, shadow scan, post-ingest healing (heal queue), and token estimates — same APIs as the web dashboard, scoped to your `msgf.tenantKey`.
+
+---
+
 ## Activity bar — MSGF Operations
 
 | Action | What it does |

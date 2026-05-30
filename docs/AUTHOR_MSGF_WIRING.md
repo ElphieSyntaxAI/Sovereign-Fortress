@@ -196,6 +196,21 @@ curl http://127.0.0.1:3001/          # MSGF (should return HTML, not connection 
 curl http://127.0.0.1:3002/api/ping  # Author BFF → {"pong":true}
 ```
 
+## Author handoff (MSGF admin → Author)
+
+From **elphiesgatedai** `/admin/portal`, “Open Author” calls `/api/msgf/admin/author-handoff`, which redirects to the **Author BFF** (`/api/auth/msgf-handoff`), then to **authorecosystem** `/home`.
+
+| Env (MSGF Cloud Run) | Purpose |
+|----------------------|---------|
+| `AUTHOR_BFF_URL` or `AUTHOR_ECOSYSTEM_URL` | BFF base URL for handoff redirect (required in prod) |
+| `AUTHOR_APP_URL` | Default `return_to` client host |
+
+**Common issue:** handoff sends you to `127.0.0.1` when those vars are missing on `msgf-api`.
+
+**DNS:** `api.authorecosystem.elphiesyntax.com` must resolve to the `author-bff` Cloud Run service (`npm run deploy:domains:map` / `map-product-domains.sh`). Until then, production uses **same-origin** `https://authorecosystem.elphiesyntax.com/api/...` (nginx on `author-client` proxies to the BFF).
+
+**Vault Pact stuck on “Checking…”:** usually the browser cannot reach the BFF (broken `api.*` DNS or cross-origin cookies). Redeploy Author client with `setup-author-cloud.sh` so `/api` proxies to BFF; sign in again from MSGF handoff.
+
 ## Project tracking rails (privacy)
 
 MSGF only attributes **pulse**, **ingest**, **daily reports**, and **personal dashboard health** to a **mapped** `project_origin` (Workspace → Projects). This keeps telemetry off unmapped folders and personal paths.

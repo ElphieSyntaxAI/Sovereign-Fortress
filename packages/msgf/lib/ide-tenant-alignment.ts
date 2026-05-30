@@ -1,0 +1,69 @@
+/**
+ * Align IDE `msgf.tenantKey` with `p4_profiles.tenant_id` (operational license tenant).
+ * Workspace presets use `org/repo` project_origin; profiles use slugs like `author_ecosystem`.
+ */
+
+import {
+  resolveOperationalTenantId,
+  type PlatformId,
+} from "@/lib/platform-persona-auth";
+import { MONOREPO_WORKSPACE_PRESETS } from "@/lib/services/monorepo-workspace-presets";
+import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
+
+const MANIFEST_TO_PLATFORM: Record<string, PlatformId> = {
+  tenant_author: "author",
+  tenant_education: "education",
+  tenant_gated: "gatedai",
+};
+
+function operationalTenantForPreset(
+  preset: (typeof MONOREPO_WORKSPACE_PRESETS)[number]
+): string | null {
+  const key = preset.tenant_manifest_key?.trim();
+  if (!key) return null;
+  const platform = MANIFEST_TO_PLATFORM[key];
+  return platform ? resolveOperationalTenantId(platform) : null;
+}
+
+/** Map `elphiesyntax/author-ecosystem` → `author_ecosystem` when preset-linked. */
+export function operationalTenantForProjectOrigin(projectOrigin: string): string | null {
+  const origin = sanitizeTenantScope(projectOrigin);
+  if (!origin.includes("/")) return null;
+  const preset = MONOREPO_WORKSPACE_PRESETS.find((p) => p.project_origin === origin);
+  return preset ? operationalTenantForPreset(preset) : null;
+}
+
+/** Map `apps/author-ecosystem` (folder path) → `author_ecosystem`. */
+export function operationalTenantForLocalPath(localPath: string): string | null {
+  const normalized = sanitizeTenantScope(localPath).replace(/\\/g, "/");
+  const preset = MONOREPO_WORKSPACE_PRESETS.find(
+    (p) =>
+      normalized === p.suggested_local_path ||
+      normalized.endsWith(`/${p.suggested_local_path}`)
+  );
+  return preset ? operationalTenantForPreset(preset) : null;
+}
+
+/**
+ * True when header tenant key matches profile/license tenant (direct or via monorepo preset).
+ */
+export function ideTenantKeysAlignForLicense(
+  licenseTenantId: string,
+  headerTenantKey: string
+): boolean {
+  const license = sanitizeTenantScope(licenseTenantId);
+  const header = sanitizeTenantScope(headerTenantKey);
+  if (!header) return true;
+  if (license === header) return true;
+
+  const fromOrigin = operationalTenantForProjectOrigin(header);
+  if (fromOrigin && fromOrigin === license) return true;
+
+  const fromPath = operationalTenantForLocalPath(header);
+  if (fromPath && fromPath === license) return true;
+
+  const licenseFromOrigin = operationalTenantForProjectOrigin(license);
+  if (licenseFromOrigin && licenseFromOrigin === header) return true;
+
+  return false;
+}

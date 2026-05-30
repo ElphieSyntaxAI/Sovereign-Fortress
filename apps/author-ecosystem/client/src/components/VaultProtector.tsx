@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../legal/vaultPactAttestation";
-import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffUrl, formatBffFetchError } from "../lib/bffFetch";
 
 export type VaultAttestationStatus = "signed" | "unsigned" | "outdated";
 
@@ -38,42 +38,54 @@ export default function VaultProtector(props: VaultProtectorProps) {
   const [phraseInput, setPhraseInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fetchErrorDetail, setFetchErrorDetail] = useState<string | null>(null);
 
   const blocking = status === "unsigned" || status === "outdated";
 
   const loadStatus = useCallback(async () => {
     setPhase("loading");
     setSubmitError(null);
+    setFetchErrorDetail(null);
     const token = await resolveToken(getAccessToken);
     const headers: Record<string, string> = {
       accept: "application/json",
       ...bffAuthHeaders(token),
     };
-    const res = await fetch(bffUrl("/api/legal/vault-attestation-status"), {
-      method: "GET",
-      headers,
-      ...bffCredentials,
-    });
-    if (res.status === 401) {
-      setPhase("session_expired");
-      setStatus(null);
-      return;
-    }
-    if (!res.ok) {
+    try {
+      const res = await fetch(bffUrl("/api/legal/vault-attestation-status"), {
+        method: "GET",
+        headers,
+        ...bffCredentials,
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (res.status === 401) {
+        setPhase("session_expired");
+        setStatus(null);
+        return;
+      }
+      if (!res.ok) {
+        const errJson = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+        setFetchErrorDetail(errJson.message ?? errJson.error ?? `HTTP ${res.status}`);
+        setPhase("fetch_error");
+        setStatus(null);
+        return;
+      }
+      const json = (await res.json()) as StatusPayload;
+      const s = json.status;
+      if (s === "signed" || s === "unsigned" || s === "outdated") {
+        setStatus(s);
+        setNoProfile(json.reason === "no_profile");
+        setPhase("ready");
+        return;
+      }
+      setFetchErrorDetail("Unexpected attestation response.");
       setPhase("fetch_error");
       setStatus(null);
-      return;
+    } catch (e) {
+      setFetchErrorDetail(formatBffFetchError(e, "/api/legal/vault-attestation-status"));
+      setPhase("fetch_error");
+      setStatus(null);
     }
-    const json = (await res.json()) as StatusPayload;
-    const s = json.status;
-    if (s === "signed" || s === "unsigned" || s === "outdated") {
-      setStatus(s);
-      setNoProfile(json.reason === "no_profile");
-      setPhase("ready");
-      return;
-    }
-    setPhase("fetch_error");
-    setStatus(null);
   }, [getAccessToken]);
 
   useEffect(() => {
@@ -148,6 +160,11 @@ export default function VaultProtector(props: VaultProtectorProps) {
     return (
       <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center gap-4 bg-zinc-950 p-6 text-center text-zinc-200">
         <p className="max-w-md text-sm text-zinc-400">Could not verify Vault Pact attestation.</p>
+        {fetchErrorDetail ? (
+          <pre className="max-h-40 max-w-lg overflow-auto whitespace-pre-wrap rounded-lg border border-zinc-700 bg-zinc-900/80 p-3 text-left text-[11px] text-zinc-500">
+            {fetchErrorDetail}
+          </pre>
+        ) : null}
         <button
           type="button"
           className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"

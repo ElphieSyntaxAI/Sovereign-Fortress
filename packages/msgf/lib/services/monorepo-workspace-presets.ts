@@ -48,7 +48,7 @@ export const MONOREPO_WORKSPACE_PRESETS: readonly MonorepoWorkspacePreset[] = [
     project_origin: "elphiesyntax/author-ecosystem",
     suggested_local_path: "apps/author-ecosystem",
     suggested_github_repo: "elphiesyntax/author-ecosystem",
-    product_url: "https://elphiesyntax.com",
+    product_url: "https://authorecosystem.elphiesyntax.com",
     tenant_manifest_key: "tenant_author",
   },
   {
@@ -56,7 +56,7 @@ export const MONOREPO_WORKSPACE_PRESETS: readonly MonorepoWorkspacePreset[] = [
     display_name: "Syntax Educates",
     project_origin: "elphiesyntax/syntax-educates",
     suggested_local_path: "apps/syntax-educates",
-    product_url: "https://syntaxeducation.elphiesyntax.com",
+    product_url: "https://syntaxeducates.elphiesyntax.com",
     tenant_manifest_key: "tenant_education",
   },
   {

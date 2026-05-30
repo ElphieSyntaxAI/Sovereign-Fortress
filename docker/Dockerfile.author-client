@@ -42,7 +42,18 @@ RUN npm run build -w @elphie-syntax/author-ecosystem-client
 
 FROM nginx:1.27-alpine AS production
 
-COPY docker/nginx-author-spa.conf /etc/nginx/conf.d/default.conf
+ARG AUTHOR_BFF_UPSTREAM=https://author-bff-bkracxai6q-uc.a.run.app
+
+RUN apk add --no-cache gettext
+
+COPY docker/nginx-author-spa.conf.template /tmp/default.conf.template
+RUN BFF_UP="$(echo "${AUTHOR_BFF_UPSTREAM}" | sed 's|/$||')" \
+  && export AUTHOR_BFF_UPSTREAM="${BFF_UP}" \
+  && export AUTHOR_BFF_PROXY_HOST="$(echo "${BFF_UP}" | sed -e 's|^https://||' -e 's|^http://||')" \
+  && envsubst '${AUTHOR_BFF_UPSTREAM} ${AUTHOR_BFF_PROXY_HOST}' < /tmp/default.conf.template > /etc/nginx/conf.d/default.conf \
+  && rm /tmp/default.conf.template \
+  && nginx -t
+
 COPY --from=builder /app/apps/author-ecosystem/client/dist /usr/share/nginx/html
 
 EXPOSE 8080

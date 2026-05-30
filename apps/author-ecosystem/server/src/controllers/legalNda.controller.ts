@@ -3,7 +3,7 @@ import path from "node:path";
 import { Router, type Request, type Response } from "express";
 
 import { NDA_ROOT } from "../lib/ndaRoot.js";
-import { readBearerUser } from "../lib/readBearerJwtUser.js";
+import { resolveBffUser } from "../lib/resolveBffUser.js";
 import { ensurePublicAuthorProfile } from "../lib/ensurePublicAuthorProfile.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../lib/vaultPactAttestation.js";
@@ -42,7 +42,7 @@ legalNdaController.get("/api/legal/vault-pact", async (_req: Request, res: Respo
  * GET /api/legal/vault-attestation-status — latest Vault Pact attestation vs server file hash (BFF JWT).
  */
 legalNdaController.get("/api/legal/vault-attestation-status", async (req: Request, res: Response) => {
-  const user = readBearerUser(req, res);
+  const user = await resolveBffUser(req, res);
   if (!user) return;
 
   try {
@@ -99,7 +99,7 @@ legalNdaController.get("/api/legal/vault-attestation-status", async (req: Reques
  * POST /api/legal/vault-pact-attest — record a new Vault Pact attestation for the signed-in user.
  */
 legalNdaController.post("/api/legal/vault-pact-attest", async (req: Request, res: Response) => {
-  const user = readBearerUser(req, res);
+  const user = await resolveBffUser(req, res);
   if (!user) return;
 
   const body = req.body as Record<string, unknown>;

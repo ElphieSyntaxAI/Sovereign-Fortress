@@ -17,10 +17,13 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import {
+  HealQueueTokenSummarySchema,
   IngestRemediationActionSchema,
   PRESET_INTERVAL_TO_SCHEDULING_TIER,
   parseIngestRemediationAction,
 } from "../lib/schemas/heal-queue";
+import { buildHealQueueTokenSummary } from "../lib/services/heal-token-estimate.js";
+import { REMEDIATION_STATE } from "../lib/schemas/remediation-state.js";
 import {
   longestCommonPathPrefix,
   remediationEngine,
@@ -32,6 +35,28 @@ import {
 } from "../lib/services/heal-queue-cron-batch";
 
 const TENANT = "00000000-0000-4000-8000-000000000001";
+
+describe("HealQueueTokenSummarySchema", () => {
+  test("accepts per_item from buildHealQueueTokenSummary", () => {
+    const tasks = [
+      {
+        file_path: "packages/msgf/lib/a.ts",
+        governance_pillar: "P2" as const,
+        bug_index: {
+          level_1_category: "1.0_API",
+          level_1_1_branch: "1.1_X",
+          level_1_1_1_instance: "1.1.1_INGEST_BASELINE",
+        },
+        remediation_state: REMEDIATION_STATE.ACTIVE,
+      },
+    ];
+    const summary = buildHealQueueTokenSummary(tasks);
+    assert.ok(summary.per_item.length >= 1);
+
+    const parsed = HealQueueTokenSummarySchema.safeParse(summary);
+    assert.equal(parsed.success, true, JSON.stringify(parsed.success ? "" : parsed.error?.issues));
+  });
+});
 
 describe("IngestRemediationActionSchema", () => {
   test("requires file_paths for INDIVIDUAL", () => {

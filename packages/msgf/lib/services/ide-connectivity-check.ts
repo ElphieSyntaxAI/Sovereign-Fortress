@@ -23,6 +23,11 @@ import {
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
+import {
+  ideTenantKeysAlignForLicense,
+  operationalTenantForLocalPath,
+  operationalTenantForProjectOrigin,
+} from "@/lib/ide-tenant-alignment";
 import { healthService } from "@/lib/services/HealthService";
 import {
   verifyIdeToken,
@@ -274,7 +279,8 @@ export async function runIdeConnectivityChecks(req: NextRequest): Promise<IdeCon
         request: req,
         sessionEntityId: jwt.userId,
       });
-      const mismatch = tenantKey && license.tenantId.trim() !== tenantKey.trim();
+      const mismatch =
+        tenantKey && !ideTenantKeysAlignForLicense(license.tenantId, tenantKey);
       if (mismatch) {
         checks.push(
           check({
@@ -284,9 +290,18 @@ export async function runIdeConnectivityChecks(req: NextRequest): Promise<IdeCon
             error_code: "TENANT_MISMATCH",
             user_message: `Profile/license tenant ${license.tenantId} ≠ ${tenantKey}`,
             fix_steps: [
-              "Use the tenant from Setup projects (project_origin).",
-              "Refresh IDE settings after changing the mapped project.",
+              `Set msgf.tenantKey to your mapped project_origin (e.g. elphiesyntax/author-ecosystem), not a folder path like apps/author-ecosystem.`,
+              `Your account license tenant is ${license.tenantId}; tracking still scopes via project_origin headers.`,
+              "Reload the window after saving .vscode/settings.json.",
             ],
+          })
+        );
+      } else if (tenantKey) {
+        checks.push(
+          check({
+            name: "tenant_license",
+            ok: true,
+            user_message: `License tenant ${license.tenantId} aligns with ${tenantKey}.`,
           })
         );
       }

@@ -36,6 +36,16 @@ const PROD_OVERRIDES = {
   VITE_AUTHOR_BFF_URL: "https://api.authorecosystem.elphiesyntax.com",
 };
 
+// MSGF handoff reads AUTHOR_BFF_URL / AUTHOR_ECOSYSTEM_URL at runtime (not Vite-only).
+// If api.authorecosystem DNS is not mapped yet, set in packages/msgf/.env.local before prepare:
+//   AUTHOR_BFF_URL=https://<your-author-bff>-uc.a.run.app
+// MSGF handoff + same-origin Author /api proxy use the SPA host, not api.* until DNS is mapped.
+merged.AUTHOR_BFF_URL =
+  merged.AUTHOR_BFF_URL?.trim() ||
+  merged.AUTHOR_APP_URL?.trim() ||
+  "https://authorecosystem.elphiesyntax.com";
+merged.AUTHOR_ECOSYSTEM_URL = merged.AUTHOR_ECOSYSTEM_URL?.trim() || merged.AUTHOR_BFF_URL;
+
 const COPY_KEYS = [
   "GCP_PROJECT_ID",
   "NEXT_PUBLIC_SUPABASE_URL",

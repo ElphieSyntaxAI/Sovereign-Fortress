@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { defaultAuthorDashboardReturnTo } from "@elphie-syntax/core/author-handoff-origins";
 import {
   sanitizeAuthorReturnToUrl,
   verifyOperatorHandoffToken,
@@ -100,10 +101,6 @@ function operatorHandoffSecret(): string {
   );
 }
 
-const DEFAULT_AUTHOR_DASHBOARD_RETURN =
-  process.env.AUTHOR_CLIENT_DEV_URL?.trim()?.replace(/\/+$/, "") ||
-  "http://127.0.0.1:5173";
-
 /**
  * GET /api/auth/msgf-handoff — browser navigation from MSGF admin portal; sets Author BFF session cookies.
  */
@@ -118,7 +115,7 @@ authSessionBridgeController.get("/msgf-handoff", (req: Request, res: Response) =
 
       const returnTo = sanitizeAuthorReturnToUrl(
         typeof req.query.return_to === "string" ? req.query.return_to : undefined,
-        `${DEFAULT_AUTHOR_DASHBOARD_RETURN}/home`
+        defaultAuthorDashboardReturnTo()
       );
 
       const payload = verifyOperatorHandoffToken(token, operatorHandoffSecret());

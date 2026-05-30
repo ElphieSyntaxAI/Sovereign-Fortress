@@ -13,6 +13,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+import { defaultAuthorDashboardReturnTo, resolveAuthorBffOrigin } from "@elphie-syntax/core/author-handoff-origins";
 import {
   sanitizeAuthorReturnToUrl,
   signOperatorHandoffToken,
@@ -22,6 +23,7 @@ import {
   MsgfAdminSessionError,
   resolveSessionDashboardOperator,
 } from "@/lib/msgf-admin-session";
+import { resolveMsgfRequestOrigin } from "@/lib/msgf-request-origin";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClient as createSupabaseServerClient,
@@ -34,21 +36,6 @@ function handoffSecret(): string {
     process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
     ""
   );
-}
-
-function resolveAuthorBffOrigin(): string {
-  return (
-    process.env.AUTHOR_BFF_URL?.trim()?.replace(/\/+$/, "") ||
-    process.env.AUTHOR_ECOSYSTEM_URL?.trim()?.replace(/\/+$/, "") ||
-    "http://127.0.0.1:3002"
-  );
-}
-
-function defaultAuthorDashboardUrl(): string {
-  const client =
-    process.env.AUTHOR_CLIENT_DEV_URL?.trim()?.replace(/\/+$/, "") ||
-    "http://127.0.0.1:5173";
-  return `${client}/home`;
 }
 
 /**
@@ -70,7 +57,7 @@ export async function GET(req: NextRequest) {
     } = await supabase.auth.getSession();
 
     if (sessionError || !session?.user) {
-      const signIn = new URL("/admin/sign-in", req.nextUrl.origin);
+      const signIn = new URL("/admin/sign-in", resolveMsgfRequestOrigin(req));
       signIn.searchParams.set("next", "/admin/portal");
       return NextResponse.redirect(signIn);
     }
@@ -88,7 +75,7 @@ export async function GET(req: NextRequest) {
 
     const returnTo = sanitizeAuthorReturnToUrl(
       req.nextUrl.searchParams.get("return_to"),
-      defaultAuthorDashboardUrl()
+      defaultAuthorDashboardReturnTo()
     );
 
     const handoff = signOperatorHandoffToken(
@@ -107,11 +94,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(bffUrl);
   } catch (e) {
     if (e instanceof MsgfAdminSessionError) {
-      return NextResponse.redirect(new URL("/unauthorized", req.nextUrl.origin));
+      return NextResponse.redirect(new URL("/unauthorized", resolveMsgfRequestOrigin(req)));
     }
     const msg = e instanceof Error ? e.message : "Author handoff failed.";
     console.error("[admin/author-handoff]", e);
-    const portal = new URL("/admin/portal", req.nextUrl.origin);
+    const portal = new URL("/admin/portal", resolveMsgfRequestOrigin(req));
     portal.searchParams.set("handoff_error", msg.slice(0, 200));
     return NextResponse.redirect(portal);
   }
