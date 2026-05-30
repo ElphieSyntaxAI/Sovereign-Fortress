@@ -10,6 +10,66 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T050211Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T045550Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T045125Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T044603Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
 import Link from "next/link";
@@ -18,15 +78,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   statusStyles,
 } from "@/app/_components/dashboard/governance-pillar-blocks";
-import type {
-  DailyReportDaySnapshot,
-  DailyReportPillarSnapshot,
+import {
+  DAILY_REPORTS_UNSCOPED_ORIGIN,
+  type DailyReportDaySnapshot,
+  type DailyReportPillarSnapshot,
+  type DailyReportsProjectTimeline,
 } from "@/lib/services/daily-reports-history";
 import type { PillarStoplightStatus } from "@/lib/services/HealthService";
 
 type ApiResponse = {
   ok: boolean;
-  days: DailyReportDaySnapshot[];
+  projects: DailyReportsProjectTimeline[];
+  mapped_project_count?: number;
   error?: string;
 };
 
@@ -145,20 +208,26 @@ function DayRow({
   day,
   open,
   onToggle,
+  projectOrigin,
 }: {
   day: DailyReportDaySnapshot;
   open: boolean;
   onToggle: () => void;
+  projectOrigin: string;
 }) {
   const exportJson = useCallback(() => {
     const blob = new Blob([JSON.stringify(day, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `msgf-daily-report-${day.date}.json`;
+    const slug =
+      projectOrigin === DAILY_REPORTS_UNSCOPED_ORIGIN
+        ? "unmapped"
+        : projectOrigin.replace(/[^\w.-]+/g, "_");
+    a.download = `msgf-daily-report-${slug}-${day.date}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [day]);
+  }, [day, projectOrigin]);
 
   const exportPdf = useCallback(() => {
     window.print();
@@ -250,11 +319,13 @@ function DayRow({
   );
 }
 
-export function DailyReportsAccordion() {
-  const [days, setDays] = useState<DailyReportDaySnapshot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+function DailyReportsTimeline({
+  days,
+  projectOrigin,
+}: {
+  days: DailyReportDaySnapshot[];
+  projectOrigin: string;
+}) {
   const now = useMemo(() => new Date(), []);
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -263,7 +334,113 @@ export function DailyReportsAccordion() {
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(
     () => new Set([`${currentYear}-${currentMonth}`])
   );
-  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [expandedDay, setExpandedDay] = useState<string | null>(() => days[0]?.date ?? null);
+
+  useEffect(() => {
+    if (days[0]) setExpandedDay(days[0].date);
+  }, [projectOrigin, days]);
+
+  const yearGroups = useMemo(() => groupDaysByYearMonth(days), [days]);
+
+  if (!yearGroups.length) {
+    return (
+      <p className="rounded-2xl border border-dashed border-slate-700 px-6 py-12 text-center text-sm text-slate-500">
+        No daily reports for this repository yet. IDE and governance events tagged with this
+        project will appear here — separate from your other mapped repos.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4" aria-label="Daily reports by year and month">
+      {yearGroups.map((yearGroup) => {
+        const yearOpen = expandedYears.has(yearGroup.year);
+        return (
+          <section
+            key={yearGroup.year}
+            className="glass-panel overflow-hidden rounded-2xl border border-violet-500/20"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setExpandedYears((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(yearGroup.year)) next.delete(yearGroup.year);
+                  else next.add(yearGroup.year);
+                  return next;
+                });
+              }}
+              aria-expanded={yearOpen}
+              className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-white/[0.02] sm:px-5"
+            >
+              <span className="text-lg font-bold text-slate-50">{yearGroup.year}</span>
+              <span className="text-xs text-slate-500">
+                {yearGroup.months.length} month{yearGroup.months.length === 1 ? "" : "s"}
+              </span>
+            </button>
+
+            <CollapsiblePanel open={yearOpen} id={`year-${projectOrigin}-${yearGroup.year}`}>
+              <div className="space-y-3 border-t border-slate-800/80 px-3 pb-4 pt-2 sm:px-4">
+                {yearGroup.months.map((monthGroup) => {
+                  const monthKey = `${yearGroup.year}-${monthGroup.month}`;
+                  const monthOpen = expandedMonths.has(monthKey);
+                  return (
+                    <section
+                      key={monthKey}
+                      className="overflow-hidden rounded-xl border border-slate-800/60 bg-slate-950/30"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExpandedMonths((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(monthKey)) next.delete(monthKey);
+                            else next.add(monthKey);
+                            return next;
+                          });
+                        }}
+                        aria-expanded={monthOpen}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.02]"
+                      >
+                        <span className="font-semibold text-slate-100">
+                          {monthLabel(yearGroup.year, monthGroup.month)}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {monthGroup.days.length} day{monthGroup.days.length === 1 ? "" : "s"}
+                        </span>
+                      </button>
+                      <CollapsiblePanel open={monthOpen} id={`month-${projectOrigin}-${monthKey}`}>
+                        <div className="space-y-2 border-t border-slate-800/60 px-3 pb-3 pt-2">
+                          {monthGroup.days.map((day) => (
+                            <DayRow
+                              key={day.date}
+                              day={day}
+                              projectOrigin={projectOrigin}
+                              open={expandedDay === day.date}
+                              onToggle={() =>
+                                setExpandedDay((prev) => (prev === day.date ? null : day.date))
+                              }
+                            />
+                          ))}
+                        </div>
+                      </CollapsiblePanel>
+                    </section>
+                  );
+                })}
+              </div>
+            </CollapsiblePanel>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DailyReportsAccordion() {
+  const [projects, setProjects] = useState<DailyReportsProjectTimeline[]>([]);
+  const [selectedOrigin, setSelectedOrigin] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -277,10 +454,12 @@ export function DailyReportsAccordion() {
       if (!res.ok || !json.ok) {
         throw new Error(json.error ?? `HTTP ${res.status}`);
       }
-      setDays(json.days);
-      if (json.days[0]) {
-        setExpandedDay(json.days[0].date);
-      }
+      const timelines = json.projects ?? [];
+      setProjects(timelines);
+      setSelectedOrigin((prev) => {
+        if (prev && timelines.some((t) => t.project_origin === prev)) return prev;
+        return timelines[0]?.project_origin ?? null;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load daily reports.");
     } finally {
@@ -292,26 +471,12 @@ export function DailyReportsAccordion() {
     void load();
   }, [load]);
 
-  const yearGroups = useMemo(() => groupDaysByYearMonth(days), [days]);
+  const selectedTimeline = useMemo(
+    () => projects.find((p) => p.project_origin === selectedOrigin) ?? null,
+    [projects, selectedOrigin]
+  );
 
-  const toggleYear = (year: number) => {
-    setExpandedYears((prev) => {
-      const next = new Set(prev);
-      if (next.has(year)) next.delete(year);
-      else next.add(year);
-      return next;
-    });
-  };
-
-  const toggleMonth = (year: number, month: number) => {
-    const key = `${year}-${month}`;
-    setExpandedMonths((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  const showRepoPicker = projects.length > 1;
 
   if (loading) {
     return (
@@ -329,83 +494,68 @@ export function DailyReportsAccordion() {
     );
   }
 
-  if (!yearGroups.length) {
+  if (!projects.length) {
     return (
       <p className="rounded-2xl border border-dashed border-slate-700 px-6 py-12 text-center text-sm text-slate-500">
-        No daily reports yet. Activity from the IDE extension and mapped projects will appear here
-        as reverse-chronological day summaries.
+        Map at least one repository under Project Governance on the dashboard. Daily reports are
+        kept separate per repo — DealStar and other workspaces never share a blended timeline.
       </p>
     );
   }
 
   return (
-    <div className="space-y-4" aria-label="Daily reports by year and month">
-      {yearGroups.map((yearGroup) => {
-        const yearOpen = expandedYears.has(yearGroup.year);
-        return (
-          <section
-            key={yearGroup.year}
-            className="glass-panel overflow-hidden rounded-2xl border border-violet-500/20"
-          >
-            <button
-              type="button"
-              onClick={() => toggleYear(yearGroup.year)}
-              aria-expanded={yearOpen}
-              className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-white/[0.02] sm:px-5"
-            >
-              <span className="text-lg font-bold text-slate-50">{yearGroup.year}</span>
-              <span className="text-xs text-slate-500">
-                {yearGroup.months.length} month{yearGroup.months.length === 1 ? "" : "s"}
-              </span>
-            </button>
+    <div className="space-y-5">
+      <p className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3 text-sm text-slate-300">
+        Each mapped repository has its own archive. Events are filtered by{" "}
+        <code className="text-violet-200">project_origin</code> in narrative metadata — not merged
+        across repos. Network-wide digests are not overlaid on your personal timeline.
+      </p>
 
-            <CollapsiblePanel open={yearOpen} id={`year-${yearGroup.year}`}>
-              <div className="space-y-3 border-t border-slate-800/80 px-3 pb-4 pt-2 sm:px-4">
-                {yearGroup.months.map((monthGroup) => {
-                  const monthKey = `${monthGroup.year}-${monthGroup.month}`;
-                  const monthOpen = expandedMonths.has(monthKey);
-                  return (
-                    <section
-                      key={monthKey}
-                      className="rounded-xl border border-slate-800/60 bg-slate-950/30"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleMonth(monthGroup.year, monthGroup.month)}
-                        aria-expanded={monthOpen}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.02]"
-                      >
-                        <span className="font-semibold text-violet-100">
-                          {monthLabel(monthGroup.year, monthGroup.month)}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          {monthGroup.days.length} day{monthGroup.days.length === 1 ? "" : "s"}
-                        </span>
-                      </button>
+      {showRepoPicker ? (
+        <div
+          className="flex flex-wrap gap-2"
+          role="tablist"
+          aria-label="Select repository for daily reports"
+        >
+          {projects.map((timeline) => {
+            const active = timeline.project_origin === selectedOrigin;
+            const isUnscoped = timeline.project_origin === DAILY_REPORTS_UNSCOPED_ORIGIN;
+            return (
+              <button
+                key={timeline.project_origin}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setSelectedOrigin(timeline.project_origin)}
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                  active
+                    ? "border-violet-400/50 bg-violet-500/20 text-violet-50"
+                    : "border-slate-700 bg-slate-950/50 text-slate-300 hover:border-slate-600"
+                }`}
+              >
+                {timeline.display_name}
+                {isUnscoped ? (
+                  <span className="ml-1.5 text-xs text-slate-500">(no repo tag)</span>
+                ) : null}
+                <span className="ml-2 text-xs text-slate-500">{timeline.days.length}d</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : selectedTimeline ? (
+        <p className="text-sm text-slate-400">
+          Repository: <span className="font-medium text-slate-200">{selectedTimeline.display_name}</span>
+          <span className="ml-2 font-mono text-xs text-slate-500">{selectedTimeline.project_origin}</span>
+        </p>
+      ) : null}
 
-                      <CollapsiblePanel open={monthOpen} id={`month-${monthKey}`}>
-                        <ul className="space-y-2 border-t border-slate-800/60 px-2 pb-3 pt-2 sm:px-3">
-                          {monthGroup.days.map((day) => (
-                            <li key={day.date}>
-                              <DayRow
-                                day={day}
-                                open={expandedDay === day.date}
-                                onToggle={() =>
-                                  setExpandedDay((prev) => (prev === day.date ? null : day.date))
-                                }
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      </CollapsiblePanel>
-                    </section>
-                  );
-                })}
-              </div>
-            </CollapsiblePanel>
-          </section>
-        );
-      })}
+      {selectedTimeline ? (
+        <DailyReportsTimeline
+          key={selectedTimeline.project_origin}
+          days={selectedTimeline.days}
+          projectOrigin={selectedTimeline.project_origin}
+        />
+      ) : null}
     </div>
   );
 }

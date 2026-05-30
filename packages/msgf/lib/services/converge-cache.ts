@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 /**
  * Redis hot-layer cache for global dual-model CONVERGE (Gemini + Claude).
@@ -196,9 +196,11 @@ export function recordConvergeCacheEcoHit(params: {
   const tid = params.tenantId.trim();
   if (!tid) return;
   const tokensSaved = params.tokensSaved ?? estimateCoreConvergeTokenBaseline(1);
+  const projectOrigin = params.projectOrigin?.trim();
+  if (!projectOrigin) return;
   void ecoAggregatorClient.sendGlobalTelemetryPayload(tid, tokensSaved, {
     userId: params.entityId?.trim(),
-    projectOrigin: params.projectOrigin?.trim() || tid,
+    projectOrigin,
   });
 }
 

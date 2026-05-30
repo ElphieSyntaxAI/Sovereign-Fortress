@@ -4,6 +4,7 @@ import { MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
 import type { MsgfGuardSettings } from "./config";
 import type { PulseFlushContext } from "./devSessionPulse";
 import { buildPulseAuthHeaders } from "./pulseAuth";
+import { resolveMappedProjectOrigin } from "./projectOrigin";
 import { handlePulseResponseViolations } from "./pulseViolationAlert";
 import { telemetryToKeystrokes } from "./keystrokeCapture";
 import type { TelemetryChangeEvent } from "./telemetryTypes";
@@ -114,11 +115,18 @@ export async function flushTelemetryBatch(params: {
     };
   }
 
+  const projectOrigin = resolveMappedProjectOrigin(params.settings.tenantKey);
+  const pulseBody: Record<string, unknown> = { keystrokes };
+  if (projectOrigin) {
+    pulseBody.project_origin = projectOrigin;
+    pulseBody.metadata = { project_origin: projectOrigin };
+  }
+
   try {
     const res = await fetchFn(url, {
       method: "POST",
       headers,
-      body: JSON.stringify({ keystrokes }),
+      body: JSON.stringify(pulseBody),
     });
 
     const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;

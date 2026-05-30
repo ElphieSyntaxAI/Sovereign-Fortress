@@ -10,6 +10,66 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T050211Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T045550Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T045125Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T044603Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
 import Link from "next/link";
@@ -171,7 +231,7 @@ export function DashboardNav({
 
   useEffect(() => {
     if (!settingsOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
+    const onPointerDown = (e: PointerEvent) => {
       if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setSettingsOpen(false);
       }
@@ -179,10 +239,10 @@ export function DashboardNav({
     const onEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSettingsOpen(false);
     };
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onEscape);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onEscape);
     };
   }, [settingsOpen]);
@@ -251,20 +311,7 @@ export function DashboardNav({
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <div
-              ref={settingsRef}
-              className="relative"
-              onMouseEnter={() => {
-                if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
-                  setSettingsOpen(true);
-                }
-              }}
-              onMouseLeave={() => {
-                if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
-                  setSettingsOpen(false);
-                }
-              }}
-            >
+            <div ref={settingsRef} className="relative">
               <button
                 type="button"
                 className={`flex h-10 w-10 items-center justify-center rounded-full border transition duration-200 ${
@@ -275,6 +322,8 @@ export function DashboardNav({
                 aria-expanded={settingsOpen}
                 aria-haspopup="menu"
                 aria-controls={settingsMenuId}
+                aria-label={settingsOpen ? "Close settings menu" : "Open settings menu"}
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => setSettingsOpen((o) => !o)}
               >
                 <span className="sr-only">Settings and account</span>

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 import Link from "next/link";
 
@@ -149,7 +149,8 @@ function SurfaceCard({ surface }: { surface: AdminProductSurface }) {
         <p className="rounded-lg border border-violet-500/30 bg-violet-950/25 px-3 py-2 text-xs text-slate-400">
           <strong className="text-violet-100">Author dashboard</strong> uses SSO handoff: your MSGF
           sign-in is copied to the Author BFF (port 3002), then you land on{" "}
-          <code className="text-violet-200">/dashboard</code>. Use the same host (
+          <code className="text-violet-200">/home</code> or{" "}
+          <code className="text-violet-200">/admin</code>. Use the same host (
           <code className="text-violet-200">127.0.0.1</code>, not{" "}
           <code className="text-violet-200">localhost</code>) as Docker dev.
         </p>

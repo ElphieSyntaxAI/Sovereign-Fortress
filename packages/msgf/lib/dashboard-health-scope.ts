@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 import type { User } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -18,6 +18,7 @@ import {
   resolveSessionDashboardOperator,
 } from "@/lib/msgf-admin-session";
 import type { HealthServiceOptions } from "@/lib/services/HealthService";
+import { personalDashboardProjectOrigins } from "@/lib/services/project-tracking-rails";
 import { listUserProjects } from "@/lib/services/user-projects";
 
 export type DashboardHealthScopeMode = "personal" | "operator";
@@ -51,7 +52,7 @@ export async function resolveHealthOptionsForDashboardRequest(
 ): Promise<HealthServiceOptions> {
   if (params.scope === "personal") {
     const projects = await listUserProjects(admin, user.id).catch(() => []);
-    const origins = projects.map((p) => p.project_origin);
+    const origins = personalDashboardProjectOrigins(projects.map((p) => p.project_origin));
     return personalHealthOptionsForUser(user.id, params.lookbackHours, origins);
   }
 

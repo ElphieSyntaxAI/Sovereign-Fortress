@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 /** Client → MSGF API: project silo slug or UUID (overrides license tenant for pillar scope). */
 export const MSGF_TENANT_ID_HEADER = "x-msgf-tenant-id";
@@ -46,6 +46,9 @@ export const MSGF_SMALL_BRAIN_API_KEY_HEADER = "x-msgf-small-brain-api-key";
 
 /** Headless IDE / CLI: stable developer identity (machine id, extension install id, etc.). */
 export const MSGF_ENTITY_ID_HEADER = "x-msgf-entity-id";
+
+/** Mapped repo branch (`msgf_user_projects.project_origin`) — required for scoped tracking when projects exist. */
+export const MSGF_PROJECT_ORIGIN_HEADER = "x-msgf-project-origin";
 
 /** Marks a contract-license Pulse from {@link IdeConnector} (no browser session). */
 export const MSGF_IDE_PULSE_HEADER = "x-msgf-ide-pulse";

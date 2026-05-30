@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -50,8 +50,9 @@ export default async function DailyReportsPage() {
             <span className="text-gradient-jewel">Daily Reports</span>
           </h1>
           <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-            Reverse-chronological snapshots of pillar health, token savings, and incident activity —
-            grouped by year and month. Expand any day for the full six-pillar grid.
+            Per-repository archives of pillar health, token savings, and incidents — isolated by
+            mapped project so separate workspaces (for example DealStar) never blend into one
+            timeline. Expand any day for the six-pillar grid.
           </p>
         </header>
 

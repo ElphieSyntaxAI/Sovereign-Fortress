@@ -1,4 +1,9 @@
 import {
+  buildAuthorAdminMsgfLinks,
+  buildMsgfToAuthorHandoffUrl,
+  type AuthorAdminMsgfLinks,
+} from "@elphie-syntax/core/author-admin-msgf-links";
+import {
   buildMsgfAdminPortalUrl,
   buildMsgfAdminSignInUrl,
 } from "@elphie-syntax/core/platform-admin-auth";
@@ -30,8 +35,20 @@ function envOrigin(key: string, fallback: string): string {
   return v?.replace(/\/+$/, "") || fallback;
 }
 
+function msgfOrigin(): string {
+  return envOrigin("VITE_MSGF_APP_URL", "https://elphiesgatedai.elphiesyntax.com");
+}
+
+export function authorAdminMsgfLinks(): AuthorAdminMsgfLinks {
+  return buildAuthorAdminMsgfLinks(msgfOrigin());
+}
+
+export function authorHandoffFromMsgf(authorReturnTo: string): string {
+  return buildMsgfToAuthorHandoffUrl(msgfOrigin(), authorReturnTo);
+}
+
 export function authorAdminProducts(): AuthorAdminProduct[] {
-  const msgf = envOrigin("VITE_MSGF_APP_URL", "https://elphiesgatedai.elphiesyntax.com");
+  const msgfLinks = authorAdminMsgfLinks();
   const author = envOrigin("VITE_AUTHOR_APP_URL", "https://authorecosystem.elphiesyntax.com");
   const education = envOrigin("VITE_EDUCATION_APP_URL", "https://syntaxeducates.elphiesyntax.com");
 
@@ -39,8 +56,8 @@ export function authorAdminProducts(): AuthorAdminProduct[] {
     {
       id: "msgf",
       title: "MSGF — Gated AI",
-      summary: "Ops dashboard, pillar health, bugs, and token savings.",
-      href: `${msgf}/admin/portal`,
+      summary: "Ops console, pillar health, bugs, and Author tenant token savings.",
+      href: msgfLinks.portal,
       external: true,
       tone: "emerald",
     },
@@ -94,7 +111,15 @@ export const ROLE_WORKSPACE_HOME: Record<
 };
 
 export const AUTHOR_ADMIN_NAV: AuthorAdminNavItem[] = [
-  { id: "admin", label: "Admin", to: "/admin", section: "platform", matchPrefix: "/admin" },
+  { id: "admin", label: "Overview", to: "/admin", section: "platform", matchPrefix: "/admin" },
+  { id: "msgf-ops", label: "MSGF ops", to: "/admin/ops", section: "platform", matchPrefix: "/admin/ops" },
+  {
+    id: "msgf-portal",
+    label: "MSGF portal ↗",
+    href: msgfOrigin() + "/admin/portal",
+    external: true,
+    section: "platform",
+  },
   { id: "author", label: "Author", to: "/admin/workspace/author", section: "roles", roleId: "author" },
   { id: "editor", label: "Editor", to: "/admin/workspace/editor", section: "roles", roleId: "editor" },
   { id: "helper", label: "Helpers", to: "/admin/workspace/helper", section: "roles", roleId: "helper" },

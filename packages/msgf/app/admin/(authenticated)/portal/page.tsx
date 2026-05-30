@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -40,8 +40,13 @@ export default async function AdminPortalPage() {
         <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
           Open Author Ecosystem and Syntax Education from here. Pillar health and incident queues
           live on the{" "}
+          <Link href="/admin/ops" className="text-violet-300 hover:underline">
+            ops console
+          </Link>
+          {" "}
+          (ARBITRATE + DocuSign) or{" "}
           <Link href="/admin/dashboard" className="text-violet-300 hover:underline">
-            ops dashboard
+            pillar health
           </Link>
           ; your personal stats stay on{" "}
           <Link href="/dashboard" className="text-emerald-300 hover:underline">
@@ -61,7 +66,7 @@ export default async function AdminPortalPage() {
           Operators see <strong className="text-cyan-300/90">Small Brain</strong> vs{" "}
           <strong className="text-violet-300/90">Big Brain</strong> on the{" "}
           <Link href="/admin/dashboard#token-savings" className="text-amber-300 hover:underline">
-            ops dashboard
+            pillar health (token savings)
           </Link>
           . Tenants keep local logic (Vault, bypass, dev-event, cache replay); global CONVERGE and
           DNA promotion require admin approval via the Global Approval Gate.
@@ -80,8 +85,8 @@ export default async function AdminPortalPage() {
             <code className="text-violet-200">npm run dev -w msgf</code> — MSGF on port 3001 (3000 free for LIFF)
           </li>
           <li>
-            Author BFF + client — <code className="text-violet-200">apps/author-ecosystem/server</code>{" "}
-            (3002) and <code className="text-violet-200">client</code> (5173)
+            Author + MSGF together — <code className="text-violet-200">npm run dev:author-msgf</code>{" "}
+            (MSGF 3001, BFF 3002, client 5173)
           </li>
           <li>
             Syntax Educates — <code className="text-violet-200">apps/syntax-educates</code> (5175,

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 /**
  * Historical daily governance snapshots grouped by calendar day (user-scoped).
@@ -20,6 +20,7 @@ import {
   hasLiveDashboardDatabaseEnv,
   transformDailyNetworkReport,
   type DailyNetworkReport,
+  type TenantTelemetry24h,
 } from "@/lib/services/dashboard-orchestration";
 import {
   computeLogicDriftTrend,
@@ -56,6 +57,19 @@ export type DailyReportDaySnapshot = {
   markdown?: string;
 };
 
+/** Events with no `metadata.project_origin` are bucketed here — never merged into mapped repos. */
+export const DAILY_REPORTS_UNSCOPED_ORIGIN = "__unscoped__";
+export const DAILY_REPORTS_UNSCOPED_LABEL = "Unmapped activity";
+
+export type DailyReportsProjectScope = {
+  project_origin: string;
+  display_name: string;
+};
+
+export type DailyReportsProjectTimeline = DailyReportsProjectScope & {
+  days: DailyReportDaySnapshot[];
+};
+
 const PILLAR_LABELS: Record<MsgfGovernancePillar, string> = {
   P1: "Static Ledger",
   P2: "Flow Sequence",
@@ -87,6 +101,38 @@ function localDateKey(iso: string): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function readProjectOrigin(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const po = (metadata as Record<string, unknown>).project_origin;
+  return typeof po === "string" && po.trim() ? po.trim() : null;
+}
+
+function resolveRowProjectOrigin(metadata: unknown, bugIndex?: unknown): string {
+  return (
+    readProjectOrigin(metadata) ??
+    readProjectOrigin(bugIndex) ??
+    DAILY_REPORTS_UNSCOPED_ORIGIN
+  );
+}
+
+function rowBelongsToTimeline(
+  resolvedOrigin: string,
+  timelineOrigin: string,
+  mappedOrigins: Set<string>
+): boolean {
+  if (resolvedOrigin !== DAILY_REPORTS_UNSCOPED_ORIGIN && !mappedOrigins.has(resolvedOrigin)) {
+    return false;
+  }
+  if (timelineOrigin === DAILY_REPORTS_UNSCOPED_ORIGIN) {
+    return resolvedOrigin === DAILY_REPORTS_UNSCOPED_ORIGIN;
+  }
+  return resolvedOrigin === timelineOrigin;
+}
+
+function timelineBucketKey(timelineOrigin: string, date: string): string {
+  return `${timelineOrigin}\0${date}`;
 }
 
 function pillarFromMeta(meta: unknown): MsgfGovernancePillar {
@@ -286,25 +332,47 @@ export function snapshotFromDailyNetworkReport(report: DailyNetworkReport): Dail
   };
 }
 
-export function buildMockDailyReportsHistory(lookbackDays = 45): DailyReportDaySnapshot[] {
+function projectMockSeed(projectOrigin: string): number {
+  return projectOrigin.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+}
+
+function mockTenantNameForProject(
+  displayName: string,
+  projectOrigin: string
+): TenantTelemetry24h["tenant_name"] {
+  const raw = `${displayName} ${projectOrigin}`.toLowerCase();
+  if (raw.includes("education") || raw.includes("syntax")) return "Syntax Education";
+  if (raw.includes("author")) return "Author Ecosystem";
+  return "Client Projects";
+}
+
+export function buildMockDailyReportsHistoryForProject(
+  project: DailyReportsProjectScope,
+  lookbackDays = 45
+): DailyReportDaySnapshot[] {
   const today = new Date();
   const days: DailyReportDaySnapshot[] = [];
+  const seed = projectMockSeed(project.project_origin);
 
   for (let offset = 0; offset < lookbackDays; offset++) {
     const d = new Date(today);
     d.setDate(d.getDate() - offset);
     const date = localDateKey(d.toISOString());
+    const phase = (offset + seed) % 13;
     const telemetry = transformDailyNetworkReport(
       [
         {
-          tenant_name: "Author Ecosystem",
-          status: offset % 7 === 0 ? "yellow" : "green",
-          token_compute_processed: 120_000 + offset * 800,
-          token_compute_saved_by_p5: 18_000 + offset * 120,
-          anomaly_count: offset % 5 === 0 ? 2 : 0,
+          tenant_name: mockTenantNameForProject(
+            project.display_name,
+            project.project_origin
+          ),
+          status: phase % 7 === 0 ? "yellow" : "green",
+          token_compute_processed: 120_000 + offset * 800 + (seed % 40_000),
+          token_compute_saved_by_p5: 18_000 + offset * 120 + (seed % 5_000),
+          anomaly_count: phase % 5 === 0 ? 2 : 0,
           self_healed_count: 1,
-          hard_failure_count: offset % 11 === 0 ? 1 : 0,
-          logic_drift_scores: [0.1 + (offset % 10) * 0.02],
+          hard_failure_count: phase % 11 === 0 ? 1 : 0,
+          logic_drift_scores: [0.1 + (phase % 10) * 0.02],
         },
       ],
       d.toISOString()
@@ -316,13 +384,126 @@ export function buildMockDailyReportsHistory(lookbackDays = 45): DailyReportDayS
   return days;
 }
 
-export async function fetchDailyReportsHistory(
+function finalizeBucketsForTimeline(
+  buckets: Map<string, DayBucket>,
+  timelineOrigin: string
+): DailyReportDaySnapshot[] {
+  const prefix = `${timelineOrigin}\0`;
+  const snapshots = [...buckets.entries()]
+    .filter(([key]) => key.startsWith(prefix))
+    .map(([key, bucket]) => {
+      const date = key.slice(prefix.length);
+      if (!bucket.tokens_saved && bucket.narratives.length) {
+        const saved = bucket.narratives.reduce(
+          (sum, n) => sum + numberFromMeta(n.metadata, ["tokens_saved", "p5_tokens_saved"]),
+          0
+        );
+        bucket.tokens_saved = saved;
+      }
+      if (!bucket.tokens_saved && bucket.narratives.length + bucket.incidents.length > 0) {
+        bucket.tokens_saved = calculateEcoSavings(12_000).tokens_saved;
+      }
+      return finalizeDaySnapshot(date, bucket);
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  return snapshots;
+}
+
+function ingestRowsIntoBuckets(
+  buckets: Map<string, DayBucket>,
+  mappedOrigins: Set<string>,
+  timelineOrigins: string[],
+  narratives: Array<{
+    severity?: string | null;
+    metadata?: unknown;
+    created_at: string;
+    action_type?: string | null;
+  }>,
+  incidents: Array<{
+    status?: string | null;
+    metadata?: unknown;
+    bug_index?: unknown;
+    updated_at: string;
+  }>
+): void {
+  const ensure = (timelineOrigin: string, date: string): DayBucket => {
+    const key = timelineBucketKey(timelineOrigin, date);
+    let b = buckets.get(key);
+    if (!b) {
+      b = { narratives: [], incidents: [], tokens_saved: 0 };
+      buckets.set(key, b);
+    }
+    return b;
+  };
+
+  for (const row of narratives) {
+    const resolved = resolveRowProjectOrigin(row.metadata);
+    const date = localDateKey(String(row.created_at));
+    for (const timelineOrigin of timelineOrigins) {
+      if (!rowBelongsToTimeline(resolved, timelineOrigin, mappedOrigins)) continue;
+      const bucket = ensure(timelineOrigin, date);
+      bucket.narratives.push({
+        severity: row.severity as string | null,
+        metadata: row.metadata,
+        created_at: String(row.created_at),
+      });
+      if (row.action_type === "P5_ECO_DAILY_DIGEST") {
+        const saved = numberFromMeta(row.metadata, [
+          "token_compute_saved_by_p5",
+          "tokens_saved",
+        ]);
+        bucket.tokens_saved = Math.max(bucket.tokens_saved, saved);
+        const meta = row.metadata;
+        if (meta && typeof meta === "object") {
+          const md = (meta as Record<string, unknown>).markdown;
+          if (typeof md === "string") bucket.markdown = md;
+        }
+      }
+    }
+  }
+
+  for (const row of incidents) {
+    const resolved = resolveRowProjectOrigin(row.metadata, row.bug_index);
+    const date = localDateKey(String(row.updated_at));
+    for (const timelineOrigin of timelineOrigins) {
+      if (!rowBelongsToTimeline(resolved, timelineOrigin, mappedOrigins)) continue;
+      ensure(timelineOrigin, date).incidents.push({
+        status: row.status as string | null,
+        metadata: row.metadata,
+        bug_index: row.bug_index,
+        updated_at: String(row.updated_at),
+      });
+    }
+  }
+}
+
+/**
+ * Per-mapped-repo daily timelines. Narratives/incidents are never merged across `project_origin` tags.
+ */
+export async function fetchDailyReportsHistoryByProject(
   admin: SupabaseClient,
   userId: string,
+  projects: DailyReportsProjectScope[],
   lookbackDays = 120
-): Promise<DailyReportDaySnapshot[]> {
+): Promise<DailyReportsProjectTimeline[]> {
+  const mapped = projects
+    .map((p) => ({
+      project_origin: p.project_origin.trim(),
+      display_name: p.display_name.trim() || p.project_origin,
+    }))
+    .filter((p) => p.project_origin.length > 0);
+
+  const mappedOrigins = new Set(mapped.map((p) => p.project_origin));
+  const timelineOrigins = [...mappedOrigins, DAILY_REPORTS_UNSCOPED_ORIGIN];
+
   if (!hasLiveDashboardDatabaseEnv()) {
-    return buildMockDailyReportsHistory(Math.min(lookbackDays, 60));
+    const mockDays = Math.min(lookbackDays, 60);
+    const timelines: DailyReportsProjectTimeline[] = mapped.map((p) => ({
+      ...p,
+      days: buildMockDailyReportsHistoryForProject(p, mockDays),
+    }));
+    return timelines;
   }
 
   const since = new Date();
@@ -346,68 +527,38 @@ export async function fetchDailyReportsHistory(
   ]);
 
   const buckets = new Map<string, DayBucket>();
-
-  const ensure = (key: string): DayBucket => {
-    let b = buckets.get(key);
-    if (!b) {
-      b = { narratives: [], incidents: [], tokens_saved: 0 };
-      buckets.set(key, b);
-    }
-    return b;
-  };
-
-  for (const row of narrativesRes.data ?? []) {
-    const key = localDateKey(String(row.created_at));
-    const bucket = ensure(key);
-    bucket.narratives.push({
+  ingestRowsIntoBuckets(
+    buckets,
+    mappedOrigins,
+    timelineOrigins,
+    (narrativesRes.data ?? []).map((row) => ({
       severity: row.severity as string | null,
       metadata: row.metadata,
       created_at: String(row.created_at),
-    });
-    if (row.action_type === "P5_ECO_DAILY_DIGEST") {
-      const saved = numberFromMeta(row.metadata, [
-        "token_compute_saved_by_p5",
-        "tokens_saved",
-      ]);
-      bucket.tokens_saved = Math.max(bucket.tokens_saved, saved);
-      const meta = row.metadata;
-      if (meta && typeof meta === "object") {
-        const md = (meta as Record<string, unknown>).markdown;
-        if (typeof md === "string") bucket.markdown = md;
-      }
-    }
-  }
-
-  for (const row of incidentsRes.data ?? []) {
-    const key = localDateKey(String(row.updated_at));
-    ensure(key).incidents.push({
+      action_type: row.action_type as string | null,
+    })),
+    (incidentsRes.data ?? []).map((row) => ({
       status: row.status as string | null,
       metadata: row.metadata,
       bug_index: row.bug_index,
       updated_at: String(row.updated_at),
+    }))
+  );
+
+  const timelines: DailyReportsProjectTimeline[] = mapped.map((p) => ({
+    project_origin: p.project_origin,
+    display_name: p.display_name,
+    days: finalizeBucketsForTimeline(buckets, p.project_origin),
+  }));
+
+  const unscopedDays = finalizeBucketsForTimeline(buckets, DAILY_REPORTS_UNSCOPED_ORIGIN);
+  if (unscopedDays.length > 0) {
+    timelines.push({
+      project_origin: DAILY_REPORTS_UNSCOPED_ORIGIN,
+      display_name: DAILY_REPORTS_UNSCOPED_LABEL,
+      days: unscopedDays,
     });
   }
 
-  const todayKey = localDateKey(new Date().toISOString());
-  if (!buckets.has(todayKey)) {
-    buckets.set(todayKey, { narratives: [], incidents: [], tokens_saved: 0 });
-  }
-
-  const snapshots = [...buckets.entries()]
-    .map(([date, bucket]) => {
-      if (!bucket.tokens_saved && bucket.narratives.length) {
-        const saved = bucket.narratives.reduce(
-          (sum, n) => sum + numberFromMeta(n.metadata, ["tokens_saved", "p5_tokens_saved"]),
-          0
-        );
-        bucket.tokens_saved = saved;
-      }
-      if (!bucket.tokens_saved) {
-        bucket.tokens_saved = calculateEcoSavings(12_000).tokens_saved;
-      }
-      return finalizeDaySnapshot(date, bucket);
-    })
-    .sort((a, b) => b.date.localeCompare(a.date));
-
-  return snapshots;
+  return timelines;
 }

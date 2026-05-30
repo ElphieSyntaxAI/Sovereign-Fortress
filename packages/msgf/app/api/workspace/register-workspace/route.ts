@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 /**
  * POST /api/workspace/register-workspace — record IDE workspace for tenant handoff.
@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     tenant_id: tenantId,
+    project_origin: firstOrigin,
     workspace_fingerprint: result.workspace_fingerprint,
     registered_at: result.registered_at,
   });

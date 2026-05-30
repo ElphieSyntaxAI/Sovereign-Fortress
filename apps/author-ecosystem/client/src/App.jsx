@@ -73,6 +73,10 @@ const GlobalAdminSettingsPage = lazyPage(
   () => import("./pages/admin/GlobalAdminSettingsPage.tsx"),
   "admin-settings"
 );
+const AuthorAdminOpsPage = lazyPage(
+  () => import("./pages/admin/AuthorAdminOpsPage.tsx"),
+  "admin-ops"
+);
 const TermsPage = lazyPage(() => import("./pages/TermsPage"), "terms");
 const NdaPage = lazyPage(() => import("./pages/NdaPage"), "nda");
 const VaultPactPage = lazyPage(() => import("./pages/VaultPactPage"), "vault-pact");
@@ -126,6 +130,7 @@ export default function App() {
         >
           <Route path="/home" element={<AuthorHomePage />} />
           <Route path="/admin" element={<AuthorAdminOverviewPage />} />
+          <Route path="/admin/ops" element={<AuthorAdminOpsPage />} />
           <Route path="/admin/workspace/:roleId" element={<RoleWorkspaceHubPage />} />
           <Route path="/admin/settings" element={<GlobalAdminSettingsPage />} />
           <Route

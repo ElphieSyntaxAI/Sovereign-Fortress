@@ -8,8 +8,9 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
+import { buildAuthorAdminMsgfLinks } from "@elphie-syntax/core/author-admin-msgf-links";
 import { buildMsgfAuthorHandoffUrl } from "@elphie-syntax/core/operator-handoff-url";
 
 import { resolveMsgfLocalDevOrigin } from "@/lib/runtime/msgf-dev-defaults";
@@ -80,8 +81,12 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
   const authorLocalClient =
     trimUrl(process.env.AUTHOR_CLIENT_DEV_URL) || "http://127.0.0.1:5173";
   const authorLocalHome = joinPath(authorLocalClient, "/home");
+  const authorLocalAdmin = joinPath(authorLocalClient, "/admin");
   const authorHandoffLocal = buildMsgfAuthorHandoffUrl(msgfLocal, authorLocalHome);
+  const authorHandoffAdminLocal = buildMsgfAuthorHandoffUrl(msgfLocal, authorLocalAdmin);
   const authorHandoffProd = buildMsgfAuthorHandoffUrl(msgfProd, joinPath(authorProd, "/home"));
+  const authorMsgfLinks = buildAuthorAdminMsgfLinks(msgfProd);
+  const authorMsgfLinksLocal = buildAuthorAdminMsgfLinks(msgfLocal);
   const authorLocalBff =
     trimUrl(process.env.AUTHOR_ECOSYSTEM_URL) ||
     trimUrl(process.env.AUTHOR_BFF_URL) ||
@@ -105,7 +110,7 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
       summary: "Ops dashboard, pillar health, incidents, and education APIs hosted on this app.",
       tone: "emerald",
       detailHref: "/products/msgf",
-      testLaunch: { label: "Open ops dashboard", href: "/admin/dashboard" },
+      testLaunch: { label: "Open ops console", href: "/admin/ops" },
       localTestLaunch: { label: "MSGF dev (localhost)", href: msgfLocal, external: true },
       production: [
         { label: "MSGF console (prod)", href: msgfProd, external: true },
@@ -153,6 +158,16 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
           href: joinPath(authorProd, "/admin/sign-in"),
           external: true,
         },
+        {
+          label: "Author admin + MSGF ops bridge",
+          href: joinPath(authorProd, "/admin/ops"),
+          external: true,
+        },
+        {
+          label: "Token savings (author_ecosystem)",
+          href: authorMsgfLinks.token_savings,
+          external: true,
+        },
         { label: "Product roadmap", href: "/products/author" },
       ],
       localDev: [
@@ -168,6 +183,18 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
           external: true,
           description:
             "Uses your MSGF operator session — lands on /home with Author BFF cookies",
+        },
+        {
+          label: "Author admin hub (SSO handoff)",
+          href: authorHandoffAdminLocal,
+          external: true,
+          description: "Same session — lands on /admin (overview + MSGF ops bridge)",
+        },
+        {
+          label: "MSGF ops console (Author tenant)",
+          href: authorMsgfLinksLocal.ops_console,
+          external: true,
+          description: `ARBITRATE + DocuSign · tenant ${authorMsgfLinksLocal.tenant_id}`,
         },
         {
           label: "Author sign-in (localhost)",

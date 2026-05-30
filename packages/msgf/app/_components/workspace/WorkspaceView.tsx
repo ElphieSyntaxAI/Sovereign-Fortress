@@ -1,8 +1,69 @@
 "use client";
 
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T050211Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T045550Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T045125Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T044603Z-internal
+ */
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { DocusignComplianceBanner } from "@/app/_components/workspace/DocusignComplianceBanner";
 import { WorkspaceActiveIdeTab } from "@/app/_components/workspace/WorkspaceActiveIdeTab";
 import { WorkspaceSetupProjectsTab } from "@/app/_components/workspace/WorkspaceSetupProjectsTab";
 import type { SessionPermissions } from "@/lib/platform-rbac";
@@ -89,6 +150,8 @@ export function WorkspaceView({
 
   return (
     <div className="space-y-6">
+      <DocusignComplianceBanner />
+
       {isNewWorkspace ? (
         <section className="glass-panel rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 sm:p-5">
           <p className="text-sm font-medium text-amber-100">Welcome to your workspace</p>

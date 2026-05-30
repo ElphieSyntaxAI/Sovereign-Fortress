@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 
@@ -16,8 +16,8 @@ import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import {
   assertOperatorCanAccessIncident,
   MsgfOperatorGateError,
-  resolveDashboardOperator,
 } from "@/lib/msgf-operator-access";
+import { resolveOperatorForAdminRequest } from "@/lib/msgf-admin-request-operator";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
 import { GenealogicalBugIndexSchema } from "@/lib/schemas/vault-hall-metadata";
 import {
@@ -47,7 +47,7 @@ export async function GET(
 ) {
   try {
     const admin = createAdminClient();
-    const op = await resolveDashboardOperator(req, admin);
+    const op = await resolveOperatorForAdminRequest(req, admin);
 
     if (op.role === "DEVELOPER") {
       return adminJson(

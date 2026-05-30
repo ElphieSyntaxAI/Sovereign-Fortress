@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
@@ -57,6 +57,10 @@ import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter"
 import { preFlightCheck } from "@/lib/msgf-shadow";
 import { verifyIdeToken } from "@/lib/services/ide-token-service";
 import { MSGF_TENANT_KEY_HEADER } from "@/lib/msgf-http-headers";
+import {
+  ProjectTrackingRailError,
+  resolveProjectTrackingScope,
+} from "@/lib/services/project-tracking-rails";
 
 function normalizeRelPath(p: string): string | null {
   const x = p.replace(/\\/g, "/").replace(/^\.\/+/, "");
@@ -282,6 +286,27 @@ export async function POST(req: NextRequest) {
 
       const projectOrigin = deriveProjectOrigin(ingestFiles, body.project_origin);
 
+      const ingestUserId = await resolveIngestEntityId(admin, req, tenantId);
+      if (ingestUserId) {
+        try {
+          await resolveProjectTrackingScope({
+            admin,
+            userId: ingestUserId,
+            req,
+            explicitOrigin: projectOrigin,
+          });
+        } catch (e) {
+          if (e instanceof ProjectTrackingRailError) {
+            await endTenantCreditReservation(admin, creditStart, e.status);
+            return NextResponse.json(
+              { error: e.message, code: e.code },
+              { status: e.status }
+            );
+          }
+          throw e;
+        }
+      }
+
       if (filesToSweep.length > 0) {
         const ingestPreview = filesToSweep
           .map((f) => f.content)
@@ -323,7 +348,7 @@ export async function POST(req: NextRequest) {
         await updateIngestHashesAfterSweep(tenantId, filesToSweep);
       }
 
-      const ingestEntityId = await resolveIngestEntityId(admin, req, tenantId);
+      const ingestEntityId = ingestUserId;
       const readiness = await computeBrainReadiness(
         admin,
         tenantId,

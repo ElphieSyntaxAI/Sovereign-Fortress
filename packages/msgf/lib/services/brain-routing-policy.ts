@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 /**
  * Small Brain vs Big Brain — MSGF routing SSoT.
@@ -68,7 +68,7 @@ export type BrainFeatureDescriptor = {
 /** Operator-only surfaces for Big Brain escalations and global DNA promotion. */
 export const BIG_BRAIN_ADMIN_SURFACES = [
   { label: "Ops dashboard", href: "/admin/dashboard#big-brain-issues" },
-  { label: "Admin incidents", href: "/admin/portal" },
+  { label: "ARBITRATE ops console", href: "/admin/ops" },
   { label: "Rule submissions", href: "/api/msgf/admin/rule-submissions" },
   { label: "Global rules", href: "/api/msgf/admin/global-rules" },
 ] as const;

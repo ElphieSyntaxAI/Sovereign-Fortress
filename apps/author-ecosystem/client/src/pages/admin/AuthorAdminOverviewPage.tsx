@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { AuthorSentinelBugButton } from "../../components/AuthorSentinelBugButton";
 import {
+  authorAdminMsgfLinks,
   authorAdminProducts,
   msgfOperatorPortalHref,
   msgfOperatorSignInHref,
@@ -94,8 +95,9 @@ export default function AuthorAdminOverviewPage() {
   }
 
   const products = authorAdminProducts();
-  const bigBrain = overview?.msgf_links?.admin_big_brain ?? msgfOperatorPortalHref();
-  const tokenSavings = overview?.msgf_links?.admin_token_savings ?? null;
+  const msgf = authorAdminMsgfLinks();
+  const bigBrain = overview?.msgf_links?.admin_big_brain ?? msgf.big_brain;
+  const tokenSavings = overview?.msgf_links?.admin_token_savings ?? msgf.token_savings;
 
   return (
     <div className="space-y-8">
@@ -131,6 +133,23 @@ export default function AuthorAdminOverviewPage() {
             </a>
           ))}
         </div>
+      </section>
+
+      <section className="flex flex-wrap gap-2">
+        <Link
+          to="/admin/ops"
+          className="rounded-full border border-violet-500/40 bg-violet-600/20 px-4 py-2 text-sm font-semibold text-violet-50 hover:bg-violet-600/35"
+        >
+          Author ↔ MSGF ops bridge
+        </Link>
+        <a
+          href={msgf.ops_console}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-full border border-zinc-600 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-900"
+        >
+          Open MSGF ops console ↗
+        </a>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">

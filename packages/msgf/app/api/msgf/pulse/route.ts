@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 import { randomUUID } from "crypto";
 
@@ -36,10 +36,10 @@ import { recordSavingsFeatureCount } from "@/lib/services/savings-features-stats
 import { estimatePulseRoutingTokenSavings } from "@/lib/services/pulse-eco-savings";
 import { insertPulseAdminVaultForensic } from "@/lib/services/pulse-admin-vault";
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
+import { resolveOperatorForAdminRequest } from "@/lib/msgf-admin-request-operator";
 import {
   assertOperatorMayActAsEntity,
   MsgfOperatorGateError,
-  resolveDashboardOperator,
 } from "@/lib/msgf-operator-access";
 import { lomTestHarnessEnabled, pulseEngine } from "@/lib/services/PulseEngine";
 import { PulseHttpError } from "@/lib/services/pulse-http-error";
@@ -68,6 +68,15 @@ import {
   isRedisRequiredForPulse,
 } from "@/lib/v32-ultra-directive";
 import { parseDevSessionFromHeaders } from "@/lib/services/dev-session-profile";
+import {
+  ProjectTrackingRailError,
+  resolveProjectTrackingScope,
+  stampProjectOriginOnPayload,
+} from "@/lib/services/project-tracking-rails";
+import { verifyIdeToken } from "@/lib/services/ide-token-service";
+import {
+  extractBearerTokenFromRequest,
+} from "@/lib/services/pulse-license";
 
 function pulseJson(req: NextRequest, data: unknown, init?: ResponseInit) {
   const res = NextResponse.json(data, init);
@@ -182,7 +191,7 @@ export async function POST(req: NextRequest) {
         }
       } else if (adminTiebreak) {
         try {
-          const op = await resolveDashboardOperator(req, adminSupabase);
+          const op = await resolveOperatorForAdminRequest(req, adminSupabase);
           if (op.role === "DEVELOPER") {
             return pulseJsonWithTrace(
               req,
@@ -301,7 +310,44 @@ export async function POST(req: NextRequest) {
       }
 
       const rawBody = await req.json();
-      const pulseTextSeed = peekPulseTextSeed(rawBody);
+
+      let railsUserId: string | null = adminTiebreak ? null : entityId;
+      if (idePulse) {
+        const bearer = extractBearerTokenFromRequest(req);
+        const tenantKey =
+          req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() ||
+          req.headers.get(MSGF_TENANT_ID_HEADER)?.trim() ||
+          null;
+        if (bearer?.startsWith("msgf_ide_")) {
+          const verified = await verifyIdeToken(adminSupabase, bearer, tenantKey ?? undefined);
+          railsUserId = verified?.user_id ?? null;
+        }
+      }
+
+      let scopedBody: unknown = rawBody;
+      try {
+        const tracking = await resolveProjectTrackingScope({
+          admin: adminSupabase,
+          userId: railsUserId,
+          req,
+          rawBody,
+          idePulse,
+        });
+        scopedBody = stampProjectOriginOnPayload(rawBody, tracking.projectOrigin);
+      } catch (e) {
+        if (e instanceof ProjectTrackingRailError) {
+          await endTenantCreditReservation(adminSupabase, creditStart, e.status);
+          return pulseJsonWithTrace(
+            req,
+            traceId,
+            { error: e.message, code: e.code },
+            { status: e.status }
+          );
+        }
+        throw e;
+      }
+
+      const pulseTextSeed = peekPulseTextSeed(scopedBody);
 
       const { session: hotSession, rateLimitExceeded } = await preparePulseHotLayer({
         traceId,
@@ -349,7 +395,7 @@ export async function POST(req: NextRequest) {
           entityId,
           tenantId,
           traceId,
-          rawBody,
+          rawBody: scopedBody,
           authorHalTelemetry,
           geminiModelId,
           forceLomMismatch: forceMismatch,

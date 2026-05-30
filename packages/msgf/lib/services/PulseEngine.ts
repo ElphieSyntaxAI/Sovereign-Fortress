@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 /**
  * @msgf-license-header
@@ -178,7 +178,6 @@ import {
   runAnthropicDirectPublisherModel,
 } from "@/lib/services/anthropic-direct-fallback";
 import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
-import { extractProjectOriginFromPulseBody } from "@/lib/utils/pulse-eco-context";
 import { runV32PulsePipeline } from "@/lib/services/pulse-pipeline/run-v32-pipeline";
 import {
   recordRemediationFailure,
@@ -521,7 +520,7 @@ export class PulseEngine {
       contentHash,
       routingProfile,
       entityId: ctx.entityId,
-      projectOrigin: ctx.tenantId,
+      projectOrigin: undefined,
       packetCount: chunkForConsensus.length,
       runConverge: async () => {
         const freshConsensus = await Promise.all(

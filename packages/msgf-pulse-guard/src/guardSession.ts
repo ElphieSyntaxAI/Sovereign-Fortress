@@ -82,8 +82,8 @@ export class GuardSession {
     }
 
     if (!this.settings.tenantKey.trim()) {
-      void vscode.window.showInformationMessage(
-        `${LOG_PREFIX} msgf.tenantKey unset — using workspace folder name "${this.tenantId}".`
+      void vscode.window.showWarningMessage(
+        `${LOG_PREFIX} Set msgf.tenantKey to your mapped project_origin (org/repo). MSGF only tracks initiated workspace branches — folder names are not used for telemetry.`
       );
     }
 

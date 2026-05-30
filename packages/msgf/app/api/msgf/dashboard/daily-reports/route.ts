@@ -8,28 +8,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 /**
- * GET /api/msgf/dashboard/daily-reports — reverse-chronological daily governance snapshots.
+ * GET /api/msgf/dashboard/daily-reports — per-repo daily governance snapshots (isolated by project_origin).
  */
 
 import { NextResponse } from "next/server";
 import { cookies, headers } from "next/headers";
 
 import {
-  fetchDailyReportsHistory,
-  snapshotFromDailyNetworkReport,
+  DAILY_REPORTS_UNSCOPED_ORIGIN,
+  fetchDailyReportsHistoryByProject,
+  type DailyReportDaySnapshot,
 } from "@/lib/services/daily-reports-history";
-import { hasLiveDashboardDatabaseEnv } from "@/lib/services/dashboard-orchestration";
-import { telemetryService } from "@/lib/services/TelemetryService";
+import { listUserProjects } from "@/lib/services/user-projects";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
 export async function GET(req: Request) {
-  const lookbackRaw = new URL(req.url).searchParams.get("lookback_days");
+  const url = new URL(req.url);
+  const lookbackRaw = url.searchParams.get("lookback_days");
   const lookbackDays = Number(lookbackRaw ?? "120");
   const lb = Number.isFinite(lookbackDays) ? Math.min(Math.max(lookbackDays, 7), 365) : 120;
+  const filterOrigin = url.searchParams.get("project_origin")?.trim() || null;
 
   const cookieStore = await cookies();
   const hdrs = await headers();
@@ -44,18 +46,26 @@ export async function GET(req: Request) {
   }
 
   const admin = createAdminClient();
-  let days = await fetchDailyReportsHistory(admin, user.id, lb);
+  const rows = await listUserProjects(admin, user.id).catch(() => []);
+  const scopes = rows.map((p) => ({
+    project_origin: p.project_origin,
+    display_name: p.display_name,
+  }));
 
-  if (hasLiveDashboardDatabaseEnv()) {
-    const digest = await telemetryService.generateDailyDigest(admin);
-    const todaySnap = snapshotFromDailyNetworkReport(digest.report);
-    days = [todaySnap, ...days.filter((d) => d.date !== todaySnap.date)];
-    days.sort((a, b) => b.date.localeCompare(a.date));
+  let projects = await fetchDailyReportsHistoryByProject(admin, user.id, scopes, lb);
+
+  if (filterOrigin) {
+    projects = projects.filter((p) => p.project_origin === filterOrigin);
   }
 
   return NextResponse.json({
     ok: true,
     lookback_days: lb,
-    days,
+    isolation: "per_repo" as const,
+    mapped_project_count: scopes.length,
+    projects,
+    /** @deprecated Use `projects[].days` — kept empty so older clients do not show a blended timeline. */
+    days: [] as DailyReportDaySnapshot[],
+    unscoped_origin: DAILY_REPORTS_UNSCOPED_ORIGIN,
   });
 }

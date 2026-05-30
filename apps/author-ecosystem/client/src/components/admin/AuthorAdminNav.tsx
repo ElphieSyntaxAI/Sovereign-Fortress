@@ -23,7 +23,11 @@ function NavSection(props: { title: string; items: AuthorAdminNavItem[]; pathnam
       </p>
       <ul className="space-y-0.5">
         {props.items.map((item) => {
-          if (item.id === "admin" && !isOperator) {
+          if (
+            (item.id === "admin" || item.id === "msgf-ops" || item.id === "msgf-portal") &&
+            !isOperator
+          ) {
+            if (item.id !== "admin") return null;
             return (
               <li key={item.id}>
                 <Link

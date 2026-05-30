@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+-- Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
 -- =============================================================================
 -- MSGF operator RBAC: company silo + dashboard role (GLOBAL / COMPANY / DEVELOPER).
 

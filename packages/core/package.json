@@ -39,6 +39,11 @@
       "import": "./src/lib/operator-handoff-token.ts",
       "default": "./src/lib/operator-handoff-token.ts"
     },
+    "./author-admin-msgf-links": {
+      "types": "./src/lib/author-admin-msgf-links.ts",
+      "import": "./src/lib/author-admin-msgf-links.ts",
+      "default": "./src/lib/author-admin-msgf-links.ts"
+    },
     "./platform-hub-content": {
       "types": "./src/lib/platform-hub-content.ts",
       "import": "./src/lib/platform-hub-content.ts",

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -48,7 +48,7 @@ function defaultAuthorDashboardUrl(): string {
   const client =
     process.env.AUTHOR_CLIENT_DEV_URL?.trim()?.replace(/\/+$/, "") ||
     "http://127.0.0.1:5173";
-  return `${client}/dashboard`;
+  return `${client}/home`;
 }
 
 /**

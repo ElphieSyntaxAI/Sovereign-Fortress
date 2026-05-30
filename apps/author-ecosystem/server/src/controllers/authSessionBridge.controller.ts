@@ -14,7 +14,7 @@ import { BFF_AUTH_COOKIE_NAME, bffCookieBaseOptions } from "../lib/bffAuthCookie
 import { createBffSupabaseServerClient } from "../lib/bffSupabaseSsr.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 import { readBearerUser, normalizeRole } from "../lib/readBearerJwtUser.js";
-import { isPlatformOperatorEmail } from "../lib/isPlatformOperator.js";
+import { resolvePlatformOperatorAccess } from "../lib/isPlatformOperator.js";
 import { syncPlatformPersonaSession } from "../lib/syncPlatformPersonaSession.js";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../lib/vaultPactAttestation.js";
 
@@ -46,11 +46,14 @@ function readActivatedPersonas(meta: Record<string, unknown>, fallbackPersona: s
   return isPersonaValidForPlatform("author", seed) ? [seed] : ["author"];
 }
 
-function mapSupabaseUserToMe(user: {
-  id: string;
-  email?: string | null;
-  user_metadata?: Record<string, unknown> | null;
-}) {
+async function mapSupabaseUserToMe(
+  user: {
+    id: string;
+    email?: string | null;
+    user_metadata?: Record<string, unknown> | null;
+  },
+  admin = getSupabaseAdmin()
+) {
   const meta = user.user_metadata ?? {};
   const legacyRaw = meta["legacy_user_id"];
   const id =
@@ -63,13 +66,17 @@ function mapSupabaseUserToMe(user: {
     .trim()
     .toLowerCase();
   const role = normalizeRole(meta["terms_role"] ?? meta["user_role"] ?? meta["role"] ?? persona);
+  const is_platform_operator = await resolvePlatformOperatorAccess(admin, {
+    email: user.email,
+    userId: user.id,
+  });
   return {
     id,
     email: user.email ?? null,
     role,
     persona: isPersonaValidForPlatform("author", persona) ? persona : "author",
     activated_personas: readActivatedPersonas(meta, persona),
-    is_platform_operator: isPlatformOperatorEmail(user.email),
+    is_platform_operator,
   };
 }
 
@@ -189,7 +196,7 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
         user_metadata: { ...meta, activated_personas: activated },
       });
 
-      const u = mapSupabaseUserToMe({
+      const u = await mapSupabaseUserToMe({
         ...data.user,
         user_metadata: { ...meta, persona, activated_personas: activated },
       });
@@ -312,7 +319,7 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
         },
       });
 
-      const u = mapSupabaseUserToMe({
+      const u = await mapSupabaseUserToMe({
         ...sessionData.user,
         user_metadata: {
           ...(sessionData.user.user_metadata ?? {}),
@@ -360,7 +367,7 @@ authSessionBridgeController.get("/me", (req: Request, res: Response) => {
       const supabase = createBffSupabaseServerClient(req, res);
       const { data: userData, error } = await supabase.auth.getUser();
       if (!error && userData.user) {
-        const u = mapSupabaseUserToMe(userData.user);
+        const u = await mapSupabaseUserToMe(userData.user);
         res.status(200).json({ authenticated: true, user: u });
         return;
       }
@@ -423,7 +430,7 @@ authSessionBridgeController.post("/switch-persona", (req: Request, res: Response
         user_metadata: { ...meta, activated_personas: merged },
       });
 
-      const u = mapSupabaseUserToMe({
+      const u = await mapSupabaseUserToMe({
         ...userData.user,
         user_metadata: { ...meta, persona, activated_personas: merged },
       });

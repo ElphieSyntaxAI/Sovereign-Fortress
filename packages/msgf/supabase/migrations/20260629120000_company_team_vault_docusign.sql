@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+-- =============================================================================
 -- Company team management, tenant vault onboarding, DocuSign compliance tracking
 
 CREATE TABLE IF NOT EXISTS public.msgf_companies (

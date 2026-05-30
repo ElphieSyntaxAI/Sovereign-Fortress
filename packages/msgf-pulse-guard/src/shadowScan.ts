@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 
 import { readMsgfSettings, resolveTenantId } from "./config";
 import { buildApiAuthHeaders } from "./pulseAuth";
+import { resolveMappedProjectOrigin } from "./projectOrigin";
 
 const MAX_FILES = 12;
 const MAX_BYTES_PER_FILE = 48_000;
@@ -113,8 +114,15 @@ export async function runShadowPolicyScan(
     };
   }
 
-  const folder = vscode.workspace.workspaceFolders?.[0];
-  const projectOrigin = settings.tenantKey.trim() || folder?.name || tenantId;
+  const projectOrigin = resolveMappedProjectOrigin(settings.tenantKey);
+  if (!projectOrigin) {
+    return {
+      ok: false,
+      message:
+        "Set msgf.tenantKey to your mapped project_origin (e.g. org/repo) before running a shadow scan.",
+      ruleErrors: ["project_origin required for scoped ingest."],
+    };
+  }
   const files = await collectWorkspaceScanFiles();
 
   try {

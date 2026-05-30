@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+-- Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
 -- =============================================================================
 -- Repair: ensure remediation circuit columns exist on pillar_vectors (heal-queue solo probe).
 -- Idempotent — safe if 20260523140000_remediation_circuit_breaker already applied fully.

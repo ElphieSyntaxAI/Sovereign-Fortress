@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+ */
+/**
  * Company team invites, roster, bootstrap, integration status.
  */
 
@@ -6,9 +18,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type { PlatformRole } from "@/lib/platform-rbac";
-import { createEnvelopeForInvite } from "@/lib/services/docusign-gateway";
+import {
+  createEnvelopeForInvite,
+  docuSignIsAvailable,
+} from "@/lib/services/docusign-gateway";
 import { listActiveIdeTokens } from "@/lib/services/ide-token-service";
 import {
+  appendVaultLog,
   createInviteBundle,
   grantDocumentsToUser,
   type OnboardingBundleInput,
@@ -376,8 +392,21 @@ export async function applyTeamInviteBootstrap(
       companyId,
       userId: user.id,
       email: user.email ?? "",
+      signerName: user.email?.split("@")[0] ?? "Team member",
     });
-    signingUrl = env.signing_url;
+    if (env) {
+      signingUrl = env.signing_url;
+    } else if (!docuSignIsAvailable()) {
+      await admin
+        .from("p4_profiles")
+        .update({ account_status: "active", updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+      await appendVaultLog(admin, companyId, "docusign_skipped_unconfigured", {
+        invite_id: inviteId,
+        user_id: user.id,
+        note: "Invite required DocuSign but no DOCUSIGN_* or MSGF_DOCUSIGN_MOCK is configured.",
+      });
+    }
   }
 
   return {

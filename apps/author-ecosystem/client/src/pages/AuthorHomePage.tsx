@@ -5,9 +5,11 @@ import { useAuthorRole } from "../context/AuthorRoleContext";
 import { useAuthorWorkspaceLens } from "../context/AuthorWorkspaceLensContext";
 import { CREATIVE_NAV, BUSINESS_NAV } from "../lib/authorNavConfig";
 import { MsgfConnectionStatus } from "../components/MsgfConnectionStatus";
+import { OperatorAdminPanel } from "../components/OperatorAdminPanel";
 
 export default function AuthorHomePage() {
   const { user, loading } = useAuthorRole();
+  const isOperator = Boolean(user?.is_platform_operator);
   const { lens, meta, setLens } = useAuthorWorkspaceLens();
   const persona = user?.persona ?? "author";
 
@@ -42,6 +44,7 @@ export default function AuthorHomePage() {
         (left rail).
       </p>
       <MsgfConnectionStatus />
+      {isOperator ? <OperatorAdminPanel /> : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {links.map((item) => (

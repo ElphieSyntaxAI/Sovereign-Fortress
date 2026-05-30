@@ -115,15 +115,21 @@ Registration requires typing the Vault Pact attestation exactly: **`I SIGN THE V
 ## Run the stack
 
 ```bash
-npm run dev -w msgf                    # http://127.0.0.1:3001 (3000 free for LIFF / other apps)
-npm run dev --prefix apps/author-ecosystem/server   # http://127.0.0.1:3002
+# All three processes (recommended while building Author):
+npm run dev:author-msgf
+
+# Or separately:
+npm run dev -w msgf                    # http://127.0.0.1:3001
+npm run dev:author                     # BFF :3002 + Vite :5173
 ```
 
-Optional: Author client + VS Code extension for real HAL chunk flushes.
+### Operator admin while coding Author
 
-```bash
-npm run dev:author-client   # http://localhost:5173 (also http://127.0.0.1:5173 after host: true)
-```
+1. Sign in on MSGF: `http://127.0.0.1:3001/admin/sign-in?next=/admin/portal`
+2. From the portal, use **Author dashboard (localhost)** or **Author admin hub (SSO handoff)**.
+3. In Author, open **Admin → MSGF ops** (`http://127.0.0.1:5173/admin/ops`) for links to `/admin/ops`, token savings, and pillar health filtered to `author_ecosystem`.
+
+Handoff API: `GET /api/msgf/admin/author-handoff?return_to=<author-url>` (MSGF) → `GET /api/auth/msgf-handoff` (Author BFF).
 
 If the UI loads but sign-in fails, confirm `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` exist in `packages/msgf/.env.local` (Vite reads them automatically).
 
@@ -189,6 +195,19 @@ Quick checks:
 curl http://127.0.0.1:3001/          # MSGF (should return HTML, not connection refused)
 curl http://127.0.0.1:3002/api/ping  # Author BFF → {"pong":true}
 ```
+
+## Project tracking rails (privacy)
+
+MSGF only attributes **pulse**, **ingest**, **daily reports**, and **personal dashboard health** to a **mapped** `project_origin` (Workspace → Projects). This keeps telemetry off unmapped folders and personal paths.
+
+| Rule | Behavior |
+|------|----------|
+| IDE `msgf.tenantKey` | Must match `org/repo` style `project_origin` you registered (also sent as `x-msgf-project-origin`) |
+| Server enforcement | When the user has ≥1 mapped project, requests without a valid `project_origin` return **403** (`ERR_PROJECT_ORIGIN_REQUIRED` / `ERR_PROJECT_ORIGIN_NOT_MAPPED`) |
+| Multi-repo accounts | Personal dashboard health does **not** merge all repos server-side; pick a repo tab or map only one project for auto-scope |
+| Local bypass | `MSGF_TRACKING_RAILS_DISABLED=1` in `.env.local` (dev only) |
+
+Pulse Guard no longer uses the workspace folder name as `project_origin` for shadow scans or flush bodies.
 
 ## Related docs
 

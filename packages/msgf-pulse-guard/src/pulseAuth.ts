@@ -9,6 +9,10 @@ import {
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "./constants";
+import {
+  MSGF_PROJECT_ORIGIN_HEADER,
+  resolveMappedProjectOrigin,
+} from "./projectOrigin";
 import { appendDevSessionPulseHeaders, type PulseFlushContext } from "./devSessionPulse";
 import { buildRoleTrackingHeaders, hasValidAuthToken } from "./rolePermissions";
 import { getWorkspaceRoot } from "./workspace/msgfWorkspace";
@@ -26,6 +30,8 @@ export function buildPulseAuthHeaders(params: {
 }): PulseAuthHeaders {
   const { settings, tenantId, entityId } = params;
 
+  const projectOrigin = resolveMappedProjectOrigin(settings.tenantKey);
+
   const headers: PulseAuthHeaders = {
     "Content-Type": "application/json",
     [MSGF_TENANT_KEY_HEADER]: tenantId,
@@ -34,6 +40,10 @@ export function buildPulseAuthHeaders(params: {
     [MSGF_IDE_PULSE_HEADER]: "1",
     ...buildRoleTrackingHeaders(settings),
   };
+
+  if (projectOrigin) {
+    headers[MSGF_PROJECT_ORIGIN_HEADER] = projectOrigin;
+  }
 
   const authToken = settings.authToken.trim();
   if (authToken) {

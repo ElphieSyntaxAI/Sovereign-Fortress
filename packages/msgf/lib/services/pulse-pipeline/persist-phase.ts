@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
  */
 /**
  * V3.2 PERSIST — Vault/Hall writes and global CONVERGE response assembly.
@@ -62,12 +62,13 @@ export async function runPersistPhase(
 
   const p5TokensSaved = estimateP5ContextShardingTokensSaved(converged);
   if (p5TokensSaved > 0) {
-    const projectOrigin =
-      extractProjectOriginFromPulseBody(input.rawBody) ?? input.tenantId.trim();
-    void ecoAggregatorClient.sendGlobalTelemetryPayload(input.tenantId, p5TokensSaved, {
-      userId: input.entityId,
-      projectOrigin,
-    });
+    const projectOrigin = extractProjectOriginFromPulseBody(input.rawBody);
+    if (projectOrigin) {
+      void ecoAggregatorClient.sendGlobalTelemetryPayload(input.tenantId, p5TokensSaved, {
+        userId: input.entityId,
+        projectOrigin,
+      });
+    }
   }
 
   void recordPulseRoutingOutcome(input.tenantId, "global_converge", p5TokensSaved);

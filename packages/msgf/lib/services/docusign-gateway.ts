@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+ */
+/**
  * DocuSign Connect gateway — scaffold with mock mode for local QA.
  */
 
@@ -6,6 +18,10 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  createTeamComplianceEnvelope,
+  isDocuSignConfigured,
+} from "@/lib/services/docusign-rest";
 import { appendVaultLog } from "@/lib/services/tenant-onboarding-vault";
 
 export type DocuSignConnectPayload = {
@@ -21,9 +37,20 @@ export type DocuSignConnectPayload = {
   };
 };
 
-function mockMode(): boolean {
+export function mockMode(): boolean {
   const v = process.env.MSGF_DOCUSIGN_MOCK?.trim().toLowerCase();
   return v === "1" || v === "true";
+}
+
+export function docuSignModeLabel(): "mock" | "live" | "unconfigured" {
+  if (mockMode()) return "mock";
+  if (isDocuSignConfigured()) return "live";
+  return "unconfigured";
+}
+
+/** True when envelopes can be created (mock QA or live JWT credentials). */
+export function docuSignIsAvailable(): boolean {
+  return mockMode() || isDocuSignConfigured();
 }
 
 export async function createEnvelopeForInvite(
@@ -33,16 +60,30 @@ export async function createEnvelopeForInvite(
     companyId: string;
     userId: string;
     email: string;
+    signerName?: string;
   }
-): Promise<{ envelope_id: string; signing_url: string }> {
-  const envelopeId = mockMode()
-    ? `mock-env-${params.inviteId.slice(0, 8)}`
-    : `pending-${params.inviteId}`;
+): Promise<{ envelope_id: string; signing_url: string } | null> {
+  const appUrl = process.env.MSGF_APP_URL?.trim() || "http://127.0.0.1:3001";
+  const returnUrl = `${appUrl}/workspace?tab=architecture&docusign=complete&invite=${params.inviteId}`;
 
-  const appUrl = process.env.MSGF_APP_URL?.trim() || "http://127.0.0.1:3000";
-  const signingUrl = mockMode()
-    ? `${appUrl}/workspace?tab=ide&mock_docusign=1&invite=${params.inviteId}`
-    : `${appUrl}/workspace?compliance=pending&invite=${params.inviteId}`;
+  let envelopeId: string;
+  let signingUrl: string;
+
+  if (mockMode()) {
+    envelopeId = `mock-env-${params.inviteId.slice(0, 8)}`;
+    signingUrl = `${appUrl}/workspace?tab=architecture&mock_docusign=1&invite=${params.inviteId}`;
+  } else if (isDocuSignConfigured()) {
+    const created = await createTeamComplianceEnvelope({
+      signerEmail: params.email,
+      signerName: params.signerName ?? params.email,
+      clientUserId: params.userId,
+      returnUrl,
+    });
+    envelopeId = created.envelope_id;
+    signingUrl = created.signing_url;
+  } else {
+    return null;
+  }
 
   const { error } = await admin.from("msgf_docusign_envelopes").insert({
     invite_id: params.inviteId,
