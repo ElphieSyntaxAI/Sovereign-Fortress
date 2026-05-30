@@ -157,15 +157,26 @@
       {
         "command": "msgf.syncDevKit",
         "title": "MSGF: Sync developer kit"
+      },
+      {
+        "command": "msgf.configureMonorepoProduct",
+        "title": "MSGF: Configure monorepo product",
+        "category": "MSGF"
       }
     ],
     "configuration": {
       "title": "MSGF Pulse Guard",
       "properties": {
+        "msgf.productPath": {
+          "type": "string",
+          "default": "",
+          "description": "Monorepo only: relative path from workspace root to the app you are guarding (e.g. apps/author-ecosystem). Scopes shadow scan, .msgf/, and merges settings from that folder's .vscode/settings.json.",
+          "scope": "resource"
+        },
         "msgf.tenantKey": {
           "type": "string",
           "default": "",
-          "description": "Tenant key sent as X-MSGF-Tenant-Key (and x-msgf-tenant-id). Falls back to workspace folder name.",
+          "description": "Mapped project_origin (org/repo), e.g. elphiesyntax/author-ecosystem — not a folder path. Sent as X-MSGF-Tenant-Key.",
           "scope": "resource"
         },
         "msgf.authToken": {

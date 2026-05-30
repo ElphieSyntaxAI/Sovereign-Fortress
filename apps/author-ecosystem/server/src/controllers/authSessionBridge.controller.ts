@@ -101,53 +101,74 @@ function operatorHandoffSecret(): string {
   );
 }
 
-/**
- * GET /api/auth/msgf-handoff — browser navigation from MSGF admin portal; sets Author BFF session cookies.
- */
-authSessionBridgeController.get("/msgf-handoff", (req: Request, res: Response) => {
-  void (async () => {
-    try {
-      const token = String(req.query.handoff ?? "").trim();
-      if (!token) {
-        res.status(400).send("Missing handoff token.");
-        return;
-      }
+function readHandoffToken(req: Request): string {
+  const fromQuery = String(req.query.handoff ?? "").trim();
+  if (fromQuery) return fromQuery;
+  const body = req.body as Record<string, unknown> | undefined;
+  return String(body?.handoff ?? "").trim();
+}
 
-      const returnTo = sanitizeAuthorReturnToUrl(
-        typeof req.query.return_to === "string" ? req.query.return_to : undefined,
-        defaultAuthorDashboardReturnTo()
-      );
+function readHandoffReturnTo(req: Request): string {
+  const fromQuery =
+    typeof req.query.return_to === "string" ? req.query.return_to : undefined;
+  const body = req.body as Record<string, unknown> | undefined;
+  const fromBody = typeof body?.return_to === "string" ? body.return_to : undefined;
+  return sanitizeAuthorReturnToUrl(fromBody ?? fromQuery, defaultAuthorDashboardReturnTo());
+}
 
-      const payload = verifyOperatorHandoffToken(token, operatorHandoffSecret());
-      const supabase = createBffSupabaseServerClient(req, res);
-      const { data, error } = await supabase.auth.setSession({
-        access_token: payload.access_token,
-        refresh_token: payload.refresh_token,
-      });
+async function completeMsgfOperatorHandoff(req: Request, res: Response): Promise<void> {
+  const token = readHandoffToken(req);
+  if (!token) {
+    res.status(400).send("Missing handoff token.");
+    return;
+  }
 
-      if (error || !data.session?.user) {
-        res.status(401).send(error?.message ?? "Could not establish Author session.");
-        return;
-      }
+  const returnTo = readHandoffReturnTo(req);
+  const payload = verifyOperatorHandoffToken(token, operatorHandoffSecret());
+  const supabase = createBffSupabaseServerClient(req, res);
+  const { data, error } = await supabase.auth.setSession({
+    access_token: payload.access_token,
+    refresh_token: payload.refresh_token,
+  });
 
-      mirrorAccessTokenCookie(req, res, data.session.access_token);
+  if (error || !data.session?.user) {
+    res.status(401).send(error?.message ?? "Could not establish Author session.");
+    return;
+  }
 
-      const meta = data.session.user.user_metadata ?? {};
-      let persona = String(meta.persona ?? meta.terms_role ?? "author").trim().toLowerCase();
-      if (!isPersonaValidForPlatform("author", persona)) persona = "author";
+  mirrorAccessTokenCookie(req, res, data.session.access_token);
 
-      await syncPlatformPersonaSession(res, data.session.user, {
-        platform: "author",
-        persona,
-      });
+  const meta = data.session.user.user_metadata ?? {};
+  let persona = String(meta.persona ?? meta.terms_role ?? "author").trim().toLowerCase();
+  if (!isPersonaValidForPlatform("author", persona)) persona = "author";
 
-      res.redirect(302, returnTo);
-    } catch (e) {
-      console.error("[bff/auth/msgf-handoff]", e);
+  try {
+    await syncPlatformPersonaSession(res, data.session.user, {
+      platform: "author",
+      persona,
+    });
+  } catch (syncErr) {
+    console.error("[bff/auth/msgf-handoff] entitlement sync (non-fatal):", syncErr);
+  }
+
+  res.redirect(302, returnTo);
+}
+
+function handleMsgfHandoff(req: Request, res: Response): void {
+  void completeMsgfOperatorHandoff(req, res).catch((e) => {
+    console.error("[bff/auth/msgf-handoff]", e);
+    if (!res.headersSent) {
       res.status(400).send(e instanceof Error ? e.message : "Handoff failed.");
     }
-  })();
-});
+  });
+}
+
+/**
+ * GET /api/auth/msgf-handoff — legacy query-string handoff (large URLs).
+ * POST — preferred (MSGF admin auto-submit form).
+ */
+authSessionBridgeController.get("/msgf-handoff", handleMsgfHandoff);
+authSessionBridgeController.post("/msgf-handoff", handleMsgfHandoff);
 
 /**
  * Canonical author personas (`author` / `editor` / `helper` / `publisher`).

@@ -21,8 +21,16 @@ import {
   type DiagnosticSnapshot,
   type SelfHealReportBody,
 } from "@/lib/schemas/diagnostic-snapshot";
-import { PULSE_BUG_INDEX } from "@/lib/schemas/vault-hall-metadata";
+import {
+  PULSE_BUG_INDEX,
+  type GenealogicalBugIndex,
+} from "@/lib/schemas/vault-hall-metadata";
 import { buildNarrativeLogMetadata } from "@/lib/schemas/vault-hall-metadata";
+import type { MsgfGovernancePillar } from "@/lib/schemas/vault-hall-metadata";
+import {
+  bugIndexForGovernanceHeal,
+  resolveHealIncidentProjectOrigin,
+} from "@/lib/services/heal-incident-scope";
 import {
   runEmergencyLomSession,
   type EmergencyLomSessionResult,
@@ -151,11 +159,19 @@ function deriveHealedPillars(params: {
   return out;
 }
 
+export type SelfHealReportContext = {
+  projectOrigin?: string | null;
+  tenantKey?: string | null;
+  governancePillar?: MsgfGovernancePillar | string | null;
+  bugIndex?: GenealogicalBugIndex;
+};
+
 export async function persistSelfHealReport(params: {
   adminSupabase: SupabaseClient;
   body: SelfHealReportBody;
   entityId: string;
   tenantId: string;
+  context?: SelfHealReportContext;
 }): Promise<SelfHealReportResult> {
   const snapshot = SelfHealReportBodySchema.parse({
     ...params.body,
@@ -163,6 +179,30 @@ export async function persistSelfHealReport(params: {
   });
 
   const tenantId = snapshot.tenant_id?.trim() || params.tenantId;
+
+  const healBugIndex = bugIndexForGovernanceHeal({
+    governancePillar: params.context?.governancePillar,
+    taskBugIndex: params.context?.bugIndex ?? null,
+  });
+
+  const projectOrigin = resolveHealIncidentProjectOrigin({
+    explicit: params.context?.projectOrigin,
+    tenantKey: params.context?.tenantKey,
+    filePath:
+      typeof snapshot.editor?.location_href === "string"
+        ? snapshot.editor.location_href
+        : null,
+    editorHref:
+      typeof snapshot.editor?.location_href === "string"
+        ? snapshot.editor.location_href
+        : null,
+  });
+
+  const incidentScope = {
+    tenantId,
+    entityId: params.entityId,
+    projectOrigin,
+  };
 
   const drift = await logicDriftService.assessFromDiagnosticSnapshot({
     adminSupabase: params.adminSupabase,
@@ -211,7 +251,8 @@ export async function persistSelfHealReport(params: {
     }
   }
 
-  const sentinelStrategies = remediationEngine.getModularStrategiesForIncident(SENTINEL_INSTANCE);
+  const healInstance = healBugIndex.level_1_1_1_instance;
+  const sentinelStrategies = remediationEngine.getModularStrategiesForIncident(healInstance);
   const lomLocalStrategies = remediationEngine.getLocalStrategiesForIncident(LOM_REC_INSTANCE);
   const localStrategy =
     sentinelStrategies.find((s) => s.id === "local-sentinel-unblock") ??
@@ -220,7 +261,7 @@ export async function persistSelfHealReport(params: {
     null;
 
   const remediationDtos = remediationEngine
-    .getModularStrategiesForIncident(SENTINEL_INSTANCE)
+    .getModularStrategiesForIncident(healInstance)
     .map(toAdminIncidentStrategyDto);
 
   let localDeltaApplied = false;
@@ -255,12 +296,14 @@ export async function persistSelfHealReport(params: {
 
   const narrativeMeta = buildNarrativeLogMetadata({
     ledger: "hall",
-    bugIndex: SENTINEL_BUG_INDEX,
+    bugIndex: healBugIndex,
     extra: {
+      ...(projectOrigin ? { project_origin: projectOrigin } : {}),
       beat_kind: "diagnostic_snapshot",
       diagnostic_snapshot: snapshot,
       self_heal_report: true,
       source: snapshot.source,
+      governance_pillar: params.context?.governancePillar ?? undefined,
       logic_drift: {
         score: drift.score,
         factors: drift.factors,
@@ -296,9 +339,9 @@ export async function persistSelfHealReport(params: {
   const incidentId = await insertMsgfUserSentinelIncident({
     adminSupabase: params.adminSupabase,
     userId: params.entityId,
-    scope: { tenantId, entityId: params.entityId },
+    scope: incidentScope,
     narrativeLogId: logRow?.id as string | undefined,
-    bugIndex: SENTINEL_BUG_INDEX,
+    bugIndex: healBugIndex,
     strategies: null,
   });
 
@@ -307,7 +350,7 @@ export async function persistSelfHealReport(params: {
     const arbitrateId = await insertMsgfArbitrateIncident({
       adminSupabase: params.adminSupabase,
       userId: params.entityId,
-      scope: { tenantId, entityId: params.entityId },
+      scope: incidentScope,
       narrativeLogId: logRow?.id as string | undefined,
       bugIndex: drift.escalateToGlobalBrain
         ? PULSE_BUG_INDEX.hallLomRecursion

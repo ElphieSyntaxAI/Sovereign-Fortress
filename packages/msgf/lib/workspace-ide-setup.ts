@@ -41,6 +41,8 @@ export type IdeWorkspaceSettings = {
   "msgf.tenantKey": string;
   "msgf.authToken": string;
   "msgf.role": string;
+  /** Monorepo: relative app path when workspace root is the git repo (e.g. apps/author-ecosystem). */
+  "msgf.productPath"?: string;
   /** Vibe-coding profile: save-primary pulse flush + build-active drift relax. */
   "msgf.devSession"?: boolean;
   /** Brain sensitivity 0.1 (strict) → 0.5 (relaxed). */
@@ -52,6 +54,7 @@ export function buildIdeWorkspaceSettings(input: {
   tenantKey: string;
   authToken: string;
   role?: string;
+  productPath?: string | null;
   devSession?: boolean;
   brainSensitivity?: number;
 }): IdeWorkspaceSettings {
@@ -61,6 +64,8 @@ export function buildIdeWorkspaceSettings(input: {
     "msgf.authToken": input.authToken,
     "msgf.role": input.role ?? "dev",
   };
+  const productPath = input.productPath?.trim();
+  if (productPath) settings["msgf.productPath"] = productPath;
   if (input.devSession === true) settings["msgf.devSession"] = true;
   if (input.brainSensitivity != null && Number.isFinite(input.brainSensitivity)) {
     settings["msgf.brainSensitivity"] = input.brainSensitivity;

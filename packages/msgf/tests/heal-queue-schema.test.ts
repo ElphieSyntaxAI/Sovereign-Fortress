@@ -20,6 +20,7 @@ import {
   HealQueueTokenSummarySchema,
   IngestRemediationActionSchema,
   PRESET_INTERVAL_TO_SCHEDULING_TIER,
+  RemediationTaskSchema,
   parseIngestRemediationAction,
 } from "../lib/schemas/heal-queue";
 import { buildHealQueueTokenSummary } from "../lib/services/heal-token-estimate.js";
@@ -35,6 +36,54 @@ import {
 } from "../lib/services/heal-queue-cron-batch";
 
 const TENANT = "00000000-0000-4000-8000-000000000001";
+
+describe("RemediationTaskSchema token_estimate", () => {
+  test("requires file_path on nested token_estimate", () => {
+    const base = {
+      task_id: "00000000-0000-4000-8000-000000000099",
+      file_path: "packages/msgf/lib/a.ts",
+      governance_pillar: "P2" as const,
+      bug_index: {
+        level_1_category: "1.0_API",
+        level_1_1_branch: "1.1_X",
+        level_1_1_1_instance: "1.1.1_INGEST_BASELINE",
+      },
+      reason: "test",
+      source: "pillar_vector" as const,
+      pillar_vector_id: null,
+      scheduling_tier: null,
+      preset_interval: null,
+    };
+
+    const withoutPath = RemediationTaskSchema.safeParse({
+      ...base,
+      token_estimate: {
+        cost_tier: "inexpensive",
+        strategy_scope: "global",
+        consequence_score: 10,
+        tokens_without_msgf: 100,
+        tokens_with_msgf: 80,
+        tokens_saved: 20,
+      },
+    });
+    assert.equal(withoutPath.success, false);
+    assert.equal(withoutPath.error?.issues[0]?.path.join("."), "token_estimate.file_path");
+
+    const withPath = RemediationTaskSchema.safeParse({
+      ...base,
+      token_estimate: {
+        file_path: base.file_path,
+        cost_tier: "inexpensive",
+        strategy_scope: "global",
+        consequence_score: 10,
+        tokens_without_msgf: 100,
+        tokens_with_msgf: 80,
+        tokens_saved: 20,
+      },
+    });
+    assert.equal(withPath.success, true);
+  });
+});
 
 describe("HealQueueTokenSummarySchema", () => {
   test("accepts per_item from buildHealQueueTokenSummary", () => {

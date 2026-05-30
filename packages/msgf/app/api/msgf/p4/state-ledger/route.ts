@@ -26,11 +26,14 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { applyPulseCorsHeaders, pulseCorsPreflightResponse } from "@/lib/msgf-cors";
 import {
   MSGF_ENTITY_ID_HEADER,
+  MSGF_PROJECT_ORIGIN_HEADER,
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
+import { tenantKeyLooksLikeProjectOrigin } from "@/lib/services/project-tracking-rails";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
 import { ingestP4StateLedgerTelemetry } from "@/lib/services/p4-state-ledger-controller";
+import { enqueueStateLedgerBreakdownIncidents } from "@/lib/services/p4-state-ledger-incidents";
 import { ZodError } from "zod";
 
 function json(req: NextRequest, data: unknown, init?: ResponseInit) {
@@ -76,6 +79,24 @@ export async function POST(req: NextRequest) {
       rawBody,
     });
 
+    const tenantKey = headerTenant?.trim() || null;
+    const projectOrigin =
+      req.headers.get(MSGF_PROJECT_ORIGIN_HEADER)?.trim() ||
+      (tenantKeyLooksLikeProjectOrigin(tenantKey) ? tenantKey : null);
+
+    let incident_ids: string[] = [];
+    if (result.suggestedBreakdowns.length > 0) {
+      const admin = createAdminClient();
+      incident_ids = await enqueueStateLedgerBreakdownIncidents({
+        admin,
+        entityId,
+        tenantId,
+        projectOrigin,
+        tenantKey,
+        breakdowns: result.suggestedBreakdowns,
+      });
+    }
+
     return json(req, {
       ok: true,
       trace_id: traceId,
@@ -88,6 +109,7 @@ export async function POST(req: NextRequest) {
       hot_layer_hit: result.hotLayerHit,
       verify_results: result.verifyResults,
       suggested_learning_breakdowns: result.suggestedBreakdowns,
+      incident_ids,
       assignment_id: result.assignmentId ?? null,
       subject_domain: result.subjectDomain ?? null,
       ecosystem_source: result.ecosystemSource,
@@ -139,6 +161,23 @@ export async function PUT(req: NextRequest) {
       rawBody,
     });
 
+    const tenantKey = headerTenant?.trim() || null;
+    const projectOrigin =
+      req.headers.get(MSGF_PROJECT_ORIGIN_HEADER)?.trim() ||
+      (tenantKeyLooksLikeProjectOrigin(tenantKey) ? tenantKey : null);
+
+    let incident_ids: string[] = [];
+    if (result.suggestedBreakdowns.length > 0) {
+      incident_ids = await enqueueStateLedgerBreakdownIncidents({
+        admin: adminSupabase,
+        entityId,
+        tenantId,
+        projectOrigin,
+        tenantKey,
+        breakdowns: result.suggestedBreakdowns,
+      });
+    }
+
     return json(req, {
       ok: true,
       trace_id: traceId,
@@ -151,6 +190,7 @@ export async function PUT(req: NextRequest) {
       hot_layer_hit: result.hotLayerHit,
       verify_results: result.verifyResults,
       suggested_learning_breakdowns: result.suggestedBreakdowns,
+      incident_ids,
       ecosystem_source: result.ecosystemSource,
       telemetry_mode: result.telemetryMode,
       focus_beats_appended: result.focusBeatsAppended,

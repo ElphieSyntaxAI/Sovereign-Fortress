@@ -24,6 +24,7 @@ import {
   resolveOperationalTenantId,
 } from "./platform-persona-auth";
 import { bootstrapTenantBrain } from "./services/brain-readiness";
+import { ensureTenantWalletStarter } from "./services/tenant-token-wallet";
 import { createAdminClient } from "../utils/supabase/admin";
 
 export { bootstrapTenantBrain };
@@ -271,6 +272,12 @@ export async function syncPlatformEntitlement(input: SyncPlatformEntitlementInpu
   });
 
   await bootstrapTenantBrain(admin, tenantId, entityId);
+
+  try {
+    await ensureTenantWalletStarter(admin, tenantId);
+  } catch (e) {
+    console.warn("[msgf-onboarding] wallet starter:", e instanceof Error ? e.message : e);
+  }
 
   return { provisionedLicense, tenantId, userRole };
 }

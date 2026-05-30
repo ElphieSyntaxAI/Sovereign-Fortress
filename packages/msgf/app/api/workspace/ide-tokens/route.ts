@@ -24,6 +24,8 @@ import {
   listActiveIdeTokens,
   mintIdeToken,
 } from "@/lib/services/ide-token-service";
+import { MONOREPO_WORKSPACE_PRESETS } from "@/lib/services/monorepo-workspace-presets";
+import { ensureTenantWalletStarter } from "@/lib/services/tenant-token-wallet";
 import { listUserProjects } from "@/lib/services/user-projects";
 import {
   buildIdeWorkspaceSettings,
@@ -157,14 +159,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: minted.error }, { status: 503 });
   }
 
+  try {
+    await ensureTenantWalletStarter(admin, tenantKey);
+    if (projectOrigin && projectOrigin !== tenantKey) {
+      await ensureTenantWalletStarter(admin, projectOrigin);
+    }
+  } catch (e) {
+    console.warn("[ide-tokens] wallet starter:", e instanceof Error ? e.message : e);
+  }
+
   const devSessionDefault =
     process.env.MSGF_DEV_SESSION_DEFAULT?.trim().toLowerCase() !== "0" &&
     process.env.MSGF_DEV_SESSION_DEFAULT?.trim().toLowerCase() !== "false";
+
+  const productPath =
+    MONOREPO_WORKSPACE_PRESETS.find((p) => p.project_origin === tenantKey)?.suggested_local_path ??
+    null;
 
   const settings = buildIdeWorkspaceSettings({
     apiUrl,
     tenantKey,
     authToken: minted.token,
+    productPath,
     devSession: devSessionDefault,
   });
 

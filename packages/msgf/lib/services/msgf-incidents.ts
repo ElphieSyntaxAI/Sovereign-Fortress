@@ -60,6 +60,8 @@ export type MsgfIncidentScope = {
   tenantId: string;
   entityId?: string;
   companyId?: string | null;
+  /** Repo tag — required for personal dashboard `project_origins` filter. */
+  projectOrigin?: string | null;
 };
 
 function buildIncidentInsertRow(
@@ -75,6 +77,7 @@ function buildIncidentInsertRow(
       tenantId: scope.tenantId,
       entityId: scope.entityId ?? scope.tenantId,
       companyId: scope.companyId,
+      projectOrigin: scope.projectOrigin,
     }),
   };
 }

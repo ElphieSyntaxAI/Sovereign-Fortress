@@ -180,6 +180,7 @@
     "smoke:all": "node scripts/smoke-all-phases.mjs",
     "create:buyer-user": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-buyer-test-user.mjs",
     "create:platform-admin": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-platform-admin-test-user.ts",
+    "grant:wallet": "node scripts/grant-tenant-wallet.mjs",
     "verify:platform-login": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-platform-login.ts",
     "probe:buyer": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/probe-buyer-session.mjs",
     "test:jira": "node scripts/test-jira.js"

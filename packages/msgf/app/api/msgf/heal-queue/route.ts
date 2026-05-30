@@ -253,6 +253,10 @@ export async function POST(req: NextRequest) {
 
     const body = parseIngestRemediationAction(raw);
     const { admin, entityId } = await resolveHealQueueActor(req, body.tenant_id);
+    const tenantKey =
+      req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() ||
+      req.headers.get("x-msgf-tenant-id")?.trim() ||
+      null;
 
     const taskCount = body.file_paths?.length ?? 0;
     let creditStart: Awaited<ReturnType<typeof startTenantCreditReservation>> = {
@@ -293,6 +297,7 @@ export async function POST(req: NextRequest) {
         admin,
         entityId,
         body,
+        tenantKey,
       });
       if (creditStart.enabled && !creditStart.insufficient) {
         await endTenantCreditReservation(admin, creditStart, 200);

@@ -1,13 +1,11 @@
 import * as vscode from "vscode";
 
 import { DEFAULT_MSGF_API_URL } from "./constants";
+import { mergeMonorepoMsgfSettings } from "./nestedWorkspaceSettings";
+import type { MsgfGuardSettings, SmallBrainProvider } from "./settingsTypes";
+import { getRepoRoot } from "./workspace/msgfWorkspace";
 
-export type SmallBrainProvider =
-  | "openai"
-  | "anthropic"
-  | "ollama"
-  | "deepseek"
-  | "gemini";
+export type { MsgfGuardSettings, SmallBrainProvider } from "./settingsTypes";
 
 /** Strip stray quotes from pasted VS Code settings values. */
 export function sanitizeMsgfSettingValue(value: string): string {
@@ -21,25 +19,6 @@ export function sanitizeMsgfSettingValue(value: string): string {
   return t;
 }
 
-export type MsgfGuardSettings = {
-  tenantKey: string;
-  authToken: string;
-  apiUrl: string;
-  /**
-   * Vibe-coding profile: buffer edits locally; POST /api/msgf/pulse on file save (not every 3s).
-   */
-  devSession: boolean;
-  /** V3.2 tier: `global_admin` | `company_admin` | `dev` */
-  role: string;
-  /** Team / company silo; when empty, sandbox fallback may apply. */
-  organizationId: string;
-  licenseKey: string;
-  entityId: string;
-  smallBrainProvider: SmallBrainProvider;
-  smallBrainApiKey: string;
-  smallBrainModelName: string;
-};
-
 export function readMsgfSettings(): MsgfGuardSettings {
   const config = vscode.workspace.getConfiguration("msgf");
   const provider = config.get<string>("smallBrainProvider", "gemini");
@@ -49,9 +28,18 @@ export function readMsgfSettings(): MsgfGuardSettings {
     ? (provider as SmallBrainProvider)
     : "gemini";
 
-  return {
+  const authInspect = config.inspect<string>("authToken");
+  const authFromConfig = sanitizeMsgfSettingValue(
+    authInspect?.workspaceFolderValue ??
+      authInspect?.workspaceValue ??
+      authInspect?.globalValue ??
+      config.get<string>("authToken", "")
+  );
+
+  const base: MsgfGuardSettings = {
+    productPath: sanitizeMsgfSettingValue(config.get<string>("productPath", "")),
     tenantKey: sanitizeMsgfSettingValue(config.get<string>("tenantKey", "")),
-    authToken: sanitizeMsgfSettingValue(config.get<string>("authToken", "")),
+    authToken: authFromConfig,
     apiUrl: sanitizeMsgfSettingValue(config.get<string>("apiUrl", DEFAULT_MSGF_API_URL)),
     devSession: config.get<boolean>("devSession", false),
     role: config.get<string>("role", "").trim(),
@@ -62,12 +50,13 @@ export function readMsgfSettings(): MsgfGuardSettings {
     smallBrainApiKey: config.get<string>("smallBrainApiKey", "").trim(),
     smallBrainModelName: config.get<string>("smallBrainModelName", "").trim(),
   };
+
+  return mergeMonorepoMsgfSettings(base, getRepoRoot());
 }
 
 export function resolveTenantId(settings: MsgfGuardSettings): string {
-  if (settings.tenantKey) return settings.tenantKey;
-  const folder = vscode.workspace.workspaceFolders?.[0];
-  return folder?.name?.trim() || "workspace";
+  if (settings.tenantKey.trim()) return settings.tenantKey.trim();
+  return "";
 }
 
 export async function resolveEntityId(
@@ -92,6 +81,9 @@ export function settingsReady(settings: MsgfGuardSettings): {
   }
   if (!settings.authToken.trim() && !settings.licenseKey.trim().startsWith("msgf_live_")) {
     missing.push("msgf.authToken");
+  }
+  if (!settings.tenantKey.trim()) {
+    missing.push("msgf.tenantKey");
   }
   return { ok: missing.length === 0, missing };
 }

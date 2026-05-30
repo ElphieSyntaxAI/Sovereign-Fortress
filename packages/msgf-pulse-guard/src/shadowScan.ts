@@ -13,7 +13,20 @@ export type ShadowScanResult =
 
 type IngestFile = { path: string; content: string };
 
-async function collectWorkspaceScanFiles(): Promise<IngestFile[]> {
+function normalizeScanPath(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
+function scopePathsToProduct(files: IngestFile[], productPath: string): IngestFile[] {
+  const prefix = normalizeScanPath(productPath).replace(/\/$/, "") + "/";
+  const scoped = files.filter((f) => {
+    const rel = normalizeScanPath(f.path);
+    return rel.startsWith(prefix) || rel === prefix.slice(0, -1);
+  });
+  return scoped.length > 0 ? scoped : files;
+}
+
+async function collectWorkspaceScanFiles(productPath: string): Promise<IngestFile[]> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (!folder) return [];
 
@@ -61,7 +74,9 @@ async function collectWorkspaceScanFiles(): Promise<IngestFile[]> {
     }
   }
 
-  return files.slice(0, MAX_FILES);
+  const capped = files.slice(0, MAX_FILES);
+  const scoped = productPath.trim() ? scopePathsToProduct(capped, productPath) : capped;
+  return scoped.slice(0, MAX_FILES);
 }
 
 function parseRuleAlignment(raw: Record<string, unknown>): string[] {
@@ -107,10 +122,13 @@ export async function runShadowPolicyScan(
 
   const headers = buildApiAuthHeaders({ settings, tenantId });
   if (!headers.Authorization) {
+    const hint = settings.productPath.trim()
+      ? `Add msgf.authToken to ${settings.productPath}/.vscode/settings.json or the repo root .vscode/settings.json, then reload the window.`
+      : "Add msgf.authToken to .vscode/settings.json (mint at Workspace → IDE setup), then reload the window.";
     return {
       ok: false,
       message: "Configure msgf.authToken before running a shadow scan.",
-      ruleErrors: ["Missing Authorization bearer token."],
+      ruleErrors: ["Missing Authorization bearer token.", hint],
     };
   }
 
@@ -123,7 +141,16 @@ export async function runShadowPolicyScan(
       ruleErrors: ["project_origin required for scoped ingest."],
     };
   }
-  const files = await collectWorkspaceScanFiles();
+  const files = await collectWorkspaceScanFiles(settings.productPath);
+  if (settings.productPath.trim() && files.length === 0) {
+    return {
+      ok: false,
+      message: `No scannable files under msgf.productPath (${settings.productPath}).`,
+      ruleErrors: [
+        "Open the monorepo root and set msgf.productPath, or run MSGF: Configure monorepo product.",
+      ],
+    };
+  }
 
   try {
     const res = await fetchImpl(url, {
@@ -143,13 +170,24 @@ export async function runShadowPolicyScan(
     const ruleErrors = parseRuleAlignment(raw);
 
     if (!res.ok) {
+      const errCode = typeof raw.error === "string" ? raw.error : "";
+      const insufficient = res.status === 402 || errCode === "INSUFFICIENT_FUNDS";
       return {
         ok: false,
-        message:
-          typeof raw.error === "string"
+        message: insufficient
+          ? "Insufficient MSGF token wallet balance for this tenant."
+          : typeof raw.error === "string"
             ? raw.error
             : `Shadow scan failed (HTTP ${res.status}).`,
-        ruleErrors: ruleErrors.length ? ruleErrors : [`HTTP ${res.status}`],
+        ruleErrors: insufficient
+          ? [
+              "INSUFFICIENT_FUNDS",
+              `Tenant wallet "${tenantId}" needs tokens (shadow scan reserves ~1000 per run).`,
+              "Mint a new IDE token at Workspace → IDE setup (auto-tops up wallet after deploy), or ask an admin to run: npm run grant:wallet -w msgf -- --tenant=elphiesyntax/author-ecosystem",
+            ]
+          : ruleErrors.length
+            ? ruleErrors
+            : [`HTTP ${res.status}${errCode ? ` · ${errCode}` : ""}`],
       };
     }
 

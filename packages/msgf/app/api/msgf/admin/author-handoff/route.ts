@@ -13,6 +13,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+import { buildAuthorHandoffAutoPostHtml } from "@elphie-syntax/core/author-handoff-auto-post";
 import { defaultAuthorDashboardReturnTo, resolveAuthorBffOrigin } from "@elphie-syntax/core/author-handoff-origins";
 import {
   sanitizeAuthorReturnToUrl,
@@ -87,11 +88,20 @@ export async function GET(req: NextRequest) {
       secret
     );
 
-    const bffUrl = new URL("/api/auth/msgf-handoff", `${resolveAuthorBffOrigin()}/`);
-    bffUrl.searchParams.set("handoff", handoff);
-    bffUrl.searchParams.set("return_to", returnTo);
+    const bffOrigin = resolveAuthorBffOrigin();
+    const html = buildAuthorHandoffAutoPostHtml({
+      bffOrigin,
+      handoffToken: handoff,
+      returnTo,
+    });
 
-    return NextResponse.redirect(bffUrl);
+    return new NextResponse(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
   } catch (e) {
     if (e instanceof MsgfAdminSessionError) {
       return NextResponse.redirect(new URL("/unauthorized", resolveMsgfRequestOrigin(req)));

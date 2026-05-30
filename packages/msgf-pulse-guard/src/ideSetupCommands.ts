@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 import { fetchConnectivityCheck } from "./connectivityCheckClient";
 import { readMsgfSettings, sanitizeMsgfSettingValue, settingsReady } from "./config";
 import { openMsgfWorkspaceIdeSetupBrowser } from "./openMsgfExternal";
-import { getWorkspaceRoot } from "./workspace/msgfWorkspace";
+import { getRepoRoot } from "./workspace/msgfWorkspace";
 
 const LOG_PREFIX = "[MSGF Guard]";
 
@@ -24,8 +24,8 @@ function parseSettingsJson(text: string): SettingsJson | null {
   return null;
 }
 
-async function mergeWorkspaceSettings(merge: SettingsJson): Promise<boolean> {
-  const root = getWorkspaceRoot();
+export async function mergeWorkspaceSettings(merge: SettingsJson): Promise<boolean> {
+  const root = getRepoRoot();
   if (!root) {
     void vscode.window.showWarningMessage(`${LOG_PREFIX} Open a workspace folder first.`);
     return false;

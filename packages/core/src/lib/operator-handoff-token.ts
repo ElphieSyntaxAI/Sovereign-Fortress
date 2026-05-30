@@ -9,7 +9,8 @@ import {
 export type { OperatorHandoffPayload } from "./operator-handoff-url.js";
 export { buildMsgfAuthorHandoffUrl, sanitizeAuthorReturnToUrl };
 
-const DEFAULT_TTL_MS = 60_000;
+/** Browser redirect + entitlement sync — 60s was too tight for cold BFF / slow networks. */
+const DEFAULT_TTL_MS = 300_000;
 
 function encodePayload(payload: OperatorHandoffPayload): string {
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");

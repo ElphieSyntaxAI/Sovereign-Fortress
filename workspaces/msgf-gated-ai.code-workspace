@@ -1,0 +1,14 @@
+{
+  "folders": [
+    {
+      "path": "../packages/msgf",
+      "name": "MSGF Gated AI"
+    }
+  ],
+  "settings": {
+    "msgf.apiUrl": "https://elphiesgatedai.elphiesyntax.com",
+    "msgf.tenantKey": "elphiesyntax/msgf",
+    "msgf.role": "dev",
+    "msgf.devSession": true
+  }
+}

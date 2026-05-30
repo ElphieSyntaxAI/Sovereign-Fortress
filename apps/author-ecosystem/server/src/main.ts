@@ -41,6 +41,7 @@ const port = Number(process.env.PORT) || 3002;
 
 app.use(cors(buildBffCorsOptions()));
 app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
 app.use((req, res, next) => {
   void bffAuthMiddleware(req, res, next);

@@ -1,0 +1,14 @@
+{
+  "folders": [
+    {
+      "path": "../apps/author-ecosystem",
+      "name": "Author Ecosystem"
+    }
+  ],
+  "settings": {
+    "msgf.apiUrl": "https://elphiesgatedai.elphiesyntax.com",
+    "msgf.tenantKey": "elphiesyntax/author-ecosystem",
+    "msgf.role": "dev",
+    "msgf.devSession": true
+  }
+}

@@ -189,6 +189,12 @@ export function bugIndexToGovernancePillar(
 
   if (branch.includes("DEFEND") || instance.includes("SHADOW")) return "P1";
   if (
+    branch.includes("AUTHENTICITY") ||
+    (branch.includes("HAL") && !instance.includes("STATE_LEDGER"))
+  ) {
+    return "P1";
+  }
+  if (
     branch.includes("CROSSREF") ||
     branch.includes("CROSS-REF") ||
     instance.includes("P2_EDUCATION")
@@ -198,9 +204,19 @@ export function bugIndexToGovernancePillar(
   if (instance.includes("LOM_MODEL") || branch.includes("CONVERGE")) {
     return instance.includes("LOM") ? "P1" : "P6";
   }
-  if (branch.includes("ARBITRATE") || branch.includes("SHARD")) return "P4";
+  if (
+    branch.includes("ARBITRATE") ||
+    branch.includes("SHARD") ||
+    branch.includes("FLOW") ||
+    instance.includes("STATE_LEDGER")
+  ) {
+    return "P4";
+  }
+  if (branch.includes("SELF_HEAL") || instance.includes("USER_SENTINEL")) {
+    return "P4";
+  }
   if (branch.includes("SWEEP")) return "P5";
-  if (branch.includes("CONVERGE") || branch.includes("PERSIST")) return "P6";
+  if (branch.includes("PERSIST")) return "P6";
   return "P6";
 }
 

@@ -95,7 +95,16 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | Author Ecosystem | `elphiesyntax/author-ecosystem` | `apps/author-ecosystem` (or client/server subfolder you actively edit) |
 | Syntax Educates | `elphiesyntax/syntax-educates` | `apps/syntax-educates` |
 
-When you switch which app you are coding, **change `msgf.tenantKey`** in `.vscode/settings.json` to match that row (or open that app’s folder as the workspace root). Operator token savings for Author stress tests still filter `?tenant_id=author_ecosystem` on MSGF admin dashboards.
+When you switch which app you are coding:
+
+1. **Easiest:** open `workspaces/author-ecosystem.code-workspace` (or `msgf-gated-ai.code-workspace`) in Cursor — workspace root = the app folder.
+2. **Monorepo root open:** set both in root `.vscode/settings.json`:
+   - `msgf.tenantKey` = mapped `project_origin` (e.g. `elphiesyntax/author-ecosystem`)
+   - `msgf.productPath` = app folder (e.g. `apps/author-ecosystem`)
+   Keep `msgf.authToken` in `apps/<app>/.vscode/settings.json` or User settings; the extension merges nested settings automatically.
+3. **Command Palette:** **MSGF: Configure monorepo product** picks the app and writes both keys.
+
+Do **not** use folder paths (`apps/author-ecosystem`) as `msgf.tenantKey`. Operator token savings for Author still filter `?tenant_id=author_ecosystem` on MSGF admin dashboards (license tenant ≠ `project_origin`).
 
 | Preset id | App | `project_origin` | Typical local path |
 | :--- | :--- | :--- | :--- |

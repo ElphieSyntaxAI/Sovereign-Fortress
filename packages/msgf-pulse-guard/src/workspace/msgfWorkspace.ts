@@ -14,8 +14,36 @@ const DEV_KIT_BUNDLE_DIR = "dev-kit";
 const PLACEHOLDER_KEY_CONTENT =
   "# Paste your provider API key on the line below (file is gitignored).\n";
 
-export function getWorkspaceRoot(): string | null {
+/** Git / editor workspace folder (often the monorepo root). */
+export function getRepoRoot(): string | null {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+}
+
+/**
+ * Active product silo for MSGF (.msgf/, shadow scan, dev kit).
+ * When `msgf.productPath` is set, uses `{repoRoot}/{productPath}`.
+ */
+export function getEffectiveWorkspaceRoot(): string | null {
+  const repo = getRepoRoot();
+  if (!repo) return null;
+
+  const productPath = vscode.workspace
+    .getConfiguration("msgf")
+    .get<string>("productPath", "")
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/\/$/, "");
+
+  if (!productPath) return repo;
+
+  const candidate = path.join(repo, productPath);
+  if (fs.existsSync(candidate)) return candidate;
+  return repo;
+}
+
+/** @deprecated Alias for {@link getEffectiveWorkspaceRoot}. */
+export function getWorkspaceRoot(): string | null {
+  return getEffectiveWorkspaceRoot();
 }
 
 export function getMsgfDir(workspaceRoot: string): string {

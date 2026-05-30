@@ -295,6 +295,12 @@ export const PULSE_BUG_INDEX = {
     level_1_1_branch: "1.1_SELF_HEAL",
     level_1_1_1_instance: "1.1.1_USER_SENTINEL",
   }),
+  /** P4 State Ledger — heal-queue / telemetry remediation (ARBITRATE → P4 pillar). */
+  p4StateLedgerHeal: buildGenealogicalBugIndex({
+    level_1_category: "1.0_PULSE",
+    level_1_1_branch: "1.1_ARBITRATE",
+    level_1_1_1_instance: "1.1.1_STATE_LEDGER_HEAL",
+  }),
   /** Author document ingest — user or system rejected mapping (Hall learning). */
   authorIngestBadMapping: buildGenealogicalBugIndex({
     level_1_category: "1.0_AUTHOR",

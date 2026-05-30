@@ -4,6 +4,9 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # MSGF handoff JWTs in query strings can exceed default 8k header limits.
+    large_client_header_buffers 4 32k;
+
     gzip on;
     gzip_types text/css application/javascript application/json image/svg+xml;
 

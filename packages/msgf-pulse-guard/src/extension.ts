@@ -9,6 +9,7 @@ import { registerOptimizerCommands } from "./commands/optimizer";
 import { registerGenerateContextPackCommand } from "./generateContextPack";
 import { registerDevKitCommands } from "./devKitCommands";
 import { registerIdeSetupCommands } from "./ideSetupCommands";
+import { registerMonorepoSetupCommands } from "./monorepoSetupCommands";
 import { registerRunScriptsCommands } from "./commands/runScripts";
 import { registerTerminalDiagnosticCommand } from "./commands/terminalDiagnostic";
 import { registerSubmitVerifyResultCommand } from "./submitVerifyResultCommand";
@@ -41,6 +42,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerOpenDashboardCommand(context);
   registerMsgfExternalAuthCommands(context);
   registerIdeSetupCommands(context);
+  registerMonorepoSetupCommands(context);
   registerDevKitCommands(context);
   registerGenerateContextPackCommand(context);
   registerOptimizerCommands(context);

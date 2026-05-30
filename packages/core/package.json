@@ -49,6 +49,11 @@
       "import": "./src/lib/author-handoff-origins.ts",
       "default": "./src/lib/author-handoff-origins.ts"
     },
+    "./author-handoff-auto-post": {
+      "types": "./src/lib/author-handoff-auto-post.ts",
+      "import": "./src/lib/author-handoff-auto-post.ts",
+      "default": "./src/lib/author-handoff-auto-post.ts"
+    },
     "./platform-hub-content": {
       "types": "./src/lib/platform-hub-content.ts",
       "import": "./src/lib/platform-hub-content.ts",

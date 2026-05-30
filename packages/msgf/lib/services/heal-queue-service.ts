@@ -57,6 +57,11 @@ import {
   recordRemediationSuccess,
   REMEDIATION_STATE,
 } from "@/lib/services/remediation-retry-circuit";
+import {
+  bugIndexForGovernanceHeal,
+  resolveHealIncidentProjectOrigin,
+} from "@/lib/services/heal-incident-scope";
+import { insertMsgfUserSentinelIncident } from "@/lib/services/msgf-incidents";
 import { persistSelfHealReport } from "@/lib/services/self-heal-report";
 import type { SelfHealReportBody } from "@/lib/schemas/diagnostic-snapshot";
 import { buildTenantSentinelSelfHealBody } from "@/lib/services/tenant-sentinel-response";
@@ -280,6 +285,7 @@ function enrichTasksWithTokenEstimates(
     return RemediationTaskSchema.parse({
       ...task,
       token_estimate: {
+        file_path: est.file_path,
         cost_tier: est.cost_tier,
         strategy_scope: est.strategy_scope,
         consequence_score: est.consequence_score,
@@ -427,13 +433,48 @@ export type HealQueuePostResult =
       agent_context: ReturnType<typeof buildAgentContextPack>;
     };
 
+async function enqueueCircuitBreakerIncident(params: {
+  admin: SupabaseClient;
+  entityId: string;
+  tenantId: string;
+  filePath: string;
+  bugIndex: GenealogicalBugIndex;
+  governancePillar?: string | null;
+  projectOrigin?: string;
+  tenantKey?: string | null;
+}) {
+  const projectOrigin =
+    params.projectOrigin ??
+    resolveHealIncidentProjectOrigin({
+      filePath: params.filePath,
+      tenantKey: params.tenantKey,
+    });
+
+  await insertMsgfUserSentinelIncident({
+    adminSupabase: params.admin,
+    userId: params.entityId,
+    scope: {
+      tenantId: params.tenantId,
+      entityId: params.entityId,
+      projectOrigin,
+    },
+    bugIndex: bugIndexForGovernanceHeal({
+      governancePillar: params.governancePillar,
+      taskBugIndex: params.bugIndex,
+    }),
+    strategies: null,
+  });
+}
+
 export async function executeHealQueueRemediation(params: {
   admin: SupabaseClient;
   entityId: string;
   body: IngestRemediationAction;
   tasksForBulk?: RemediationTask[];
+  /** IDE `msgf.tenantKey` / `x-msgf-tenant-key` for project_origin on incidents. */
+  tenantKey?: string | null;
 }): Promise<HealQueuePostResult> {
-  const { admin, entityId, body } = params;
+  const { admin, entityId, body, tenantKey } = params;
   const tenantId = body.tenant_id;
 
   if (body.action_type === "DEV_CYCLE_START") {
@@ -539,6 +580,11 @@ export async function executeHealQueueRemediation(params: {
         task?.bug_index ??
         buildIngestLineageForFile({ path: filePath, content: "" }).bug_index;
 
+      const projectOrigin = resolveHealIncidentProjectOrigin({
+        filePath,
+        tenantKey,
+      });
+
       try {
         const report = await persistSelfHealReport({
           adminSupabase: admin,
@@ -550,6 +596,12 @@ export async function executeHealQueueRemediation(params: {
           }),
           entityId,
           tenantId,
+          context: {
+            projectOrigin,
+            tenantKey,
+            governancePillar: task?.governance_pillar,
+            bugIndex,
+          },
         });
         const ui = buildTenantSentinelSelfHealBody(report);
 
@@ -600,6 +652,18 @@ export async function executeHealQueueRemediation(params: {
           pillarVectorId: task?.pillar_vector_id,
           source: "heal_queue_individual",
         });
+        if (circuit.tripped) {
+          await enqueueCircuitBreakerIncident({
+            admin,
+            entityId,
+            tenantId,
+            filePath,
+            bugIndex,
+            governancePillar: task?.governance_pillar,
+            projectOrigin,
+            tenantKey,
+          });
+        }
         results.push({
           file_path: filePath,
           ok: false,

@@ -17,7 +17,8 @@ Server-side Supabase and Redis are configured on the hosted MSGF deployment — 
    - `msgf.tenantKey`
    - `msgf.authToken` (long JWT — required for Pulse)
 4. **Reload the editor window** (`Developer: Reload Window`).
-5. Open **this repo folder** as the workspace root (File → Open Folder).
+5. **Monorepo (Elphie Syntax LLC):** either open `workspaces/author-ecosystem.code-workspace`, or open the git root and set `msgf.productPath` + `msgf.tenantKey` (run **MSGF: Configure monorepo product**). Keep your token in `apps/<app>/.vscode/settings.json` when using the git root.
+6. Reload the editor window after any settings change.
 
 ---
 
@@ -65,7 +66,8 @@ Requires `msgf.authToken` in settings. If you see **Missing Authorization bearer
 | Setting | Purpose |
 | :--- | :--- |
 | `msgf.apiUrl` | MSGF host (default production gated-AI URL) |
-| `msgf.tenantKey` | Must match your mapped `project_origin` on the web app |
+| `msgf.tenantKey` | Mapped `project_origin` (`org/repo`), e.g. `elphiesyntax/author-ecosystem` — not a folder path |
+| `msgf.productPath` | Monorepo only: `apps/author-ecosystem`, `packages/msgf`, etc. when workspace root is the git repo |
 | `msgf.authToken` | Supabase access JWT from **Refresh token** (Bearer on every Pulse) |
 | `msgf.role` | Optional: `dev` (default), `company_admin`, `global_admin` |
 | `msgf.licenseKey` | Only for integrators with `msgf_live_…` keys (most buyers leave empty) |
