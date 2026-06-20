@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { OutlineGoogleDocPicker } from "../components/OutlineGoogleDocPicker";
+import { PlotEnginePanel } from "../components/PlotEnginePanel";
 import {
   OutlinePlanningSessionChrome,
   PlanningCommandCenter,

@@ -88,11 +88,31 @@ const CONVERGE_SYSTEM = [
   "story_fingerprint":{"working_title":null,"protagonist_names":["string"],"setting_anchors":["string"],"tone_or_genre":null},
   "conflicts":[{"code":"string","severity":"blocking|warning","message":"string"}],
   "clarifying_questions":[{"id":"string","code":"string","question":"string","hint":"string","required":true,"options":["string"]}],
-  "proposed_wiki":[{"title":"string","excerpt":"string","chunk_type":"character|location|plot|theme|other","outline_entity_kind":"character|setting|environment|plot_point|genre|theme|spoiler|note|chapter","tags":["string"],"plot_point_order":1,"planning_layer":"string"}],
+  "proposed_wiki":[{"title":"string","excerpt":"string","chunk_type":"character|location|plot|theme|other","outline_entity_kind":"character|setting|environment|technology|plot_point|genre|theme|spoiler|note|chapter","tags":["string"],"plot_point_order":1,"planning_layer":"string"}],
   "outline_beats":[{"synopsis":"string","order":0,"plot_point_order":1,"title":"string","chapter_number":null}],
   "questions":[{"id":"q1","question":"string","hint":"phrase in text"}]
 }`,
 ].join("\n");
+
+const SLOT_CONVERGE_HINTS: Record<DocumentIngestSlot, string> = {
+  character_sheet:
+    "Prefer character_cards: one proposed_wiki row per named character with outline_entity_kind character.",
+  world_bible:
+    "Prefer world_lore: extract setting, environment, and technology/system rows (outline_entity_kind setting|environment|technology).",
+  current_draft:
+    "Prefer scene_grid and chapter_breakdown beats; character/setting rows only when clearly stated in prose.",
+};
+
+function excerptTokenOverlap(excerpt: string, source: string): number {
+  const norm = (s: string) => s.replace(/\s+/g, " ").toLowerCase();
+  const tokens = norm(excerpt)
+    .split(" ")
+    .filter((w) => w.length > 3);
+  if (tokens.length === 0) return 0;
+  const src = norm(source);
+  const hits = tokens.filter((w) => src.includes(w)).length;
+  return hits / tokens.length;
+}
 
 export function groundProposedWikiToSource(
   proposed: ProposedWikiEntry[],
@@ -103,21 +123,27 @@ export function groundProposedWikiToSource(
   let dropped = 0;
   for (const p of proposed) {
     const excerpt = p.excerpt.trim();
+    const title = String(p.title ?? "").trim();
     if (excerpt.length < 40) {
       dropped++;
       continue;
     }
     if (answerFoundInSource(excerpt.slice(0, 200), src) || answerFoundInSource(excerpt, src)) {
       kept.push(p);
-    } else {
-      const norm = excerpt.replace(/\s+/g, " ").toLowerCase();
-      const srcNorm = src.replace(/\s+/g, " ").toLowerCase();
-      if (srcNorm.includes(norm.slice(0, Math.min(120, norm.length)))) {
-        kept.push(p);
-      } else {
-        dropped++;
-      }
+      continue;
     }
+    const norm = excerpt.replace(/\s+/g, " ").toLowerCase();
+    const srcNorm = src.replace(/\s+/g, " ").toLowerCase();
+    if (srcNorm.includes(norm.slice(0, Math.min(120, norm.length)))) {
+      kept.push(p);
+      continue;
+    }
+    const titleInSource = title.length > 1 && srcNorm.includes(title.toLowerCase());
+    if (titleInSource && excerptTokenOverlap(excerpt, src) >= 0.6) {
+      kept.push(p);
+      continue;
+    }
+    dropped++;
   }
   return { kept, dropped };
 }
@@ -202,6 +228,7 @@ export async function runMsgfDocumentConverge(params: {
         system: CONVERGE_SYSTEM,
         user: [
           `Slot hint (soft): ${params.slot}`,
+          SLOT_CONVERGE_HINTS[params.slot] ?? "",
           `Manuscript id: ${params.manuscriptId}`,
           formatSignalsForConvergePrompt(signals),
           formatKeywordHintsForPrompt(keyword_hits, keywords),

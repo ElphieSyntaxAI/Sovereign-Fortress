@@ -3,6 +3,16 @@ import { Router, type Request, type Response } from "express";
 
 import { assertUuid } from "../lib/halMetrics.js";
 import { IngestionService, narrativeEmbedderProvider } from "../lib/narrative/IngestionService.js";
+import {
+  addConvergenceStats,
+  convergeUpsertPlotBeats,
+  convergeUpsertWikiEntries,
+  type ConvergenceStats,
+} from "../lib/ingestConverge.js";
+import {
+  compilePlanningCanon,
+  type PlotEngineSyncPayload,
+} from "../lib/planningCanonCompile.js";
 import { applyPlanningSyncRevisionGate } from "../middleware/RevisionGateMiddleware.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
@@ -66,6 +76,13 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
   const wikiNotes = String(body.wikiNotes ?? "");
   const interviewTurns = (body.interviewTurns as InterviewTurnIn[]) ?? [];
   const plotBeats = (body.plotBeats as PlotBeatIn[]) ?? [];
+  const plotEngine = (body.plotEngine as PlotEngineSyncPayload | null) ?? null;
+
+  const canon = compilePlanningCanon({ plotEngine, plotBeats });
+  const effectiveBeats =
+    canon.outlineBeats.length > 0
+      ? canon.outlineBeats.map((b) => ({ synopsis: b.synopsis, order: b.order }))
+      : plotBeats;
 
   const supabase = getSupabaseAdmin();
   const { data: ms, error: msErr } = await supabase
@@ -86,9 +103,9 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
 
   const tenantId = assertUuid(String((ms as { tenant_id: string }).tenant_id), "tenant_id");
 
-  const outlineText = buildOutlineFromBeats(plotBeats);
+  const outlineText = buildOutlineFromBeats(effectiveBeats);
   let outlineUpdated = false;
-  if (plotBeats.length > 0 && outlineText.length > 0) {
+  if (effectiveBeats.length > 0 && outlineText.length > 0) {
     const { error: upErr } = await supabase
       .from("p4_manuscripts")
       .update({ outline: outlineText, updated_at: new Date().toISOString() })
@@ -104,8 +121,33 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
   const warnings: string[] = [];
   let loreIngest: { chunksTotal: number; chunksInserted: number } | null = null;
   let plotIngest: { chunksTotal: number; chunksInserted: number } | null = null;
+  let convergence: { lore: ConvergenceStats; plot: ConvergenceStats } = {
+    lore: { inserted: 0, updated: 0, skipped: 0 },
+    plot: { inserted: 0, updated: 0, skipped: 0 },
+  };
 
   const ingestion = new IngestionService(supabase);
+
+  if (canon.wikiEntries.length > 0) {
+    try {
+      const wikiResult = await convergeUpsertWikiEntries(supabase, {
+        tenantId,
+        manuscriptId,
+        entries: canon.wikiEntries,
+        extraMeta: {
+          planning_session_sync: true,
+          ledger: "wiki_snapshot",
+          wiki_visibility: "draft",
+          plot_engine_sync: true,
+        },
+        sourcePrefix: "planning-wiki",
+      });
+      convergence.lore = addConvergenceStats(convergence.lore, wikiResult.stats);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      warnings.push(`Plot engine wiki convergence: ${msg}`);
+    }
+  }
 
   if (insightsMd.length >= 80) {
     try {
@@ -149,11 +191,44 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
       const msg = e instanceof Error ? e.message : String(e);
       warnings.push(`Plot re-index (outline beats): ${msg}`);
     }
-  } else if (plotBeats.length > 0) {
+  } else if (effectiveBeats.length > 0) {
     warnings.push("Skipped plot vector re-index — outline text too short after beat merge.");
   }
 
-  const anyWork = outlineUpdated || loreIngest !== null || plotIngest !== null;
+  if (effectiveBeats.length > 0) {
+    try {
+      const plotStats = await convergeUpsertPlotBeats(supabase, {
+        tenantId,
+        manuscriptId,
+        beats: effectiveBeats.map((b, i) => ({
+          synopsis: String(b.synopsis ?? "").trim(),
+          order: typeof b.order === "number" ? b.order : i,
+          metadata: {
+            outline: true,
+            is_outline: true,
+            scene_card: true,
+            outline_entity_kind: "plot_point",
+            planning_session_sync: true,
+            plot_engine_sync: Boolean(plotEngine),
+            ledger: "wiki_snapshot",
+            wiki_visibility: "draft",
+          },
+        })),
+        sourcePrefix: "planning-plot-beat",
+      });
+      convergence.plot = addConvergenceStats(convergence.plot, plotStats);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      warnings.push(`Plot beat convergence: ${msg}`);
+    }
+  }
+
+  const anyWork =
+    outlineUpdated ||
+    loreIngest !== null ||
+    plotIngest !== null ||
+    convergence.lore.inserted + convergence.lore.updated > 0 ||
+    convergence.plot.inserted + convergence.plot.updated > 0;
 
   let revision_gate: Awaited<ReturnType<typeof applyPlanningSyncRevisionGate>> | null = null;
   try {
@@ -175,6 +250,8 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
     outline_updated: outlineUpdated,
     lore_ingest: loreIngest,
     plot_ingest: plotIngest,
+    convergence,
+    canon_compile: canon.stats,
     embedder: narrativeEmbedderProvider(),
     warnings,
     revision_gate,

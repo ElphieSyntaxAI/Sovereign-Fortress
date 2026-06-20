@@ -3,6 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { Link } from "react-router-dom";
 
 import { GoogleDocDrivePicker } from "../GoogleDocDrivePicker";
+import { applyFileImportToPlotEngine } from "../PlotEnginePanel";
 import { dispatchDocumentIngestCommitted } from "../../lib/documentIngestEvents";
 import { formatBffFetchError } from "../../lib/bffFetch";
 import { usePlanningSessionOptional } from "../../planning/PlanningSessionContext";
@@ -399,10 +400,35 @@ export function DocumentIngestFlow(props: {
             order: typeof b.order === "number" ? b.order : i,
           }))
         );
+        applyFileImportToPlotEngine(
+          props.manuscriptId,
+          proposed.map((p) => ({
+            title: p.title,
+            excerpt: p.excerpt,
+            chunk_type: p.chunk_type,
+            wiki_metadata: p.wiki_metadata,
+          })),
+          beats.map((b, i) => ({
+            synopsis: b.synopsis,
+            title: b.title,
+            order: typeof b.order === "number" ? b.order : i,
+          }))
+        );
         dispatchDocumentIngestCommitted({
           manuscriptId: props.manuscriptId,
           wikiCount: proposed.length,
           beatCount: beats.length,
+          proposedWiki: proposed.map((p) => ({
+            title: p.title,
+            excerpt: p.excerpt,
+            chunk_type: p.chunk_type,
+            wiki_metadata: p.wiki_metadata,
+          })),
+          outlineBeats: beats.map((b, i) => ({
+            synopsis: b.synopsis,
+            title: b.title,
+            order: typeof b.order === "number" ? b.order : i,
+          })),
         });
         setCommitMessage(
           json.message ??

@@ -14,7 +14,12 @@ import {
   type IngestPlotBeat,
 } from "./documentIngestOutline.js";
 import { IngestionService } from "./narrative/IngestionService.js";
-import { embedWikiExcerptForIngest, newWikiSourceDocument } from "./wikiEntryHelpers.js";
+import {
+  addConvergenceStats,
+  convergeUpsertPlotBeats,
+  convergeUpsertWikiEntries,
+  type ConvergenceStats,
+} from "./ingestConverge.js";
 import { buildAuthorDocumentSweepFiles } from "./documentIngestMsgfSweep.js";
 import { pipeToMsgfIngestService } from "./fetchManuscript.js";
 
@@ -38,6 +43,7 @@ export type PlanningIngestSnapshot = {
     source_chars_before?: number;
     source_chars_after?: number;
   };
+  convergence?: { lore: ConvergenceStats; plot: ConvergenceStats };
 };
 
 export async function commitDocumentIngestToBackend(params: {
@@ -128,94 +134,67 @@ export async function commitDocumentIngestToBackend(params: {
     } catch (e) {
       console.warn("[commitDocumentIngest] plot vector", e);
     }
+  }
 
-    for (let i = 0; i < beats.length; i++) {
-      const b = beats[i]!;
-      const excerpt = b.synopsis.trim();
-      if (excerpt.length < 20) continue;
-      try {
-        const { embedding, embedding_degraded } = await embedWikiExcerptForIngest(excerpt);
-        await supabase.from("p4_narrative_library_chunks").insert({
-          tenant_id: tenantId,
-          source_document: `file-import-scene/${manuscriptId}/${i}`,
-          chunk_type: "plot",
-          chunk_index: i,
-          content: excerpt,
-          word_count: excerpt.split(/\s+/).filter(Boolean).length,
-          embedding,
-          metadata: {
-            outline: true,
-            is_outline: true,
-            manuscript_id: manuscriptId,
-            scene_card: true,
-            plot_point_order: b.plot_point_order ?? b.chapter_number ?? i + 1,
-            chapter_number: b.chapter_number ?? null,
-            beat_title: b.title,
-            pov_mode: b.pov_mode,
-            pov_names: b.pov_names,
-            ingest_slot: slot,
-            file_import: true,
-            ledger: "wiki_snapshot",
-            wiki_visibility: "draft",
-            outline_entity_kind: "plot_point",
-            ...(embedding_degraded ? { embedding_degraded: true } : {}),
-          },
-        });
-      } catch (plotRowErr) {
-        console.warn("[commitDocumentIngest] per-beat plot row", plotRowErr);
-      }
+  let convergence: { lore: ConvergenceStats; plot: ConvergenceStats } = {
+    lore: { inserted: 0, updated: 0, skipped: 0 },
+    plot: { inserted: 0, updated: 0, skipped: 0 },
+  };
+
+  if (beats.length > 0) {
+    try {
+      const plotStats = await convergeUpsertPlotBeats(supabase, {
+        tenantId,
+        manuscriptId,
+        beats: beats
+          .map((b, i) => ({ beat: b, order: i }))
+          .filter(({ beat }) => beat.synopsis.trim().length >= 20)
+          .map(({ beat, order }) => ({
+            synopsis: beat.synopsis.trim(),
+            order,
+            metadata: {
+              outline: true,
+              is_outline: true,
+              manuscript_id: manuscriptId,
+              scene_card: true,
+              plot_point_order: beat.plot_point_order ?? beat.chapter_number ?? order + 1,
+              chapter_number: beat.chapter_number ?? null,
+              beat_title: beat.title,
+              pov_mode: beat.pov_mode,
+              pov_names: beat.pov_names,
+              ingest_slot: slot,
+              file_import: true,
+              ledger: "wiki_snapshot",
+              wiki_visibility: "draft",
+              outline_entity_kind: "plot_point",
+            },
+          })),
+        sourcePrefix: "file-import-plot-beat",
+      });
+      convergence.plot = addConvergenceStats(convergence.plot, plotStats);
+    } catch (plotRowErr) {
+      console.warn("[commitDocumentIngest] per-beat plot converge", plotRowErr);
     }
   }
 
   const wiki_chunk_ids: string[] = [];
-  for (const entry of normalized) {
-    const excerpt = entry.excerpt.trim();
-    if (excerpt.length < 20) continue;
-    let embedding: number[];
-    let embedding_degraded = false;
-    try {
-      const emb = await embedWikiExcerptForIngest(excerpt);
-      embedding = emb.embedding;
-      embedding_degraded = emb.embedding_degraded;
-    } catch (e) {
-      console.warn("[commitDocumentIngest] wiki embed", e);
-      continue;
-    }
-    const source_document = newWikiSourceDocument(manuscriptId);
-    const meta = {
-      ...entry.wiki_metadata,
-      proposed_chunk_title: entry.title,
-      lore_extraction: true,
-      wiki_author_entry: true,
-      ingest_slot: slot,
-      file_import: true,
-      ...(embedding_degraded ? { embedding_degraded: true } : {}),
-    };
-    const chunkType =
-      entry.chunk_type === "plot" || entry.chunk_type === "event"
-        ? "plot"
-        : entry.chunk_type === "character"
-          ? "lore"
-          : "lore";
-    const { data, error } = await supabase
-      .from("p4_narrative_library_chunks")
-      .insert({
-        tenant_id: tenantId,
-        source_document,
-        chunk_type: chunkType,
-        chunk_index: 0,
-        content: excerpt,
-        word_count: excerpt.split(/\s+/).filter(Boolean).length,
-        embedding,
-        metadata: meta,
-      })
-      .select("id")
-      .single();
-    if (error) {
-      console.warn("[commitDocumentIngest] wiki row insert", error.message, entry.title);
-      continue;
-    }
-    if (data?.id) wiki_chunk_ids.push(String(data.id));
+  try {
+    const wikiResult = await convergeUpsertWikiEntries(supabase, {
+      tenantId,
+      manuscriptId,
+      entries: normalized,
+      extraMeta: {
+        ingest_slot: slot,
+        file_import: true,
+        ledger: "wiki_snapshot",
+        wiki_visibility: "draft",
+      },
+      sourcePrefix: "file-import-wiki",
+    });
+    convergence.lore = addConvergenceStats(convergence.lore, wikiResult.stats);
+    wiki_chunk_ids.push(...wikiResult.chunkIds);
+  } catch (wikiErr) {
+    console.warn("[commitDocumentIngest] wiki converge", wikiErr);
   }
 
   let msgf_ingest: unknown = null;
@@ -249,6 +228,7 @@ export async function commitDocumentIngestToBackend(params: {
     scene_card_count: beats.length,
     wiki_entry_count: wiki_chunk_ids.length,
     compile_stats: compiled.stats,
+    convergence,
   };
 
   return { lore_ingest, plot_ingest, wiki_chunk_ids, msgf_ingest, planning };

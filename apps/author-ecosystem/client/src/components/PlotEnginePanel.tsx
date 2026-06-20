@@ -139,11 +139,21 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
     const onIngest = (ev: Event) => {
       const detail = (ev as CustomEvent<DocumentIngestCommittedDetail>).detail;
       if (detail?.manuscriptId !== manuscriptId) return;
-      reloadPlotBeatsFromStorage();
+      if (detail.proposedWiki?.length || detail.outlineBeats?.length) {
+        const next = applyFileImportToPlotEngine(
+          manuscriptId,
+          detail.proposedWiki ?? [],
+          detail.outlineBeats ?? []
+        );
+        setState(next);
+        setPlotBeats(flattenPlotEngineToBeats(next));
+      } else {
+        reloadPlotBeatsFromStorage();
+      }
     };
     window.addEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
     return () => window.removeEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
-  }, [manuscriptId, reloadPlotBeatsFromStorage]);
+  }, [manuscriptId, reloadPlotBeatsFromStorage, setPlotBeats]);
 
   const selectedScene =
     state.selection.plotPointId && state.selection.sceneId
