@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+-- Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
 -- =============================================================================
 -- =============================================================================
 -- CROSS-REF hardening — Postgres ENUMs + DOMAINs + pillar_vectors typed columns

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+ * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
 /**
  * Resolves `pillar_vectors` vs `msgf_sandbox` for tenant-scoped Hall / Vault I/O.

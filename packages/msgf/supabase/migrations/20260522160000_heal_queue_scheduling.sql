@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+-- Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
 -- =============================================================================
 -- =============================================================================
 -- Heal queue — scheduling_tier column for cron batch (MSGF_OPS_CRON_SECRET / v32-heartbeat)

@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+-- Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
 -- =============================================================================
 -- Cooldown gate track for manuscripts (SSOT: docs/AUTHOR_ECOSYSTEM_ROADMAP.md, alias docs/AUTHOR_ROADMAP.md).
 -- NOTE: `p4_manuscripts.revision_status` already exists (p4_revision_status: DRAFTING, LOCKED, COOLDOWN_LOCKED, …).

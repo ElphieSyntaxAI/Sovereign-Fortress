@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+ * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
 /** Strip stray wrapping quotes from pasted tenant / project_origin values. */
 export function sanitizeTenantScope(value: string): string {

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
+ * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
 /** Extract `project_origin` from a Pulse request body when present. */
 export function extractProjectOriginFromPulseBody(rawBody: unknown): string | undefined {
