@@ -209,6 +209,152 @@ export function slotDefaultMetadata(
   return { ...base, source_type: "story_outline", outline_entity_kind: "plot_point", is_outline: true };
 }
 
+const DRAFT_NAME_STOP = new Set([
+  "The",
+  "And",
+  "But",
+  "When",
+  "Then",
+  "She",
+  "He",
+  "They",
+  "It",
+  "His",
+  "Her",
+  "Chapter",
+  "Scene",
+  "Part",
+  "Book",
+  "Act",
+  "Notes",
+  "Outline",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]);
+
+function excerptAround(text: string, needle: string, radius = 380): string {
+  const idx = text.indexOf(needle);
+  if (idx < 0) return "";
+  return text.slice(Math.max(0, idx - 40), idx + radius).trim();
+}
+
+/** Extract cast, settings, and world traits from full-draft prose (no tables / LLM). */
+export function heuristicDraftWikiFromProse(
+  text: string,
+  manuscriptId: string
+): ProposedWikiEntry[] {
+  const scan = text.slice(0, 120_000);
+  const metaBase = slotDefaultMetadata("current_draft", manuscriptId);
+  const entries: ProposedWikiEntry[] = [];
+  const seen = new Set<string>();
+
+  const push = (entry: ProposedWikiEntry) => {
+    const key = entry.title.toLowerCase();
+    if (seen.has(key)) return;
+    if (entry.excerpt.trim().length < 40) return;
+    seen.add(key);
+    entries.push(entry);
+  };
+
+  const nameCounts = new Map<string, number>();
+  for (const m of scan.matchAll(/\b[A-Z][a-z]{2,}(?:['’][a-z]+)?\b/g)) {
+    const word = m[0];
+    if (DRAFT_NAME_STOP.has(word)) continue;
+    nameCounts.set(word, (nameCounts.get(word) ?? 0) + 1);
+  }
+
+  const cast = [...nameCounts.entries()]
+    .filter(([, n]) => n >= 3)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  for (const [name] of cast) {
+    const excerpt = excerptAround(scan, name);
+    if (excerpt.length < 40) continue;
+    push({
+      title: name,
+      excerpt,
+      chunk_type: "character",
+      tags: ["character", "draft_import", "auto_extract"],
+      wiki_metadata: {
+        ...metaBase,
+        outline_entity_kind: "character",
+        wiki_author_entry: true,
+        auto_extracted: true,
+      },
+    });
+  }
+
+  const settingRe =
+    /\b(?:the\s+)?([A-Z][\w'’-]*(?:\s+[A-Z][\w'’-]*){0,4})\s+(spire|compound|city|realm|forest|station|tower|palace|temple|harbor|village|kingdom|district|quarter)\b/gi;
+  for (const m of scan.matchAll(settingRe)) {
+    const label = `${m[1]} ${m[2]}`.trim();
+    const excerpt = excerptAround(scan, label, 420);
+    push({
+      title: label.slice(0, 80),
+      excerpt: excerpt || scan.slice(0, 420),
+      chunk_type: "location",
+      tags: ["setting", "draft_import", "auto_extract"],
+      wiki_metadata: {
+        ...metaBase,
+        outline_entity_kind: "setting",
+        wiki_author_entry: true,
+        auto_extracted: true,
+      },
+    });
+    if (entries.filter((e) => e.wiki_metadata?.outline_entity_kind === "setting").length >= 6) break;
+  }
+
+  const envParas = scan
+    .split(/\n\s*\n+/)
+    .map((p) => p.trim())
+    .filter(
+      (p) =>
+        p.length >= 80 &&
+        p.length <= 1600 &&
+        /\b(climate|storm|war|plague|world|planet|atmosphere|exodus|trials|ceremon|realm|galaxy|orbit)\b/i.test(
+          p
+        )
+    );
+
+  for (const para of envParas.slice(0, 5)) {
+    const title =
+      para.match(/^[^.!?]{8,60}[.!?]/)?.[0]?.trim().slice(0, 72) ||
+      para.split(/\s+/).slice(0, 6).join(" ");
+    push({
+      title: title.slice(0, 80),
+      excerpt: para.slice(0, 1200),
+      chunk_type: "location",
+      tags: ["environment", "draft_import", "auto_extract"],
+      wiki_metadata: {
+        ...metaBase,
+        outline_entity_kind: "environment",
+        wiki_author_entry: true,
+        auto_extracted: true,
+      },
+    });
+  }
+
+  return entries;
+}
+
 export function heuristicProposedWiki(
   text: string,
   slot: DocumentIngestSlot,
@@ -235,8 +381,15 @@ export function heuristicProposedWiki(
         excerpt,
         chunk_type: "character",
         tags: ["character", "onboarding"],
-        wiki_metadata: { ...meta, outline_entity_kind: "character" },
+        wiki_metadata: { ...meta, outline_entity_kind: "character", wiki_author_entry: true },
       });
+    }
+    if (slot === "current_draft") {
+      for (const row of heuristicDraftWikiFromProse(text, manuscriptId)) {
+        if (!entries.some((e) => e.title.toLowerCase() === row.title.toLowerCase())) {
+          entries.push(row);
+        }
+      }
     }
   }
   if (slot === "world_bible") {
@@ -278,13 +431,17 @@ export function heuristicProposedWiki(
     }
   }
   if (slot === "current_draft" && entries.length === 0 && sample.length > 80) {
-    entries.push({
-      title: "Draft continuity note",
-      excerpt: sample.slice(0, 900).trim(),
-      chunk_type: "plot",
-      tags: ["draft", "onboarding"],
-      wiki_metadata: meta,
-    });
+    const draftRows = heuristicDraftWikiFromProse(text, manuscriptId);
+    if (draftRows.length) entries.push(...draftRows);
+    else {
+      entries.push({
+        title: "Draft continuity note",
+        excerpt: sample.slice(0, 900).trim(),
+        chunk_type: "plot",
+        tags: ["draft", "onboarding"],
+        wiki_metadata: { ...meta, outline_entity_kind: "plot_point", wiki_author_entry: true },
+      });
+    }
   }
-  return entries.slice(0, 12);
+  return entries.slice(0, 24);
 }

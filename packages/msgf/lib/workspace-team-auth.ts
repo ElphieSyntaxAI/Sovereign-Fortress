@@ -48,7 +48,7 @@ export async function requireWorkspaceTeamSession(): Promise<WorkspaceTeamSessio
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("p4_profiles")
-    .select("company_id, team_platform_role, account_status")
+    .select("company_id, team_platform_role, account_status, msgf_access_role")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -60,6 +60,7 @@ export async function requireWorkspaceTeamSession(): Promise<WorkspaceTeamSessio
     isIndependentSandbox: isIndependent,
     teamPlatformRole: profile?.team_platform_role as string | undefined,
     accountStatus: profile?.account_status as string | undefined,
+    msgfAccessRole: profile?.msgf_access_role as string | undefined,
   });
 
   return {

@@ -8,7 +8,8 @@ import {
   type ReactNode,
 } from "react";
 
-import { bffCredentials, bffFetch, bffUrl } from "../lib/bffFetch";
+import { bffAuthHeaders, bffCredentials, bffFetch, bffUrl } from "../lib/bffFetch";
+import { getPreferredBffBearer } from "../lib/authAccessToken";
 
 /** Author-platform personas (BFF-switchable). Fan is UI-only until backend adds the slug. */
 export const AUTHOR_ROLE_OPTIONS = [
@@ -48,7 +49,11 @@ export function AuthorRoleProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(bffUrl("/api/auth/me"), { ...bffCredentials });
+      const token = await getPreferredBffBearer();
+      const res = await fetch(bffUrl("/api/auth/me"), {
+        ...bffCredentials,
+        headers: bffAuthHeaders(token),
+      });
       const json = (await res.json().catch(() => ({}))) as {
         authenticated?: boolean;
         user?: {

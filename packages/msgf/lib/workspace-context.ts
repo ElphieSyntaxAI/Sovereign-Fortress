@@ -100,6 +100,7 @@ export async function loadWorkspaceContext(
     isIndependentSandbox: isIndependent,
     teamPlatformRole: profileRow?.team_platform_role as string | undefined,
     accountStatus: profileRow?.account_status as string | undefined,
+    msgfAccessRole: operatorProfile.msgf_access_role,
   });
 
   const projects = await filterProjectsForUser(

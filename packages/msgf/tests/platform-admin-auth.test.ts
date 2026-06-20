@@ -18,7 +18,11 @@ import {
   buildMsgfAuthCallbackUrl,
   resolveMsgfAppOrigin,
 } from "@elphie-syntax/core/platform-admin-auth";
-import { buildMsgfAuthorHandoffUrl, sanitizeAuthorReturnToUrl } from "@elphie-syntax/core/operator-handoff-url";
+import {
+  buildMsgfAuthorHandoffUrl,
+  resolveMsgfAuthorHandoffEntryUrl,
+  sanitizeAuthorReturnToUrl,
+} from "@elphie-syntax/core/operator-handoff-url";
 
 describe("platform-admin-auth", () => {
   it("resolveMsgfAppOrigin prefers env", () => {
@@ -49,6 +53,16 @@ describe("platform-admin-auth", () => {
     const u = new URL(href);
     assert.equal(u.pathname, "/api/msgf/admin/author-handoff");
     assert.equal(u.searchParams.get("return_to"), "http://127.0.0.1:5173/dashboard");
+  });
+
+  it("resolveMsgfAuthorHandoffEntryUrl uses MSGF_APP_URL", () => {
+    const href = resolveMsgfAuthorHandoffEntryUrl("https://authorecosystem.elphiesyntax.com/home", {
+      MSGF_APP_URL: "https://elphiesgatedai.elphiesyntax.com",
+    });
+    const u = new URL(href);
+    assert.equal(u.host, "elphiesgatedai.elphiesyntax.com");
+    assert.equal(u.pathname, "/api/msgf/admin/author-handoff");
+    assert.equal(u.searchParams.get("return_to"), "https://authorecosystem.elphiesyntax.com/home");
   });
 
   it("sanitizeAuthorReturnToUrl blocks arbitrary hosts", () => {

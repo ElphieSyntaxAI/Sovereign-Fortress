@@ -4,12 +4,7 @@ import { Router, type Request, type Response } from "express";
 
 import {
   buildCommitPreviewText,
-  detectStructureMergeRisk,
   recordIngestHallRejection,
-  runDocumentIngestShadowPreflight,
-  runDualStructureReview,
-  sessionHadBlockingClarification,
-  sessionHadBlockingConflicts,
 } from "../lib/documentIngestMsgfGuard.js";
 import {
   answerFoundInSource,
@@ -33,6 +28,10 @@ import {
   type IngestConflict,
 } from "../lib/documentIngestStructure.js";
 import { compileDocumentIngest } from "../lib/documentIngestCompile.js";
+import {
+  executeDocumentIngestSessionCommit,
+  tryAutoCommitIngestSession,
+} from "../lib/documentIngestSessionCommit.js";
 import { normalizeProposedWikiEntry, type IngestPlotBeat } from "../lib/documentIngestOutline.js";
 import type { IngestOutlineBeat } from "../lib/documentIngestGate.js";
 import { assertUuid } from "../lib/halMetrics.js";
@@ -80,6 +79,35 @@ function compileScanPayload(params: {
     outline_beats: compiled.outline_beats as IngestOutlineBeat[],
     compile_stats: compiled.stats,
     content_digest: createHash("sha256").update(sourceText, "utf8").digest("hex").slice(0, 24),
+  };
+}
+
+async function mergeAutoCommitIntoResponse(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  sessionId: string,
+  tenantId: string,
+  body: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  if (body.status !== "review") return body;
+  const auto = await tryAutoCommitIngestSession(supabase, sessionId, tenantId);
+  if (!auto) return body;
+  if (auto.ok && auto.committed) {
+    return {
+      ...body,
+      auto_committed: true,
+      committed: true,
+      status: "committed",
+      wiki_entry_count: auto.wiki_entry_count,
+      planning: auto.planning,
+      message: auto.message,
+    };
+  }
+  return {
+    ...body,
+    auto_commit_failed: true,
+    auto_commit_error: auto.error,
+    auto_commit_hint: auto.hint,
+    review_required: true,
   };
 }
 
@@ -346,7 +374,7 @@ onboardingController.post(
 
       if (error) return res.status(500).json({ error: error.message });
 
-      return res.status(200).json({
+      const scanBody = {
         success: true,
         session_id: session.id,
         status: session.status,
@@ -363,7 +391,11 @@ onboardingController.post(
         clarifying_questions: enriched.clarifying_questions,
         used_llm: enriched.usedLlm,
         msgf_meta: enriched.msgf_meta,
-      });
+      };
+
+      return res.status(200).json(
+        await mergeAutoCommitIntoResponse(supabase, session.id, user.userId, scanBody)
+      );
     } catch (e) {
       console.error("[onboarding/document/scan]", e);
       return res.status(500).json({ error: e instanceof Error ? e.message : "Scan failed" });
@@ -472,7 +504,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
 
     if (error) return res.status(500).json({ error: error.message });
 
-    return res.status(200).json({
+    const googleScanBody = {
       success: true,
       session_id: session.id,
       status: session.status,
@@ -500,10 +532,16 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
         })),
       },
       outline_beat_count: compiledScan.outline_beats.length,
-    });
+    };
+
+    return res.status(200).json(
+      await mergeAutoCommitIntoResponse(supabase, session.id, user.userId, googleScanBody)
+    );
   } catch (e) {
     console.error("[onboarding/document/scan-google]", e);
-    return res.status(500).json({ error: e instanceof Error ? e.message : "Google Doc scan failed" });
+    const msg = e instanceof Error ? e.message : "Google Doc scan failed";
+    const status = /Google authorization expired|not connected|invalid_grant/i.test(msg) ? 400 : 500;
+    return res.status(status).json({ error: msg });
   }
 });
 
@@ -608,18 +646,20 @@ onboardingController.post("/api/onboarding/document/verify-clarification", async
     })
     .eq("id", sessionId);
 
-  return res.status(200).json({
-    success: true,
-    status: nextStatus,
-    proposed_wiki: nextStatus === "review" ? session.proposed_wiki : [],
-    outline_beats: session.outline_beats ?? [],
-    ingest_conflicts: session.ingest_conflicts ?? [],
-    authorship_questions: nextStatus === "authorship" ? authorshipQuestions : [],
-    message:
-      nextStatus === "authorship"
-        ? "Clarification saved. Complete authorship checks next."
-        : "Clarification saved. Review wiki and outline beats before submitting.",
-  });
+  return res.status(200).json(
+    await mergeAutoCommitIntoResponse(supabase, sessionId, user.userId, {
+      success: true,
+      status: nextStatus,
+      proposed_wiki: nextStatus === "review" ? session.proposed_wiki : [],
+      outline_beats: session.outline_beats ?? [],
+      ingest_conflicts: session.ingest_conflicts ?? [],
+      authorship_questions: nextStatus === "authorship" ? authorshipQuestions : [],
+      message:
+        nextStatus === "authorship"
+          ? "Clarification saved. Complete authorship checks next."
+          : "Clarification saved. Review wiki and outline beats before submitting.",
+    })
+  );
 });
 
 /** POST /api/onboarding/document/verify-authorship */
@@ -642,9 +682,10 @@ onboardingController.post("/api/onboarding/document/verify-authorship", async (r
   if (error) return res.status(500).json({ error: error.message });
   if (!session) return res.status(404).json({ error: "Session not found" });
 
+  const source = String(session.source_text ?? "");
   let questions = (session.authorship_questions ?? []) as Array<{ id?: string; question?: string }>;
   if (questions.length === 0) {
-    const wordCount = Number(session.word_count ?? 0) || countWords(String(session.source_text ?? ""));
+    const wordCount = Number(session.word_count ?? 0) || countWords(source);
     if (session.requires_authorship_gate) {
       questions = fallbackAuthorshipQuestions(
         Math.max(3, authorshipQuestionCount(wordCount)),
@@ -661,13 +702,15 @@ onboardingController.post("/api/onboarding/document/verify-authorship", async (r
       .from("p4_document_ingest_sessions")
       .update({ status: "review", updated_at: new Date().toISOString() })
       .eq("id", sessionId);
-    return res.status(200).json({
-      success: true,
-      status: "review",
-      proposed_wiki: session.proposed_wiki,
-      outline_beats: session.outline_beats ?? [],
-      message: "No authorship questions required. Review wiki and outline beats before submitting.",
-    });
+    return res.status(200).json(
+      await mergeAutoCommitIntoResponse(supabase, sessionId, user.userId, {
+        success: true,
+        status: "review",
+        proposed_wiki: session.proposed_wiki,
+        outline_beats: session.outline_beats ?? [],
+        message: "No authorship questions required. Review wiki and outline beats before submitting.",
+      })
+    );
   }
 
   if (answers.length < questions.length) {
@@ -678,10 +721,10 @@ onboardingController.post("/api/onboarding/document/verify-authorship", async (r
     });
   }
 
-  const source = String(session.source_text ?? "");
+  const sourceVerified = String(session.source_text ?? "");
   const failures: number[] = [];
   for (let i = 0; i < questions.length; i++) {
-    if (!answerFoundInSource(answers[i] ?? "", source)) failures.push(i);
+    if (!answerFoundInSource(answers[i] ?? "", sourceVerified)) failures.push(i);
   }
   if (failures.length > 0) {
     return res.status(400).json({
@@ -695,13 +738,15 @@ onboardingController.post("/api/onboarding/document/verify-authorship", async (r
     .update({ status: "review", updated_at: new Date().toISOString() })
     .eq("id", sessionId);
 
-  return res.status(200).json({
-    success: true,
-    status: "review",
-    proposed_wiki: session.proposed_wiki,
-    outline_beats: session.outline_beats ?? [],
-    message: "Authorship verified. Review wiki and outline beats before submitting.",
-  });
+  return res.status(200).json(
+    await mergeAutoCommitIntoResponse(supabase, sessionId, user.userId, {
+      success: true,
+      status: "review",
+      proposed_wiki: session.proposed_wiki,
+      outline_beats: session.outline_beats ?? [],
+      message: "Authorship verified. Review wiki and outline beats before submitting.",
+    })
+  );
 });
 
 /** POST /api/onboarding/document/commit — submit | cancel */
@@ -778,160 +823,43 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
     return res.status(400).json({ error: "Session is not ready for submit (complete clarification/authorship first)." });
   }
 
-  const archiveOnly = Array.isArray(session.clarification_answers)
-    ? (session.clarification_answers as Array<{ code?: string; answer?: string }>).some(
-        (a) =>
-          a.code === "import_intent" &&
-          typeof a.answer === "string" &&
-          /old archive|wiki only/i.test(a.answer)
-      )
-    : false;
-
   const proposedRaw = (Array.isArray(body.proposed_wiki)
     ? body.proposed_wiki
     : session.proposed_wiki) as ProposedWikiEntry[];
-  const proposed = proposedRaw.filter(
-    (p) =>
-      p &&
-      typeof p === "object" &&
-      String((p as ProposedWikiEntry).excerpt ?? "").trim().length >= 1
-  );
   const outlineBeats = (
     Array.isArray(body.outline_beats) ? body.outline_beats : session.outline_beats
   ) as IngestOutlineBeat[];
-  const sourceText = String(session.source_text ?? "");
   const forceCommit = body.force_commit === true || String(body.force_commit).toLowerCase() === "true";
 
-  const normalizedProposed = proposed.map((p) =>
-    normalizeProposedWikiEntry(p, String(session.manuscript_id), session.slot as DocumentIngestSlot)
-  );
-  const previewText = buildCommitPreviewText({
-    slot: session.slot as DocumentIngestSlot,
-    filename: String(session.original_filename ?? "upload"),
-    sourceText,
-    proposed: normalizedProposed,
-    outlineBeats: archiveOnly ? [] : outlineBeats,
+  const result = await executeDocumentIngestSessionCommit(supabase, {
+    session,
+    tenantId: user.userId,
+    proposed: proposedRaw,
+    outlineBeats,
+    forceCommit,
+    syncMsgfBrain:
+      body.sync_msgf_brain === true ||
+      String(body.sync_msgf_brain).toLowerCase() === "true",
   });
 
-  const mergeRisk = detectStructureMergeRisk(
-    sourceText,
-    normalizedProposed,
-    archiveOnly ? [] : outlineBeats
-  );
-  const needsDualReview =
-    mergeRisk.risk ||
-    sessionHadBlockingClarification(session.clarifying_questions as ClarifyingQuestion[]) ||
-    sessionHadBlockingConflicts(session.ingest_conflicts as IngestConflict[]);
-
-  let dualReview: Awaited<ReturnType<typeof runDualStructureReview>> | null = null;
-  if (needsDualReview && !forceCommit) {
-    dualReview = await runDualStructureReview({ sourceText, preview: previewText });
-    const failDual = dualReview.ran && dualReview.structure_valid === false;
-    const failHeuristic = mergeRisk.risk && !dualReview.ran;
-    if (failDual || failHeuristic) {
-      const reason = failDual
-        ? dualReview!.reason
-        : mergeRisk.reason;
-      await recordIngestHallRejection({
-        supabase,
-        tenantId: user.userId,
-        entityId: user.userId,
-        manuscriptId: String(session.manuscript_id),
-        slot: session.slot as DocumentIngestSlot,
-        sessionId,
-        reason,
-        previewText,
-        code: failDual && dualReview!.models_disagree ? "structure_dual_fail" : "structure_merge_risk",
-      });
-      return res.status(409).json({
-        error: "INGEST_STRUCTURE_REVIEW_FAILED",
-        message: reason,
-        models_disagree: dualReview?.models_disagree ?? false,
-        merge_risk: mergeRisk,
-        dual_review: dualReview,
-        hint: "Fix the mapping in review, or resubmit with force_commit if you accept the risk.",
-      });
-    }
-  }
-
-  const shadow = await runDocumentIngestShadowPreflight(supabase, user.userId, previewText);
-  if (shadow.blocked) {
-    await recordIngestHallRejection({
-      supabase,
-      tenantId: user.userId,
-      entityId: user.userId,
-      manuscriptId: String(session.manuscript_id),
-      slot: session.slot as DocumentIngestSlot,
-      sessionId,
-      reason: shadow.reason,
-      previewText,
-      code: "shadow_block",
-    });
-    return res.status(403).json({
-      error: "INGEST_DEFEND_BLOCKED",
-      tier: shadow.tier,
-      reason: shadow.reason,
-      shadow,
-      message:
-        "MSGF shadow mode blocked this import — it matches a prior bad pattern in your Hall. Adjust the mapping or split the document.",
+  if (!result.ok) {
+    return res.status(result.httpStatus).json({
+      error: result.error,
+      code: result.code,
+      hint: result.hint,
+      message: result.hint ?? result.error,
     });
   }
 
-  try {
-    const result = await commitDocumentIngestToBackend({
-      supabase,
-      tenantId: user.userId,
-      manuscriptId: String(session.manuscript_id),
-      slot: session.slot as DocumentIngestSlot,
-      filename: String(session.original_filename ?? "upload"),
-      sourceText,
-      proposed: normalizedProposed,
-      outlineBeats: archiveOnly ? [] : outlineBeats,
-      syncMsgfBrain:
-        body.sync_msgf_brain === true ||
-        String(body.sync_msgf_brain).toLowerCase() === "true" ||
-        process.env.MSGF_DOCUMENT_INGEST_SYNC_BRAIN === "1",
-    });
-
-    await supabase
-      .from("p4_document_ingest_sessions")
-      .update({
-        status: "committed",
-        proposed_wiki: proposed,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sessionId);
-
-    return res.status(200).json({
-      success: true,
-      committed: true,
-      ...result,
-      planning: result.planning,
-      shadow,
-      merge_risk: mergeRisk.risk ? mergeRisk : undefined,
-      dual_review: dualReview?.ran ? dualReview : undefined,
-      message:
-        result.wiki_entry_count > 0
-          ? "Wiki building blocks, scene cards, and outline updated. Open Plot Sandbox or Wiki to continue."
-          : "Outline updated. No wiki rows were saved (excerpts may be too short). Check OPENAI_API_KEY for embeddings.",
-      embedding_note: process.env.OPENAI_API_KEY?.trim()
-        ? undefined
-        : "OPENAI_API_KEY missing — wiki rows used degraded embeddings; set the key in packages/msgf/.env.local for Librarian search quality.",
-    });
-  } catch (e) {
-    const errMsg = e instanceof Error ? e.message : String(e);
-    console.error("[onboarding/document/commit]", e);
-    await recordIngestHallRejection({
-      supabase,
-      tenantId: user.userId,
-      entityId: user.userId,
-      manuscriptId: String(session.manuscript_id),
-      slot: session.slot as DocumentIngestSlot,
-      sessionId,
-      reason: errMsg,
-      previewText,
-      code: "commit_failed",
-    });
-    return res.status(500).json({ error: errMsg });
-  }
+  return res.status(200).json({
+    success: true,
+    committed: true,
+    planning: result.planning,
+    wiki_entry_count: result.wiki_entry_count,
+    merge_risk: result.merge_risk,
+    message: result.message,
+    embedding_note: process.env.OPENAI_API_KEY?.trim()
+      ? undefined
+      : "OPENAI_API_KEY missing — wiki rows used degraded embeddings; set the key in packages/msgf/.env.local for Librarian search quality.",
+  });
 });

@@ -12,7 +12,8 @@ Server-side Supabase and Redis are configured on the hosted MSGF deployment — 
 2. **Map your project**: https://elphiesgatedai.elphiesyntax.com/setup/projects  
    Use **Add a custom project** with your local folder path and a `project_origin` tag (e.g. `your-org/your-app`).
 3. **Copy IDE settings**: https://elphiesgatedai.elphiesyntax.com/workspace#ide-setup  
-   Click **Refresh token**, then paste into `.vscode/settings.json`:
+   Click **Mint long-lived IDE token**, then paste into **this repo’s** `.vscode/settings.json` (workspace settings only):
+   - `msgf.enabled`: `true` (arms Pulse for this folder only)
    - `msgf.apiUrl`
    - `msgf.tenantKey`
    - `msgf.authToken` (long JWT — required for Pulse)
@@ -33,6 +34,23 @@ Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run:
 | **MSGF: Flush buffered Pulse now** | Force-send keystroke telemetry immediately |
 | **MSGF: Open Dashboard** | Open governance dashboard in browser (use sign-in buttons in panel) |
 | **MSGF: Open violation diagnostics** | After a red/yellow stoplight or wrong-logic alert |
+| **MSGF: Enable for this workspace** | Turn Pulse on for this folder (default is off until you opt in) |
+| **MSGF: Disable for this workspace** | Client or personal repos where MSGF must not run |
+| **MSGF: Copy settings from User to this workspace** | Move tokens out of User settings so other folders stay off |
+
+---
+
+## Multiple repos (client vs business)
+
+Pulse Guard loads in every window, but **MSGF stays off** until you opt in. The first time you open a folder, you'll get a **modal prompt** — choose **Enable MSGF** only for business repos. You can also set `msgf.enabled` in **workspace** settings.
+
+| Repo type | What to do |
+| :--- | :--- |
+| **Business / monorepo** | Paste minted settings (includes `msgf.enabled: true`) into `.vscode/settings.json` at the folder you open |
+| **Client work** | Do **not** set `msgf.enabled`, or run **MSGF: Disable for this workspace** |
+| **Accidentally used User settings** | Run **MSGF: Copy settings from User to this workspace**, then delete `msgf.*` from User settings in Settings UI |
+
+Use a **separate Cursor/VS Code profile** for client work if you want zero MSGF UI. Never put `msgf.authToken` in **User** settings — it applies to every folder you open.
 
 ---
 
@@ -61,18 +79,19 @@ Requires `msgf.authToken` in settings. If you see **Missing Authorization bearer
 
 ---
 
-## Settings (`.vscode/settings.json` or User settings)
+## Settings (workspace `.vscode/settings.json` only)
 
 | Setting | Purpose |
 | :--- | :--- |
+| `msgf.enabled` | `true` to arm Pulse in this folder; omit or `false` for client/personal repos |
 | `msgf.apiUrl` | MSGF host (default production gated-AI URL) |
 | `msgf.tenantKey` | Mapped `project_origin` (`org/repo`), e.g. `elphiesyntax/author-ecosystem` — not a folder path |
 | `msgf.productPath` | Monorepo only: `apps/author-ecosystem`, `packages/msgf`, etc. when workspace root is the git repo |
-| `msgf.authToken` | Supabase access JWT from **Refresh token** (Bearer on every Pulse) |
+| `msgf.authToken` | Long-lived IDE token (`msgf_ide_*`) from workspace IDE setup — Bearer on every Pulse |
 | `msgf.role` | Optional: `dev` (default), `company_admin`, `global_admin` |
 | `msgf.licenseKey` | Only for integrators with `msgf_live_…` keys (most buyers leave empty) |
 
-**Tip:** If workspace settings are ignored, paste `msgf.authToken` under **User** settings in Cursor/VS Code (`Ctrl+,` → search `msgf.authToken`).
+If a setting seems ignored, confirm you edited **Workspace** (not User) and run **Developer: Reload Window**.
 
 ---
 

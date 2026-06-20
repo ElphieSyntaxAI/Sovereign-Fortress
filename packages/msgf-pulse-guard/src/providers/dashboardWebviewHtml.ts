@@ -16,6 +16,8 @@ export type ConnectionStatusView = {
 };
 
 export type DashboardHealthView = {
+  msgfEnabled: boolean;
+  folderLabel: string;
   apiUrl: string;
   tenantId: string;
   connection: ConnectionStatusView;
@@ -38,6 +40,23 @@ function escapeHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function renderOptInPanel(view: DashboardHealthView): string {
+  return `
+  <div class="opt-in-panel">
+    <p class="opt-in-eyebrow">MSGF is off for this folder</p>
+    <h2 class="opt-in-title">${escapeHtml(view.folderLabel)}</h2>
+    <p class="opt-in-copy">
+      Enabling MSGF will automatically turn it on for <strong>this file tree only</strong>:
+      it creates <code>.msgf/</code>, buffers Pulse while you type, and connects to the MSGF API.
+      Other folders stay off unless you enable them separately.
+    </p>
+    <button class="opt-in-primary" id="enableMsgfBtn" type="button">${escapeHtml(
+      "Enable for this file tree"
+    )}</button>
+    <p class="opt-in-hint muted">Use this for business repos. Skip for client or personal work.</p>
+  </div>`;
 }
 
 function renderConnectionStatus(connection: ConnectionStatusView): string {
@@ -221,6 +240,32 @@ function renderAdvancedSection(view: DashboardHealthView): string {
 }
 
 export function buildDashboardWebviewHtml(view: DashboardHealthView): string {
+  if (!view.msgfEnabled) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>${JEWEL_SIDEBAR_STYLES}</style>
+</head>
+<body>
+  <h1>MSGF Command Center</h1>
+  ${renderOptInPanel(view)}
+  <script>
+    const vscode = acquireVsCodeApi();
+    const enableBtn = document.getElementById('enableMsgfBtn');
+    if (enableBtn) {
+      enableBtn.addEventListener('click', () => {
+        enableBtn.disabled = true;
+        enableBtn.textContent = 'Opening confirmation…';
+        vscode.postMessage({ type: 'enableMsgfForFileTree' });
+      });
+    }
+  </script>
+</body>
+</html>`;
+  }
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

@@ -9,7 +9,6 @@ param(
   [string]$LogFile = "gcp-deployment-pulse.log"
 )
 
-$ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 
@@ -35,4 +34,12 @@ Write-Host "Using: $bash"
 Write-Host "Log:   $(Join-Path $root $LogFile)"
 Write-Host ""
 
+# gcloud writes progress to stderr; with Stop, PowerShell treats that as a fatal error.
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 & $bash -lc "cd `"$(($root -replace '\\','/'))`" && exec ./setup-cloud.sh" 2>&1 | Tee-Object -FilePath (Join-Path $root $LogFile)
+$bashExit = $LASTEXITCODE
+$ErrorActionPreference = $prevEap
+if ($bashExit -ne 0) {
+  exit $bashExit
+}

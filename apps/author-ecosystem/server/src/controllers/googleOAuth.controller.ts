@@ -6,7 +6,9 @@ import {
   encodeOAuthState,
   googleOAuthConfigured,
   GOOGLE_OAUTH_SCOPES,
+  resolveGoogleOAuthRedirectUri,
 } from "../lib/googleOAuth.js";
+import { googleOAuthCallbackInvalidGrantMessage } from "../lib/googleOAuthErrors.js";
 import {
   docUrlFromMeta,
   fetchGoogleDocMetaOAuth,
@@ -14,8 +16,11 @@ import {
   listRecentGoogleDocsOAuth,
 } from "../lib/googleDocOAuth.js";
 import { extractGoogleDocId, normalizeGoogleDocUrl } from "../lib/googleDocUrl.js";
-import { getGoogleOAuthClientForTenant, upsertGoogleCredentials } from "../lib/googleOAuthTokens.js";
+import { expandBffTenantIdAliases } from "../lib/authorTenantId.js";
+import { getGoogleCredentialSummary, getGoogleOAuthClientForTenant, upsertGoogleCredentials } from "../lib/googleOAuthTokens.js";
+import { resolveAuthorClientOrigin } from "@elphie-syntax/core/author-handoff-origins";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
+import { resolveBffUser } from "../lib/resolveBffUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 export const googleOAuthController = Router();
@@ -24,7 +29,7 @@ export const googleOAuthController = Router();
  * GET /api/google/oauth/status
  */
 googleOAuthController.get("/api/google/oauth/status", async (req: Request, res: Response) => {
-  const user = readBearerUser(req, res);
+  const user = await resolveBffUser(req, res);
   if (!user) return;
 
   if (!googleOAuthConfigured()) {
@@ -32,16 +37,13 @@ googleOAuthController.get("/api/google/oauth/status", async (req: Request, res: 
   }
 
   const supabase = getSupabaseAdmin();
-  const { data } = await supabase
-    .from("p4_author_google_credentials")
-    .select("google_email, updated_at")
-    .eq("tenant_id", user.userId)
-    .maybeSingle();
+  const summary = await getGoogleCredentialSummary(supabase, user.userId);
 
   return res.status(200).json({
     configured: true,
-    connected: Boolean(data),
-    google_email: (data as { google_email?: string } | null)?.google_email ?? null,
+    connected: Boolean(summary),
+    google_email: summary?.google_email ?? null,
+    redirect_uri: resolveGoogleOAuthRedirectUri(),
   });
 });
 
@@ -49,7 +51,7 @@ googleOAuthController.get("/api/google/oauth/status", async (req: Request, res: 
  * GET /api/google/oauth/start?return_to=&manuscript_id=
  */
 googleOAuthController.get("/api/google/oauth/start", async (req: Request, res: Response) => {
-  const user = readBearerUser(req, res);
+  const user = await resolveBffUser(req, res);
   if (!user) return;
 
   if (!googleOAuthConfigured()) {
@@ -67,11 +69,13 @@ googleOAuthController.get("/api/google/oauth/start", async (req: Request, res: R
     manuscriptId,
   });
 
+  const redirectUri = resolveGoogleOAuthRedirectUri();
   const url = client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: GOOGLE_OAUTH_SCOPES,
     state,
+    redirect_uri: redirectUri,
   });
 
   return res.redirect(url);
@@ -90,8 +94,9 @@ googleOAuthController.get("/api/google/oauth/callback", async (req: Request, res
   }
 
   try {
+    const redirectUri = resolveGoogleOAuthRedirectUri();
     const client = createGoogleOAuthClient();
-    const { tokens } = await client.getToken(code);
+    const { tokens } = await client.getToken({ code, redirect_uri: redirectUri });
     client.setCredentials(tokens);
 
     let googleEmail: string | null = null;
@@ -114,15 +119,35 @@ googleOAuthController.get("/api/google/oauth/callback", async (req: Request, res
 
     const returnTo = state.returnTo?.startsWith("/") ? state.returnTo : "/manuscripts";
     const q = state.manuscriptId ? `?google=connected&manuscript_id=${encodeURIComponent(state.manuscriptId)}` : "?google=connected";
-    const clientOrigin =
-      process.env.AUTHOR_CLIENT_ORIGIN?.trim() ||
-      process.env.VITE_AUTHOR_CLIENT_ORIGIN?.trim() ||
-      "http://localhost:5173";
+    const clientOrigin = resolveAuthorClientOrigin();
     return res.redirect(`${clientOrigin.replace(/\/$/, "")}${returnTo}${q}`);
   } catch (e) {
     console.error("[google/oauth/callback]", e);
-    return res.status(500).send(e instanceof Error ? e.message : "OAuth failed");
+    const msg = e instanceof Error ? e.message : "OAuth failed";
+    if (/invalid_grant/i.test(msg)) {
+      return res.status(400).send(googleOAuthCallbackInvalidGrantMessage());
+    }
+    return res.status(500).send(msg);
   }
+});
+
+/**
+ * POST /api/google/oauth/disconnect
+ * Clears stored Google credentials so the author can reconnect after invalid_grant.
+ */
+googleOAuthController.post("/api/google/oauth/disconnect", async (req: Request, res: Response) => {
+  const user = await resolveBffUser(req, res);
+  if (!user) return;
+
+  const supabase = getSupabaseAdmin();
+  const aliases = await expandBffTenantIdAliases(supabase, user.userId);
+  const { error } = await supabase
+    .from("p4_author_google_credentials")
+    .delete()
+    .in("tenant_id", aliases.length ? aliases : [user.userId]);
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(200).json({ disconnected: true });
 });
 
 /**

@@ -37,6 +37,8 @@ export function resolveIdeTenantKey(userId: string, preferredProjectOrigin?: str
 }
 
 export type IdeWorkspaceSettings = {
+  /** Opt in for this workspace only (off by default in the Pulse Guard extension). */
+  "msgf.enabled": boolean;
   "msgf.apiUrl": string;
   "msgf.tenantKey": string;
   "msgf.authToken": string;
@@ -59,6 +61,7 @@ export function buildIdeWorkspaceSettings(input: {
   brainSensitivity?: number;
 }): IdeWorkspaceSettings {
   const settings: IdeWorkspaceSettings = {
+    "msgf.enabled": true,
     "msgf.apiUrl": input.apiUrl.replace(/\/$/, ""),
     "msgf.tenantKey": input.tenantKey,
     "msgf.authToken": input.authToken,

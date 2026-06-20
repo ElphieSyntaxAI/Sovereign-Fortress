@@ -19,6 +19,15 @@ function isLocalDevOrigin(origin: string): boolean {
   }
 }
 
+/** api.* subdomain is not mapped in prod — use SPA same-origin /api instead. */
+function isUnmappedAuthorApiSubdomain(origin: string): boolean {
+  try {
+    return new URL(origin).hostname.toLowerCase() === "api.authorecosystem.elphiesyntax.com";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Browser-facing BFF base for handoff + API.
  * Production default: Author SPA origin (nginx proxies `/api` → Cloud Run BFF).
@@ -31,7 +40,9 @@ export function resolveAuthorBffOrigin(env: EnvLike = process.env): string {
   ];
   for (const raw of candidates) {
     const origin = trimOrigin(raw);
-    if (origin && (!isLocalDevOrigin(origin) || env.NODE_ENV !== "production")) {
+    if (!origin) continue;
+    if (env.NODE_ENV === "production" && isUnmappedAuthorApiSubdomain(origin)) continue;
+    if (!isLocalDevOrigin(origin) || env.NODE_ENV !== "production") {
       return origin;
     }
   }

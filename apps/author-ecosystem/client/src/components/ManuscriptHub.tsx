@@ -5,6 +5,7 @@ import { FinishRevisionsDialog } from "./FinishRevisionsDialog";
 import { DocumentIngestFlow } from "./onboarding/DocumentIngestFlow";
 import { PlanningSessionProvider } from "../planning/PlanningSessionContext";
 import { LinkSessionPanel } from "./LinkSessionPanel";
+import { GoogleOAuthConnectPanel, useGoogleOAuthStatus } from "./GoogleOAuthConnectPanel";
 import { SwitchProjectDialog } from "./SwitchProjectDialog";
 import { useNarrative } from "../context/NarrativeContext";
 import { useActivateManuscript } from "../hooks/useActivateManuscript";
@@ -258,8 +259,8 @@ export function ManuscriptHub() {
   const [newSeriesTitle, setNewSeriesTitle] = useState("");
   const [newBookTitle, setNewBookTitle] = useState("");
   const [newBookSeriesId, setNewBookSeriesId] = useState("");
-  const [googleConnected, setGoogleConnected] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const googleOAuth = useGoogleOAuthStatus();
+  const googleConnected = googleOAuth.connected;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -273,23 +274,14 @@ export function ManuscriptHub() {
       const json = (await res.json().catch(() => ({}))) as ManuscriptHubPayload & { error?: string };
       if (!res.ok) throw new Error(json.error || res.statusText);
       setHub(json);
-      const st = await fetch(bffUrl("/api/google/oauth/status"), {
-        ...bffCredentials,
-        headers: { ...bffAuthHeaders(token) },
-      });
-      const stJson = (await st.json().catch(() => ({}))) as {
-        connected?: boolean;
-        google_email?: string | null;
-      };
-      setGoogleConnected(Boolean(stJson.connected));
-      setGoogleEmail(stJson.google_email ?? null);
+      await googleOAuth.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setHub(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [googleOAuth.refresh]);
 
   useEffect(() => {
     void load();
@@ -417,19 +409,21 @@ export function ManuscriptHub() {
         </p>
       ) : null}
 
+      <section className="space-y-3 rounded-xl border border-amber-900/25 bg-amber-950/10 p-4">
+        <h2 className="text-sm font-semibold text-amber-100">Google account</h2>
+        <GoogleOAuthConnectPanel
+          returnPath="/manuscripts"
+          manuscriptId={selection?.manuscriptId}
+          onStatusChange={() => void googleOAuth.refresh()}
+        />
+      </section>
+
       <section className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
         <h2 className="text-sm font-semibold text-zinc-100">Create project</h2>
         <p className="text-xs text-zinc-500">
-          Add a series folder or a standalone / series book. Connect Google and pick docs from Drive (or paste URLs)
-          in Link session below — the HAL extension is optional.
+          Add a series folder or a standalone / series book. After Google is connected, link docs in{" "}
+          <strong className="text-zinc-300">Link Google Docs</strong> or import below for wiki / outline.
         </p>
-        {googleConnected ? (
-          <p className="text-xs text-emerald-400/90">
-            Google connected{googleEmail ? ` as ${googleEmail}` : ""}.
-          </p>
-        ) : (
-          <p className="text-xs text-amber-300/80">Connect Google below before linking a doc.</p>
-        )}
         <div className="grid gap-4 md:grid-cols-2">
           <form onSubmit={(e) => void createSeries(e)} className="space-y-2">
             <p className="text-xs font-medium text-zinc-400">New series folder</p>
@@ -483,9 +477,17 @@ export function ManuscriptHub() {
         >
           <h2 className="text-sm font-semibold text-violet-100">Import a document</h2>
           <p className="text-xs text-zinc-500">
-            Upload a file or choose a Google Doc after OAuth sync. Builds wiki blocks, scene cards, and an outline
-            for Plot Sandbox. Large files may need authorship answers from your text.
+            Upload a file or choose a Google Doc after connecting Google above. Builds wiki blocks, scene cards,
+            and an outline for Plot Sandbox. Large files may need authorship answers from your text.
           </p>
+          {!googleConnected ? (
+            <GoogleOAuthConnectPanel
+              returnPath="/manuscripts#import-documents"
+              manuscriptId={selection.manuscriptId}
+              hideWhenConnected
+              onStatusChange={() => void load()}
+            />
+          ) : null}
           <PlanningSessionProvider manuscriptId={selection.manuscriptId}>
             <div className="grid gap-4 lg:grid-cols-3">
               <DocumentIngestFlow
@@ -514,9 +516,16 @@ export function ManuscriptHub() {
         <section className="space-y-3 rounded-xl border border-amber-900/30 bg-amber-950/15 p-4">
           <h2 className="text-sm font-semibold text-amber-100">Link Google Docs</h2>
           <p className="text-xs text-amber-200/70">
-            Connect Google, select your book docs from Drive (or paste URLs), then confirm. Already-linked books
-            do not appear here.
+            Select your book docs from Drive (or paste URLs), then confirm. Already-linked books do not appear
+            here.
           </p>
+          {!googleConnected ? (
+            <GoogleOAuthConnectPanel
+              returnPath="/manuscripts"
+              hideWhenConnected
+              onStatusChange={() => void load()}
+            />
+          ) : null}
           <ul className="space-y-3">
             {hub.unlinked.map((row) => (
               <li key={row.id}>

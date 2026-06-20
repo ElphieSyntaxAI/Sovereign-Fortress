@@ -1,3 +1,7 @@
+import { defaultAuthorDashboardReturnTo } from "./author-handoff-origins.js";
+
+type EnvLike = Record<string, string | undefined>;
+
 export type OperatorHandoffPayload = {
   access_token: string;
   refresh_token: string;
@@ -40,4 +44,22 @@ export function buildMsgfAuthorHandoffUrl(msgfOrigin: string, authorDashboardUrl
   const u = new URL("/api/msgf/admin/author-handoff", `${base}/`);
   u.searchParams.set("return_to", authorDashboardUrl);
   return u.href;
+}
+
+function resolveMsgfAppOrigin(env: EnvLike = process.env): string {
+  const raw =
+    env.MSGF_APP_URL?.trim() ||
+    env.NEXT_PUBLIC_MSGF_APP_URL?.trim() ||
+    "https://elphiesgatedai.elphiesyntax.com";
+  return raw.replace(/\/+$/, "");
+}
+
+/** Canonical SSO entry when the browser hits Author BFF handoff without a token. */
+export function resolveMsgfAuthorHandoffEntryUrl(
+  returnTo?: string | null,
+  env: EnvLike = process.env
+): string {
+  const fallback = defaultAuthorDashboardReturnTo(env);
+  const safeReturn = sanitizeAuthorReturnToUrl(returnTo, fallback);
+  return buildMsgfAuthorHandoffUrl(resolveMsgfAppOrigin(env), safeReturn);
 }

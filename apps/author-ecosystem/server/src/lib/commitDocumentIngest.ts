@@ -86,8 +86,11 @@ export async function commitDocumentIngestToBackend(params: {
       buffer: Buffer.from(sourceText, "utf8"),
       filename,
       metadata: {
-        ...slotDefaultMetadata(slot, manuscriptId),
+        manuscript_id: manuscriptId,
+        ingest_slot: slot,
         file_import: true,
+        rag_index: true,
+        type: "lore",
         file_import_committed_at: new Date().toISOString(),
       },
     });
@@ -118,6 +121,7 @@ export async function commitDocumentIngestToBackend(params: {
           is_outline: true,
           manuscript_id: manuscriptId,
           file_import: true,
+          rag_index: true,
           ingest_slot: slot,
         },
       });

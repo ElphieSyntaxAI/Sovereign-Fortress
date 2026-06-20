@@ -4,7 +4,15 @@ import { buildTargetedPromptWithIntent } from "../commands/optimizer";
 import { runVerifyScript } from "../commands/runScripts";
 import { loadRunScripts, type RunScriptEntry } from "../utils/run-scripts-store";
 import { fetchConnectivityCheck } from "../connectivityCheckClient";
-import { readMsgfSettings, resolveEntityId, resolveTenantId, settingsReady } from "../config";
+import {
+  isMsgfArmed,
+  readMsgfSettings,
+  resolveEntityId,
+  resolveTenantId,
+  settingsReady,
+} from "../config";
+import { confirmEnableMsgfForWorkspace } from "../workspaceOptIn";
+import { getRepoRoot } from "../workspace/msgfWorkspace";
 import { isSavePrimaryPulseMode } from "../devSessionPulse";
 import { promptDevHealCycleChoice } from "../devHealCycle";
 import { setLastDevHealChoice } from "../lastDevHealChoice";
@@ -306,7 +314,10 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
     if (!this.view) return;
 
     const settings = readMsgfSettings();
+    const folder = vscode.workspace.workspaceFolders?.[0];
     const viewModel: DashboardHealthView = {
+      msgfEnabled: isMsgfArmed(settings),
+      folderLabel: folder?.name || getRepoRoot() || "this file tree",
       apiUrl: settings.apiUrl,
       tenantId: resolveTenantId(settings),
       connection: this.connection,
@@ -353,6 +364,17 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
   private async handleMessage(message: unknown): Promise<void> {
     const msg = message as WebviewMessage;
     if (!msg?.type) return;
+
+    if (msg.type === "enableMsgfForFileTree") {
+      const ok = await confirmEnableMsgfForWorkspace(this.extensionContext, {
+        skipIfArmed: false,
+      });
+      this.render();
+      if (ok) {
+        void vscode.commands.executeCommand("msgf.dashboard.focus");
+      }
+      return;
+    }
 
     if (msg.type === "copyHealPrompt") {
       const paths = Array.isArray(msg.file_paths)

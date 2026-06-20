@@ -25,6 +25,7 @@ import {
 } from "../src/lib/documentIngestStructure.js";
 import {
   requiresAuthorshipGate,
+  heuristicDraftWikiFromProse,
   slotDefaultMetadata,
   type DocumentIngestSlot,
 } from "../src/lib/documentIngestGate.js";
@@ -39,6 +40,8 @@ import {
 import { buildDocumentIngestSignals } from "../src/lib/documentIngestSignals.js";
 import { groundProposedWikiToSource } from "../src/lib/documentIngestMsgfPipeline.js";
 import { buildAuthorDocumentSweepFiles } from "../src/lib/documentIngestMsgfSweep.js";
+import { isAutoWikiBuildEnabled } from "../src/lib/documentIngestSessionCommit.js";
+import { isDisplayableAuthorWikiChunk } from "../src/lib/wikiEntryHelpers.js";
 import { isPlatformOperatorEmail, parseGlobalAdminEmails } from "../src/lib/isPlatformOperator.js";
 
 const BFF_BASE = (process.env.AUTHOR_ECOSYSTEM_URL ?? "http://127.0.0.1:3002").replace(/\/$/, "");
@@ -482,6 +485,63 @@ describe("platform operator", () => {
     assert.equal(isPlatformOperatorEmail("other@test.com"), false);
     if (prev === undefined) delete process.env.MSGF_GLOBAL_ADMIN_EMAILS;
     else process.env.MSGF_GLOBAL_ADMIN_EMAILS = prev;
+  });
+});
+
+describe("auto wiki build", () => {
+  test("isAutoWikiBuildEnabled defaults on", () => {
+    const prev = process.env.DOCUMENT_INGEST_AUTO_WIKI;
+    delete process.env.DOCUMENT_INGEST_AUTO_WIKI;
+    assert.equal(isAutoWikiBuildEnabled(), true);
+    process.env.DOCUMENT_INGEST_AUTO_WIKI = "0";
+    assert.equal(isAutoWikiBuildEnabled(), false);
+    if (prev === undefined) delete process.env.DOCUMENT_INGEST_AUTO_WIKI;
+    else process.env.DOCUMENT_INGEST_AUTO_WIKI = prev;
+  });
+});
+
+describe("wiki display filter", () => {
+  test("hides file-import RAG shards but keeps author wiki entries", () => {
+    assert.equal(
+      isDisplayableAuthorWikiChunk({
+        file_import: true,
+        manuscript_id: "ms-1",
+        ledger: "wiki_snapshot",
+      }),
+      false
+    );
+    assert.equal(
+      isDisplayableAuthorWikiChunk({
+        file_import: true,
+        wiki_author_entry: true,
+        proposed_chunk_title: "Pavoc",
+        outline_entity_kind: "character",
+      }),
+      true
+    );
+    assert.equal(
+      isDisplayableAuthorWikiChunk({
+        lore_extraction: true,
+        outline_entity_kind: "setting",
+        proposed_chunk_title: "Exodus Spire",
+      }),
+      true
+    );
+  });
+});
+
+describe("draft wiki auto-extract", () => {
+  test("heuristicDraftWikiFromProse finds recurring character names", () => {
+    const text = [
+      "Pavoc walked toward the spire.",
+      "Pavoc spoke to Isman.",
+      "Isman nodded at Pavoc.",
+      "The exodus spire rose above the compound.",
+      "Storms swept the outer realm for weeks.",
+    ].join("\n\n");
+    const rows = heuristicDraftWikiFromProse(text, "ms-test");
+    assert.ok(rows.some((r) => r.title === "Pavoc" && r.wiki_metadata?.outline_entity_kind === "character"));
+    assert.ok(rows.some((r) => /spire|compound/i.test(r.title)));
   });
 });
 

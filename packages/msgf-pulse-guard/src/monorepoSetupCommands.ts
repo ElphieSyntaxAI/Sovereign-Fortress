@@ -3,7 +3,7 @@ import * as path from "path";
 
 import * as vscode from "vscode";
 
-import { readMsgfSettings } from "./config";
+import { isMsgfArmed, readMsgfSettings } from "./config";
 import { mergeWorkspaceSettings } from "./ideSetupCommands";
 import { MONOREPO_PRODUCT_PRESETS } from "./monorepoProducts";
 import { getRepoRoot } from "./workspace/msgfWorkspace";
@@ -35,6 +35,7 @@ export async function configureMonorepoProduct(): Promise<void> {
   if (!pick) return;
 
   const ok = await mergeWorkspaceSettings({
+    "msgf.enabled": true,
     "msgf.productPath": pick.preset.productPath,
     "msgf.tenantKey": pick.preset.projectOrigin,
     "msgf.apiUrl": current.apiUrl || "https://elphiesgatedai.elphiesyntax.com",
@@ -55,6 +56,7 @@ export function maybePromptMonorepoSetup(context: vscode.ExtensionContext): void
   if (!repo) return;
 
   const settings = readMsgfSettings();
+  if (!isMsgfArmed(settings)) return;
   if (settings.productPath.trim() && settings.tenantKey.includes("/")) return;
 
   const hasWorkspaces = MONOREPO_PRODUCT_PRESETS.some((p) =>

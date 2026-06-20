@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { EmbedBatchFn } from "./narrative/IngestionService.js";
-import { createOpenAIEmbedder } from "./narrative/IngestionService.js";
+import { createDefaultNarrativeEmbedder } from "./narrative/IngestionService.js";
 import type { NarrativeChunkHit } from "./narrative/LibrarianChat.js";
 import {
   chunkMatchesManuscriptScope,
@@ -137,7 +137,7 @@ export async function retrieveP4NarrativeChunks(
   supabase: SupabaseClient,
   input: RetrieveP4NarrativeChunksInput
 ): Promise<{ chunks: NarrativeChunkHit[]; scope: SeriesRagScope }> {
-  const embedBatch = input.embedBatch ?? createOpenAIEmbedder();
+  const embedBatch = input.embedBatch ?? createDefaultNarrativeEmbedder();
   const q = String(input.question ?? "").trim();
   if (!q) throw new Error("question is required");
 

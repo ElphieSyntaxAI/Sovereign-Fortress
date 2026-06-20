@@ -12,10 +12,18 @@ export type WorkspaceByokKeys = {
 function readKeyFile(filePath: string): string | null {
   try {
     if (!fs.existsSync(filePath)) return null;
-    const raw = fs.readFileSync(filePath, "utf8").trim();
-    if (!raw || raw.startsWith("#")) return null;
-    if (raw.length < 8) return null;
-    return raw;
+    const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      const candidate =
+        eq > 0 && /^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed.slice(0, eq))
+          ? trimmed.slice(eq + 1).trim()
+          : trimmed;
+      if (candidate.length >= 8) return candidate;
+    }
+    return null;
   } catch {
     return null;
   }

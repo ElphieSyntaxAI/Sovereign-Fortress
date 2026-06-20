@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 
 import {
   ideTenantKeysAlignForLicense,
+  ideTokenTenantAlignsWithHeader,
   operationalTenantForLocalPath,
   operationalTenantForProjectOrigin,
 } from "../lib/ide-tenant-alignment.js";
@@ -37,6 +38,17 @@ describe("ide-tenant-alignment", () => {
     assert.equal(
       ideTenantKeysAlignForLicense("author_ecosystem", "elphiesyntax/msgf"),
       false
+    );
+  });
+
+  test("aligns project_origin header with folder-path IDE token tenant", () => {
+    assert.equal(
+      ideTokenTenantAlignsWithHeader("apps/author-ecosystem", "elphiesyntax/author-ecosystem"),
+      true
+    );
+    assert.equal(
+      ideTokenTenantAlignsWithHeader("elphiesyntax/author-ecosystem", "apps/author-ecosystem"),
+      true
     );
   });
 });

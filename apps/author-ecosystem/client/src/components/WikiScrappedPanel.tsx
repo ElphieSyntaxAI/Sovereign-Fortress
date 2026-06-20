@@ -62,7 +62,23 @@ export function WikiScrappedPanel(props: {
     }
   };
 
-  if (!open && rows.length === 0 && !loading) return null;
+  if (!open && rows.length === 0 && !loading) {
+    return (
+      <section className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <h3 className="text-sm font-semibold text-zinc-200">Scrapped ideas</h3>
+          <span className="text-xs text-zinc-500">Show · 0 items</span>
+        </button>
+        <p className="mt-1 text-xs text-zinc-500">
+          Removed wiki articles land here. Restore anytime — permanent delete is not exposed in the UI yet.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
@@ -77,7 +93,8 @@ export function WikiScrappedPanel(props: {
         </span>
       </button>
       <p className="mt-1 text-xs text-zinc-500">
-        Soft-deleted wiki entries kept for author recovery and human-effort audit trail.
+        Soft-deleted wiki entries kept for author recovery. Use <strong className="font-medium text-zinc-400">Remove</strong> on an article or{" "}
+        <strong className="font-medium text-zinc-400">Remove from wiki</strong> in the lore sheet.
       </p>
 
       {open ? (

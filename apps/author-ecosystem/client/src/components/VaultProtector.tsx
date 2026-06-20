@@ -47,9 +47,11 @@ export default function VaultProtector(props: VaultProtectorProps) {
     setSubmitError(null);
     setFetchErrorDetail(null);
     const token = await resolveToken(getAccessToken);
+    const bearer =
+      token ?? (await import("../lib/authAccessToken").then((m) => m.getPreferredBffBearer()).catch(() => null));
     const headers: Record<string, string> = {
       accept: "application/json",
-      ...bffAuthHeaders(token),
+      ...bffAuthHeaders(bearer),
     };
     try {
       const res = await fetch(bffUrl("/api/legal/vault-attestation-status"), {

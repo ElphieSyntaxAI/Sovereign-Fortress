@@ -86,6 +86,13 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [tailwindcss(), react(), spaFallbackPlugin()],
     envDir: monorepoRoot,
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, "index.html"),
+        },
+      },
+    },
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(viteSupabaseUrl),
       "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(viteSupabaseAnon),

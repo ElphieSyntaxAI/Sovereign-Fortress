@@ -77,7 +77,7 @@ function buildIncidentInsertRow(
       tenantId: scope.tenantId,
       entityId: scope.entityId ?? scope.tenantId,
       companyId: scope.companyId,
-      projectOrigin: scope.projectOrigin,
+      projectOrigin: scope.projectOrigin?.trim() || undefined,
     }),
   };
 }

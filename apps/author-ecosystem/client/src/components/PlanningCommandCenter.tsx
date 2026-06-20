@@ -14,7 +14,9 @@ import { BrainPillarHealth } from "./BrainPillarHealth";
 import { EditorRequestButton } from "./EditorRequestButton";
 import { ImportDocumentCallout } from "./onboarding/ImportDocumentCallout";
 import { LibrarianInterviewChat } from "./LibrarianInterviewChat";
-import { PlotSandboxPanel } from "./PlotSandboxPanel";
+import { getPlotEngineSyncPayload, PlotEnginePanel } from "./PlotEnginePanel";
+import { flattenPlotEngineToBeats } from "../lib/plotEngineSerialize";
+import { loadPlotEngineState } from "../lib/plotEngineStorage";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 import { registerEditorStateProvider } from "../lib/editorSnapshotRegistry";
@@ -39,6 +41,8 @@ export type PlanningCommandCenterProps = {
   compactChrome?: boolean;
   /** When true, wiki scratch + sync are disabled (Wiki route boots read-only). */
   wikiReadOnly?: boolean;
+  /** Hide raw RAG bible/outline debug panel (Wiki lore page). */
+  hideRagDashboard?: boolean;
   /**
    * When true, do not mount an inner PlanningSessionProvider — use the parent Outline (or page) provider.
    */
@@ -82,6 +86,9 @@ export function SyncToLibrarianButton(props: {
     try {
       const token = await props.getAccessToken();
       const id = props.manuscriptId.trim();
+      const engineState = loadPlotEngineState(id);
+      const beatsFromEngine = engineState ? flattenPlotEngineToBeats(engineState) : plotBeats;
+      const plotEngine = getPlotEngineSyncPayload(id);
       const url = `/api/manuscripts/${encodeURIComponent(id)}/sync-session`;
       const res = await fetch(url, {
         method: "POST",
@@ -92,7 +99,8 @@ export function SyncToLibrarianButton(props: {
         },
         body: JSON.stringify({
           interviewTurns,
-          plotBeats,
+          plotBeats: beatsFromEngine.length > 0 ? beatsFromEngine : plotBeats,
+          plotEngine,
           wikiNotes: mergeNotesForLibrarianSync(wikiNotes, brainstormNotes),
         }),
       });
@@ -219,6 +227,7 @@ function WikiArchitectPanel(props: {
   tenantId: string;
   loadView: (mode: DashboardMode) => Promise<DashboardViewPayload>;
   readOnly?: boolean;
+  hideRagDashboard?: boolean;
 }) {
   const { wikiNotes, setWikiNotes, interviewTurns, plotBeats } = usePlanningSession();
 
@@ -267,7 +276,7 @@ function WikiArchitectPanel(props: {
           ) : null}
         </div>
       ) : null}
-      {props.supabase ? (
+      {props.supabase && !props.hideRagDashboard ? (
         <DashboardRouter
           supabase={props.supabase}
           manuscriptId={props.manuscriptId}
@@ -276,6 +285,12 @@ function WikiArchitectPanel(props: {
           initialMode="PLANNING"
           className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3"
         />
+      ) : props.hideRagDashboard ? (
+        <p className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-xs text-zinc-500">
+          Raw RAG index (500-word search shards) is stored for the Librarian but is not shown here.
+          Use the lore overview above, or re-import on Manuscripts to generate character / setting
+          building blocks.
+        </p>
       ) : (
         <p className="text-sm text-amber-300/90">
           Set <code className="text-amber-200">VITE_SUPABASE_URL</code> and{" "}
@@ -374,6 +389,7 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
           tenantId={props.tenantId}
           loadView={loadView}
           readOnly={props.wikiReadOnly}
+          hideRagDashboard={props.hideRagDashboard}
         />
       );
     }
@@ -389,7 +405,7 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
     body = <ImportDocumentCallout manuscriptId={props.manuscriptId.trim() || undefined} />;
   } else {
     body = (
-      <PlotSandboxPanel manuscriptId={props.manuscriptId} tenantId={props.tenantId} getAccessToken={getToken} />
+      <PlotEnginePanel manuscriptId={props.manuscriptId} />
     );
   }
 

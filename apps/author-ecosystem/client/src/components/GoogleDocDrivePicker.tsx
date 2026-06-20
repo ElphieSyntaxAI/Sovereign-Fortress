@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
@@ -31,10 +32,12 @@ export function GoogleDocDrivePicker(props: {
   primaryLabel?: string;
   busy?: boolean;
   onConnected?: () => void;
+  onConnected?: () => void;
   onSubmit: (docs: GoogleDocSelection[], primaryId: string) => void | Promise<void>;
 }) {
   const returnPath = props.oauthReturnPath ?? "/manuscripts";
   const multi = props.multiSelect ?? false;
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [oauth, setOauth] = useState<OAuthStatus | null>(null);
   const [files, setFiles] = useState<DriveFile[]>([]);
@@ -103,6 +106,18 @@ export function GoogleDocDrivePicker(props: {
       }
     })();
   }, [loadOAuth, loadDocs]);
+
+  useEffect(() => {
+    if (searchParams.get("google") !== "connected") return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("google");
+    next.delete("manuscript_id");
+    setSearchParams(next, { replace: true });
+    void loadOAuth().then((st) => {
+      if (st.connected) void loadDocs();
+      props.onConnected?.();
+    });
+  }, [searchParams, setSearchParams, loadOAuth, loadDocs, props.onConnected]);
 
   const toggleFile = (f: DriveFile) => {
     const url = f.webViewLink ?? `https://docs.google.com/document/d/${f.id}/edit`;
@@ -300,9 +315,20 @@ export function GoogleDocDrivePicker(props: {
       </button>
 
       {error ? (
-        <p className="text-xs text-red-400" role="alert">
-          {error}
-        </p>
+        <div className="space-y-2">
+          <p className="text-xs text-red-400" role="alert">
+            {error}
+          </p>
+          {/invalid_grant|authorization expired|not connected/i.test(error) ? (
+            <button
+              type="button"
+              onClick={connectGoogle}
+              className="rounded-full border border-amber-500/50 bg-amber-700/80 px-3 py-1.5 text-xs font-semibold text-amber-50"
+            >
+              Reconnect Google account
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

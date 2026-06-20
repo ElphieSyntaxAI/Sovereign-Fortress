@@ -415,24 +415,27 @@ export function WikiLoreSheet(props: {
               disabled={busy != null}
               onClick={clearDraft}
               className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 disabled:opacity-50"
+              title="Reset every field on this sheet without removing live wiki entries"
             >
-              Clear sheet
+              Clear this form
             </button>
             <button
               type="button"
               disabled={busy != null}
               onClick={clearAllUnsaved}
               className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 disabled:opacity-50"
+              title="Discard all in-memory drafts across every lore type"
             >
-              Clear all unsaved
+              Clear all drafts
             </button>
             <button
               type="button"
               disabled={busy != null}
               onClick={() => void deleteEntry()}
               className="rounded-full border border-red-900/60 bg-red-950/50 px-3 py-1.5 text-xs font-medium text-red-200 disabled:opacity-50"
+              title="Soft-delete: moves to Scrapped ideas (restorable)"
             >
-              {busy === "delete" ? "Deleting…" : "Delete"}
+              {busy === "delete" ? "Removing…" : "Remove from wiki"}
             </button>
           </div>
         </footer>

@@ -129,7 +129,7 @@ npm run dev:author                     # BFF :3002 + Vite :5173
 2. From the portal, use **Author dashboard (localhost)** or **Author admin hub (SSO handoff)**.
 3. In Author, open **Admin → MSGF ops** (`http://127.0.0.1:5173/admin/ops`) for links to `/admin/ops`, token savings, and pillar health filtered to `author_ecosystem`.
 
-Handoff API: `GET /api/msgf/admin/author-handoff?return_to=<author-url>` (MSGF) → `GET /api/auth/msgf-handoff` (Author BFF).
+Handoff API: `GET /api/msgf/admin/author-handoff?return_to=<author-url>` (MSGF) → HTML auto-`POST` → `POST /api/auth/msgf-handoff` (Author BFF). A bare `GET` on the BFF route redirects back to the MSGF entry URL.
 
 If the UI loads but sign-in fails, confirm `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` exist in `packages/msgf/.env.local` (Vite reads them automatically).
 

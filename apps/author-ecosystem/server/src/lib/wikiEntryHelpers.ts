@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { createOpenAIEmbedder } from "./narrative/IngestionService.js";
+import { createDefaultNarrativeEmbedder } from "./narrative/IngestionService.js";
 
 export type HumanEffortPayload = {
   started_at?: string;
@@ -21,6 +21,35 @@ export function chunkMatchesManuscript(meta: Record<string, unknown>, manuscript
 
 export function isScrappedWiki(meta: Record<string, unknown>): boolean {
   return Boolean(meta.wiki_scrapped_at);
+}
+
+/**
+ * Lore encyclopedia rows (characters, settings, etc.) — not raw RAG retrieval shards.
+ * File import also writes 500-word overlapping vectors for Librarian search; those must not
+ * appear as wiki articles.
+ */
+export function isDisplayableAuthorWikiChunk(meta: Record<string, unknown>): boolean {
+  if (isScrappedWiki(meta)) return false;
+
+  if (meta.rag_index === true && meta.wiki_author_entry !== true) return false;
+
+  if (
+    meta.file_import === true &&
+    meta.wiki_author_entry !== true &&
+    !String(meta.proposed_chunk_title ?? "").trim()
+  ) {
+    return false;
+  }
+
+  if (meta.planning_session_sync === true) return false;
+
+  if (meta.wiki_author_entry === true) return true;
+  if (String(meta.proposed_chunk_title ?? "").trim()) return true;
+  if (meta.lore_extraction === true) return true;
+  if (meta.scene_card === true) return true;
+  if (String(meta.ledger ?? "") === "wiki_snapshot" && meta.outline_entity_kind) return true;
+
+  return false;
 }
 
 export function buildWikiSnapshotBody(params: {
@@ -51,7 +80,7 @@ const EMBEDDING_DIM = 1536;
 const ZERO_EMBEDDING: number[] = Array.from({ length: EMBEDDING_DIM }, () => 0);
 
 export async function embedWikiExcerpt(excerpt: string): Promise<number[]> {
-  const embedBatch = createOpenAIEmbedder();
+  const embedBatch = createDefaultNarrativeEmbedder();
   const [embedding] = await embedBatch([excerpt]);
   if (!embedding || embedding.length !== EMBEDDING_DIM) {
     throw new Error(`Embedding dimension mismatch: expected ${EMBEDDING_DIM}, got ${embedding?.length ?? 0}`);

@@ -44,13 +44,48 @@ export function normalizeAccountStatus(raw: string | null | undefined): AccountS
   return raw?.trim() === "pending_signatures" ? "pending_signatures" : "active";
 }
 
+function isMsgfOperatorAdminRole(raw: string | null | undefined): boolean {
+  const s = raw?.trim().toUpperCase();
+  return s === "GLOBAL_ADMIN" || s === "COMPANY_ADMIN";
+}
+
+/** Marketing / platform hub routes stay visible regardless of team RBAC slice. */
+export function isAlwaysVisibleNavLink(href: string): boolean {
+  const path = href.split("#")[0];
+  return (
+    path === "/" ||
+    path.startsWith("/features") ||
+    path.startsWith("/brain") ||
+    path.startsWith("/other-products") ||
+    path.startsWith("/getting-started") ||
+    path.startsWith("/pricing") ||
+    path.startsWith("/status")
+  );
+}
+
 export function resolveSessionPermissions(input: {
   isIndependentSandbox: boolean;
   teamPlatformRole: string | null | undefined;
   accountStatus?: string | null | undefined;
+  msgfAccessRole?: string | null | undefined;
 }): SessionPermissions {
   const accountStatus = normalizeAccountStatus(input.accountStatus);
   const isIndependentSandbox = input.isIndependentSandbox;
+
+  if (isMsgfOperatorAdminRole(input.msgfAccessRole)) {
+    return {
+      roles: ["admin", "security", "dev"],
+      primaryRole: "admin",
+      isIndependentSandbox,
+      accountStatus,
+      canAccessWorkspace: true,
+      canAccessGovernanceDashboard: true,
+      canManageTeam: true,
+      canWriteDestructive: true,
+      isReadOnlyCompliance: false,
+      isDocuSignLocked: false,
+    };
+  }
 
   const roles: PlatformRole[] = isIndependentSandbox
     ? [...ALL_INDIE_ROLES]
@@ -94,7 +129,9 @@ export function filterNavLinksForPermissions<T extends { href: string; label: st
     return links;
   }
   if (permissions.roles.includes("dev") && !permissions.canAccessGovernanceDashboard) {
-    return links.filter((l) => l.href.startsWith("/workspace"));
+    return links.filter(
+      (l) => l.href.startsWith("/workspace") || isAlwaysVisibleNavLink(l.href)
+    );
   }
   if (permissions.roles.includes("security") || permissions.roles.includes("auditor")) {
     return links.filter(

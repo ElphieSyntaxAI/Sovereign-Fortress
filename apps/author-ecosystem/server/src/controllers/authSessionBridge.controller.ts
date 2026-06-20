@@ -1,9 +1,11 @@
 import { Router, type Request, type Response } from "express";
 import { defaultAuthorDashboardReturnTo } from "@elphie-syntax/core/author-handoff-origins";
+import { buildAuthorHandoffClientSessionHtml } from "@elphie-syntax/core/author-handoff-client-session";
 import {
+  resolveMsgfAuthorHandoffEntryUrl,
   sanitizeAuthorReturnToUrl,
-  verifyOperatorHandoffToken,
-} from "@elphie-syntax/core/operator-handoff-token";
+} from "@elphie-syntax/core/operator-handoff-url";
+import { verifyOperatorHandoffToken } from "@elphie-syntax/core/operator-handoff-token";
 import {
   PLATFORM_COMING_SOON,
   isPersonaValidForPlatform,
@@ -11,12 +13,15 @@ import {
   resolvePostLoginRedirect,
 } from "msgf/lib/platform-persona-auth";
 
-import { BFF_AUTH_COOKIE_NAME, bffCookieBaseOptions } from "../lib/bffAuthCookies.js";
-import { createBffSupabaseServerClient } from "../lib/bffSupabaseSsr.js";
+import { BFF_AUTH_COOKIE_NAME, bffCookieBaseOptions, getJwtFromRequest } from "../lib/bffAuthCookies.js";
+import { withBffSupabaseCookieOptions } from "../lib/bffSupabaseCookieOptions.js";
+import { createBffSupabaseHandoffClient, createBffSupabaseServerClient } from "../lib/bffSupabaseSsr.js";
+import { loadMonorepoRootEnv } from "../lib/database/loadRootEnv.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 import { readBearerUser, normalizeRole } from "../lib/readBearerJwtUser.js";
 import { resolvePlatformOperatorAccess } from "../lib/isPlatformOperator.js";
-import { syncPlatformPersonaSession } from "../lib/syncPlatformPersonaSession.js";
+import { getPublishableAuthClient } from "../lib/resolveBffAuthUser.js";
+import { syncPlatformPersonaSession, setPlatformContextCookies } from "../lib/syncPlatformPersonaSession.js";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../lib/vaultPactAttestation.js";
 
 /**
@@ -116,52 +121,154 @@ function readHandoffReturnTo(req: Request): string {
   return sanitizeAuthorReturnToUrl(fromBody ?? fromQuery, defaultAuthorDashboardReturnTo());
 }
 
+function redirectToMsgfHandoffEntry(req: Request, res: Response, handoffError?: string): void {
+  const entry = resolveMsgfAuthorHandoffEntryUrl(readHandoffReturnTo(req));
+  if (handoffError) {
+    const u = new URL(entry);
+    u.searchParams.set("handoff_error", handoffError.slice(0, 200));
+    res.redirect(302, u.href);
+    return;
+  }
+  res.redirect(302, entry);
+}
+
+function requestHostFromReq(req: Request): string | undefined {
+  const xf = req.headers["x-forwarded-host"];
+  const forwarded = Array.isArray(xf) ? xf[0] : xf;
+  const host = forwarded || req.headers.host;
+  return typeof host === "string" ? host.split(",")[0]?.trim().split(":")[0] : undefined;
+}
+
+function handoffRequestOrigin(req: Request): string {
+  const protoHeader = req.headers["x-forwarded-proto"];
+  const proto =
+    (typeof protoHeader === "string" ? protoHeader.split(",")[0]?.trim() : undefined) ||
+    req.protocol ||
+    "https";
+  const host = requestHostFromReq(req) ?? req.headers.host ?? "localhost";
+  return `${proto}://${host}`;
+}
+
+function handoffSupabasePublicConfig(): { url: string; key: string } {
+  loadMonorepoRootEnv();
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim() || "";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || "";
+  if (!url || !key) {
+    throw new Error("Supabase public config missing for MSGF handoff.");
+  }
+  return { url, key };
+}
+
 async function completeMsgfOperatorHandoff(req: Request, res: Response): Promise<void> {
+  const returnTo = readHandoffReturnTo(req);
   const token = readHandoffToken(req);
   if (!token) {
-    res.status(400).send("Missing handoff token.");
+    if (req.method === "GET") {
+      redirectToMsgfHandoffEntry(req, res);
+      return;
+    }
+    res.status(400).send("Missing handoff token. Start from MSGF admin portal → Open Author.");
     return;
   }
-
-  const returnTo = readHandoffReturnTo(req);
   const payload = verifyOperatorHandoffToken(token, operatorHandoffSecret());
-  const supabase = createBffSupabaseServerClient(req, res);
-  const { data, error } = await supabase.auth.setSession({
-    access_token: payload.access_token,
-    refresh_token: payload.refresh_token,
-  });
+  const { url, key } = handoffSupabasePublicConfig();
+  const cookieOpts = withBffSupabaseCookieOptions({ path: "/" }, requestHostFromReq(req));
+  const origin = handoffRequestOrigin(req);
 
-  if (error || !data.session?.user) {
-    res.status(401).send(error?.message ?? "Could not establish Author session.");
-    return;
-  }
-
-  mirrorAccessTokenCookie(req, res, data.session.access_token);
-
-  const meta = data.session.user.user_metadata ?? {};
-  let persona = String(meta.persona ?? meta.terms_role ?? "author").trim().toLowerCase();
-  if (!isPersonaValidForPlatform("author", persona)) persona = "author";
-
-  try {
-    await syncPlatformPersonaSession(res, data.session.user, {
-      platform: "author",
-      persona,
-    });
-  } catch (syncErr) {
-    console.error("[bff/auth/msgf-handoff] entitlement sync (non-fatal):", syncErr);
-  }
-
-  res.redirect(302, returnTo);
+  // Browser setSession — avoids nginx "upstream sent too big header" on 302 + Set-Cookie.
+  res
+    .status(200)
+    .type("html")
+    .send(
+      buildAuthorHandoffClientSessionHtml({
+        supabaseUrl: url,
+        supabasePublishableKey: key,
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+        returnTo,
+        finishUrl: `${origin}/api/auth/msgf-handoff/finish`,
+        cookieDomain: cookieOpts.domain,
+        cookieSecure: cookieOpts.secure,
+      })
+    );
 }
 
 function handleMsgfHandoff(req: Request, res: Response): void {
   void completeMsgfOperatorHandoff(req, res).catch((e) => {
     console.error("[bff/auth/msgf-handoff]", e);
-    if (!res.headersSent) {
-      res.status(400).send(e instanceof Error ? e.message : "Handoff failed.");
+    if (res.headersSent) return;
+    const msg = e instanceof Error ? e.message : "Handoff failed.";
+    if (req.method === "GET") {
+      redirectToMsgfHandoffEntry(req, res, msg);
+      return;
     }
+    res.status(400).send(msg);
   });
 }
+
+/**
+ * POST /api/auth/msgf-handoff/finish — after browser setSession, set small platform context cookies.
+ */
+authSessionBridgeController.post("/msgf-handoff/finish", (req: Request, res: Response) => {
+  void (async () => {
+    try {
+      const body = req.body as Record<string, unknown> | undefined;
+      const accessFromBody = String(body?.access_token ?? "").trim();
+      const refreshFromBody = String(body?.refresh_token ?? "").trim();
+      const accessFromHeader = getJwtFromRequest(req)?.trim() ?? "";
+      const accessToken = accessFromBody || accessFromHeader;
+      const refreshToken = refreshFromBody;
+
+      let user: { user_metadata?: Record<string, unknown> | null } | null = null;
+
+      // Preferred: browser posts tokens after client setSession — BFF writes httpOnly Supabase cookies.
+      if (accessToken && refreshToken) {
+        const supabase = createBffSupabaseHandoffClient(req, res);
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (error || !data.session) {
+          res.status(401).send(error?.message ?? "Could not establish Author session.");
+          return;
+        }
+        mirrorAccessTokenCookie(req, res, data.session.access_token);
+        user = data.user;
+      } else {
+        const supabase = createBffSupabaseServerClient(req, res);
+        const { data: cookieUser, error: cookieErr } = await supabase.auth.getUser();
+        if (!cookieErr && cookieUser.user) {
+          user = cookieUser.user;
+        }
+
+        if (!user) {
+          const token = accessToken || getJwtFromRequest(req);
+          const client = getPublishableAuthClient();
+          if (token && client) {
+            const { data: bearerUser, error: bearerErr } = await client.auth.getUser(token);
+            if (!bearerErr && bearerUser.user) user = bearerUser.user;
+          }
+        }
+      }
+
+      if (!user) {
+        res.status(401).send("No Author session yet.");
+        return;
+      }
+
+      const meta = user.user_metadata ?? {};
+      let persona = String(meta.persona ?? meta.terms_role ?? "author").trim().toLowerCase();
+      if (!isPersonaValidForPlatform("author", persona)) persona = "author";
+
+      setPlatformContextCookies(res, "author", persona);
+      res.status(204).end();
+    } catch (e) {
+      console.error("[bff/auth/msgf-handoff/finish]", e);
+      res.status(500).send(e instanceof Error ? e.message : "Finish failed.");
+    }
+  })();
+});
 
 /**
  * GET /api/auth/msgf-handoff — legacy query-string handoff (large URLs).

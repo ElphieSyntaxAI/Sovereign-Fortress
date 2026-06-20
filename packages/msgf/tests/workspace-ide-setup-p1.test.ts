@@ -28,6 +28,7 @@ describe("workspace-ide-setup P1", () => {
       tenantKey: "deckhostwmsgf/deck_host",
       authToken: "jwt-token",
     });
+    assert.equal(s["msgf.enabled"], true);
     assert.equal(s["msgf.apiUrl"], "https://elphiesgatedai.elphiesyntax.com");
     assert.equal(s["msgf.tenantKey"], "deckhostwmsgf/deck_host");
     assert.equal(s["msgf.authToken"], "jwt-token");

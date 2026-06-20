@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts",
+    "start": "tsx --tsconfig ../../../tsconfig.json src/main.ts",
     "build": "tsc -p tsconfig.json",
     "sync:google-manuscript": "tsx src/lib/fetchManuscript.ts",
     "migrate:legacy-users": "tsx --env-file-if-exists=../../../.env.local --env-file-if-exists=../../../.env src/scripts/migrate-legacy-users.ts",

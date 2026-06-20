@@ -67,3 +67,30 @@ export function ideTenantKeysAlignForLicense(
 
   return false;
 }
+
+/**
+ * True when IDE token row tenant_id matches X-MSGF-Tenant-Key — including monorepo
+ * `elphiesyntax/author-ecosystem` ↔ `apps/author-ecosystem` for the same preset.
+ */
+export function ideTokenTenantAlignsWithHeader(
+  tokenTenantId: string,
+  headerTenantKey: string
+): boolean {
+  const token = sanitizeTenantScope(tokenTenantId);
+  const header = sanitizeTenantScope(headerTenantKey);
+  if (!header) return true;
+  if (!token) return false;
+  if (token === header) return true;
+
+  for (const preset of MONOREPO_WORKSPACE_PRESETS) {
+    const origin = sanitizeTenantScope(preset.project_origin);
+    const path = sanitizeTenantScope(preset.suggested_local_path);
+    const tokenMatches = token === origin || token === path;
+    const headerMatches = header === origin || header === path;
+    if (tokenMatches && headerMatches) return true;
+  }
+
+  return (
+    ideTenantKeysAlignForLicense(token, header) || ideTenantKeysAlignForLicense(header, token)
+  );
+}

@@ -17,7 +17,7 @@
 
 export * from "./client";
 
-export { Msgf, MsgfRuntime, getMsgfRuntime, type MsgfInitConfig } from "@/lib/msgf";
+export { Msgf, MsgfRuntime, getMsgfRuntime, type MsgfInitConfig } from "../msgf";
 
 export {
   RemediationEngine,

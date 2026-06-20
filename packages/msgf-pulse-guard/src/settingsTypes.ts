@@ -6,6 +6,8 @@ export type SmallBrainProvider =
   | "gemini";
 
 export type MsgfGuardSettings = {
+  /** When false, Pulse / .msgf scaffold / stoplight stay off (per-workspace opt-in). */
+  enabled: boolean;
   productPath: string;
   tenantKey: string;
   authToken: string;

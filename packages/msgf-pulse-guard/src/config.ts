@@ -37,6 +37,7 @@ export function readMsgfSettings(): MsgfGuardSettings {
   );
 
   const base: MsgfGuardSettings = {
+    enabled: config.get<boolean>("enabled", false),
     productPath: sanitizeMsgfSettingValue(config.get<string>("productPath", "")),
     tenantKey: sanitizeMsgfSettingValue(config.get<string>("tenantKey", "")),
     authToken: authFromConfig,
@@ -86,4 +87,9 @@ export function settingsReady(settings: MsgfGuardSettings): {
     missing.push("msgf.tenantKey");
   }
   return { ok: missing.length === 0, missing };
+}
+
+/** MSGF arms only when this workspace opts in (`msgf.enabled`). */
+export function isMsgfArmed(settings: MsgfGuardSettings): boolean {
+  return settings.enabled === true;
 }

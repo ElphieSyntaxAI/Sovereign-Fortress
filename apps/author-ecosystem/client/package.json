@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:handoff": "vite build --config vite.handoff.config.js",
     "preview": "vite preview",
     "lint": "eslint ."
   },

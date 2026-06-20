@@ -217,7 +217,7 @@ function OutlinePageContent(props: { manuscriptId: string; tenantId: string }) {
           {status ? <p className="text-xs text-zinc-400">{status}</p> : null}
 
           {tab === "building-block-outline" ? (
-            <PlanningCommandCenter {...sharedPcc} initialTab="sandbox" allowedTabs={["sandbox"]} />
+            <PlotEnginePanel manuscriptId={props.manuscriptId} />
           ) : null}
 
           {tab === "interview-style-outline" ? (

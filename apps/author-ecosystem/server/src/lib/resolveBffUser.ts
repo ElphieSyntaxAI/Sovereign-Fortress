@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 
+import { bffTenantIdFromSupabaseUser } from "./authorTenantId.js";
 import { createBffSupabaseServerClient } from "./bffSupabaseSsr.js";
 import { normalizeRole, readBearerUser, tryReadBearerUser, type BffAuthUser } from "./readBearerJwtUser.js";
 
@@ -28,7 +29,10 @@ export async function resolveBffUser(
       error,
     } = await supabase.auth.getUser();
     if (!error && user?.id) {
-      const authUser: BffAuthUser = { userId: user.id, role: roleFromSupabaseUser(user) };
+      const authUser: BffAuthUser = {
+        userId: bffTenantIdFromSupabaseUser(user),
+        role: roleFromSupabaseUser(user),
+      };
       (req as Request & { bffAuthUser?: BffAuthUser }).bffAuthUser = authUser;
       return authUser;
     }

@@ -33,18 +33,9 @@ const PROD_OVERRIDES = {
   NEXT_PUBLIC_MSGF_AUTH_COOKIE_SECURE: "1",
   BFF_ALLOWED_ORIGINS:
     "https://authorecosystem.elphiesyntax.com,https://elphiesgatedai.elphiesyntax.com",
-  VITE_AUTHOR_BFF_URL: "https://api.authorecosystem.elphiesyntax.com",
+  // Same-origin /api on authorecosystem — api.* subdomain DNS is not mapped yet.
+  VITE_AUTHOR_BFF_URL: "",
 };
-
-// MSGF handoff reads AUTHOR_BFF_URL / AUTHOR_ECOSYSTEM_URL at runtime (not Vite-only).
-// If api.authorecosystem DNS is not mapped yet, set in packages/msgf/.env.local before prepare:
-//   AUTHOR_BFF_URL=https://<your-author-bff>-uc.a.run.app
-// MSGF handoff + same-origin Author /api proxy use the SPA host, not api.* until DNS is mapped.
-merged.AUTHOR_BFF_URL =
-  merged.AUTHOR_BFF_URL?.trim() ||
-  merged.AUTHOR_APP_URL?.trim() ||
-  "https://authorecosystem.elphiesyntax.com";
-merged.AUTHOR_ECOSYSTEM_URL = merged.AUTHOR_ECOSYSTEM_URL?.trim() || merged.AUTHOR_BFF_URL;
 
 const COPY_KEYS = [
   "GCP_PROJECT_ID",
@@ -107,6 +98,17 @@ for (const k of COPY_KEYS) {
   if (v) merged[k] = v;
 }
 Object.assign(merged, PROD_OVERRIDES);
+
+// MSGF handoff reads AUTHOR_BFF_URL / AUTHOR_ECOSYSTEM_URL at runtime (not Vite-only).
+// Override in packages/msgf/.env.local if api.authorecosystem DNS is not mapped yet.
+const authorBffFromEnv = merged.AUTHOR_BFF_URL?.trim();
+const authorAppUrl = merged.AUTHOR_APP_URL?.trim();
+merged.AUTHOR_BFF_URL =
+  authorBffFromEnv ||
+  authorAppUrl ||
+  "https://authorecosystem.elphiesyntax.com";
+const authorEcosystemFromEnv = merged.AUTHOR_ECOSYSTEM_URL?.trim();
+merged.AUTHOR_ECOSYSTEM_URL = authorEcosystemFromEnv || merged.AUTHOR_BFF_URL;
 
 // Local REDIS_URL (127.0.0.1 / localhost) must not ship to Cloud Run — use Upstash REST instead.
 const redisUrl = merged.REDIS_URL?.trim() ?? "";

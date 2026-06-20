@@ -43,4 +43,5 @@ COPY tools ./tools
 
 EXPOSE 8080
 
-CMD ["npx", "tsx", "apps/author-ecosystem/server/src/main.ts"]
+# Repo-root tsconfig maps @/* → packages/msgf/* for tsx (author server tsconfig has no paths).
+CMD ["npx", "tsx", "--tsconfig", "tsconfig.json", "apps/author-ecosystem/server/src/main.ts"]

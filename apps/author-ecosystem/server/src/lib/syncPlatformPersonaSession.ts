@@ -14,6 +14,10 @@ import { bffCookieBaseOptions } from "./bffAuthCookies.js";
 import { ensurePublicAuthorProfile } from "./ensurePublicAuthorProfile.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
 
+export function setPlatformContextCookies(res: Response, platform: PlatformId, persona: string): void {
+  platformContextCookies(res, platform, persona);
+}
+
 export type PlatformPersonaContext = {
   platform: PlatformId;
   persona: string;

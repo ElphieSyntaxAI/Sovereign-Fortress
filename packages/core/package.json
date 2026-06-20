@@ -54,6 +54,11 @@
       "import": "./src/lib/author-handoff-auto-post.ts",
       "default": "./src/lib/author-handoff-auto-post.ts"
     },
+    "./author-handoff-client-session": {
+      "types": "./src/lib/author-handoff-client-session.ts",
+      "import": "./src/lib/author-handoff-client-session.ts",
+      "default": "./src/lib/author-handoff-client-session.ts"
+    },
     "./platform-hub-content": {
       "types": "./src/lib/platform-hub-content.ts",
       "import": "./src/lib/platform-hub-content.ts",

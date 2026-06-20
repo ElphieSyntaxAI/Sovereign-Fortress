@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { retrieveP4NarrativeChunks } from "../p4RagRetrieval.js";
-import { createOpenAIEmbedder, type EmbedBatchFn } from "./IngestionService.js";
+import { createDefaultNarrativeEmbedder, type EmbedBatchFn } from "./IngestionService.js";
 
 /** Supported answer / question languages for the Librarian. */
 export type LibrarianLanguage = "en" | "es" | "ja";
@@ -507,7 +507,7 @@ export class LibrarianChat {
     private readonly supabase: SupabaseClient,
     options: LibrarianChatOptions = {}
   ) {
-    this.embedBatch = options.embedBatch ?? createOpenAIEmbedder();
+    this.embedBatch = options.embedBatch ?? createDefaultNarrativeEmbedder();
     this.chatModel =
       options.chatModel?.trim() ||
       process.env.OPENAI_LIBRARIAN_MODEL?.trim() ||

@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Request, Response } from "express";
 
+import { bffTenantIdFromSupabaseUser } from "./authorTenantId.js";
 import { getJwtFromRequest } from "./bffAuthCookies.js";
 import { createBffSupabaseServerClient } from "./bffSupabaseSsr.js";
 import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
@@ -16,13 +17,7 @@ export type AuthRequest = Request & { bffAuthUser?: BffAuthUser };
 
 function mapSupabaseUser(user: User): BffAuthUser {
   const meta = user.user_metadata ?? {};
-  const legacyRaw = meta["legacy_user_id"];
-  const userId =
-    typeof legacyRaw === "string" && legacyRaw.trim()
-      ? legacyRaw.trim()
-      : typeof legacyRaw === "number"
-        ? String(legacyRaw)
-        : user.id;
+  const userId = bffTenantIdFromSupabaseUser(user);
   const role = normalizeRole(
     meta["terms_role"] ?? meta["user_role"] ?? meta["role"] ?? meta["persona"]
   );
@@ -31,7 +26,7 @@ function mapSupabaseUser(user: User): BffAuthUser {
 
 let publishableClient: SupabaseClient | null = null;
 
-function getPublishableAuthClient(): SupabaseClient | null {
+export function getPublishableAuthClient(): SupabaseClient | null {
   loadMonorepoRootEnv();
   const url =
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();

@@ -5,7 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { scheduleLibrarianLogicRevisionAuditOnCooldown } from "./RevisionAuditService.js";
-import { createOpenAIEmbedder, type EmbedBatchFn } from "./narrative/IngestionService.js";
+import { createDefaultNarrativeEmbedder, type EmbedBatchFn } from "./narrative/IngestionService.js";
 
 export type RevisionStatus =
   | "DRAFTING"
@@ -144,7 +144,7 @@ export async function triggerRevisionAudit(
   manuscriptId: string,
   options?: { embedBatch?: EmbedBatchFn }
 ): Promise<RevisionAuditResult> {
-  const embedBatch = options?.embedBatch ?? createOpenAIEmbedder();
+  const embedBatch = options?.embedBatch ?? createDefaultNarrativeEmbedder();
 
   const { data: ms, error: msErr } = await supabase
     .from("p4_manuscripts")

@@ -16,7 +16,12 @@
      * `packages/msgf/dist/` required for monorepo typecheck). Production
      * `tsx`/`tsc` builds still emit JS that resolves via `import` / `default`.
      */
-    "customConditions": ["development"]
+    "customConditions": ["development"],
+    "baseUrl": "../../..",
+    "paths": {
+      "@/*": ["packages/msgf/*"],
+      "@msgf/*": ["packages/msgf/src/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

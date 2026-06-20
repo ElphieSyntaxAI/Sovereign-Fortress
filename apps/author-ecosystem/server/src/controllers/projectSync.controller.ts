@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { Router, type Request, type Response } from "express";
 
 import { assertUuid } from "../lib/halMetrics.js";
-import { IngestionService } from "../lib/narrative/IngestionService.js";
+import { IngestionService, narrativeEmbedderProvider } from "../lib/narrative/IngestionService.js";
 import { applyPlanningSyncRevisionGate } from "../middleware/RevisionGateMiddleware.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
@@ -175,6 +175,7 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
     outline_updated: outlineUpdated,
     lore_ingest: loreIngest,
     plot_ingest: plotIngest,
+    embedder: narrativeEmbedderProvider(),
     warnings,
     revision_gate,
   });

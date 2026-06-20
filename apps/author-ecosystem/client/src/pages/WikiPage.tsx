@@ -10,7 +10,7 @@ import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 export default function WikiPage() {
   const { selection } = useNarrative();
   const [fanPreview, setFanPreview] = useState(false);
-  const [wikiEditable, setWikiEditable] = useState(false);
+  const [wikiEditable, setWikiEditable] = useState(true);
   const [wikiLockedAt, setWikiLockedAt] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -47,11 +47,16 @@ export default function WikiPage() {
 
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Wiki</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Full author lore index for{" "}
-            <span className="text-zinc-200">{selection?.title?.trim() || "this manuscript"}</span>. Toggle fan
-            preview to see what fans would access (spoilers and drafts hidden).
+          <h1 className="font-[Georgia,serif] text-3xl font-bold tracking-tight text-zinc-50">
+            Lore Wiki
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-zinc-400">
+            Encyclopedia for{" "}
+            <span className="font-medium text-zinc-200">
+              {selection?.title?.trim() || "this manuscript"}
+            </span>
+            . Browse the overview for characters, settings, and world traits — hover links for
+            quick lore cards, or open full articles from the sidebar.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

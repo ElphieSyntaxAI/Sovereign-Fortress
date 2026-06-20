@@ -2,7 +2,11 @@ import { Router, type Request, type Response } from "express";
 
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
-import { chunkMatchesManuscript, isScrappedWiki } from "../lib/wikiEntryHelpers.js";
+import {
+  chunkMatchesManuscript,
+  isDisplayableAuthorWikiChunk,
+  isScrappedWiki,
+} from "../lib/wikiEntryHelpers.js";
 
 export const wikiController = Router();
 
@@ -84,13 +88,19 @@ wikiController.get("/api/wiki/:manuscriptId/chunks", async (req: Request, res: R
     return res.status(500).json({ error: error.message });
   }
 
+  let hiddenRagShards = 0;
   const scoped = (rows ?? []).filter((r) => {
     const meta = (r.metadata && typeof r.metadata === "object" ? r.metadata : {}) as Record<
       string,
       unknown
     >;
     if (isScrappedWiki(meta)) return false;
-    return chunkMatchesManuscript(meta, manuscriptId);
+    if (!chunkMatchesManuscript(meta, manuscriptId)) return false;
+    if (!isDisplayableAuthorWikiChunk(meta)) {
+      hiddenRagShards += 1;
+      return false;
+    }
+    return true;
   });
 
   const chunks: WikiChunk[] = scoped.map((r) => {
@@ -120,6 +130,7 @@ wikiController.get("/api/wiki/:manuscriptId/chunks", async (req: Request, res: R
       total: chunks.length,
       shown: filtered.length,
       hidden_spoilers: fanPreview ? chunks.length - filtered.length : 0,
+      hidden_rag_shards: hiddenRagShards,
     },
   });
 });

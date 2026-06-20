@@ -2,7 +2,7 @@
   "name": "msgf-pulse-guard",
   "displayName": "MSGF Pulse Guard",
   "description": "V3.2-ULTRA IDE guard — buffers keystroke Pulses and routes to MSGF (SHARD / CROSS-REF / CONVERGE).",
-  "version": "0.1.9",
+  "version": "0.2.2",
   "publisher": "elphiesyntax",
   "license": "UNLICENSED",
   "private": true,
@@ -74,6 +74,27 @@
       ]
     },
     "commands": [
+      {
+        "command": "msgf.confirmEnableForWorkspace",
+        "title": "MSGF: Enable for this file tree…",
+        "category": "MSGF",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "msgf.enableForWorkspace",
+        "title": "MSGF: Enable for this workspace",
+        "category": "MSGF"
+      },
+      {
+        "command": "msgf.disableForWorkspace",
+        "title": "MSGF: Disable for this workspace",
+        "category": "MSGF"
+      },
+      {
+        "command": "msgf.copyMsgfSettingsToWorkspace",
+        "title": "MSGF: Copy settings from User to this workspace",
+        "category": "MSGF"
+      },
       {
         "command": "msgf.flushPulse",
         "title": "MSGF: Flush buffered Pulse now",
@@ -167,6 +188,12 @@
     "configuration": {
       "title": "MSGF Pulse Guard",
       "properties": {
+        "msgf.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Opt in for this workspace only. When false, MSGF does not scaffold .msgf/, buffer Pulses, or call the API — use for client repos until you are ready.",
+          "scope": "resource"
+        },
         "msgf.productPath": {
           "type": "string",
           "default": "",

@@ -81,11 +81,49 @@ export function DocumentIngestFlow(props: {
   const [outlineBeatCount, setOutlineBeatCount] = useState<number | null>(null);
   const planning = usePlanningSessionOptional();
 
+  const handleAutoCommitResponse = useCallback(
+    (json: {
+      session_id?: string;
+      auto_committed?: boolean;
+      auto_commit_failed?: boolean;
+      auto_commit_error?: string;
+      message?: string;
+      wiki_entry_count?: number;
+    }) => {
+      if (json.auto_committed) {
+        setSessionId(String(json.session_id ?? ""));
+        const count = json.wiki_entry_count ?? 0;
+        setCommitMessage(
+          json.message ??
+            `Wiki built automatically (${count} article${count === 1 ? "" : "s"}). Open Wiki to browse.`
+        );
+        setPhase("idle");
+        dispatchDocumentIngestCommitted({ manuscriptId: props.manuscriptId });
+        props.onCommitted?.();
+        void planning?.reloadPlotBeatsFromStorage?.();
+        return true;
+      }
+      if (json.auto_commit_failed) {
+        setError(
+          json.auto_commit_error ??
+            "Auto wiki build needs manual review — check proposed articles below."
+        );
+      }
+      return false;
+    },
+    [planning, props]
+  );
+
   const applyScanResponse = useCallback(
     (json: {
       error?: string;
       session_id?: string;
       status?: string;
+      auto_committed?: boolean;
+      auto_commit_failed?: boolean;
+      auto_commit_error?: string;
+      message?: string;
+      wiki_entry_count?: number;
       scan_thoughts?: ScanThought[];
       authorship_questions?: AuthorshipQuestion[];
       proposed_wiki?: ProposedWiki[];
@@ -96,6 +134,7 @@ export function DocumentIngestFlow(props: {
       ingest_conflicts?: IngestConflict[];
       clarifying_questions?: ClarifyingQuestion[];
     }) => {
+      if (handleAutoCommitResponse(json)) return;
       setSessionId(String(json.session_id ?? ""));
       setThoughts(Array.isArray(json.scan_thoughts) ? json.scan_thoughts : []);
       setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
@@ -129,7 +168,7 @@ export function DocumentIngestFlow(props: {
         setPhase("review");
       }
     },
-    []
+    [handleAutoCommitResponse]
   );
 
   const onDrop = useCallback(
@@ -254,6 +293,7 @@ export function DocumentIngestFlow(props: {
         setSessionId(null);
         return;
       }
+      if (handleAutoCommitResponse({ ...json, session_id: sessionId })) return;
       if (Array.isArray(json.ingest_conflicts)) setConflicts(json.ingest_conflicts);
       setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
       if (json.status === "authorship") {
@@ -304,6 +344,7 @@ export function DocumentIngestFlow(props: {
             : "";
         throw new Error(`${json.error || res.statusText}${failed}`);
       }
+      if (handleAutoCommitResponse({ ...json, session_id: sessionId })) return;
       setProposed(Array.isArray(json.proposed_wiki) ? json.proposed_wiki : []);
       setOutlineBeats(Array.isArray(json.outline_beats) ? json.outline_beats : []);
       setPhase("review");

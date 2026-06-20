@@ -1,0 +1,45 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import {
+  filterNavLinksForPermissions,
+  isAlwaysVisibleNavLink,
+  resolveSessionPermissions,
+} from "../lib/platform-rbac.js";
+
+describe("platform-rbac", () => {
+  it("elevates GLOBAL_ADMIN to full governance nav regardless of team dev role", () => {
+    const permissions = resolveSessionPermissions({
+      isIndependentSandbox: false,
+      teamPlatformRole: "dev",
+      msgfAccessRole: "GLOBAL_ADMIN",
+    });
+    assert.equal(permissions.canAccessGovernanceDashboard, true);
+    assert.ok(permissions.roles.includes("admin"));
+  });
+
+  it("dev-only team role keeps workspace plus always-visible marketing links", () => {
+    const permissions = resolveSessionPermissions({
+      isIndependentSandbox: false,
+      teamPlatformRole: "dev",
+    });
+    const links = filterNavLinksForPermissions(
+      [
+        { label: "Home", href: "/" },
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Workspace", href: "/workspace" },
+      ],
+      permissions
+    );
+    assert.deepEqual(
+      links.map((l) => l.label),
+      ["Home", "Workspace"]
+    );
+  });
+
+  it("isAlwaysVisibleNavLink includes platform hub", () => {
+    assert.equal(isAlwaysVisibleNavLink("/"), true);
+    assert.equal(isAlwaysVisibleNavLink("/other-products"), true);
+    assert.equal(isAlwaysVisibleNavLink("/dashboard"), false);
+  });
+});

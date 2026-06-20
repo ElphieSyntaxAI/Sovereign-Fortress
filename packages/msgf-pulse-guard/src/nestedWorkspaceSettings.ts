@@ -23,7 +23,9 @@ function msgfKeysFromRecord(raw: Record<string, unknown>): Partial<MsgfGuardSett
   for (const [key, value] of Object.entries(raw)) {
     if (!key.startsWith("msgf.")) continue;
     const short = key.replace(/^msgf\./, "") as keyof MsgfGuardSettings;
-    if (short === "devSession" && typeof value === "boolean") {
+    if (short === "enabled" && typeof value === "boolean") {
+      out.enabled = value;
+    } else if (short === "devSession" && typeof value === "boolean") {
       out.devSession = value;
     } else if (typeof value === "string") {
       (out as Record<string, string | boolean>)[short] = sanitizeMsgfSettingValue(value);
@@ -60,6 +62,8 @@ export function mergeMonorepoMsgfSettings(
   repoRoot: string | null
 ): MsgfGuardSettings {
   if (!repoRoot) return base;
+  // Never pull sibling-app tokens into a workspace that has not opted in.
+  if (!base.enabled) return base;
 
   const rootLayer = readRepoRootMsgfSettings(repoRoot);
   let merged: MsgfGuardSettings = { ...base, ...rootLayer };

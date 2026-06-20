@@ -1281,9 +1281,15 @@ export function buildManuscriptOutlineFromBeats(beats: IngestPlotBeat[]): string
     const bc = b.chapter_number ?? b.order;
     return ac - bc;
   });
+  const capLine = (text: string, max = 220): string => {
+    const t = text.replace(/\s+/g, " ").trim();
+    return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+  };
   return sorted
     .map((b, i) => {
-      const head = b.title?.trim() || b.synopsis.split(/\n/)[0]?.trim() || b.synopsis;
+      const head = capLine(
+        b.title?.trim() || b.synopsis.split(/\n/)[0]?.trim() || b.synopsis
+      );
       return `${i + 1}. ${head}`;
     })
     .filter(Boolean)

@@ -3,7 +3,10 @@ import {
   type OutlineLoreKind,
   type OutlineLoreKindConfig,
 } from "../lib/outlineLoreKinds";
+import { readExcerptFromDataTransfer } from "../lib/wikiSelectionAssign";
 import { useWikiDrafts } from "../context/WikiDraftContext";
+
+const DROP_KINDS = new Set<OutlineLoreKind>(["character", "setting", "environment"]);
 
 const RAIL_BUTTON_CLASS =
   "rounded-lg border px-2 py-2 text-[10px] font-semibold leading-tight transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500";
@@ -22,16 +25,44 @@ function WikiLoreRailButton(props: {
   active: boolean;
   hasDraft: boolean;
   showSideTooltip: boolean;
+  dropHighlight?: boolean;
   onClick: () => void;
+  onDropExcerpt?: (kind: OutlineLoreKind, excerpt: string) => void;
 }) {
-  const { item, active, hasDraft, showSideTooltip, onClick } = props;
+  const { item, active, hasDraft, showSideTooltip, dropHighlight, onClick, onDropExcerpt } = props;
+  const droppable = DROP_KINDS.has(item.kind) && Boolean(onDropExcerpt);
+
   return (
     <button
       type="button"
       title={item.railHoverTip}
       aria-label={`Add ${item.label.toLowerCase()}: ${item.railHoverTip}`}
       onClick={onClick}
-      className={[railButtonClass(active), showSideTooltip ? "group relative" : ""].join(" ")}
+      onDragOver={
+        droppable
+          ? (e) => {
+              if (e.dataTransfer.types.includes("application/x-elphie-wiki-excerpt")) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+              }
+            }
+          : undefined
+      }
+      onDrop={
+        droppable
+          ? (e) => {
+              e.preventDefault();
+              const excerpt = readExcerptFromDataTransfer(e.dataTransfer);
+              if (excerpt.length >= 12) onDropExcerpt?.(item.kind, excerpt);
+            }
+          : undefined
+      }
+      className={[
+        railButtonClass(active),
+        showSideTooltip ? "group relative" : "",
+        dropHighlight ? "border-amber-400/80 bg-amber-950/50 ring-1 ring-amber-400/40" : "",
+        droppable ? "wiki-rail-drop-target" : "",
+      ].join(" ")}
     >
       {item.railLabel}
       {hasDraft ? <span className="mt-0.5 block text-[8px] text-amber-300/90">draft</span> : null}
@@ -50,6 +81,7 @@ function WikiLoreRailButton(props: {
 export function WikiLoreRail(props: {
   openKind: OutlineLoreKind | null;
   onOpenKind: (kind: OutlineLoreKind) => void;
+  onDropExcerpt?: (kind: OutlineLoreKind, excerpt: string) => void;
 }) {
   const { drafts } = useWikiDrafts();
 
@@ -63,6 +95,9 @@ export function WikiLoreRail(props: {
           <p className="px-1 pb-1 text-center text-[9px] font-semibold uppercase tracking-wider text-violet-300/80">
             Wiki edit
           </p>
+          <p className="px-1 pb-1 text-center text-[8px] leading-snug text-zinc-500">
+            Drop highlights on Character / Setting / Environment
+          </p>
           {OUTLINE_LORE_KINDS.map((item) => (
             <WikiLoreRailButton
               key={item.kind}
@@ -70,6 +105,7 @@ export function WikiLoreRail(props: {
               active={props.openKind === item.kind}
               hasDraft={drafts.some((d) => d.kind === item.kind)}
               showSideTooltip
+              onDropExcerpt={props.onDropExcerpt}
               onClick={() => props.onOpenKind(item.kind)}
             />
           ))}
@@ -91,6 +127,7 @@ export function WikiLoreRail(props: {
               active={props.openKind === item.kind}
               hasDraft={false}
               showSideTooltip={false}
+              onDropExcerpt={props.onDropExcerpt}
               onClick={() => props.onOpenKind(item.kind)}
             />
           ))}

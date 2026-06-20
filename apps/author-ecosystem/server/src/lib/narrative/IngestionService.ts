@@ -2,6 +2,20 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
 
+import {
+  createDefaultNarrativeEmbedder,
+  NARRATIVE_EMBEDDING_DIM,
+  type EmbedBatchFn,
+} from "./narrativeEmbedder.js";
+
+export type { EmbedBatchFn } from "./narrativeEmbedder.js";
+export {
+  createDefaultNarrativeEmbedder,
+  createGeminiNarrativeEmbedder,
+  createOpenAIEmbedder,
+  narrativeEmbedderProvider,
+} from "./narrativeEmbedder.js";
+
 /** Semantic category for Librarian retrieval (manuscript vs bible lane). */
 export type NarrativeChunkType = "lore" | "plot" | "character";
 
@@ -25,10 +39,7 @@ export type IngestManuscriptResult = {
 
 const CHUNK_WORDS = 500;
 const OVERLAP_WORDS = 50;
-const EMBEDDING_DIM = 1536;
-const DEFAULT_EMBED_MODEL = "text-embedding-3-small";
-
-export type EmbedBatchFn = (texts: string[]) => Promise<number[][]>;
+const EMBEDDING_DIM = NARRATIVE_EMBEDDING_DIM;
 
 function normalizeWhitespace(text: string): string {
   return text.replace(/\u0000/g, "").replace(/\r\n/g, "\n").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
@@ -82,58 +93,10 @@ export function chunkTextByWords(
   return chunks;
 }
 
-/**
- * OpenAI embeddings (1536-dim). Set `OPENAI_API_KEY`. Optional `OPENAI_EMBEDDING_MODEL` (default text-embedding-3-small).
- */
-export function createOpenAIEmbedder(model = process.env.OPENAI_EMBEDDING_MODEL?.trim() || DEFAULT_EMBED_MODEL): EmbedBatchFn {
-  return async (texts: string[]) => {
-    const key = process.env.OPENAI_API_KEY?.trim();
-    if (!key) {
-      throw new Error("OPENAI_API_KEY is required to embed narrative chunks");
-    }
-    if (texts.length === 0) return [];
-
-    const batchSize = 48;
-    const all: number[][] = [];
-
-    for (let offset = 0; offset < texts.length; offset += batchSize) {
-      const batch = texts.slice(offset, offset + batchSize);
-      const res = await fetch("https://api.openai.com/v1/embeddings", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ model, input: batch }),
-      });
-
-      if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`OpenAI embeddings failed (${res.status}): ${errBody.slice(0, 500)}`);
-      }
-
-      const json = (await res.json()) as {
-        data: Array<{ embedding: number[]; index: number }>;
-      };
-      const sorted = [...json.data].sort((a, b) => a.index - b.index);
-      for (const row of sorted) {
-        if (!row.embedding || row.embedding.length !== EMBEDDING_DIM) {
-          throw new Error(
-            `Embedding dimension mismatch: expected ${EMBEDDING_DIM}, got ${row.embedding?.length ?? 0} (model ${model})`
-          );
-        }
-        all.push(row.embedding);
-      }
-    }
-
-    return all;
-  };
-}
-
 export class IngestionService {
   constructor(
     private readonly supabase: SupabaseClient,
-    private readonly embedBatch: EmbedBatchFn = createOpenAIEmbedder()
+    private readonly embedBatch: EmbedBatchFn = createDefaultNarrativeEmbedder()
   ) {}
 
   /**

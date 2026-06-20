@@ -270,7 +270,7 @@ export function DashboardNav({
       <header className="sticky top-0 z-50 border-b border-violet-500/10 bg-slate-950/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-5">
           <Link
-            href="/dashboard"
+            href="/"
             className="group flex shrink-0 items-center gap-2.5"
             onClick={closeAll}
           >

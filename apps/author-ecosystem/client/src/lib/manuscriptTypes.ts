@@ -73,3 +73,22 @@ export function hubRowToSelection(row: HubManuscript) {
     projectPhase: normalizePhase(row.project_phase),
   };
 }
+
+/** Locate a manuscript row anywhere in the hub payload (linked or unlinked). */
+export function findHubManuscript(
+  hub: ManuscriptHubPayload,
+  manuscriptId: string
+): HubManuscript | null {
+  const buckets = [
+    ...hub.unlinked,
+    ...hub.standalone.working,
+    ...hub.standalone.editing,
+    ...hub.standalone.finished,
+    ...hub.series.flatMap(({ columns }) => [
+      ...columns.working,
+      ...columns.editing,
+      ...columns.finished,
+    ]),
+  ];
+  return buckets.find((row) => row.id === manuscriptId) ?? null;
+}

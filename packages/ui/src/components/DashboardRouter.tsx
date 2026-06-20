@@ -581,9 +581,29 @@ export function DashboardRouter({
                 <p className="text-lg font-semibold text-zinc-100">
                   {String(asObj(drafting["current_chapter"] ?? {})["word_count"] ?? "—")}
                 </p>
-                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-zinc-800 bg-zinc-900/80 p-2 text-xs text-zinc-300">
-                  {String(asObj(drafting["current_chapter"] ?? {})["live_excerpt"] ?? "")}
-                </pre>
+                {(() => {
+                  const excerpt = String(
+                    asObj(drafting["current_chapter"] ?? {})["live_excerpt"] ?? ""
+                  ).trim();
+                  if (!excerpt) {
+                    return (
+                      <p className="mt-2 text-xs text-zinc-500">
+                        Draft in Google Docs with the HAL extension — sessions and word counts sync
+                        here. This dashboard is not a drafting editor.
+                      </p>
+                    );
+                  }
+                  return (
+                    <>
+                      <p className="mt-2 text-[10px] text-zinc-500">
+                        Last synced excerpt (write in Google Docs, not here)
+                      </p>
+                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-zinc-800 bg-zinc-900/80 p-2 text-xs text-zinc-300">
+                        {excerpt}
+                      </pre>
+                    </>
+                  );
+                })()}
               </div>
             </>
           )}

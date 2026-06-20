@@ -19,6 +19,7 @@ import { createHash, randomBytes } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
+import { ideTokenTenantAlignsWithHeader } from "@/lib/ide-tenant-alignment";
 
 const IDE_TOKEN_PREFIX = "msgf_ide_";
 
@@ -159,7 +160,7 @@ export async function verifyIdeToken(
 
   const expected = sanitizeTenantScope(expectedTenantId ?? "");
   const stored = sanitizeTenantScope(data.tenant_id);
-  if (expected && stored !== expected) {
+  if (expected && !ideTokenTenantAlignsWithHeader(stored, expected)) {
     return null;
   }
 
@@ -198,7 +199,7 @@ export async function verifyIdeTokenDiagnostic(
 
   const headerTenant = sanitizeTenantScope(expectedTenantId ?? "");
   const storedTenant = sanitizeTenantScope(data.tenant_id);
-  if (headerTenant && storedTenant !== headerTenant) {
+  if (headerTenant && !ideTokenTenantAlignsWithHeader(storedTenant, headerTenant)) {
     return {
       status: "tenant_mismatch",
       token_tenant_id: storedTenant,

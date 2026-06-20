@@ -21,6 +21,7 @@ export type DashboardNavLink = {
 export const DASHBOARD_PRIMARY_LINKS = (
   tokenSavingsHref: string
 ): DashboardNavLink[] => [
+  { label: "Home", href: "/", matchPath: "/" },
   { label: "Dashboard", href: "/dashboard", matchPath: "/dashboard" },
   {
     label: "Daily Reports",

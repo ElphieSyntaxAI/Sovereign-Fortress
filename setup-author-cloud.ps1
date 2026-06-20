@@ -1,6 +1,5 @@
 # Author Cloud Run deploy — Windows helper (delegates to Git Bash).
 param([string]$LogFile = "gcp-deployment-author.log")
-$ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 $bash = @(
@@ -12,4 +11,11 @@ if (-not $bash) {
   $g = Get-Command bash -ErrorAction SilentlyContinue
   if ($g) { $bash = $g.Source } else { throw "Install Git for Windows (bash.exe) or use WSL." }
 }
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 & $bash -lc "cd `"$(($root -replace '\\','/'))`" && exec ./setup-author-cloud.sh" 2>&1 | Tee-Object -FilePath (Join-Path $root $LogFile)
+$bashExit = $LASTEXITCODE
+$ErrorActionPreference = $prevEap
+if ($bashExit -ne 0) {
+  exit $bashExit
+}

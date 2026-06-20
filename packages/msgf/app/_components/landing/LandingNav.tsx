@@ -26,7 +26,7 @@ export function LandingNav({ userEmail = null }: Props) {
   return (
     <header className="sticky top-0 z-50 border-b border-violet-500/10 bg-slate-950/60 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
-        <Link href={signedIn ? "/dashboard" : "/"} className="group flex items-center gap-2.5">
+        <Link href="/" className="group flex items-center gap-2.5">
           <BrandLogo
             size={36}
             decorative

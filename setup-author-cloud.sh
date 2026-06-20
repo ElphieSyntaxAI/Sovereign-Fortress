@@ -66,6 +66,21 @@ _normalize_bff_run_env() {
   if [[ -z "${RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]:-}" && -n "${RUN_ENV[VITE_SUPABASE_ANON_KEY]:-}" ]]; then
     RUN_ENV[NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY]="${RUN_ENV[VITE_SUPABASE_ANON_KEY]}"
   fi
+  if [[ -z "${RUN_ENV[AUTHOR_CLIENT_ORIGIN]:-}" ]]; then
+    RUN_ENV[AUTHOR_CLIENT_ORIGIN]="${RUN_ENV[AUTHOR_APP_URL]:-${RUN_ENV[VITE_AUTHOR_APP_URL]:-}}"
+  fi
+  if [[ -z "${RUN_ENV[GOOGLE_OAUTH_REDIRECT_URI]:-}" ]]; then
+    local author_app="${RUN_ENV[AUTHOR_APP_URL]:-${RUN_ENV[VITE_AUTHOR_APP_URL]:-https://authorecosystem.elphiesyntax.com}}"
+    author_app="${author_app%/}"
+    RUN_ENV[GOOGLE_OAUTH_REDIRECT_URI]="${author_app}/api/google/oauth/callback"
+  elif [[ -n "${RUN_ENV[AUTHOR_APP_URL]:-${RUN_ENV[VITE_AUTHOR_APP_URL]:-}}" ]]; then
+    local author_app="${RUN_ENV[AUTHOR_APP_URL]:-${RUN_ENV[VITE_AUTHOR_APP_URL]}}"
+    author_app="${author_app%/}"
+    local redirect="${RUN_ENV[GOOGLE_OAUTH_REDIRECT_URI]}"
+    if [[ "${redirect}" == *127.0.0.1* || "${redirect}" == *localhost* || "${redirect}" == *".run.app"* ]]; then
+      RUN_ENV[GOOGLE_OAUTH_REDIRECT_URI]="${author_app}/api/google/oauth/callback"
+    fi
+  fi
 }
 _normalize_bff_run_env
 
@@ -110,6 +125,11 @@ BFF_ENV_KEYS=(
   SUPABASE_URL
   SUPABASE_SERVICE_ROLE_KEY
   SUPABASE_JWT_SECRET
+  MSGF_AUTH_COOKIE_DOMAIN
+  NEXT_PUBLIC_MSGF_AUTH_COOKIE_DOMAIN
+  MSGF_AUTH_COOKIE_SECURE
+  NEXT_PUBLIC_MSGF_AUTH_COOKIE_SECURE
+  MSGF_OPERATOR_HANDOFF_SECRET
   MSGF_APP_URL
   MSGF_AUTHOR_TENANT_ID
   MSGF_AUTHOR_PULSE_LICENSE_KEY
@@ -123,6 +143,11 @@ BFF_ENV_KEYS=(
   OPENAI_API_KEY
   GCP_API_KEY
   GCP_MODEL_ID
+  GOOGLE_OAUTH_CLIENT_ID
+  GOOGLE_OAUTH_CLIENT_SECRET
+  GOOGLE_OAUTH_REDIRECT_URI
+  AUTHOR_CLIENT_ORIGIN
+  AUTHOR_APP_URL
 )
 
 _write_env_vars_file() {
@@ -145,7 +170,35 @@ _run_cloud_build() {
   gcloud builds submit "${SCRIPT_DIR}" \
     --project="${GCP_PROJECT_ID}" \
     --quiet \
-    --config="${config_path}"
+    --config="${config_path}" || return 1
+}
+
+_yaml_sanitize() {
+  local v="$1"
+  v="$(printf '%s' "${v}" | sed -E 's/\x1B\[[0-9;]*[mK]//g')"
+  v="$(printf '%s' "${v}" | tr -d '\000-\010\013\014\016-\037')"
+  printf '%s' "${v}"
+}
+
+_docker_build_arg() {
+  local key="$1"
+  local val
+  val="$(_yaml_sanitize "$2")"
+  val="${val//\\/\\\\}"
+  printf '%s=%s' "${key}" "${val}"
+}
+
+_docker_build_flag() {
+  _yaml_double_quote "--build-arg=$(_docker_build_arg "$1" "$2")"
+}
+
+# Cloud Build YAML breaks on unquoted https:// in docker --build-arg lines.
+_yaml_double_quote() {
+  local v
+  v="$(_yaml_sanitize "$1")"
+  v="${v//\\/\\\\}"
+  v="${v//\"/\\\"}"
+  printf '"%s"' "${v}"
 }
 
 _assert_bff_cloudrun_env() {
@@ -250,6 +303,7 @@ _deploy_client() {
   local cb_tmp
   cb_tmp="$(mktemp "${TMPDIR:-/tmp}/author-client-cloudbuild.XXXXXX.yaml")"
   trap 'rm -f "${cb_tmp:-}"' RETURN
+  # Direct docker build (no bash wrapper) — Cloud Build step 127 when entrypoint=bash could not find docker.
   cat >"${cb_tmp}" <<EOF
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -259,25 +313,21 @@ steps:
       - docker/Dockerfile.author-client
       - -t
       - ${uri}
-      - --build-arg
-      - VITE_SUPABASE_URL=${supa}
-      - --build-arg
-      - VITE_SUPABASE_ANON_KEY=${anon}
-      - --build-arg
-      - VITE_AUTHOR_BFF_URL=${vite_bff}
-      - --build-arg
-      - VITE_AUTHOR_APP_URL=${author_app}
-      - --build-arg
-      - VITE_MSGF_APP_URL=${msgf_app}
-      - --build-arg
-      - VITE_EDUCATION_APP_URL=${edu}
-      - --build-arg
-      - AUTHOR_BFF_UPSTREAM=${bff_upstream}
+      - $(_docker_build_flag VITE_SUPABASE_URL "${supa}")
+      - $(_docker_build_flag VITE_SUPABASE_ANON_KEY "${anon}")
+      - $(_docker_build_flag VITE_AUTHOR_BFF_URL "${vite_bff}")
+      - $(_docker_build_flag VITE_AUTHOR_APP_URL "${author_app}")
+      - $(_docker_build_flag VITE_MSGF_APP_URL "${msgf_app}")
+      - $(_docker_build_flag VITE_EDUCATION_APP_URL "${edu}")
+      - $(_docker_build_flag AUTHOR_BFF_UPSTREAM "${bff_upstream}")
       - .
 images:
   - ${uri}
 EOF
-  _run_cloud_build "${cb_tmp}"
+  _run_cloud_build "${cb_tmp}" || {
+    echo "Error: Author client image build failed." >&2
+    return 1
+  }
 
   echo ""
   echo "=== Deploying Author client: ${AUTHOR_CLIENT_SERVICE} ==="

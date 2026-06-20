@@ -43,6 +43,12 @@ export async function mergeWorkspaceSettings(merge: SettingsJson): Promise<boole
   }
 
   const next = { ...existing, ...merge };
+  if (
+    Object.keys(merge).some((k) => k === "msgf.authToken" || k === "msgf.tenantKey") &&
+    next["msgf.enabled"] !== false
+  ) {
+    next["msgf.enabled"] = true;
+  }
   fs.writeFileSync(settingsPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
 
   const cfg = vscode.workspace.getConfiguration("msgf");

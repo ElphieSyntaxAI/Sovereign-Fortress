@@ -4,7 +4,7 @@ import { Router, type Request, type Response } from "express";
 
 import { assertUuid, HalValidationError } from "../lib/halMetrics.js";
 import { LibrarianChat, type LibrarianAudienceMode } from "../lib/narrative/LibrarianChat.js";
-import { createOpenAIEmbedder } from "../lib/narrative/IngestionService.js";
+import { createDefaultNarrativeEmbedder } from "../lib/narrative/IngestionService.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
@@ -483,7 +483,7 @@ p4LoreRagController.post("/api/lore-git/commit", async (req: Request, res: Respo
     const smCheck = validateStylisticMetadata(stylistic_metadata);
     if (!smCheck.ok) return res.status(400).json({ error: smCheck.error });
 
-    const embedBatch = createOpenAIEmbedder();
+    const embedBatch = createDefaultNarrativeEmbedder();
     const [embedding] = await embedBatch([excerpt]);
     if (!embedding || embedding.length !== 1536) {
       return res.status(500).json({ error: `Embedding dimension mismatch: expected 1536, got ${embedding?.length ?? 0}` });
