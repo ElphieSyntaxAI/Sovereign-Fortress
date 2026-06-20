@@ -43,6 +43,11 @@ import { buildAuthorDocumentSweepFiles } from "../src/lib/documentIngestMsgfSwee
 import { isAutoWikiBuildEnabled } from "../src/lib/documentIngestSessionCommit.js";
 import { isDisplayableAuthorWikiChunk } from "../src/lib/wikiEntryHelpers.js";
 import { isPlatformOperatorEmail, parseGlobalAdminEmails } from "../src/lib/isPlatformOperator.js";
+import { parseSemanticRegions } from "../src/lib/documentIngestLlmParse.js";
+import {
+  buildBoundaryHintsForIngest,
+  detectHeuristicBoundaries,
+} from "../src/lib/narrative/semanticChunking.js";
 
 const BFF_BASE = (process.env.AUTHOR_ECOSYSTEM_URL ?? "http://127.0.0.1:3002").replace(/\/$/, "");
 const RUN_SMOKE =
@@ -607,6 +612,34 @@ describe("MSGF document ingest pipeline", () => {
     assert.ok(files.some((f) => f.path.includes("/wiki/")));
     assert.ok(files.some((f) => f.path.includes("/source.txt")));
     assert.ok(files.every((f) => f.bug_index?.level_1_category === "1.0_AUTHOR"));
+  });
+});
+
+describe("semantic regions (CONVERGE parse)", () => {
+  test("parseSemanticRegions requires 40+ char anchors", () => {
+    const regions = parseSemanticRegions([
+      { domain: "technology", anchor_excerpt: "short" },
+      {
+        domain: "government",
+        anchor_excerpt:
+          "The High Council governs twelve provinces through appointed magistrates.",
+      },
+    ]);
+    assert.equal(regions.length, 1);
+    assert.equal(regions[0]?.domain, "government");
+  });
+
+  test("detectContentSignals emits topic_shift from heuristics", () => {
+    const text = `TECHNOLOGY\n\nIon drives and reactors.\n\nGOVERNMENT\n\nCouncil and magistrates.`;
+    const signals = detectContentSignals(text);
+    assert.ok(signals.some((s) => s.kind === "topic_shift"));
+  });
+
+  test("buildBoundaryHintsForIngest finds section headers in world bible sample", () => {
+    const text = `TECHNOLOGY\n\nPropulsion systems.\n\nGOVERNMENT\n\nPolitical structure.`;
+    const hints = buildBoundaryHintsForIngest(text);
+    assert.ok(hints.length >= 1);
+    assert.ok(detectHeuristicBoundaries(text).length >= 1);
   });
 });
 

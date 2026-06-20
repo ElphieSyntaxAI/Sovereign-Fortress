@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DocumentIngestSlot, ProposedWikiEntry } from "./documentIngestGate.js";
 import { MAX_WIKI_PROPOSED } from "./documentIngestLimits.js";
 import { extractOutlineBeatsFromText, type IngestPlotBeat } from "./documentIngestOutline.js";
+import { detectHeuristicBoundaries } from "./narrative/semanticChunking.js";
 
 export type ContentSignalKind =
   | "scene_cards"
@@ -12,7 +13,8 @@ export type ContentSignalKind =
   | "notes_brainstorm"
   | "full_draft"
   | "outline_list"
-  | "mixed";
+  | "mixed"
+  | "topic_shift";
 
 export type ContentSignal = {
   kind: ContentSignalKind;
@@ -206,6 +208,15 @@ export function detectContentSignals(text: string): ContentSignal[] {
       kind: "mixed",
       confidence: "low",
       evidence: "unlabeled prose — mapping by content, not filename",
+    });
+  }
+
+  const topicBoundaries = detectHeuristicBoundaries(sample).slice(0, 6);
+  for (const b of topicBoundaries) {
+    signals.push({
+      kind: "topic_shift",
+      confidence: b.source === "keyword" ? "medium" : "high",
+      evidence: b.label ? `topic boundary: ${b.label}` : `topic boundary at char ${b.charOffset}`,
     });
   }
 

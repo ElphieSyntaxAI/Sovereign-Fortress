@@ -13,6 +13,10 @@ import {
   normalizeProposedWikiEntry,
   type IngestPlotBeat,
 } from "./documentIngestOutline.js";
+import {
+  buildBoundaryHintsForIngest,
+  type SemanticRegion,
+} from "./narrative/semanticChunking.js";
 import { IngestionService } from "./narrative/IngestionService.js";
 import {
   addConvergenceStats,
@@ -56,6 +60,7 @@ export async function commitDocumentIngestToBackend(params: {
   proposed: ProposedWikiEntry[];
   outlineBeats: IngestOutlineBeat[];
   syncMsgfBrain?: boolean;
+  semanticRegions?: SemanticRegion[];
 }): Promise<{
   lore_ingest: { chunksTotal: number; chunksInserted: number } | null;
   plot_ingest: { chunksTotal: number; chunksInserted: number } | null;
@@ -84,6 +89,10 @@ export async function commitDocumentIngestToBackend(params: {
   let lore_ingest: { chunksTotal: number; chunksInserted: number } | null = null;
   let plot_ingest: { chunksTotal: number; chunksInserted: number } | null = null;
 
+  const boundaryHints = buildBoundaryHintsForIngest(sourceText, {
+    semanticRegions: params.semanticRegions,
+  });
+
   try {
     lore_ingest = await ingestion.ingestManuscript({
       tenantId,
@@ -91,6 +100,8 @@ export async function commitDocumentIngestToBackend(params: {
       chunkType: "lore",
       buffer: Buffer.from(sourceText, "utf8"),
       filename,
+      boundaryHints,
+      semanticRegions: params.semanticRegions,
       metadata: {
         manuscript_id: manuscriptId,
         ingest_slot: slot,
@@ -122,6 +133,8 @@ export async function commitDocumentIngestToBackend(params: {
         chunkType: "plot",
         buffer: Buffer.from(outlineText, "utf8"),
         filename: "import-outline.txt",
+        boundaryHints,
+        semanticRegions: params.semanticRegions,
         metadata: {
           outline: true,
           is_outline: true,
@@ -137,8 +150,8 @@ export async function commitDocumentIngestToBackend(params: {
   }
 
   let convergence: { lore: ConvergenceStats; plot: ConvergenceStats } = {
-    lore: { inserted: 0, updated: 0, skipped: 0 },
-    plot: { inserted: 0, updated: 0, skipped: 0 },
+    lore: { inserted: 0, updated: 0, skipped: 0, skipped_user_override: 0 },
+    plot: { inserted: 0, updated: 0, skipped: 0, skipped_user_override: 0 },
   };
 
   if (beats.length > 0) {

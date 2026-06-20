@@ -5,6 +5,7 @@ import type {
   IngestConflict,
   StoryFingerprint,
 } from "./documentIngestStructure.js";
+import type { SemanticRegion } from "./narrative/semanticChunking.js";
 
 export function parseJsonStripFences(text: string): unknown {
   let s = String(text || "").trim();
@@ -82,6 +83,24 @@ export function parseContentSignals(raw: unknown): ContentSignal[] {
     .slice(0, 8);
 }
 
+export function parseSemanticRegions(raw: unknown): SemanticRegion[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SemanticRegion[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const r = row as Record<string, unknown>;
+    const domain = String(r.domain ?? "").trim();
+    const anchor_excerpt = String(r.anchor_excerpt ?? "").trim();
+    if (anchor_excerpt.length < 40) continue;
+    out.push({
+      domain: domain || "topic",
+      anchor_excerpt,
+      char_hint: r.char_hint != null ? Number(r.char_hint) : undefined,
+    });
+  }
+  return out.slice(0, 24);
+}
+
 export function parseFingerprint(raw: unknown, fallback: StoryFingerprint): StoryFingerprint {
   if (!raw || typeof raw !== "object") return fallback;
   const f = raw as Record<string, unknown>;
@@ -114,6 +133,7 @@ export function parseLlmWikiAndBeats(parsed: Record<string, unknown>): {
       if (title.length < 2 || excerpt.length < 40) continue;
       const kind = String(w.outline_entity_kind ?? "plot_point").trim();
       const planning_layer = w.planning_layer != null ? String(w.planning_layer) : undefined;
+      const semantic_domain = w.semantic_domain != null ? String(w.semantic_domain).trim() : undefined;
       proposed.push({
         title,
         excerpt,
@@ -122,6 +142,7 @@ export function parseLlmWikiAndBeats(parsed: Record<string, unknown>): {
         wiki_metadata: {
           outline_entity_kind: kind,
           ...(planning_layer ? { planning_layer } : {}),
+          ...(semantic_domain ? { semantic_domain } : {}),
         },
         plot_point_order: w.plot_point_order != null ? Number(w.plot_point_order) : undefined,
       });

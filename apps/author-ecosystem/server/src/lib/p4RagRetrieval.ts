@@ -63,9 +63,10 @@ async function fetchSeriesLockedLore(
 
   const { data, error } = await supabase
     .from("p4_narrative_library_chunks")
-    .select("id, content, source_document, chunk_type, chunk_index, metadata")
+    .select("id, content, source_document, chunk_type, chunk_index, metadata, is_deleted")
     .eq("tenant_id", scope.tenantId)
     .eq("chunk_type", "lore")
+    .eq("is_deleted", false)
     .limit(500);
 
   if (error) throw new Error(`fetchSeriesLockedLore: ${error.message}`);

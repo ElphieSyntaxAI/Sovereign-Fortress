@@ -11,7 +11,7 @@
     "migrate:legacy-users": "tsx --env-file-if-exists=../../../.env.local --env-file-if-exists=../../../.env src/scripts/migrate-legacy-users.ts",
     "verify:bff-env": "tsx --env-file-if-exists=../../../.env.local --env-file-if-exists=../../../.env src/scripts/verify-bff-env.ts",
     "test:supabase-p4": "tsx --env-file-if-exists=../../../.env.local --env-file-if-exists=../../../.env src/scripts/verify-supabase-credentials.ts",
-    "test": "tsx --test tests/author-workflows.test.ts",
+    "test": "tsx --test tests/*.test.ts",
     "test:smoke": "cross-env AUTHOR_BFF_SMOKE=1 tsx --test tests/author-workflows.test.ts"
   },
   "dependencies": {

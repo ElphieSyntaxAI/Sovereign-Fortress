@@ -171,6 +171,16 @@ export async function executeDocumentIngestSessionCommit(
   }
 
   try {
+    const fp =
+      session.story_fingerprint && typeof session.story_fingerprint === "object"
+        ? (session.story_fingerprint as Record<string, unknown>)
+        : {};
+    const msgf =
+      fp.msgf && typeof fp.msgf === "object" ? (fp.msgf as Record<string, unknown>) : {};
+    const semanticRegions = Array.isArray(msgf.semantic_regions)
+      ? (msgf.semantic_regions as import("./narrative/semanticChunking.js").SemanticRegion[])
+      : undefined;
+
     const result = await commitDocumentIngestToBackend({
       supabase,
       tenantId: params.tenantId,
@@ -182,6 +192,7 @@ export async function executeDocumentIngestSessionCommit(
       outlineBeats: archiveOnly ? [] : outlineBeats,
       syncMsgfBrain:
         params.syncMsgfBrain === true || process.env.MSGF_DOCUMENT_INGEST_SYNC_BRAIN === "1",
+      semanticRegions,
     });
 
     await supabase

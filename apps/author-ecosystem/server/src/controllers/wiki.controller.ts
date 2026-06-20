@@ -78,6 +78,7 @@ wikiController.get("/api/wiki/:manuscriptId/chunks", async (req: Request, res: R
     .from("p4_narrative_library_chunks")
     .select("id, chunk_type, source_document, chunk_index, content, metadata")
     .eq("tenant_id", user.userId)
+    .eq("is_deleted", false)
     .in("chunk_type", ["lore", "plot", "character"])
     .order("source_document", { ascending: true })
     .order("chunk_index", { ascending: true })

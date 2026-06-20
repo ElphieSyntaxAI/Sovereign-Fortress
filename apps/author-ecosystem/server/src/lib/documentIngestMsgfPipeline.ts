@@ -39,6 +39,7 @@ import {
   loadManuscriptProjectContext,
   mergeConflicts,
 } from "./documentIngestStructure.js";
+import type { SemanticRegion } from "./narrative/semanticChunking.js";
 import {
   parseContentSignals,
   parseFingerprint,
@@ -46,6 +47,7 @@ import {
   parseLlmConflicts,
   parseJsonStripFences,
   parseLlmWikiAndBeats,
+  parseSemanticRegions,
 } from "./documentIngestLlmParse.js";
 
 const require = createRequire(import.meta.url);
@@ -80,15 +82,19 @@ const CONVERGE_SYSTEM = [
   "macro_outline titles must use section headings (Beginning, Middle) or beat text — never generic 'Item 1'.",
   "Do NOT collapse macro_outline and chapter_breakdown. Do NOT merge scene_grid rows into one beat.",
   "Each table DATA ROW → its own outline_beat and/or proposed_wiki when it carries distinct story facts.",
+  "Detect macro-thematic DOMAIN SHIFTS even without markdown headers (inline caps, tone shifts, vocabulary changes).",
+  "When the text shifts domains (e.g. vehicle propulsion metrics → governmental hierarchy → species biology), start a NEW proposed_wiki row and semantic_regions entry — never merge unrelated domains into one excerpt.",
+  "Tag each proposed_wiki row with wiki_metadata.semantic_domain (technology, government, species, history, setting, etc.).",
   "Excerpts in proposed_wiki MUST be verbatim substrings from the document (>=40 chars).",
   "Output ONLY valid JSON (no markdown fences).",
   `Schema: {
   "thoughts":["string"],
-  "content_signals":[{"kind":"scene_cards|chapter_breakdown|character_cards|world_lore|notes_brainstorm|full_draft|outline_list|mixed","confidence":"high|medium|low","evidence":"string"}],
+  "content_signals":[{"kind":"scene_cards|chapter_breakdown|character_cards|world_lore|notes_brainstorm|full_draft|outline_list|mixed|topic_shift","confidence":"high|medium|low","evidence":"string"}],
   "story_fingerprint":{"working_title":null,"protagonist_names":["string"],"setting_anchors":["string"],"tone_or_genre":null},
   "conflicts":[{"code":"string","severity":"blocking|warning","message":"string"}],
   "clarifying_questions":[{"id":"string","code":"string","question":"string","hint":"string","required":true,"options":["string"]}],
-  "proposed_wiki":[{"title":"string","excerpt":"string","chunk_type":"character|location|plot|theme|other","outline_entity_kind":"character|setting|environment|technology|plot_point|genre|theme|spoiler|note|chapter","tags":["string"],"plot_point_order":1,"planning_layer":"string"}],
+  "semantic_regions":[{"domain":"technology|government|species|history|setting|other","anchor_excerpt":"verbatim 40+ chars from doc","char_hint":0}],
+  "proposed_wiki":[{"title":"string","excerpt":"string","chunk_type":"character|location|plot|theme|other","outline_entity_kind":"character|setting|environment|technology|plot_point|genre|theme|spoiler|note|chapter","semantic_domain":"string","tags":["string"],"plot_point_order":1,"planning_layer":"string"}],
   "outline_beats":[{"synopsis":"string","order":0,"plot_point_order":1,"title":"string","chapter_number":null}],
   "questions":[{"id":"q1","question":"string","hint":"phrase in text"}]
 }`,
@@ -98,7 +104,7 @@ const SLOT_CONVERGE_HINTS: Record<DocumentIngestSlot, string> = {
   character_sheet:
     "Prefer character_cards: one proposed_wiki row per named character with outline_entity_kind character.",
   world_bible:
-    "Prefer world_lore: extract setting, environment, and technology/system rows (outline_entity_kind setting|environment|technology).",
+    "Prefer world_lore: extract setting, environment, and technology/system rows (outline_entity_kind setting|environment|technology). Emit semantic_regions for each distinct lore domain (technology, government, species, history). Split proposed_wiki at domain boundaries — one concept per row.",
   current_draft:
     "Prefer scene_grid and chapter_breakdown beats; character/setting rows only when clearly stated in prose.",
 };
@@ -182,6 +188,7 @@ export async function runMsgfDocumentConverge(params: {
   story_fingerprint: StoryFingerprint;
   ingest_conflicts: IngestConflict[];
   clarifying_questions: ClarifyingQuestion[];
+  semantic_regions: SemanticRegion[];
   usedLlm: boolean;
   msgf_meta: DocumentIngestMsgfMeta;
 }> {
@@ -219,6 +226,7 @@ export async function runMsgfDocumentConverge(params: {
   let llmFingerprint = fingerprint;
   let llmConflicts: IngestConflict[] = [];
   let llmClarifying: ClarifyingQuestion[] = [];
+  let semantic_regions: SemanticRegion[] = [];
   let usedLlm = false;
   let grounding = { kept: 0, dropped: 0 };
 
@@ -269,6 +277,7 @@ export async function runMsgfDocumentConverge(params: {
       llmFingerprint = parseFingerprint(parsed.story_fingerprint, fingerprint);
       llmConflicts = parseLlmConflicts(parsed.conflicts);
       llmClarifying = parseLlmClarifying(parsed.clarifying_questions);
+      semantic_regions = parseSemanticRegions(parsed.semantic_regions);
 
       const { proposed: llmWiki, outline_beats: llmBeats } = parseLlmWikiAndBeats(parsed);
       const grounded = groundProposedWikiToSource(llmWiki, params.text);
@@ -349,6 +358,7 @@ export async function runMsgfDocumentConverge(params: {
     story_fingerprint: llmFingerprint,
     ingest_conflicts,
     clarifying_questions,
+    semantic_regions,
     usedLlm,
     msgf_meta: {
       mode,
@@ -356,6 +366,7 @@ export async function runMsgfDocumentConverge(params: {
       signals_summary: signals.summary,
       keyword_hits,
       grounding,
+      semantic_regions,
     },
   };
 }

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { chunkMatchesManuscript, isScrappedWiki } from "./wikiEntryHelpers.js";
+import { isRagExcluded } from "./narrative/narrativeChunkVisibility.js";
 
 export type SeriesRagScope = {
   tenantId: string;
@@ -143,8 +144,10 @@ function spoilerRank(meta: Record<string, unknown>): number {
 export function shouldIncludeChunkForP4Rag(
   meta: Record<string, unknown>,
   scope: SeriesRagScope,
-  opts: { includeWikiDrafts: boolean; audience: "fan" | "author" }
+  opts: { includeWikiDrafts: boolean; audience: "fan" | "author"; isDeleted?: boolean }
 ): boolean {
+  if (opts.isDeleted === true) return false;
+  if (isRagExcluded(meta)) return false;
   if (isScrappedWiki(meta)) return false;
 
   if (!chunkInActiveScope(meta, scope)) return false;

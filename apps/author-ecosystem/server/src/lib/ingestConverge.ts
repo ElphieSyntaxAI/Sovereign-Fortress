@@ -4,17 +4,30 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ProposedWikiEntry } from "./documentIngestGate.js";
 import { areNearDuplicateTexts, synopsisFingerprint } from "./documentIngestCompile.js";
+import { isUserOverrideChunk } from "./chunkLifecycle.js";
 import { embedWikiExcerptForIngest } from "./wikiEntryHelpers.js";
 
 export type ConvergenceStats = {
   inserted: number;
   updated: number;
   skipped: number;
+  skipped_user_override: number;
 };
 
 export type ConvergeAction = "inserted" | "updated" | "skipped";
 
-const EMPTY_STATS = (): ConvergenceStats => ({ inserted: 0, updated: 0, skipped: 0 });
+export type ConvergeResult = {
+  action: ConvergeAction;
+  id?: string;
+  userOverride?: boolean;
+};
+
+const EMPTY_STATS = (): ConvergenceStats => ({
+  inserted: 0,
+  updated: 0,
+  skipped: 0,
+  skipped_user_override: 0,
+});
 
 export function entityFingerprint(manuscriptId: string, kind: string, title: string): string {
   const payload = `${manuscriptId}|${kind}|${synopsisFingerprint(title)}`;
@@ -26,14 +39,20 @@ export function plotBeatFingerprint(manuscriptId: string, synopsis: string, orde
   return createHash("sha256").update(payload).digest("hex").slice(0, 20);
 }
 
-function bump(stats: ConvergenceStats, action: ConvergeAction): void {
-  stats[action] += 1;
+function bump(stats: ConvergenceStats, result: ConvergeResult): void {
+  if (result.userOverride) {
+    stats.skipped_user_override += 1;
+    stats.skipped += 1;
+    return;
+  }
+  stats[result.action] += 1;
 }
 
 function mergeStats(into: ConvergenceStats, from: ConvergenceStats): void {
   into.inserted += from.inserted;
   into.updated += from.updated;
   into.skipped += from.skipped;
+  into.skipped_user_override += from.skipped_user_override;
 }
 
 function resolveKind(entry: ProposedWikiEntry): string {
@@ -47,6 +66,12 @@ function resolveChunkType(entry: ProposedWikiEntry): "lore" | "plot" | "characte
   return "lore";
 }
 
+function readExistingMeta(existing: { metadata?: unknown }): Record<string, unknown> {
+  return existing.metadata && typeof existing.metadata === "object"
+    ? (existing.metadata as Record<string, unknown>)
+    : {};
+}
+
 export async function convergeUpsertWikiEntry(
   supabase: SupabaseClient,
   params: {
@@ -56,7 +81,7 @@ export async function convergeUpsertWikiEntry(
     extraMeta?: Record<string, unknown>;
     sourcePrefix?: string;
   }
-): Promise<{ action: ConvergeAction; id?: string }> {
+): Promise<ConvergeResult> {
   const excerpt = params.entry.excerpt.trim();
   if (excerpt.length < 20) return { action: "skipped" };
 
@@ -66,21 +91,24 @@ export async function convergeUpsertWikiEntry(
 
   const { data: existing } = await supabase
     .from("p4_narrative_library_chunks")
-    .select("id, content, metadata")
+    .select("id, content, metadata, is_deleted")
     .eq("tenant_id", params.tenantId)
     .eq("source_document", sourceDocument)
     .maybeSingle();
 
   if (existing?.id) {
+    if ((existing as { is_deleted?: boolean }).is_deleted === true) {
+      return { action: "skipped" };
+    }
+    const prevMeta = readExistingMeta(existing);
+    if (isUserOverrideChunk(prevMeta)) {
+      return { action: "skipped", id: String(existing.id), userOverride: true };
+    }
     const prev = String((existing as { content?: string }).content ?? "");
     if (areNearDuplicateTexts(prev, excerpt)) {
       return { action: "skipped", id: String(existing.id) };
     }
     const { embedding, embedding_degraded } = await embedWikiExcerptForIngest(excerpt);
-    const prevMeta =
-      (existing.metadata && typeof existing.metadata === "object"
-        ? (existing.metadata as Record<string, unknown>)
-        : {}) ?? {};
     const meta = {
       ...prevMeta,
       ...params.entry.wiki_metadata,
@@ -132,6 +160,7 @@ export async function convergeUpsertWikiEntry(
       word_count: excerpt.split(/\s+/).filter(Boolean).length,
       embedding,
       metadata: meta,
+      is_deleted: false,
     })
     .select("id")
     .single();
@@ -153,7 +182,7 @@ export async function convergeUpsertPlotBeatRow(
     metadata: Record<string, unknown>;
     sourcePrefix?: string;
   }
-): Promise<{ action: ConvergeAction; id?: string }> {
+): Promise<ConvergeResult> {
   const excerpt = params.synopsis.trim();
   if (excerpt.length < 20) return { action: "skipped" };
 
@@ -162,21 +191,24 @@ export async function convergeUpsertPlotBeatRow(
 
   const { data: existing } = await supabase
     .from("p4_narrative_library_chunks")
-    .select("id, content, metadata")
+    .select("id, content, metadata, is_deleted")
     .eq("tenant_id", params.tenantId)
     .eq("source_document", sourceDocument)
     .maybeSingle();
 
   if (existing?.id) {
+    if ((existing as { is_deleted?: boolean }).is_deleted === true) {
+      return { action: "skipped" };
+    }
+    const prevMeta = readExistingMeta(existing);
+    if (isUserOverrideChunk(prevMeta)) {
+      return { action: "skipped", id: String(existing.id), userOverride: true };
+    }
     const prev = String((existing as { content?: string }).content ?? "");
     if (areNearDuplicateTexts(prev, excerpt)) {
       return { action: "skipped", id: String(existing.id) };
     }
     const { embedding, embedding_degraded } = await embedWikiExcerptForIngest(excerpt);
-    const prevMeta =
-      (existing.metadata && typeof existing.metadata === "object"
-        ? (existing.metadata as Record<string, unknown>)
-        : {}) ?? {};
     const meta = {
       ...prevMeta,
       ...params.metadata,
@@ -218,6 +250,7 @@ export async function convergeUpsertPlotBeatRow(
       word_count: excerpt.split(/\s+/).filter(Boolean).length,
       embedding,
       metadata: meta,
+      is_deleted: false,
     })
     .select("id")
     .single();
@@ -249,7 +282,7 @@ export async function convergeUpsertWikiEntries(
       extraMeta: params.extraMeta,
       sourcePrefix: params.sourcePrefix,
     });
-    bump(stats, result.action);
+    bump(stats, result);
     if (result.id) chunkIds.push(result.id);
   }
   return { stats, chunkIds };
@@ -274,7 +307,7 @@ export async function convergeUpsertPlotBeats(
       metadata: beat.metadata,
       sourcePrefix: params.sourcePrefix,
     });
-    bump(stats, result.action);
+    bump(stats, result);
   }
   return stats;
 }

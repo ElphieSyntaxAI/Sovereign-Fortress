@@ -13,6 +13,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { assertUuid } from "./halMetrics.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
+import { isRagExcluded } from "./narrative/narrativeChunkVisibility.js";
 
 const require = createRequire(import.meta.url);
 
@@ -517,9 +518,10 @@ async function fetchNarrativeLibraryFallback(
 
   const { data: lore, error: e1 } = await supabase
     .from("p4_narrative_library_chunks")
-    .select("content, source_document, chunk_index")
+    .select("content, source_document, chunk_index, metadata, is_deleted")
     .eq("tenant_id", tenantId)
     .eq("chunk_type", "lore")
+    .eq("is_deleted", false)
     .order("chunk_index", { ascending: true })
     .limit(loreLimit);
 
@@ -527,23 +529,32 @@ async function fetchNarrativeLibraryFallback(
 
   const { data: plot, error: e2 } = await supabase
     .from("p4_narrative_library_chunks")
-    .select("content, source_document, chunk_index, metadata")
+    .select("content, source_document, chunk_index, metadata, is_deleted")
     .eq("tenant_id", tenantId)
     .eq("chunk_type", "plot")
+    .eq("is_deleted", false)
     .order("chunk_index", { ascending: true })
     .limit(plotLimit);
 
   if (e2) console.error("[RevisionAuditService] plot fallback", e2.message);
 
   const bible = (lore ?? [])
+    .filter((r) => {
+      if ((r as { is_deleted?: boolean }).is_deleted === true) return false;
+      const rawMeta = (r as Record<string, unknown>).metadata;
+      const meta = rawMeta && typeof rawMeta === "object" ? (rawMeta as Record<string, unknown>) : {};
+      return !isRagExcluded(meta);
+    })
     .map((r) => String((r as Record<string, unknown>).content ?? "").slice(0, 900))
     .filter(Boolean)
     .join("\n---\n");
 
   const outlineRows =
     (plot ?? []).filter((r) => {
+      if ((r as { is_deleted?: boolean }).is_deleted === true) return false;
       const rawMeta = (r as Record<string, unknown>).metadata;
       const meta = rawMeta && typeof rawMeta === "object" ? (rawMeta as Record<string, unknown>) : {};
+      if (isRagExcluded(meta)) return false;
       return isOutlineMeta(meta, manuscriptId);
     }) ?? [];
 

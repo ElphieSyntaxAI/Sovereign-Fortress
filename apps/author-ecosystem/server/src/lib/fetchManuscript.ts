@@ -19,6 +19,7 @@ import { loadMonorepoRootEnv } from "./database/loadRootEnv.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
 import { structureDocumentText } from "./documentTextStructure.js";
 import { IngestionService, parseManuscriptToText } from "./narrative/IngestionService.js";
+import { buildBoundaryHintsForIngest } from "./narrative/semanticChunking.js";
 
 const DRIVE_READONLY = "https://www.googleapis.com/auth/drive.readonly";
 
@@ -179,6 +180,7 @@ export async function fetchManuscriptSyncFromEnv(): Promise<SyncGoogleManuscript
       chunkType: "plot",
       buffer: Buffer.from(plain, "utf8"),
       filename: "google-doc.txt",
+      boundaryHints: buildBoundaryHintsForIngest(plain),
       metadata: {
         manuscript_id: manuscriptId,
         google_doc_id: googleDocId,

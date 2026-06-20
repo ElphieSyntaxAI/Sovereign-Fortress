@@ -9,6 +9,10 @@ import {
   convergeUpsertWikiEntries,
   type ConvergenceStats,
 } from "../lib/ingestConverge.js";
+import { loadManuscriptChunkLayout } from "../lib/chunkLifecycle.js";
+import {
+  buildBoundaryHintsForIngest,
+} from "../lib/narrative/semanticChunking.js";
 import {
   compilePlanningCanon,
   type PlotEngineSyncPayload,
@@ -122,11 +126,12 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
   let loreIngest: { chunksTotal: number; chunksInserted: number } | null = null;
   let plotIngest: { chunksTotal: number; chunksInserted: number } | null = null;
   let convergence: { lore: ConvergenceStats; plot: ConvergenceStats } = {
-    lore: { inserted: 0, updated: 0, skipped: 0 },
-    plot: { inserted: 0, updated: 0, skipped: 0 },
+    lore: { inserted: 0, updated: 0, skipped: 0, skipped_user_override: 0 },
+    plot: { inserted: 0, updated: 0, skipped: 0, skipped_user_override: 0 },
   };
 
   const ingestion = new IngestionService(supabase);
+  const syncBoundaryHints = buildBoundaryHintsForIngest(insightsMd);
 
   if (canon.wikiEntries.length > 0) {
     try {
@@ -157,6 +162,7 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
         chunkType: "lore",
         buffer: Buffer.from(insightsMd, "utf8"),
         filename: "planning-session-insights.md",
+        boundaryHints: syncBoundaryHints,
         metadata: {
           ledger: "wiki_snapshot",
           wiki_visibility: "draft",
@@ -180,6 +186,7 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
         chunkType: "plot",
         buffer: Buffer.from(outlineText, "utf8"),
         filename: "sandbox-outline.txt",
+        boundaryHints: buildBoundaryHintsForIngest(outlineText),
         metadata: {
           outline: true,
           is_outline: true,
@@ -243,6 +250,10 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
     warnings.push(`Revision gate: ${msg}`);
   }
 
+  const layout = await loadManuscriptChunkLayout(supabase, tenantId, manuscriptId);
+  layout.skipped_user_override =
+    convergence.lore.skipped_user_override + convergence.plot.skipped_user_override;
+
   res.status(200).json({
     success: anyWork,
     manuscript_id: manuscriptId,
@@ -251,6 +262,7 @@ async function handleSyncSession(req: Request, res: Response): Promise<void> {
     lore_ingest: loreIngest,
     plot_ingest: plotIngest,
     convergence,
+    layout,
     canon_compile: canon.stats,
     embedder: narrativeEmbedderProvider(),
     warnings,

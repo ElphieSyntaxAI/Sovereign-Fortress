@@ -12,6 +12,7 @@ import {
   toP4ChunkType,
   type HumanEffortPayload,
 } from "../lib/wikiEntryHelpers.js";
+import { markUserOverride, mergeChunkMetadata } from "../lib/chunkLifecycle.js";
 
 export const wikiEntriesController = Router();
 
@@ -168,12 +169,15 @@ wikiEntriesController.patch(
     const supabase = getSupabaseAdmin();
     const { data: existing } = await supabase
       .from("p4_narrative_library_chunks")
-      .select("id, metadata, source_document")
+      .select("id, metadata, source_document, is_deleted")
       .eq("id", chunkId)
       .eq("tenant_id", user.userId)
       .maybeSingle();
 
     if (!existing) return res.status(404).json({ error: "Wiki entry not found" });
+    if ((existing as { is_deleted?: boolean }).is_deleted === true) {
+      return res.status(404).json({ error: "Wiki entry not found" });
+    }
 
     const prevMeta = (existing.metadata && typeof existing.metadata === "object"
       ? existing.metadata
@@ -189,18 +193,20 @@ wikiEntriesController.patch(
       const embedding = await embedWikiExcerpt(excerpt);
       const p4Type = toP4ChunkType(chunk_type_raw);
       const content = buildWikiSnapshotBody({ title, excerpt, chunk_type_raw, tags });
-      const metadata = {
-        ...prevMeta,
-        ...buildMetadata({
-          manuscriptId,
-          title,
-          chunk_type_raw,
-          tags,
-          wiki_metadata,
-          committed: true,
+      const metadata = markUserOverride(
+        mergeChunkMetadata(prevMeta, {
+          ...buildMetadata({
+            manuscriptId,
+            title,
+            chunk_type_raw,
+            tags,
+            wiki_metadata,
+            committed: true,
+          }),
+          source_document: prevMeta.source_document ?? existing.source_document,
         }),
-        source_document: prevMeta.source_document ?? existing.source_document,
-      };
+        user.userId
+      );
 
       const { data: updated, error } = await supabase
         .from("p4_narrative_library_chunks")
@@ -281,7 +287,7 @@ wikiEntriesController.post(
 
     const { error } = await supabase
       .from("p4_narrative_library_chunks")
-      .update({ metadata: nextMeta })
+      .update({ metadata: nextMeta, is_deleted: true })
       .eq("id", chunkId)
       .eq("tenant_id", user.userId);
 
@@ -336,7 +342,7 @@ wikiEntriesController.post(
 
     const { error } = await supabase
       .from("p4_narrative_library_chunks")
-      .update({ metadata: nextMeta })
+      .update({ metadata: nextMeta, is_deleted: false })
       .eq("id", chunkId)
       .eq("tenant_id", user.userId);
 
@@ -368,8 +374,9 @@ wikiEntriesController.get("/api/wiki/:manuscriptId/scrapped", async (req: Reques
 
   const { data: rows, error } = await supabase
     .from("p4_narrative_library_chunks")
-    .select("id, chunk_type, source_document, chunk_index, content, metadata, created_at")
+    .select("id, chunk_type, source_document, chunk_index, content, metadata, created_at, is_deleted")
     .eq("tenant_id", user.userId)
+    .eq("is_deleted", true)
     .in("chunk_type", ["lore", "plot", "character"])
     .order("created_at", { ascending: false })
     .limit(200);
@@ -378,7 +385,7 @@ wikiEntriesController.get("/api/wiki/:manuscriptId/scrapped", async (req: Reques
 
   const scrapped = (rows ?? []).filter((r) => {
     const meta = (r.metadata && typeof r.metadata === "object" ? r.metadata : {}) as Record<string, unknown>;
-    return chunkMatchesManuscript(meta, manuscriptId) && isScrappedWiki(meta);
+    return chunkMatchesManuscript(meta, manuscriptId);
   });
 
   return res.status(200).json({ manuscript_id: manuscriptId, scrapped });
