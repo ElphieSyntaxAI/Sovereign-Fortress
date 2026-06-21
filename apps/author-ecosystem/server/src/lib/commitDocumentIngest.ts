@@ -204,6 +204,7 @@ export async function commitDocumentIngestToBackend(params: {
         file_import: true,
         ledger: "wiki_snapshot",
         wiki_visibility: "draft",
+        lore_extraction: true,
       },
       sourcePrefix: "file-import-wiki",
     });

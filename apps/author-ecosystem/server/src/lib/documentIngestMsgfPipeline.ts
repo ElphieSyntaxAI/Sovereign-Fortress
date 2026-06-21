@@ -10,6 +10,7 @@ import type {
   ScanThought,
 } from "./documentIngestGate.js";
 import { answerFoundInSource, buildHeuristicScanThoughts, heuristicProposedWiki } from "./documentIngestGate.js";
+import { mergeRagProposedWiki, type IngestPairingDiagnostic } from "./documentIngestRagParser.js";
 import { MAX_LLM_DOCUMENT_CHARS, MAX_WIKI_PROPOSED } from "./documentIngestLimits.js";
 import {
   formatKeywordHintsForPrompt,
@@ -188,6 +189,7 @@ export async function runMsgfDocumentConverge(params: {
   ingest_conflicts: IngestConflict[];
   clarifying_questions: ClarifyingQuestion[];
   semantic_regions: SemanticRegion[];
+  pairing_diagnostics: IngestPairingDiagnostic[];
   usedLlm: boolean;
   msgf_meta: DocumentIngestMsgfMeta;
 }> {
@@ -343,6 +345,21 @@ export async function runMsgfDocumentConverge(params: {
     });
   }
 
+  const ragMerge = mergeRagProposedWiki(
+    proposed,
+    params.text,
+    params.slot,
+    params.manuscriptId
+  );
+  proposed = ragMerge.proposed;
+  const pairing_diagnostics = ragMerge.diagnostics;
+  if (pairing_diagnostics.length > 0) {
+    thoughts.push({
+      phase: "lore",
+      line: `RAG sections paired: ${pairing_diagnostics.length} (${[...new Set(pairing_diagnostics.map((d) => d.outline_entity_kind))].join(", ")})`,
+    });
+  }
+
   return {
     thoughts,
     proposed: proposed.slice(0, MAX_WIKI_PROPOSED),
@@ -353,6 +370,7 @@ export async function runMsgfDocumentConverge(params: {
     ingest_conflicts,
     clarifying_questions,
     semantic_regions,
+    pairing_diagnostics,
     usedLlm,
     msgf_meta: {
       mode,
@@ -360,7 +378,6 @@ export async function runMsgfDocumentConverge(params: {
       signals_summary: signals.summary,
       keyword_hits,
       grounding,
-      semantic_regions,
     },
   };
 }

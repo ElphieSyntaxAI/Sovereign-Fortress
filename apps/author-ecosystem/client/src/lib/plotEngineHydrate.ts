@@ -77,17 +77,43 @@ export function hydratePlotEngineFromIngest(
   }
 
   let plotPoints: PlotPoint[] = [...base.plotPoints];
-  if (beats.length > 0 && plotPoints.length === 0) {
-    plotPoints = beats
-      .filter((b) => String(b.synopsis ?? b.title ?? "").trim())
-      .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0))
-      .map((b, i) => {
-        const pp = createPlotPoint(String(b.title ?? `Beat ${i + 1}`).trim(), i);
-        const scene = createScene(String(b.synopsis ?? b.title ?? "Scene").trim());
-        scene.order = 0;
-        pp.scenes = [scene];
-        return pp;
-      });
+  if (beats.length > 0) {
+    if (plotPoints.length === 0) {
+      plotPoints = beats
+        .filter((b) => String(b.synopsis ?? b.title ?? "").trim())
+        .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0))
+        .map((b, i) => {
+          const title = String(b.title ?? `Beat ${i + 1}`).trim();
+          const synopsis = String(b.synopsis ?? "").trim();
+          const pp = createPlotPoint(title, i);
+          const scene = createScene(title);
+          scene.order = 0;
+          if (synopsis && synopsis !== title) scene.synopsis = synopsis;
+          pp.scenes = [scene];
+          return pp;
+        });
+    } else {
+      const sorted = beats
+        .filter((b) => String(b.synopsis ?? b.title ?? "").trim())
+        .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
+      for (let i = 0; i < sorted.length && i < plotPoints.length; i++) {
+        const b = sorted[i]!;
+        const plot = plotPoints[i]!;
+        if (plot.scenes.length === 0) {
+          const title = String(b.title ?? plot.title).trim();
+          const scene = createScene(title);
+          const synopsis = String(b.synopsis ?? "").trim();
+          if (synopsis && synopsis !== title) scene.synopsis = synopsis;
+          plot.scenes = [scene];
+        } else if (plot.scenes.length === 1) {
+          const scene = plot.scenes[0]!;
+          const title = String(b.title ?? scene.title).trim();
+          const synopsis = String(b.synopsis ?? "").trim();
+          if (title && title !== scene.title) scene.title = title;
+          if (synopsis && synopsis !== title) scene.synopsis = synopsis;
+        }
+      }
+    }
   }
 
   return {

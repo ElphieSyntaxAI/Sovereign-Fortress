@@ -1,4 +1,5 @@
 import { heuristicWikiFromTables } from "./documentIngestOutline.js";
+import { mergeRagProposedWiki } from "./documentIngestRagParser.js";
 import { splitTabSections } from "./documentPlanningTaxonomy.js";
 
 export type DocumentIngestSlot = "world_bible" | "current_draft" | "character_sheet";
@@ -392,7 +393,15 @@ export function heuristicProposedWiki(
       }
     }
   }
-  if (slot === "world_bible") {
+  if (slot === "world_bible" || slot === "character_sheet") {
+    const { proposed: ragRows } = mergeRagProposedWiki([], text, slot, manuscriptId);
+    for (const row of ragRows) {
+      if (!entries.some((e) => e.title.toLowerCase() === row.title.toLowerCase())) {
+        entries.push(row);
+      }
+    }
+  }
+  if (slot === "world_bible" && entries.length === 0) {
     const tabs = splitTabSections(text);
     if (tabs.length >= 1) {
       for (const section of tabs.slice(0, 12)) {

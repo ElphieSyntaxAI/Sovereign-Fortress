@@ -17,6 +17,23 @@ type TabDiagnostics = {
   sections?: Array<{ title: string; path?: string; layer: string }>;
 };
 
+type PairingDiagnostic = {
+  section_path: string;
+  heading: string;
+  outline_entity_kind: string;
+  source_type: string;
+  plot_engine_panel: string;
+  ledger: string;
+};
+
+const PANEL_LABELS: Record<string, string> = {
+  character: "Character",
+  settings: "Settings",
+  environmental: "Environmental",
+  breadcrumbs: "Outline",
+  theme: "Theme",
+};
+
 const LAYER_LABELS: Record<string, string> = {
   front_matter: "front matter",
   book_synopsis: "synopsis",
@@ -36,9 +53,11 @@ export function WikiIngestReviewModal(props: {
   outlineBeats?: OutlineBeat[];
   outlineBeatCount?: number;
   tabDiagnostics?: TabDiagnostics | null;
+  pairingDiagnostics?: PairingDiagnostic[];
   contentSignals?: ContentSignal[];
   ingestConflicts?: IngestConflict[];
   onEdit: (next: ProposedWiki[]) => void;
+  onEditBeat?: (index: number, beat: OutlineBeat) => void;
   onRemoveWiki?: (index: number) => void;
   onRemoveBeat?: (index: number) => void;
   onSubmit: () => void;
@@ -50,10 +69,14 @@ export function WikiIngestReviewModal(props: {
   showSubmitAnyway?: boolean;
 }) {
   const [local, setLocal] = useState(props.proposed);
+  const [localBeats, setLocalBeats] = useState(props.outlineBeats ?? []);
 
   useEffect(() => {
-    if (props.open) setLocal(props.proposed);
-  }, [props.open, props.proposed]);
+    if (props.open) {
+      setLocal(props.proposed);
+      setLocalBeats(props.outlineBeats ?? []);
+    }
+  }, [props.open, props.proposed, props.outlineBeats]);
 
   if (!props.open) return null;
 
@@ -113,43 +136,84 @@ export function WikiIngestReviewModal(props: {
             ) : null}
           </div>
         ) : null}
+        {props.pairingDiagnostics && props.pairingDiagnostics.length > 0 ? (
+          <div className="mt-4 rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-3">
+            <p className="text-xs font-semibold text-emerald-200">
+              RAG section pairing ({props.pairingDiagnostics.length})
+            </p>
+            <ul className="mt-2 max-h-36 space-y-1 overflow-y-auto text-[11px] text-zinc-400">
+              {props.pairingDiagnostics.slice(0, 24).map((d, i) => (
+                <li key={i}>
+                  <span className="text-emerald-200/90">{d.heading}</span>
+                  <span className="text-zinc-600">
+                    {" "}
+                    → {d.outline_entity_kind}
+                    {PANEL_LABELS[d.plot_engine_panel]
+                      ? ` · ${PANEL_LABELS[d.plot_engine_panel]} panel`
+                      : ""}
+                    {d.ledger !== "static" ? ` · ${d.ledger}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {props.outlineBeats && props.outlineBeats.length > 0 ? (
           <div className="mt-4 rounded-lg border border-violet-900/40 bg-violet-950/20 p-3">
             <p className="text-xs font-semibold text-violet-200">
               Outline / scene cards (
-              {props.outlineBeatCount ?? props.outlineBeats.length})
+              {props.outlineBeatCount ?? localBeats.length})
             </p>
-            <ol className="mt-2 max-h-48 list-decimal space-y-1 overflow-y-auto pl-4 text-xs text-zinc-400">
-              {props.outlineBeats.map((b, i) => {
-                const label = b.title?.trim() || b.synopsis.split("\n")[0]?.trim() || b.synopsis;
-                const detail = b.title ? b.synopsis : b.synopsis.slice(label.length).trim();
-                const preview = detail.slice(0, 140) || label.slice(0, 160);
-                return (
-                  <li key={i} className="flex gap-2">
-                    <div className="min-w-0 flex-1">
-                      <span className="text-violet-200/90">{label.slice(0, 100)}</span>
-                      {b.pov_mode === "split" ? (
-                        <span className="ml-1 text-[10px] text-amber-300/90">(split POV)</span>
-                      ) : b.pov_mode === "single" && b.pov_names?.[0] ? (
-                        <span className="ml-1 text-[10px] text-zinc-500">({b.pov_names[0]} POV)</span>
-                      ) : null}
-                      {preview && preview !== label ? (
-                        <span className="text-zinc-500"> — {preview}{preview.length >= 140 ? "…" : ""}</span>
-                      ) : null}
-                    </div>
+            <ol className="mt-2 max-h-56 list-decimal space-y-3 overflow-y-auto pl-4 text-xs text-zinc-400">
+              {localBeats.map((b, i) => (
+                <li key={i} className="space-y-1">
+                  <div className="flex gap-2">
+                    <input
+                      className="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-violet-100"
+                      placeholder="Beat title"
+                      value={b.title ?? ""}
+                      disabled={props.busy}
+                      onChange={(e) => {
+                        const next = [...localBeats];
+                        next[i] = { ...b, title: e.target.value };
+                        setLocalBeats(next);
+                        props.onEditBeat?.(i, next[i]!);
+                      }}
+                    />
                     {props.onRemoveBeat ? (
                       <button
                         type="button"
                         className="shrink-0 text-[10px] text-red-400/90 underline hover:text-red-300"
                         disabled={props.busy}
-                        onClick={() => props.onRemoveBeat?.(i)}
+                        onClick={() => {
+                          const next = localBeats.filter((_, j) => j !== i);
+                          setLocalBeats(next);
+                          props.onRemoveBeat?.(i);
+                        }}
                       >
                         Remove
                       </button>
                     ) : null}
-                  </li>
-                );
-              })}
+                  </div>
+                  <textarea
+                    className="min-h-[56px] w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-300"
+                    placeholder="Synopsis"
+                    value={b.synopsis}
+                    disabled={props.busy}
+                    onChange={(e) => {
+                      const next = [...localBeats];
+                      next[i] = { ...b, synopsis: e.target.value };
+                      setLocalBeats(next);
+                      props.onEditBeat?.(i, next[i]!);
+                    }}
+                  />
+                  {b.pov_mode === "split" ? (
+                    <span className="text-[10px] text-amber-300/90">Split POV</span>
+                  ) : b.pov_mode === "single" && b.pov_names?.[0] ? (
+                    <span className="text-[10px] text-zinc-500">{b.pov_names[0]} POV</span>
+                  ) : null}
+                </li>
+              ))}
             </ol>
           </div>
         ) : null}

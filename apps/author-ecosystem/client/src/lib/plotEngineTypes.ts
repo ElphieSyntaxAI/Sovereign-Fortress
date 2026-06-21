@@ -48,6 +48,8 @@ export type GlobalToken = {
 export type Scene = {
   id: string;
   title: string;
+  /** Beat body / synopsis separate from display title (file-import outline rows). */
+  synopsis?: string;
   order: number;
   bindings: Record<PanelKey, string[]>;
 };

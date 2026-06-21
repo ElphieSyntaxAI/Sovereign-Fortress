@@ -48,6 +48,7 @@ import {
   fetchGoogleDocPlainTextOAuth,
 } from "../lib/googleDocOAuth.js";
 import { splitTabSections } from "../lib/documentPlanningTaxonomy.js";
+import { buildIngestTabDiagnostics } from "../lib/documentIngestRagParser.js";
 import { getGoogleOAuthClientForTenant } from "../lib/googleOAuthTokens.js";
 import { parseManuscriptToText } from "../lib/narrative/IngestionService.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
@@ -385,12 +386,15 @@ onboardingController.post(
         authorship_questions: questions,
         proposed_wiki: status === "review" ? compiledScan.proposed : [],
         outline_beats: compiledScan.outline_beats,
+        outline_beat_count: compiledScan.outline_beats.length,
         compile_stats: compiledScan.compile_stats,
         content_signals: enriched.content_signals,
         ingest_conflicts: enriched.ingest_conflicts,
         clarifying_questions: enriched.clarifying_questions,
         used_llm: enriched.usedLlm,
         msgf_meta: enriched.msgf_meta,
+        pairing_diagnostics: enriched.pairing_diagnostics,
+        google_doc_tabs: buildIngestTabDiagnostics(sourceText),
       };
 
       return res.status(200).json(
@@ -521,6 +525,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
       clarifying_questions: enriched.clarifying_questions,
       used_llm: enriched.usedLlm,
       msgf_meta: enriched.msgf_meta,
+      outline_beat_count: compiledScan.outline_beats.length,
       google_doc: meta,
       google_doc_tabs: {
         count: tabCount,
@@ -531,7 +536,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
           layer: s.layer,
         })),
       },
-      outline_beat_count: compiledScan.outline_beats.length,
+      pairing_diagnostics: enriched.pairing_diagnostics,
     };
 
     return res.status(200).json(

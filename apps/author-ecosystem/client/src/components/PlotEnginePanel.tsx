@@ -482,7 +482,34 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
           ].join(" ")}
         >
           {panelsActive && selectedScene ? (
-            SIDEBAR_PANELS.map((panel) => (
+            <>
+              <div className="mb-4 border-b border-emerald-900/30 pb-3">
+                <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-400/90">
+                  Synopsis
+                </h3>
+                <textarea
+                  value={selectedScene.synopsis ?? ""}
+                  onChange={(e) => {
+                    const synopsis = e.target.value;
+                    persist({
+                      ...state,
+                      plotPoints: state.plotPoints.map((p) =>
+                        p.id === state.selection.plotPointId
+                          ? {
+                              ...p,
+                              scenes: p.scenes.map((s) =>
+                                s.id === selectedScene.id ? { ...s, synopsis } : s
+                              ),
+                            }
+                          : p
+                      ),
+                    });
+                  }}
+                  placeholder="Beat body / scene synopsis"
+                  className="min-h-[72px] w-full rounded border border-zinc-700 bg-zinc-900/80 px-2 py-1.5 text-xs text-zinc-200 outline-none focus:border-emerald-500/50"
+                />
+              </div>
+              {SIDEBAR_PANELS.map((panel) => (
               <section key={panel} className="mb-4 border-b border-emerald-900/30 pb-3 last:mb-0">
                 <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-400/90">
                   {PANEL_LABELS[panel]}
@@ -498,7 +525,8 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
                   onToggle={(id) => toggleBinding(panel, id)}
                 />
               </section>
-            ))
+            ))}
+            </>
           ) : (
             <div className="flex min-h-[12rem] items-center justify-center">{placeholder}</div>
           )}

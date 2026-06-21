@@ -52,6 +52,15 @@ export const WIKI_BUILDING_BLOCK_META: Record<
       world_bible_section: "environment",
     },
   },
+  technology: {
+    chunk_type: "location",
+    wiki_metadata: {
+      source_type: "world_bible",
+      outline_entity_kind: "setting",
+      semantic_domain: "technology",
+      world_bible_section: "technology",
+    },
+  },
   plot_point: {
     chunk_type: "event",
     wiki_metadata: {

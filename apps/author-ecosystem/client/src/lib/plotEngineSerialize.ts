@@ -28,6 +28,13 @@ function ragTagLine(state: PlotEngineState, scene: Scene): string {
 
 function sceneSynopsis(state: PlotEngineState, plot: PlotPoint, scene: Scene): string {
   const header = `[${plot.title}] ${scene.title}`.trim();
+  const body = scene.synopsis?.trim();
+  if (body) {
+    const tags = ragTagLine(state, scene);
+    const lines = [header, body];
+    if (tags) lines.push(tags);
+    return lines.join("\n").trim();
+  }
   const tags = ragTagLine(state, scene);
   const lines = [header];
   if (tags) lines.push(tags);

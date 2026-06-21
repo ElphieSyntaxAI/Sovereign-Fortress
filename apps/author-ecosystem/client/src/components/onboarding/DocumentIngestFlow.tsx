@@ -52,6 +52,15 @@ type IngestTabDiagnostics = {
   sections?: Array<{ title: string; path?: string; layer: string }>;
 };
 
+type PairingDiagnostic = {
+  section_path: string;
+  heading: string;
+  outline_entity_kind: string;
+  source_type: string;
+  plot_engine_panel: string;
+  ledger: string;
+};
+
 export function DocumentIngestFlow(props: {
   slot: DocumentSlot;
   manuscriptId: string;
@@ -79,6 +88,7 @@ export function DocumentIngestFlow(props: {
   const [showDrivePicker, setShowDrivePicker] = useState(false);
   const [forceCommit, setForceCommit] = useState(false);
   const [tabDiagnostics, setTabDiagnostics] = useState<IngestTabDiagnostics | null>(null);
+  const [pairingDiagnostics, setPairingDiagnostics] = useState<PairingDiagnostic[]>([]);
   const [outlineBeatCount, setOutlineBeatCount] = useState<number | null>(null);
   const planning = usePlanningSessionOptional();
 
@@ -131,6 +141,7 @@ export function DocumentIngestFlow(props: {
       outline_beats?: OutlineBeat[];
       outline_beat_count?: number;
       google_doc_tabs?: IngestTabDiagnostics;
+      pairing_diagnostics?: PairingDiagnostic[];
       content_signals?: ContentSignal[];
       ingest_conflicts?: IngestConflict[];
       clarifying_questions?: ClarifyingQuestion[];
@@ -147,6 +158,9 @@ export function DocumentIngestFlow(props: {
             : null
       );
       setTabDiagnostics(json.google_doc_tabs ?? null);
+      setPairingDiagnostics(
+        Array.isArray(json.pairing_diagnostics) ? json.pairing_diagnostics : []
+      );
       setSignals(Array.isArray(json.content_signals) ? json.content_signals : []);
       setConflicts(Array.isArray(json.ingest_conflicts) ? json.ingest_conflicts : []);
       if (json.status === "clarification") {
@@ -576,9 +590,13 @@ export function DocumentIngestFlow(props: {
         outlineBeats={outlineBeats}
         outlineBeatCount={outlineBeatCount ?? outlineBeats.length}
         tabDiagnostics={tabDiagnostics}
+        pairingDiagnostics={pairingDiagnostics}
         contentSignals={signals}
         ingestConflicts={conflicts}
         onEdit={setProposed}
+        onEditBeat={(idx, beat) =>
+          setOutlineBeats((prev) => prev.map((b, i) => (i === idx ? beat : b)))
+        }
         onRemoveWiki={(idx) => setProposed((prev) => prev.filter((_, i) => i !== idx))}
         onRemoveBeat={(idx) => setOutlineBeats((prev) => prev.filter((_, i) => i !== idx))}
         onSubmit={() => void commit("submit")}

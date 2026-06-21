@@ -13,6 +13,7 @@ import {
 } from "./documentIngestGate.js";
 import type { DocumentIngestMsgfMeta } from "./documentIngestMsgfPipeline.js";
 import { runMsgfDocumentConverge } from "./documentIngestMsgfPipeline.js";
+import type { IngestPairingDiagnostic } from "./documentIngestRagParser.js";
 import type {
   ClarifyingQuestion,
   ContentSignal,
@@ -38,6 +39,7 @@ export async function analyzeDocumentIngest(params: {
   story_fingerprint: StoryFingerprint;
   ingest_conflicts: IngestConflict[];
   clarifying_questions: ClarifyingQuestion[];
+  pairing_diagnostics: IngestPairingDiagnostic[];
   usedLlm: boolean;
   msgf_meta: DocumentIngestMsgfMeta;
 }> {
