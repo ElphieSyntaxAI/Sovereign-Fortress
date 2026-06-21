@@ -61,6 +61,61 @@ type PairingDiagnostic = {
   ledger: string;
 };
 
+type IngestCommitPayload = {
+  manuscriptId: string;
+  proposed: ProposedWiki[];
+  outlineBeats: OutlineBeat[];
+  planning?: { plot_beats?: OutlineBeat[] };
+  message?: string;
+  onCommitted?: () => void;
+  planningCtx: ReturnType<typeof usePlanningSessionOptional>;
+};
+
+function hydrateClientAfterIngestCommit(payload: IngestCommitPayload): string {
+  const beats = payload.planning?.plot_beats ?? payload.outlineBeats;
+  payload.planningCtx?.applyPlanningFromFileImport?.(
+    beats.map((b, i) => ({
+      synopsis: b.synopsis,
+      title: b.title,
+      order: typeof b.order === "number" ? b.order : i,
+    }))
+  );
+  applyFileImportToPlotEngine(
+    payload.manuscriptId,
+    payload.proposed.map((p) => ({
+      title: p.title,
+      excerpt: p.excerpt,
+      chunk_type: p.chunk_type,
+      wiki_metadata: p.wiki_metadata,
+    })),
+    beats.map((b, i) => ({
+      synopsis: b.synopsis,
+      title: b.title,
+      order: typeof b.order === "number" ? b.order : i,
+    }))
+  );
+  dispatchDocumentIngestCommitted({
+    manuscriptId: payload.manuscriptId,
+    wikiCount: payload.proposed.length,
+    beatCount: beats.length,
+    proposedWiki: payload.proposed.map((p) => ({
+      title: p.title,
+      excerpt: p.excerpt,
+      chunk_type: p.chunk_type,
+      wiki_metadata: p.wiki_metadata,
+    })),
+    outlineBeats: beats.map((b, i) => ({
+      synopsis: b.synopsis,
+      title: b.title,
+      order: typeof b.order === "number" ? b.order : i,
+    })),
+  });
+  return (
+    payload.message ??
+    `Imported ${payload.proposed.length} wiki entries and ${beats.length} outline beats. Open Wiki or Outline to continue.`
+  );
+}
+
 export function DocumentIngestFlow(props: {
   slot: DocumentSlot;
   manuscriptId: string;
@@ -98,26 +153,36 @@ export function DocumentIngestFlow(props: {
       auto_committed?: boolean;
       auto_commit_failed?: boolean;
       auto_commit_error?: string;
+      auto_commit_hint?: string;
       message?: string;
       wiki_entry_count?: number;
+      proposed_wiki?: ProposedWiki[];
+      outline_beats?: OutlineBeat[];
+      planning?: { plot_beats?: OutlineBeat[] };
     }) => {
       if (json.auto_committed) {
         setSessionId(String(json.session_id ?? ""));
-        const count = json.wiki_entry_count ?? 0;
+        const proposedRows = Array.isArray(json.proposed_wiki) ? json.proposed_wiki : [];
+        const beats = json.planning?.plot_beats ?? json.outline_beats ?? [];
         setCommitMessage(
-          json.message ??
-            `Wiki built automatically (${count} article${count === 1 ? "" : "s"}). Open Wiki to browse.`
+          hydrateClientAfterIngestCommit({
+            manuscriptId: props.manuscriptId,
+            proposed: proposedRows,
+            outlineBeats: beats,
+            planning: json.planning,
+            message: json.message,
+            planningCtx: planning,
+          })
         );
         setPhase("idle");
-        dispatchDocumentIngestCommitted({ manuscriptId: props.manuscriptId });
-        props.onCommitted?.();
         void planning?.reloadPlotBeatsFromStorage?.();
+        props.onCommitted?.();
         return true;
       }
       if (json.auto_commit_failed) {
         setError(
-          json.auto_commit_error ??
-            "Auto wiki build needs manual review — check proposed articles below."
+          [json.auto_commit_error, json.auto_commit_hint].filter(Boolean).join(" ") ||
+            "Import needs manual review — edit proposed wiki rows and outline beats below, then submit."
         );
       }
       return false;
@@ -407,46 +472,15 @@ export function DocumentIngestFlow(props: {
       if (!res.ok) throw new Error(json.message ?? json.error ?? res.statusText);
       if (action === "submit") {
         const beats = json.planning?.plot_beats ?? outlineBeats;
-        planning?.applyPlanningFromFileImport(
-          beats.map((b, i) => ({
-            synopsis: b.synopsis,
-            title: b.title,
-            order: typeof b.order === "number" ? b.order : i,
-          }))
-        );
-        applyFileImportToPlotEngine(
-          props.manuscriptId,
-          proposed.map((p) => ({
-            title: p.title,
-            excerpt: p.excerpt,
-            chunk_type: p.chunk_type,
-            wiki_metadata: p.wiki_metadata,
-          })),
-          beats.map((b, i) => ({
-            synopsis: b.synopsis,
-            title: b.title,
-            order: typeof b.order === "number" ? b.order : i,
-          }))
-        );
-        dispatchDocumentIngestCommitted({
-          manuscriptId: props.manuscriptId,
-          wikiCount: proposed.length,
-          beatCount: beats.length,
-          proposedWiki: proposed.map((p) => ({
-            title: p.title,
-            excerpt: p.excerpt,
-            chunk_type: p.chunk_type,
-            wiki_metadata: p.wiki_metadata,
-          })),
-          outlineBeats: beats.map((b, i) => ({
-            synopsis: b.synopsis,
-            title: b.title,
-            order: typeof b.order === "number" ? b.order : i,
-          })),
-        });
         setCommitMessage(
-          json.message ??
-            `Imported ${proposed.length} wiki entries and ${beats.length} outline beats. Open Wiki or Outline to continue.`
+          hydrateClientAfterIngestCommit({
+            manuscriptId: props.manuscriptId,
+            proposed,
+            outlineBeats: beats,
+            planning: json.planning,
+            message: json.message,
+            planningCtx: planning,
+          })
         );
       } else if (action === "reject") {
         setCommitMessage(json.message ?? "Import rejected — pattern recorded for future guard.");

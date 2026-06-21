@@ -27,20 +27,20 @@ import { HelperProofService } from "./HelperProofService.js";
 import type { InterestMetrics, MarketplaceHubVisibility } from "./MarketplaceOrchestrator.js";
 import { MarketplaceOrchestrator } from "./MarketplaceOrchestrator.js";
 import type { P4ManuscriptRow, RevisionStatus } from "./RevisionLockService.js";
-import { isOutlinePlotForScope, resolveSeriesRagScope, shouldIncludeChunkForP4Rag } from "./seriesRagScope.js";
+import { chunkInActiveScope, resolveSeriesRagScope } from "./seriesRagScope.js";
+import {
+  bodyFromWikiSnapshotContent,
+  excerptText,
+  isAuthorLoreChunk,
+  isAuthorOutlinePlotChunk,
+  planningChunkTitle,
+  type PlanningChunkRow,
+} from "./planningChunkPreview.js";
+import { isDisplayableAuthorWikiChunk } from "./wikiEntryHelpers.js";
 
 export type DashboardMode = "PLANNING" | "DRAFTING" | "REVISION" | "BUSINESS" | "GROWTH";
 
-export type DashboardChunkPreview = {
-  id: string;
-  chunk_type: string;
-  source_document: string;
-  chunk_index: number;
-  word_count: number;
-  excerpt: string;
-  /** Plot/outline chunk metadata — used for arc ceiling in planning clients. */
-  plot_point_order?: number | null;
-};
+export type DashboardChunkPreview = PlanningChunkRow;
 
 export type PlanningDashboardData = {
   /** `p4_manuscripts.outline` — author beat sheet / high-level outline. */
@@ -443,7 +443,7 @@ export class DashboardOrchestratorService {
     const seriesScope = await resolveSeriesRagScope(this.supabase, tenantId, manuscriptId);
     const { data: lore, error: e1 } = await this.supabase
       .from("p4_narrative_library_chunks")
-      .select("id, chunk_type, source_document, chunk_index, word_count, content")
+      .select("id, chunk_type, source_document, chunk_index, word_count, content, metadata")
       .eq("tenant_id", tenantId)
       .eq("chunk_type", "lore")
       .order("source_document", { ascending: true })
@@ -463,39 +463,72 @@ export class DashboardOrchestratorService {
 
     if (e2) throw new Error(`PLANNING plot: ${e2.message}`);
 
-    const toPreview = (r: Record<string, unknown>): DashboardChunkPreview => ({
-      id: String(r["id"]),
-      chunk_type: String(r["chunk_type"]),
-      source_document: String(r["source_document"] ?? ""),
-      chunk_index: Number(r["chunk_index"] ?? 0),
-      word_count: Number(r["word_count"] ?? 0),
-      excerpt: excerpt(String(r["content"] ?? "")),
+    const toPlanningRow = (r: Record<string, unknown>): PlanningChunkRow => {
+      const meta = asRecord(r["metadata"]);
+      const content = String(r["content"] ?? "");
+      const body = bodyFromWikiSnapshotContent(content);
+      return {
+        id: String(r["id"]),
+        chunk_type: String(r["chunk_type"]),
+        source_document: String(r["source_document"] ?? ""),
+        chunk_index: Number(r["chunk_index"] ?? 0),
+        word_count: Number(r["word_count"] ?? 0),
+        title: planningChunkTitle(meta, content),
+        kind: String(meta.outline_entity_kind ?? meta.lore_extraction_chunk_type ?? r["chunk_type"] ?? "note"),
+        ledger: meta.ledger != null ? String(meta.ledger) : null,
+        excerpt: excerptText(body || content),
+        plot_point_order: resolvedPlotPointOrderFromRow(r),
+      };
+    };
+
+    const loreRows = (lore ?? []).filter((r) => {
+      const row = r as Record<string, unknown>;
+      const meta = asRecord(row["metadata"]);
+      const src = String(row["source_document"] ?? "");
+      if (!chunkInActiveScope(meta, seriesScope)) return false;
+      if (isDisplayableAuthorWikiChunk(meta) || isAuthorLoreChunk(meta, src)) return true;
+      return false;
     });
 
-    const toPlotPreview = (r: Record<string, unknown>): DashboardChunkPreview => ({
-      ...toPreview(r),
-      plot_point_order: resolvedPlotPointOrderFromRow(r),
+    const characterRows = await this.supabase
+      .from("p4_narrative_library_chunks")
+      .select("id, chunk_type, source_document, chunk_index, word_count, content, metadata")
+      .eq("tenant_id", tenantId)
+      .eq("chunk_type", "character")
+      .order("source_document", { ascending: true })
+      .limit(40);
+
+    const extraLore = (characterRows.data ?? []).filter((r) => {
+      const row = r as Record<string, unknown>;
+      const meta = asRecord(row["metadata"]);
+      const src = String(row["source_document"] ?? "");
+      if (!chunkInActiveScope(meta, seriesScope)) return false;
+      return isDisplayableAuthorWikiChunk(meta) || isAuthorLoreChunk(meta, src);
     });
 
-    const outlineRows =
-      (plot ?? []).filter((r) => {
-        const meta = asRecord((r as Record<string, unknown>)["metadata"]);
-        return isOutlinePlotForScope(meta, seriesScope, manuscriptId);
-      }) ?? [];
+    const plotAsLore = (plot ?? []).filter((r) => {
+      const row = r as Record<string, unknown>;
+      const meta = asRecord(row["metadata"]);
+      const src = String(row["source_document"] ?? "");
+      if (!chunkInActiveScope(meta, seriesScope)) return false;
+      if (src.startsWith("wiki-entry/") && isDisplayableAuthorWikiChunk(meta)) return true;
+      if (meta.lore_extraction === true && meta.wiki_author_entry === true) return true;
+      return false;
+    });
 
-    const bible = (lore ?? [])
-      .filter((r) => {
-        const meta = asRecord((r as Record<string, unknown>)["metadata"]);
-        return shouldIncludeChunkForP4Rag(meta, seriesScope, {
-          includeWikiDrafts: true,
-          audience: "author",
-        });
-      })
-      .map((r) => toPreview(r as Record<string, unknown>));
-    const outline =
-      outlineRows.length > 0
-        ? outlineRows.map((r) => toPlotPreview(r as Record<string, unknown>))
-        : (plot ?? []).map((r) => toPlotPreview(r as Record<string, unknown>));
+    const plotRows = (plot ?? []).filter((r) => {
+      const row = r as Record<string, unknown>;
+      const meta = asRecord(row["metadata"]);
+      const src = String(row["source_document"] ?? "");
+      if (!chunkInActiveScope(meta, seriesScope)) return false;
+      if (plotAsLore.includes(r)) return false;
+      return isAuthorOutlinePlotChunk(meta, src);
+    });
+
+    const bible = [...loreRows, ...extraLore, ...plotAsLore].map((r) =>
+      toPlanningRow(r as Record<string, unknown>)
+    );
+    const outline = plotRows.map((r) => toPlanningRow(r as Record<string, unknown>));
 
     return {
       manuscript_outline: ms.outline?.trim() ? ms.outline : null,

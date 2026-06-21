@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { OutlineGoogleDocPicker } from "../components/OutlineGoogleDocPicker";
 import { PlotEnginePanel } from "../components/PlotEnginePanel";
+import { AuthorDocumentIngestPanel } from "../components/onboarding/AuthorDocumentIngestPanel";
 import {
   OutlinePlanningSessionChrome,
   PlanningCommandCenter,
@@ -235,7 +236,12 @@ function OutlinePageContent(props: { manuscriptId: string; tenantId: string }) {
                 </Link>{" "}
                 and click <span className="font-medium">Edit wiki</span>.
               </p>
-              <PlanningCommandCenter {...sharedPcc} initialTab="wiki" allowedTabs={["wiki"]} />
+              <PlanningCommandCenter
+                {...sharedPcc}
+                initialTab="wiki"
+                allowedTabs={["wiki"]}
+                hideRagDashboard
+              />
             </div>
           ) : null}
 
@@ -312,10 +318,12 @@ function OutlinePageContent(props: { manuscriptId: string; tenantId: string }) {
             }}
             onLinked={() => setStatus("Google Doc linked for HAL on this manuscript.")}
           />
-          <PlanningCommandCenter
-            {...sharedPcc}
-            initialTab="discovery"
-            allowedTabs={["discovery"]}
+          <AuthorDocumentIngestPanel
+            manuscriptId={props.manuscriptId}
+            onCommitted={() => {
+              reloadPlotBeatsFromStorage();
+              void loadManuscriptOutline();
+            }}
           />
         </section>
     </>

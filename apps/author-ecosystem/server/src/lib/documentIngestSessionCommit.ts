@@ -49,8 +49,8 @@ export type ExecuteIngestCommitResult =
 
 export function isAutoWikiBuildEnabled(): boolean {
   const v = process.env.DOCUMENT_INGEST_AUTO_WIKI?.trim().toLowerCase();
-  if (v === "0" || v === "false" || v === "off" || v === "no") return false;
-  return true;
+  if (v === "1" || v === "true" || v === "on" || v === "yes") return true;
+  return false;
 }
 
 export async function executeDocumentIngestSessionCommit(

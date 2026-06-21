@@ -217,6 +217,32 @@ export function WikiIngestReviewModal(props: {
             </ol>
           </div>
         ) : null}
+        {local.length === 0 && localBeats.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-amber-900/40 bg-amber-950/20 p-3">
+            <p className="text-xs text-amber-200/90">
+              No wiki rows or outline beats were extracted from this document. Add lore manually below, pick a
+              different import slot (world bible vs draft), or upload a section with clearer headings.
+            </p>
+            <button
+              type="button"
+              className="mt-2 text-xs font-medium text-emerald-300 underline hover:text-emerald-200"
+              disabled={props.busy}
+              onClick={() =>
+                sync([
+                  ...local,
+                  {
+                    title: "New lore entry",
+                    excerpt: "",
+                    chunk_type: "other",
+                  },
+                ])
+              }
+            >
+              Add lore row
+            </button>
+          </div>
+        ) : null}
+        {local.length > 0 ? (
         <ul className="mt-4 space-y-4">
           {local.map((entry, idx) => (
             <li key={idx} className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
@@ -253,6 +279,25 @@ export function WikiIngestReviewModal(props: {
             </li>
           ))}
         </ul>
+        ) : (
+          <button
+            type="button"
+            className="mt-4 text-xs font-medium text-emerald-300 underline hover:text-emerald-200"
+            disabled={props.busy}
+            onClick={() =>
+              sync([
+                ...local,
+                {
+                  title: "New lore entry",
+                  excerpt: "",
+                  chunk_type: "other",
+                },
+              ])
+            }
+          >
+            Add another lore row
+          </button>
+        )}
         <div className="mt-6 flex flex-wrap justify-end gap-2">
           <Link
             to="/wiki"
@@ -296,7 +341,7 @@ export function WikiIngestReviewModal(props: {
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-40"
             disabled={
               props.busy ||
-              (props.proposed.length === 0 && (props.outlineBeats?.length ?? 0) === 0)
+              (local.length === 0 && localBeats.length === 0)
             }
             onClick={props.onSubmit}
           >

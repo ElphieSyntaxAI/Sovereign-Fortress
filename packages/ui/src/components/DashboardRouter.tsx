@@ -524,7 +524,14 @@ export function DashboardRouter({
 
       {planning ? (
         <section className="space-y-3 rounded-xl border border-zinc-700/70 bg-zinc-950/70 p-4">
-          <h3 className="text-sm font-semibold text-zinc-100">Planning — Bible & outline</h3>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h3 className="text-sm font-semibold text-zinc-100">Planning — Bible & outline</h3>
+            <p className="max-w-md text-[11px] text-zinc-500">
+              Imported lore and beats for this manuscript. Edit entries on{" "}
+              <span className="text-violet-300">Wiki</span> or assign tokens in{" "}
+              <span className="text-emerald-300">Building block outline</span>.
+            </p>
+          </div>
           {typeof planning["manuscript_outline"] === "string" && planning["manuscript_outline"] ? (
             <div>
               <p className="text-[10px] uppercase tracking-wide text-zinc-500">Manuscript outline</p>
@@ -533,10 +540,16 @@ export function DashboardRouter({
               </pre>
             </div>
           ) : (
-            <p className="text-xs text-zinc-500">No `p4_manuscripts.outline` text yet.</p>
+            <p className="text-xs text-zinc-500">
+              No manuscript outline text yet — import a document or edit beats in Plot Sandbox, then sync.
+            </p>
           )}
-          <ChunkList title="The Bible (lore)" rows={planning["bible"]} />
-          <ChunkList title="Outline (plot chunks)" rows={planning["outline"]} />
+          <ChunkList title="The Bible (lore)" rows={planning["bible"]} emptyHint="Import a world bible on Manuscripts, or add entries on the Wiki page." />
+          <ChunkList
+            title="Outline (plot beats)"
+            rows={planning["outline"]}
+            emptyHint="Outline scene cards appear after you submit a draft or outline import."
+          />
         </section>
       ) : null}
 
@@ -765,22 +778,51 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ChunkList({ title, rows }: { title: string; rows: unknown }) {
+function ChunkList({
+  title,
+  rows,
+  emptyHint,
+}: {
+  title: string;
+  rows: unknown;
+  emptyHint?: string;
+}) {
   if (!Array.isArray(rows)) return null;
+  const list = rows as Array<Record<string, unknown>>;
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-zinc-500">{title}</p>
-      <ul className="mt-1 max-h-48 space-y-1 overflow-y-auto text-xs text-zinc-300">
-        {(rows as unknown[]).map((r) => {
-          const o = asObj(r);
-          return (
-            <li key={String(o["id"])} className="rounded border border-zinc-800/80 bg-zinc-900/40 px-2 py-1">
-              <span className="font-mono text-[10px] text-zinc-500">{String(o["source_document"] ?? "")}</span> ·{" "}
-              {String(o["excerpt"] ?? "").slice(0, 120)}
-            </li>
-          );
-        })}
-      </ul>
+      <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+        {title} {list.length > 0 ? `(${list.length})` : ""}
+      </p>
+      {list.length === 0 ? (
+        <p className="mt-1 text-xs text-zinc-600">{emptyHint ?? "Nothing indexed for this manuscript yet."}</p>
+      ) : (
+        <ul className="mt-1 max-h-52 space-y-1.5 overflow-y-auto text-xs text-zinc-300">
+          {list.map((o) => {
+            const titleText = String(o["title"] ?? o["excerpt"] ?? "Entry").trim();
+            const kind = String(o["kind"] ?? o["chunk_type"] ?? "").trim();
+            const excerpt = String(o["excerpt"] ?? "").slice(0, 160);
+            return (
+              <li
+                key={String(o["id"])}
+                className="rounded border border-zinc-800/80 bg-zinc-900/40 px-2 py-1.5"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-zinc-100">{titleText}</span>
+                  {kind ? (
+                    <span className="rounded bg-violet-950/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-violet-300/90">
+                      {kind.replace(/_/g, " ")}
+                    </span>
+                  ) : null}
+                </div>
+                {excerpt && excerpt !== titleText ? (
+                  <p className="mt-0.5 line-clamp-2 text-[11px] text-zinc-500">{excerpt}</p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

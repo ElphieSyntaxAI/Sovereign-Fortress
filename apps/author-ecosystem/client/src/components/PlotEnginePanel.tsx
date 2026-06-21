@@ -21,6 +21,8 @@ import {
 } from "../lib/plotEngineTypes";
 import { usePlanningSession } from "../planning/PlanningSessionContext";
 import { DOCUMENT_INGEST_COMMITTED_EVENT, type DocumentIngestCommittedDetail } from "../lib/documentIngestEvents";
+import { bootstrapPlotEngineFromWiki } from "../lib/plotEngineBootstrap";
+import { getPreferredBffBearer } from "../lib/authAccessToken";
 
 export type PlotEnginePanelProps = {
   manuscriptId: string;
@@ -133,6 +135,12 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
     const loaded = loadPlotEngineState(manuscriptId) ?? defaultPlotEngineState("custom");
     setState(loaded);
     setPlotBeats(flattenPlotEngineToBeats(loaded));
+    void bootstrapPlotEngineFromWiki(manuscriptId, () => getPreferredBffBearer()).then((did) => {
+      if (!did) return;
+      const next = loadPlotEngineState(manuscriptId) ?? loaded;
+      setState(next);
+      setPlotBeats(flattenPlotEngineToBeats(next));
+    });
   }, [manuscriptId, setPlotBeats]);
 
   useEffect(() => {

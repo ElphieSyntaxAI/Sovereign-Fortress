@@ -12,7 +12,7 @@ import {
 } from "../planning/PlanningSessionContext";
 import { BrainPillarHealth } from "./BrainPillarHealth";
 import { EditorRequestButton } from "./EditorRequestButton";
-import { ImportDocumentCallout } from "./onboarding/ImportDocumentCallout";
+import { AuthorDocumentIngestPanel } from "./onboarding/AuthorDocumentIngestPanel";
 import { LibrarianInterviewChat } from "./LibrarianInterviewChat";
 import { getPlotEngineSyncPayload, PlotEnginePanel } from "./PlotEnginePanel";
 import { flattenPlotEngineToBeats } from "../lib/plotEngineSerialize";
@@ -402,7 +402,14 @@ function PlanningCommandCenterInner(props: PlanningCommandCenterProps) {
       />
     );
   } else if (tab === "discovery") {
-    body = <ImportDocumentCallout manuscriptId={props.manuscriptId.trim() || undefined} />;
+    body = (
+      <AuthorDocumentIngestPanel
+        manuscriptId={props.manuscriptId.trim()}
+        onCommitted={() => {
+          void loadView("PLANNING");
+        }}
+      />
+    );
   } else {
     body = (
       <PlotEnginePanel manuscriptId={props.manuscriptId} />

@@ -494,12 +494,12 @@ describe("platform operator", () => {
 });
 
 describe("auto wiki build", () => {
-  test("isAutoWikiBuildEnabled defaults on", () => {
+  test("isAutoWikiBuildEnabled defaults off unless explicitly enabled", () => {
     const prev = process.env.DOCUMENT_INGEST_AUTO_WIKI;
     delete process.env.DOCUMENT_INGEST_AUTO_WIKI;
-    assert.equal(isAutoWikiBuildEnabled(), true);
-    process.env.DOCUMENT_INGEST_AUTO_WIKI = "0";
     assert.equal(isAutoWikiBuildEnabled(), false);
+    process.env.DOCUMENT_INGEST_AUTO_WIKI = "1";
+    assert.equal(isAutoWikiBuildEnabled(), true);
     if (prev === undefined) delete process.env.DOCUMENT_INGEST_AUTO_WIKI;
     else process.env.DOCUMENT_INGEST_AUTO_WIKI = prev;
   });

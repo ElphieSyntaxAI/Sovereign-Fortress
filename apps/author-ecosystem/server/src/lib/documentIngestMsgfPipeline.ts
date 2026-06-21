@@ -64,6 +64,7 @@ export type DocumentIngestMsgfMeta = {
   signals_summary: string;
   keyword_hits: string[];
   grounding: { kept: number; dropped: number };
+  semantic_regions?: SemanticRegion[];
 };
 
 export function resolveDocumentIngestMode(): DocumentIngestMode {
@@ -378,6 +379,7 @@ export async function runMsgfDocumentConverge(params: {
       signals_summary: signals.summary,
       keyword_hits,
       grounding,
+      ...(semantic_regions.length > 0 ? { semantic_regions } : {}),
     },
   };
 }
