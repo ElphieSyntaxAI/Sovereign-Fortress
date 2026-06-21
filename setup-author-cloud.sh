@@ -170,7 +170,7 @@ _run_cloud_build() {
   gcloud builds submit "${SCRIPT_DIR}" \
     --project="${GCP_PROJECT_ID}" \
     --quiet \
-    --config="${config_path}" || return 1
+    --config="${config_path}" >&2 || return 1
 }
 
 _yaml_sanitize() {
@@ -226,8 +226,8 @@ _assert_bff_cloudrun_env() {
 _deploy_bff() {
   _assert_bff_cloudrun_env
   local uri="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REPOSITORY}/${AUTHOR_BFF_IMAGE}:${IMAGE_TAG}"
-  echo ""
-  echo "=== Building Author BFF: ${uri} ==="
+  echo "" >&2
+  echo "=== Building Author BFF: ${uri} ===" >&2
   local cb_tmp
   cb_tmp="$(mktemp "${TMPDIR:-/tmp}/author-bff-cloudbuild.XXXXXX.yaml")"
   cat >"${cb_tmp}" <<EOF
@@ -260,9 +260,9 @@ EOF
   if [[ -s "${env_tmp}" ]]; then
     deploy+=(--env-vars-file="${env_tmp}")
   fi
-  echo ""
-  echo "=== Deploying Author BFF: ${AUTHOR_BFF_SERVICE} ==="
-  "${deploy[@]}"
+  echo "" >&2
+  echo "=== Deploying Author BFF: ${AUTHOR_BFF_SERVICE} ===" >&2
+  "${deploy[@]}" >&2
 
   gcloud run services describe "${AUTHOR_BFF_SERVICE}" \
     --project="${GCP_PROJECT_ID}" \
@@ -295,11 +295,11 @@ _deploy_client() {
     exit 1
   fi
   bff_upstream="${bff_upstream%/}"
-  echo "Author client: VITE_AUTHOR_BFF_URL=${vite_bff:-<same-origin /api>}  nginx→${bff_upstream}"
+  echo "Author client: VITE_AUTHOR_BFF_URL=${vite_bff:-<same-origin /api>}  nginx→${bff_upstream}" >&2
 
   local uri="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_ARTIFACT_REPOSITORY}/${AUTHOR_CLIENT_IMAGE}:${IMAGE_TAG}"
-  echo ""
-  echo "=== Building Author client (vite BFF=${vite_bff:-same-origin}): ${uri} ==="
+  echo "" >&2
+  echo "=== Building Author client (vite BFF=${vite_bff:-same-origin}): ${uri} ===" >&2
   local cb_tmp
   cb_tmp="$(mktemp "${TMPDIR:-/tmp}/author-client-cloudbuild.XXXXXX.yaml")"
   trap 'rm -f "${cb_tmp:-}"' RETURN
@@ -329,8 +329,8 @@ EOF
     return 1
   }
 
-  echo ""
-  echo "=== Deploying Author client: ${AUTHOR_CLIENT_SERVICE} ==="
+  echo "" >&2
+  echo "=== Deploying Author client: ${AUTHOR_CLIENT_SERVICE} ===" >&2
   gcloud run deploy "${AUTHOR_CLIENT_SERVICE}" \
     --project="${GCP_PROJECT_ID}" \
     --region="${GCP_REGION}" \
@@ -342,7 +342,7 @@ EOF
     --concurrency=200 \
     --min-instances="${CLOUD_RUN_MIN_INSTANCES}" \
     --max-instances="${CLOUD_RUN_MAX_INSTANCES}" \
-    --allow-unauthenticated
+    --allow-unauthenticated >&2
 
   gcloud run services describe "${AUTHOR_CLIENT_SERVICE}" \
     --project="${GCP_PROJECT_ID}" \

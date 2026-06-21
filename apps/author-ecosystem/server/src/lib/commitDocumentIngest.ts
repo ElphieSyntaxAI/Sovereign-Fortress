@@ -9,6 +9,10 @@ import {
 } from "./documentIngestGate.js";
 import { compileDocumentIngest } from "./documentIngestCompile.js";
 import {
+  filterOutlineBeatsForCommit,
+  filterProposedWikiForCommit,
+} from "./documentIngestFilter.js";
+import {
   buildManuscriptOutlineFromBeats,
   normalizeProposedWikiEntry,
   type IngestPlotBeat,
@@ -71,19 +75,14 @@ export async function commitDocumentIngestToBackend(params: {
   const { supabase, tenantId, manuscriptId, slot, filename } = params;
   const compiled = compileDocumentIngest({
     outlineBeats: params.outlineBeats as IngestPlotBeat[],
-    proposedWiki: params.proposed,
+    proposedWiki: filterProposedWikiForCommit(params.proposed),
     sourceText: params.sourceText,
   });
   const sourceText = compiled.source_text ?? params.sourceText;
   const normalized = compiled.proposed_wiki.map((e) =>
     normalizeProposedWikiEntry(e, manuscriptId, slot)
   );
-  const beats =
-    compiled.outline_beats.length > 0
-      ? compiled.outline_beats
-      : slot === "current_draft"
-        ? []
-        : [];
+  const beats = filterOutlineBeatsForCommit(compiled.outline_beats);
 
   const ingestion = new IngestionService(supabase);
   let lore_ingest: { chunksTotal: number; chunksInserted: number } | null = null;
@@ -162,26 +161,30 @@ export async function commitDocumentIngestToBackend(params: {
         beats: beats
           .map((b, i) => ({ beat: b, order: i }))
           .filter(({ beat }) => beat.synopsis.trim().length >= 20)
-          .map(({ beat, order }) => ({
-            synopsis: beat.synopsis.trim(),
-            order,
-            metadata: {
-              outline: true,
-              is_outline: true,
-              manuscript_id: manuscriptId,
-              scene_card: true,
-              plot_point_order: beat.plot_point_order ?? beat.chapter_number ?? order + 1,
-              chapter_number: beat.chapter_number ?? null,
-              beat_title: beat.title,
-              pov_mode: beat.pov_mode,
-              pov_names: beat.pov_names,
-              ingest_slot: slot,
-              file_import: true,
-              ledger: "wiki_snapshot",
-              wiki_visibility: "draft",
-              outline_entity_kind: "plot_point",
-            },
-          })),
+          .map(({ beat, order }) => {
+            const isChapter = beat.chapter_number != null;
+            return {
+              synopsis: beat.synopsis.trim(),
+              order,
+              metadata: {
+                outline: true,
+                is_outline: true,
+                manuscript_id: manuscriptId,
+                scene_card: true,
+                plot_point_order: beat.plot_point_order ?? beat.chapter_number ?? order + 1,
+                chapter_number: beat.chapter_number ?? null,
+                beat_title: beat.title,
+                pov_mode: beat.pov_mode,
+                pov_names: beat.pov_names,
+                ingest_slot: slot,
+                file_import: true,
+                ledger: "wiki_snapshot",
+                wiki_visibility: "draft",
+                outline_entity_kind: isChapter ? "chapter" : "plot_point",
+                proposed_chunk_title: beat.title?.trim() || undefined,
+              },
+            };
+          }),
         sourcePrefix: "file-import-plot-beat",
       });
       convergence.plot = addConvergenceStats(convergence.plot, plotStats);

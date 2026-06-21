@@ -6,6 +6,7 @@ import { PlanningCommandCenter } from "./PlanningCommandCenter";
 import { WikiLoreRail } from "./WikiLoreRail";
 import { WikiLoreSheet } from "./WikiLoreSheet";
 import { WikiScrappedPanel } from "./WikiScrappedPanel";
+import { WikiFileImportCleanup } from "./WikiFileImportCleanup";
 import { WikiUnsavedDraftsList } from "./WikiUnsavedDraftsList";
 import { WikiArticlePage } from "./wiki/WikiArticlePage";
 import { WikiManuscriptOverview } from "./wiki/WikiManuscriptOverview";
@@ -48,6 +49,7 @@ type WikiPayload = {
     shown: number;
     hidden_spoilers: number;
     hidden_rag_shards?: number;
+    import_cleanup_candidates?: number;
   };
   manuscript: { title: string | null; outline: string | null };
 };
@@ -93,8 +95,8 @@ export function WikiAuthorView(props: {
 
   const showEditChrome = props.wikiEditable && !props.fanPreview;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (soft = false) => {
+    if (!soft) setLoading(true);
     setError(null);
     try {
       const token = await getPreferredBffBearer();
@@ -108,20 +110,20 @@ export function WikiAuthorView(props: {
       setData(json);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
-      setData(null);
+      if (!soft) setData(null);
     } finally {
       setLoading(false);
     }
   }, [props.manuscriptId, props.fanPreview]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(false);
+  }, [props.manuscriptId, props.fanPreview, load]);
 
   useEffect(() => {
     const onIngest = (ev: Event) => {
       const detail = (ev as CustomEvent<DocumentIngestCommittedDetail>).detail;
-      if (detail?.manuscriptId === props.manuscriptId) void load();
+      if (detail?.manuscriptId === props.manuscriptId) void load(true);
     };
     window.addEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
     return () => window.removeEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
@@ -240,7 +242,7 @@ export function WikiAuthorView(props: {
         setSelectedId(null);
         setShowOverview(true);
       }
-      await load();
+      await load(true);
     } catch (e) {
       props.onStatus?.(e instanceof Error ? e.message : String(e));
     } finally {
@@ -273,7 +275,7 @@ export function WikiAuthorView(props: {
               initial={activeDraft}
               onClose={closeSheet}
               onCommitted={props.onStatus}
-              onReloadWiki={() => void load()}
+              onReloadWiki={() => void load(true)}
             />
           ) : null}
         </>
@@ -302,7 +304,7 @@ export function WikiAuthorView(props: {
           </p>
           <button
             type="button"
-            onClick={() => void load()}
+            onClick={() => void load(true)}
             className="text-zinc-500 underline hover:text-zinc-800 dark:hover:text-zinc-200"
           >
             Refresh
@@ -311,18 +313,24 @@ export function WikiAuthorView(props: {
 
         {showEditChrome ? (
           <div className="space-y-4 border-b border-zinc-300/20 bg-zinc-100/50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+            <WikiFileImportCleanup
+              manuscriptId={props.manuscriptId}
+              count={data?.stats.import_cleanup_candidates ?? 0}
+              onStatus={props.onStatus}
+              onReloadWiki={() => void load(true)}
+            />
             <WikiUnsavedDraftsList onOpenDraft={(kind, draftId) => openSheet(kind, { draftId })} />
             <WikiScrappedPanel
               manuscriptId={props.manuscriptId}
               onStatus={props.onStatus}
-              onReloadWiki={() => void load()}
+              onReloadWiki={() => void load(true)}
             />
           </div>
         ) : null}
 
-        {loading ? (
+        {loading && !data ? (
           <p className="p-8 text-sm text-zinc-500">Loading wiki…</p>
-        ) : error ? (
+        ) : error && !data ? (
           <p className="p-8 text-sm text-red-400">{error}</p>
         ) : navSections.length === 0 ? (
           <div className="p-10 text-center">
@@ -410,15 +418,17 @@ export function WikiAuthorView(props: {
             Wiki Architect & scratch notes
           </summary>
           <div className="border-t border-zinc-800 p-4">
-            <PlanningCommandCenter
-              manuscriptId={props.manuscriptId}
-              tenantId={props.tenantId}
-              initialTab="wiki"
-              allowedTabs={["wiki"]}
-              compactChrome
-              wikiReadOnly={!props.wikiEditable}
-              hideRagDashboard
-            />
+            {architectOpen ? (
+              <PlanningCommandCenter
+                manuscriptId={props.manuscriptId}
+                tenantId={props.tenantId}
+                initialTab="wiki"
+                allowedTabs={["wiki"]}
+                compactChrome
+                wikiReadOnly={!props.wikiEditable}
+                hideRagDashboard
+              />
+            ) : null}
           </div>
         </details>
       ) : null}

@@ -28,9 +28,10 @@ export function WikiScrappedPanel(props: {
   onReloadWiki?: () => void;
 }) {
   const [rows, setRows] = useState<ScrappedRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,12 +42,14 @@ export function WikiScrappedPanel(props: {
       setRows([]);
     } finally {
       setLoading(false);
+      setLoaded(true);
     }
   }, [props.manuscriptId]);
 
   useEffect(() => {
+    if (!open || loaded) return;
     void load();
-  }, [load]);
+  }, [open, loaded, load]);
 
   const restore = async (id: string) => {
     setBusyId(id);
@@ -62,19 +65,25 @@ export function WikiScrappedPanel(props: {
     }
   };
 
-  if (!open && rows.length === 0 && !loading) {
+  const openPanel = () => {
+    setOpen(true);
+  };
+
+  if (!open) {
     return (
       <section className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={openPanel}
           className="flex w-full items-center justify-between text-left"
         >
           <h3 className="text-sm font-semibold text-zinc-200">Scrapped ideas</h3>
-          <span className="text-xs text-zinc-500">Show · 0 items</span>
+          <span className="text-xs text-zinc-500">
+            Show{loaded ? ` · ${rows.length} item${rows.length === 1 ? "" : "s"}` : ""}
+          </span>
         </button>
         <p className="mt-1 text-xs text-zinc-500">
-          Removed wiki articles land here. Restore anytime — permanent delete is not exposed in the UI yet.
+          Removed wiki articles land here. Opens on demand — nothing loads until you expand this panel.
         </p>
       </section>
     );
@@ -84,63 +93,60 @@ export function WikiScrappedPanel(props: {
     <section className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(false)}
         className="flex w-full items-center justify-between text-left"
       >
         <h3 className="text-sm font-semibold text-zinc-200">Scrapped ideas</h3>
         <span className="text-xs text-zinc-500">
-          {open ? "Hide" : "Show"} · {rows.length} item{rows.length === 1 ? "" : "s"}
+          Hide · {rows.length} item{rows.length === 1 ? "" : "s"}
         </span>
       </button>
       <p className="mt-1 text-xs text-zinc-500">
-        Soft-deleted wiki entries kept for author recovery. Use <strong className="font-medium text-zinc-400">Remove</strong> on an article or{" "}
-        <strong className="font-medium text-zinc-400">Remove from wiki</strong> in the lore sheet.
+        Soft-deleted wiki entries kept for author recovery.
       </p>
 
-      {open ? (
-        <div className="mt-3">
-          {loading ? (
-            <p className="text-xs text-zinc-500">Loading scrapped entries…</p>
-          ) : rows.length === 0 ? (
-            <p className="text-xs text-zinc-500">No scrapped entries for this manuscript.</p>
-          ) : (
-            <ul className="space-y-2">
-              {rows.map((row) => {
-                const kind = kindFromMeta(row.metadata);
-                let label = kind;
-                try {
-                  label = getOutlineLoreKindConfig(kind as OutlineLoreKind).label;
-                } catch {
-                  /* use raw kind */
-                }
-                const scrappedAt = String(row.metadata.wiki_scrapped_at ?? "");
-                return (
-                  <li
-                    key={row.id}
-                    className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3"
+      <div className="mt-3">
+        {loading ? (
+          <p className="text-xs text-zinc-500">Loading scrapped entries…</p>
+        ) : rows.length === 0 ? (
+          <p className="text-xs text-zinc-500">No scrapped entries for this manuscript.</p>
+        ) : (
+          <ul className="max-h-64 space-y-2 overflow-y-auto">
+            {rows.map((row) => {
+              const kind = kindFromMeta(row.metadata);
+              let label = kind;
+              try {
+                label = getOutlineLoreKindConfig(kind as OutlineLoreKind).label;
+              } catch {
+                /* use raw kind */
+              }
+              const scrappedAt = String(row.metadata.wiki_scrapped_at ?? "");
+              return (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3"
+                >
+                  <div>
+                    <p className="text-xs font-medium text-zinc-100">{titleFromRow(row)}</p>
+                    <p className="text-[10px] text-zinc-500">
+                      {label}
+                      {scrappedAt ? ` · scrapped ${new Date(scrappedAt).toLocaleString()}` : null}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={busyId === row.id}
+                    onClick={() => void restore(row.id)}
+                    className="rounded-full border border-emerald-700/50 px-2 py-1 text-[10px] text-emerald-200 disabled:opacity-50"
                   >
-                    <div>
-                      <p className="text-xs font-medium text-zinc-100">{titleFromRow(row)}</p>
-                      <p className="text-[10px] text-zinc-500">
-                        {label}
-                        {scrappedAt ? ` · scrapped ${new Date(scrappedAt).toLocaleString()}` : null}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={busyId === row.id}
-                      onClick={() => void restore(row.id)}
-                      className="rounded-full border border-emerald-700/50 px-2 py-1 text-[10px] text-emerald-200 disabled:opacity-50"
-                    >
-                      {busyId === row.id ? "Restoring…" : "Restore"}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      ) : null}
+                    {busyId === row.id ? "Restoring…" : "Restore"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

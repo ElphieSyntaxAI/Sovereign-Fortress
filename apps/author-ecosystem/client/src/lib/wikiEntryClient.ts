@@ -73,3 +73,16 @@ export async function fetchScrappedWiki(manuscriptId: string) {
     }>;
   }>;
 }
+
+export async function bulkScrapFileImportJunk(
+  manuscriptId: string,
+  opts: { dry_run: boolean }
+): Promise<{ matched_count?: number; scrapped_count?: number; preview?: unknown[] }> {
+  return wikiJson(`/api/wiki/${encodeURIComponent(manuscriptId)}/entries/bulk-scrap`, {
+    method: "POST",
+    body: JSON.stringify({
+      dry_run: opts.dry_run,
+      reason: "author_bulk_import_cleanup",
+    }),
+  });
+}

@@ -23,6 +23,15 @@ export function isScrappedWiki(meta: Record<string, unknown>): boolean {
   return Boolean(meta.wiki_scrapped_at);
 }
 
+/** File-import outline beats duplicated as lore rows (bulk cleanup target). */
+export function isFileImportOutlineJunk(meta: Record<string, unknown>): boolean {
+  if (meta.file_import !== true) return false;
+  if (meta.user_override === true) return false;
+  if (meta.scene_card === true) return true;
+  const kind = String(meta.outline_entity_kind ?? "").trim();
+  return kind === "plot_point" || kind === "chapter";
+}
+
 /**
  * Lore encyclopedia rows (characters, settings, etc.) — not raw RAG retrieval shards.
  * File import also writes 500-word overlapping vectors for Librarian search; those must not
@@ -42,6 +51,13 @@ export function isDisplayableAuthorWikiChunk(meta: Record<string, unknown>): boo
   }
 
   if (meta.planning_session_sync === true) return false;
+
+  // Outline beats (chapters/scenes) belong in plot outline — not the lore encyclopedia.
+  if (meta.file_import === true && meta.scene_card === true) return false;
+  if (meta.file_import === true) {
+    const kind = String(meta.outline_entity_kind ?? "").trim();
+    if (kind === "plot_point" || kind === "chapter") return false;
+  }
 
   if (meta.wiki_author_entry === true) return true;
   if (String(meta.proposed_chunk_title ?? "").trim()) return true;

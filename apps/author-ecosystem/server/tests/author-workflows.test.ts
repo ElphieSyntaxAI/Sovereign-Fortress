@@ -532,6 +532,23 @@ describe("wiki display filter", () => {
       }),
       true
     );
+    assert.equal(
+      isDisplayableAuthorWikiChunk({
+        file_import: true,
+        scene_card: true,
+        outline_entity_kind: "plot_point",
+        proposed_chunk_title: "Chapter 3",
+      }),
+      false
+    );
+    assert.equal(
+      isDisplayableAuthorWikiChunk({
+        file_import: true,
+        outline_entity_kind: "plot_point",
+        proposed_chunk_title: "Beat 12",
+      }),
+      false
+    );
   });
 });
 

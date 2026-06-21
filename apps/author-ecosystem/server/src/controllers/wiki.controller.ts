@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 import {
   chunkMatchesManuscript,
   isDisplayableAuthorWikiChunk,
+  isFileImportOutlineJunk,
   isScrappedWiki,
 } from "../lib/wikiEntryHelpers.js";
 
@@ -90,6 +91,7 @@ wikiController.get("/api/wiki/:manuscriptId/chunks", async (req: Request, res: R
   }
 
   let hiddenRagShards = 0;
+  let importCleanupCandidates = 0;
   const scoped = (rows ?? []).filter((r) => {
     const meta = (r.metadata && typeof r.metadata === "object" ? r.metadata : {}) as Record<
       string,
@@ -97,6 +99,7 @@ wikiController.get("/api/wiki/:manuscriptId/chunks", async (req: Request, res: R
     >;
     if (isScrappedWiki(meta)) return false;
     if (!chunkMatchesManuscript(meta, manuscriptId)) return false;
+    if (isFileImportOutlineJunk(meta)) importCleanupCandidates += 1;
     if (!isDisplayableAuthorWikiChunk(meta)) {
       hiddenRagShards += 1;
       return false;
@@ -132,6 +135,7 @@ wikiController.get("/api/wiki/:manuscriptId/chunks", async (req: Request, res: R
       shown: filtered.length,
       hidden_spoilers: fanPreview ? chunks.length - filtered.length : 0,
       hidden_rag_shards: hiddenRagShards,
+      import_cleanup_candidates: importCleanupCandidates,
     },
   });
 });

@@ -19,7 +19,6 @@ import {
 import {
   extractOutlineBeatsFromText,
   mergePlotBeats,
-  plotBeatsToSceneWikiEntries,
 } from "./documentIngestOutline.js";
 import {
   buildDocumentIngestSignals,
@@ -200,7 +199,6 @@ export async function runMsgfDocumentConverge(params: {
   const heuristicThoughts = buildHeuristicScanThoughts(params.text, params.slot);
   const heuristicWiki = heuristicProposedWiki(params.text, params.slot, params.manuscriptId);
   const textBeats = extractOutlineBeatsFromText(params.text);
-  const sceneWiki = plotBeatsToSceneWikiEntries(textBeats, params.manuscriptId, params.slot);
 
   const fingerprint = extractStoryFingerprint(params.text);
   const heuristicConflicts = detectInDocumentConflicts(params.text, params.slot);
@@ -305,15 +303,11 @@ export async function runMsgfDocumentConverge(params: {
   }
 
   if (mode === "hybrid" || !proposed.length) {
-    proposed = proposed.length
-      ? proposed
-      : [...heuristicWiki, ...sceneWiki];
-  } else if (!proposed.some((p) => String(p.wiki_metadata?.outline_entity_kind) === "plot_point")) {
-    proposed = [...proposed, ...sceneWiki];
+    proposed = proposed.length ? proposed : [...heuristicWiki];
   }
 
   if (mode === "heuristic") {
-    proposed = [...heuristicWiki, ...sceneWiki];
+    proposed = [...heuristicWiki];
     outline_beats = mergePlotBeats([], textBeats);
     usedLlm = false;
   }

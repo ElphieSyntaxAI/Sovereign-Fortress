@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ProposedWikiEntry } from "./documentIngestGate.js";
 import { areNearDuplicateTexts, synopsisFingerprint } from "./documentIngestCompile.js";
+import { isOutlineBeatWikiDuplicate, isSubstantiveWikiExcerpt } from "./documentIngestFilter.js";
 import { isUserOverrideChunk } from "./chunkLifecycle.js";
 import { embedWikiExcerptForIngest } from "./wikiEntryHelpers.js";
 
@@ -82,8 +83,11 @@ export async function convergeUpsertWikiEntry(
     sourcePrefix?: string;
   }
 ): Promise<ConvergeResult> {
+  if (isOutlineBeatWikiDuplicate(params.entry)) return { action: "skipped" };
+
   const excerpt = params.entry.excerpt.trim();
   if (excerpt.length < 20) return { action: "skipped" };
+  if (!isSubstantiveWikiExcerpt(excerpt, params.entry.title)) return { action: "skipped" };
 
   const kind = resolveKind(params.entry);
   const fp = entityFingerprint(params.manuscriptId, kind, params.entry.title);

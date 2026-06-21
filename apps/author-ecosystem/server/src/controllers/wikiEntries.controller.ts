@@ -6,6 +6,7 @@ import {
   buildWikiSnapshotBody,
   chunkMatchesManuscript,
   embedWikiExcerpt,
+  isFileImportOutlineJunk,
   isScrappedWiki,
   newWikiSourceDocument,
   recordWikiHumanEffort,
@@ -239,6 +240,107 @@ wikiEntriesController.patch(
     } catch (e) {
       return res.status(500).json({ error: e instanceof Error ? e.message : "Update failed" });
     }
+  }
+);
+
+/**
+ * POST /api/wiki/:manuscriptId/entries/bulk-scrap — scrap file-import outline junk in one action.
+ */
+wikiEntriesController.post(
+  "/api/wiki/:manuscriptId/entries/bulk-scrap",
+  async (req: Request, res: Response) => {
+    const user = readBearerUser(req, res);
+    if (!user) return;
+
+    const manuscriptId = String(req.params.manuscriptId ?? "").trim();
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const dryRun = body.dry_run === true;
+    const includeUserOverride = body.include_user_override === true;
+    const reason = String(body.reason ?? "bulk_file_import_cleanup").slice(0, 200);
+
+    const supabase = getSupabaseAdmin();
+    if (!(await assertManuscriptOwned(supabase, user.userId, manuscriptId))) {
+      return res.status(404).json({ error: "Manuscript not found" });
+    }
+
+    const { data: rows, error } = await supabase
+      .from("p4_narrative_library_chunks")
+      .select("id, metadata, content")
+      .eq("tenant_id", user.userId)
+      .eq("is_deleted", false)
+      .in("chunk_type", ["lore", "plot", "character"])
+      .limit(500);
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const now = new Date().toISOString();
+    const matched = (rows ?? []).filter((r) => {
+      const meta = (r.metadata && typeof r.metadata === "object" ? r.metadata : {}) as Record<
+        string,
+        unknown
+      >;
+      if (!chunkMatchesManuscript(meta, manuscriptId)) return false;
+      if (isScrappedWiki(meta)) return false;
+      if (!includeUserOverride && meta.user_override === true) return false;
+      return isFileImportOutlineJunk(meta);
+    });
+
+    if (dryRun) {
+      return res.status(200).json({
+        dry_run: true,
+        matched_count: matched.length,
+        preview: matched.slice(0, 8).map((r) => {
+          const meta = (r.metadata && typeof r.metadata === "object" ? r.metadata : {}) as Record<
+            string,
+            unknown
+          >;
+          return {
+            id: r.id,
+            title: String(meta.proposed_chunk_title ?? meta.beat_title ?? "Untitled"),
+            outline_entity_kind: meta.outline_entity_kind ?? null,
+          };
+        }),
+      });
+    }
+
+    let scrapped = 0;
+    const batchSize = 25;
+    for (let i = 0; i < matched.length; i += batchSize) {
+      const batch = matched.slice(i, i + batchSize);
+      const results = await Promise.all(
+        batch.map(async (row) => {
+          const prevMeta = (row.metadata && typeof row.metadata === "object"
+            ? row.metadata
+            : {}) as Record<string, unknown>;
+          const nextMeta = {
+            ...prevMeta,
+            wiki_scrapped_at: now,
+            wiki_visibility: "draft",
+            wiki_scrapped_reason: reason,
+          };
+          const { error: updErr } = await supabase
+            .from("p4_narrative_library_chunks")
+            .update({ metadata: nextMeta, is_deleted: true })
+            .eq("id", row.id)
+            .eq("tenant_id", user.userId);
+          return updErr ? null : row.id;
+        })
+      );
+      scrapped += results.filter(Boolean).length;
+    }
+
+    if (scrapped > 0) {
+      await recordWikiHumanEffort(supabase, {
+        tenantId: user.userId,
+        actorId: user.userId,
+        manuscriptId,
+        action: "scrap",
+        title: `Bulk import cleanup (${scrapped})`,
+        outlineEntityKind: "plot_point",
+      });
+    }
+
+    return res.status(200).json({ success: true, scrapped_count: scrapped, matched_count: matched.length });
   }
 );
 
