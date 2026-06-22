@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { GoogleDocDrivePicker } from "../GoogleDocDrivePicker";
 import { applyFileImportToPlotEngine } from "../PlotEnginePanel";
 import { dispatchDocumentIngestCommitted } from "../../lib/documentIngestEvents";
+import { refreshIngestSurfaces } from "../../lib/ingestSurfacesRefresh";
 import { formatBffFetchError } from "../../lib/bffFetch";
 import { usePlanningSessionOptional } from "../../planning/PlanningSessionContext";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../../lib/bffFetch";
@@ -110,6 +111,7 @@ function hydrateClientAfterIngestCommit(payload: IngestCommitPayload): string {
       order: typeof b.order === "number" ? b.order : i,
     })),
   });
+  void refreshIngestSurfaces(payload.manuscriptId);
   return (
     payload.message ??
     `Imported ${payload.proposed.length} wiki entries and ${beats.length} outline beats. Open Wiki or Outline to continue.`
@@ -145,6 +147,14 @@ export function DocumentIngestFlow(props: {
   const [tabDiagnostics, setTabDiagnostics] = useState<IngestTabDiagnostics | null>(null);
   const [pairingDiagnostics, setPairingDiagnostics] = useState<PairingDiagnostic[]>([]);
   const [outlineBeatCount, setOutlineBeatCount] = useState<number | null>(null);
+  const [parseCoverage, setParseCoverage] = useState<{
+    source_chars?: number;
+    llm_chars_processed?: number;
+    llm_chunks?: number;
+    rag_sections?: number;
+    domains?: string[];
+    capped?: boolean;
+  } | null>(null);
   const planning = usePlanningSessionOptional();
 
   const handleAutoCommitResponse = useCallback(
@@ -210,6 +220,14 @@ export function DocumentIngestFlow(props: {
       content_signals?: ContentSignal[];
       ingest_conflicts?: IngestConflict[];
       clarifying_questions?: ClarifyingQuestion[];
+      parse_coverage?: {
+        source_chars?: number;
+        llm_chars_processed?: number;
+        llm_chunks?: number;
+        rag_sections?: number;
+        domains?: string[];
+        capped?: boolean;
+      };
     }) => {
       if (handleAutoCommitResponse(json)) return;
       setSessionId(String(json.session_id ?? ""));
@@ -222,6 +240,7 @@ export function DocumentIngestFlow(props: {
             ? json.outline_beats.length
             : null
       );
+      setParseCoverage(json.parse_coverage ?? null);
       setTabDiagnostics(json.google_doc_tabs ?? null);
       setPairingDiagnostics(
         Array.isArray(json.pairing_diagnostics) ? json.pairing_diagnostics : []
@@ -625,6 +644,7 @@ export function DocumentIngestFlow(props: {
         outlineBeatCount={outlineBeatCount ?? outlineBeats.length}
         tabDiagnostics={tabDiagnostics}
         pairingDiagnostics={pairingDiagnostics}
+        parseCoverage={parseCoverage}
         contentSignals={signals}
         ingestConflicts={conflicts}
         onEdit={setProposed}

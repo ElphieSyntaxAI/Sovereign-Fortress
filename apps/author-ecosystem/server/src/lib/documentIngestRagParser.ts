@@ -1,6 +1,8 @@
 import type { DocumentIngestSlot, ProposedWikiEntry } from "./documentIngestGate.js";
 import { slotDefaultMetadata } from "./documentIngestGate.js";
 import { areNearDuplicateTexts } from "./documentIngestCompile.js";
+import { MAX_GOOGLE_DOC_TABS, MAX_RAG_WIKI_EXCERPT } from "./documentIngestLimits.js";
+import { detectHeuristicBoundaries } from "./narrative/semanticChunking.js";
 import {
   splitTabSections,
   wikiKindForPlanningLayer,
@@ -22,6 +24,9 @@ const RAG_TAG_BRACKET_RE = /\[RAG\s+TAG:\s*([^\]]+)\]/gi;
 const RAG_TAG_INLINE_RE = /RAG\s+TAG:\s*\[([^\]]+)\]/gi;
 
 const CAPS_HEADER_RE = /^[A-Z][A-Z0-9\s/&\-—–.:]{3,}$/;
+const SECTION_BREAK_RE = /^---+\s*(?:SECTION|TAB)?\s*---+\s*$/i;
+const DOMAIN_LINE_RE =
+  /^(technology|government|politics|species|history|timeline|chronology|magic|religion|geography|economy|culture|military|biology|physics|propulsion|climate|language|fauna|flora|ecosystem|geology|prophecy|era|dynasty|ancestry|xenobiology)\b/i;
 
 export function parseRagTagsFromText(text: string): RagTag[] {
   const tags: RagTag[] = [];
@@ -57,13 +62,16 @@ export function inferDomainFromHeading(heading: string): {
     return { kind: "setting", domain: "technology", panel: "settings" };
   }
   if (
-    /planet|orbit|atmosphere|biome|geo|solar|gravity|climate|environment|fauna|flora|species|biology|ecolog|terrestrial|spatial/.test(
+    /planet|orbit|atmosphere|biome|geo|solar|gravity|climate|environment|fauna|flora|species|biology|ecolog|terrestrial|spatial|xenobiology|alien|race|cryptid|genome|lineage|ancestry/.test(
       h
     )
   ) {
     return { kind: "environment", domain: "species", panel: "environmental" };
   }
-  if (/history|timeline|prophecy|chronolog|era\b|ancient/.test(h)) {
+  if (/history|timeline|prophecy|chronolog|era\b|ancient|dynasty|epoch|millennia|centur(y|ies)|collapse|prehistory/.test(h)) {
+    return { kind: "environment", domain: "history", panel: "environmental" };
+  }
+  if (/timeline|chronology|sequence of events|dated events/.test(h)) {
     return { kind: "environment", domain: "history", panel: "environmental" };
   }
   if (/government|politic|law|treaty|faction|regime/.test(h)) {
@@ -118,6 +126,57 @@ function extractPlotHints(tags: RagTag[]): {
   return { plot_point, spoiler_level, plot_point_order };
 }
 
+function isTitleCaseHeading(t: string): boolean {
+  if (t.length < 6 || t.length > 80) return false;
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length < 2 || words.length > 8) return false;
+  return words.every((w) => /^[A-Z][a-zA-Z'/-]*$/.test(w));
+}
+
+function isSectionHeadingLine(t: string): boolean {
+  if (t.length < 4 || t.length > 120) return false;
+  if (t.startsWith("[RAG")) return false;
+  if (SECTION_BREAK_RE.test(t)) return true;
+  if (CAPS_HEADER_RE.test(t)) return true;
+  if (isTitleCaseHeading(t)) return true;
+  if (/^#{1,4}\s+/.test(t)) return true;
+  if (/^\d+(?:\.\d+)*\s*[.)-]?\s+\S/.test(t)) return true;
+  if (DOMAIN_LINE_RE.test(t) && t.length < 64) return true;
+  if (/^[A-Z][a-zA-Z\s/&\-—–.:]{2,40}:$/.test(t)) return true;
+  return false;
+}
+
+function headingFromLine(t: string): string {
+  const md = /^(#{1,4})\s+(.+)/.exec(t);
+  if (md?.[2]) return md[2].trim();
+  const numbered = /^(\d+(?:\.\d+)*)\s*[.)-]?\s*(.+)/.exec(t);
+  if (numbered?.[2]) return numbered[2].trim();
+  return t.replace(/:$/, "").trim();
+}
+
+function splitAtHeuristicBoundaries(
+  body: string,
+  parentPath: string
+): Array<{ heading: string; path: string; text: string }> {
+  const bounds = detectHeuristicBoundaries(body);
+  if (bounds.length < 2) return [];
+
+  const out: Array<{ heading: string; path: string; text: string }> = [];
+  for (let i = 0; i < bounds.length; i++) {
+    const start = bounds[i]!.charOffset;
+    const end = i + 1 < bounds.length ? bounds[i + 1]!.charOffset : body.length;
+    const slice = body.slice(start, end).trim();
+    if (slice.length < 20) continue;
+    const label = bounds[i]!.label?.trim() || `Section ${i + 1}`;
+    out.push({
+      heading: label.slice(0, 100),
+      path: `${parentPath}.${i + 1}`,
+      text: slice,
+    });
+  }
+  return out;
+}
+
 export function splitBodyIntoRagSections(
   body: string,
   parentPath: string
@@ -139,16 +198,15 @@ export function splitBodyIntoRagSections(
 
   for (const line of lines) {
     const t = line.trim();
-    const md = /^(#{1,4})\s+(.+)/.exec(t);
-    const numbered = /^(\d+(?:\.\d+)*)\s*[.)-]?\s*(.+)/.exec(t);
-    const isCaps = CAPS_HEADER_RE.test(t) && !t.startsWith("[RAG");
+    const isHeading = isSectionHeadingLine(t);
 
-    if (md || numbered || isCaps) {
+    if (isHeading) {
       flush();
       autoIdx += 1;
-      const heading = md?.[2] ?? numbered?.[2] ?? t;
+      const heading = headingFromLine(t);
+      const numbered = /^(\d+(?:\.\d+)*)\s*[.)-]?\s*/.exec(t);
       const path = numbered?.[1] ?? `${parentPath}.${autoIdx}`;
-      current = { heading: heading.trim(), path, buf: [] };
+      current = { heading, path, buf: [] };
       continue;
     }
 
@@ -163,6 +221,13 @@ export function splitBodyIntoRagSections(
     current.buf.push(line);
   }
   flush();
+
+  flush();
+
+  if (out.length <= 1 && body.trim().length > 600) {
+    const heuristic = splitAtHeuristicBoundaries(body, parentPath);
+    if (heuristic.length >= 2) return heuristic;
+  }
 
   if (out.length === 0 && body.trim().length >= 20) {
     return [{ heading: parentPath || "Section", path: parentPath || "1", text: body.trim() }];
@@ -206,7 +271,7 @@ export function parseDocumentToRagSections(
           },
         ];
 
-  for (const tab of units.slice(0, 28)) {
+  for (const tab of units.slice(0, MAX_GOOGLE_DOC_TABS)) {
     const layerKind = wikiKindForPlanningLayer(tab.layer);
     const parentPath = tab.path ? `${tab.path} › ${tab.title}` : tab.title;
     const subsections = splitBodyIntoRagSections(tab.body, parentPath);
@@ -229,7 +294,7 @@ export function parseDocumentToRagSections(
           .slice(0, 100) ||
         "Section";
 
-      const excerpt = sub.text.slice(0, 2400);
+      const excerpt = sub.text.slice(0, MAX_RAG_WIKI_EXCERPT);
 
       proposedWiki.push({
         title,

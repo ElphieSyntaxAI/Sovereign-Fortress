@@ -313,9 +313,13 @@ export async function recordIngestHallRejection(params: {
 }
 
 export function sessionHadBlockingClarification(
-  clarifyingQuestions: ClarifyingQuestion[] | null | undefined
+  clarifyingQuestions: ClarifyingQuestion[] | null | undefined,
+  clarificationAnswers?: Array<{ answer?: string }> | null
 ): boolean {
-  return (clarifyingQuestions ?? []).some((q) => q.required);
+  const required = (clarifyingQuestions ?? []).filter((q) => q.required);
+  if (required.length === 0) return false;
+  const answered = (clarificationAnswers ?? []).some((a) => String(a.answer ?? "").trim().length > 0);
+  return !answered;
 }
 
 export function sessionHadBlockingConflicts(

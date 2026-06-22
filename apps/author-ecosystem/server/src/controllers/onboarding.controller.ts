@@ -101,6 +101,8 @@ async function mergeAutoCommitIntoResponse(
       wiki_entry_count: auto.wiki_entry_count,
       planning: auto.planning,
       message: auto.message,
+      proposed_wiki: body.proposed_wiki ?? [],
+      outline_beats: body.outline_beats ?? [],
     };
   }
   return {
@@ -384,7 +386,7 @@ onboardingController.post(
         requires_authorship_gate: gate,
         scan_thoughts: enriched.thoughts,
         authorship_questions: questions,
-        proposed_wiki: status === "review" ? compiledScan.proposed : [],
+        proposed_wiki: compiledScan.proposed,
         outline_beats: compiledScan.outline_beats,
         outline_beat_count: compiledScan.outline_beats.length,
         compile_stats: compiledScan.compile_stats,
@@ -394,6 +396,7 @@ onboardingController.post(
         used_llm: enriched.usedLlm,
         msgf_meta: enriched.msgf_meta,
         pairing_diagnostics: enriched.pairing_diagnostics,
+        parse_coverage: enriched.msgf_meta?.parse_coverage,
         google_doc_tabs: buildIngestTabDiagnostics(sourceText),
       };
 
@@ -517,7 +520,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
       requires_authorship_gate: gate,
       scan_thoughts: enriched.thoughts,
       authorship_questions: questions,
-      proposed_wiki: status === "review" ? compiledScan.proposed : [],
+      proposed_wiki: compiledScan.proposed,
       outline_beats: compiledScan.outline_beats,
       compile_stats: compiledScan.compile_stats,
       content_signals: enriched.content_signals,
@@ -537,6 +540,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
         })),
       },
       pairing_diagnostics: enriched.pairing_diagnostics,
+      parse_coverage: enriched.msgf_meta?.parse_coverage,
     };
 
     return res.status(200).json(
@@ -655,7 +659,7 @@ onboardingController.post("/api/onboarding/document/verify-clarification", async
     await mergeAutoCommitIntoResponse(supabase, sessionId, user.userId, {
       success: true,
       status: nextStatus,
-      proposed_wiki: nextStatus === "review" ? session.proposed_wiki : [],
+      proposed_wiki: session.proposed_wiki ?? [],
       outline_beats: session.outline_beats ?? [],
       ingest_conflicts: session.ingest_conflicts ?? [],
       authorship_questions: nextStatus === "authorship" ? authorshipQuestions : [],

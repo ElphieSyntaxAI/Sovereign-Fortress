@@ -46,6 +46,15 @@ const LAYER_LABELS: Record<string, string> = {
   unknown: "section",
 };
 
+type ParseCoverage = {
+  source_chars?: number;
+  llm_chars_processed?: number;
+  llm_chunks?: number;
+  rag_sections?: number;
+  domains?: string[];
+  capped?: boolean;
+};
+
 export function WikiIngestReviewModal(props: {
   open: boolean;
   slotLabel: string;
@@ -54,6 +63,7 @@ export function WikiIngestReviewModal(props: {
   outlineBeatCount?: number;
   tabDiagnostics?: TabDiagnostics | null;
   pairingDiagnostics?: PairingDiagnostic[];
+  parseCoverage?: ParseCoverage | null;
   contentSignals?: ContentSignal[];
   ingestConflicts?: IngestConflict[];
   onEdit: (next: ProposedWiki[]) => void;
@@ -93,6 +103,35 @@ export function WikiIngestReviewModal(props: {
           Mapped from document content (not filename). Submitting writes live wiki entries and refreshes the Lore
           Librarian index, Plot Sandbox beats, and the manuscript outline. Edit, then submit.
         </p>
+        {props.parseCoverage ? (
+          <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/80 p-3 text-[11px] text-zinc-400">
+            <p className="font-semibold text-zinc-300">Parse coverage</p>
+            <ul className="mt-1 space-y-0.5">
+              {props.parseCoverage.source_chars != null ? (
+                <li>
+                  Source: {props.parseCoverage.source_chars.toLocaleString()} chars
+                  {props.parseCoverage.llm_chars_processed != null &&
+                  props.parseCoverage.llm_chars_processed < props.parseCoverage.source_chars
+                    ? ` · LLM read ${props.parseCoverage.llm_chars_processed.toLocaleString()} in ${props.parseCoverage.llm_chunks ?? 1} chunk(s)`
+                    : null}
+                </li>
+              ) : null}
+              {props.parseCoverage.rag_sections != null ? (
+                <li>RAG sections: {props.parseCoverage.rag_sections}</li>
+              ) : null}
+              {props.parseCoverage.domains && props.parseCoverage.domains.length > 0 ? (
+                <li>Domains: {props.parseCoverage.domains.join(", ")}</li>
+              ) : (
+                <li className="text-amber-300/80">
+                  No species/history/technology domains detected — add section headers (TECHNOLOGY, Species, Timeline) or RAG TAG lines.
+                </li>
+              )}
+              {props.parseCoverage.capped ? (
+                <li className="text-amber-300/80">Preview capped — canon sections kept first.</li>
+              ) : null}
+            </ul>
+          </div>
+        ) : null}
         {props.error ? (
           <p className="mt-3 rounded-lg border border-red-900/50 bg-red-950/40 px-3 py-2 text-sm text-red-300">
             {props.error}

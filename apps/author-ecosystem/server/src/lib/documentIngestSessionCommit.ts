@@ -27,6 +27,7 @@ export type IngestSessionRow = {
   clarifying_questions?: unknown;
   clarification_answers?: unknown;
   ingest_conflicts?: unknown;
+  story_fingerprint?: unknown;
 };
 
 export type ExecuteIngestCommitResult =
@@ -114,7 +115,10 @@ export async function executeDocumentIngestSessionCommit(
   );
   const needsDualReview =
     mergeRisk.risk ||
-    sessionHadBlockingClarification(session.clarifying_questions as ClarifyingQuestion[]) ||
+    sessionHadBlockingClarification(
+      session.clarifying_questions as ClarifyingQuestion[],
+      clarificationAnswers
+    ) ||
     sessionHadBlockingConflicts(session.ingest_conflicts as IngestConflict[]);
 
   const forceCommit = params.forceCommit === true || params.autoCommit === true;
@@ -122,9 +126,8 @@ export async function executeDocumentIngestSessionCommit(
   if (needsDualReview && !forceCommit) {
     const dualReview = await runDualStructureReview({ sourceText, preview: previewText });
     const failDual = dualReview.ran && dualReview.structure_valid === false;
-    const failHeuristic = mergeRisk.risk && !dualReview.ran;
-    if (failDual || failHeuristic) {
-      const reason = failDual ? dualReview.reason : mergeRisk.reason;
+    if (failDual) {
+      const reason = dualReview.reason;
       await recordIngestHallRejection({
         supabase,
         tenantId: params.tenantId,
@@ -213,7 +216,9 @@ export async function executeDocumentIngestSessionCommit(
       message:
         result.planning.wiki_entry_count > 0
           ? "Wiki building blocks, scene cards, and outline updated automatically."
-          : "Outline and RAG index updated. Add lore manually if no character/setting rows were extracted.",
+          : normalizedProposed.length > 0
+            ? "Outline updated. Some wiki rows were skipped (excerpt too short or duplicate) — widen excerpts in review or add on Wiki."
+            : "Outline and RAG index updated. Add lore manually if no character/setting rows were extracted.",
     };
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);

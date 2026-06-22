@@ -10,8 +10,10 @@ import type {
   ScanThought,
 } from "./documentIngestGate.js";
 import { answerFoundInSource, buildHeuristicScanThoughts, heuristicProposedWiki } from "./documentIngestGate.js";
+import { areNearDuplicateTexts } from "./documentIngestCompile.js";
+import { splitDocumentForConverge } from "./documentIngestConvergeChunks.js";
 import { mergeRagProposedWiki, type IngestPairingDiagnostic } from "./documentIngestRagParser.js";
-import { MAX_LLM_DOCUMENT_CHARS, MAX_WIKI_PROPOSED } from "./documentIngestLimits.js";
+import { MAX_WIKI_PROPOSED } from "./documentIngestLimits.js";
 import {
   formatKeywordHintsForPrompt,
   loadDocumentIngestKeywords,
@@ -65,12 +67,57 @@ export type DocumentIngestMsgfMeta = {
   keyword_hits: string[];
   grounding: { kept: number; dropped: number };
   semantic_regions?: SemanticRegion[];
+  parse_coverage?: {
+    source_chars: number;
+    llm_chars_processed: number;
+    llm_chunks: number;
+    rag_sections: number;
+    domains: string[];
+    capped: boolean;
+  };
 };
 
 export function resolveDocumentIngestMode(): DocumentIngestMode {
   const raw = process.env.MSGF_DOCUMENT_INGEST_MODE?.trim().toLowerCase();
   if (raw === "heuristic" || raw === "hybrid" || raw === "converge") return raw;
   return "converge";
+}
+
+function mergeProposedDedupe(into: ProposedWikiEntry[], add: ProposedWikiEntry[]): ProposedWikiEntry[] {
+  const merged = [...into];
+  for (const row of add) {
+    const dup = merged.find(
+      (e) =>
+        areNearDuplicateTexts(e.excerpt, row.excerpt) ||
+        (e.title.toLowerCase() === row.title.toLowerCase() &&
+          String(e.wiki_metadata?.section_path ?? "") ===
+            String(row.wiki_metadata?.section_path ?? ""))
+    );
+    if (!dup) merged.push(row);
+    else if (row.excerpt.length > dup.excerpt.length) {
+      merged[merged.indexOf(dup)] = row;
+    }
+  }
+  return merged;
+}
+
+function capProposedWikiWithRagPriority(
+  rows: ProposedWikiEntry[],
+  limit: number
+): { rows: ProposedWikiEntry[]; capped: boolean } {
+  if (rows.length <= limit) return { rows, capped: false };
+  const ragCanon = rows.filter((r) => r.wiki_metadata?.rag_canon === true);
+  const other = rows.filter((r) => r.wiki_metadata?.rag_canon !== true);
+  return { rows: [...ragCanon, ...other].slice(0, limit), capped: true };
+}
+
+function collectSemanticDomains(rows: ProposedWikiEntry[]): string[] {
+  const domains = new Set<string>();
+  for (const row of rows) {
+    const d = String(row.wiki_metadata?.semantic_domain ?? "").trim();
+    if (d) domains.add(d);
+  }
+  return [...domains].sort();
 }
 
 const CONVERGE_SYSTEM = [
@@ -192,6 +239,7 @@ export async function runMsgfDocumentConverge(params: {
   semantic_regions: SemanticRegion[];
   pairing_diagnostics: IngestPairingDiagnostic[];
   usedLlm: boolean;
+  parse_coverage: DocumentIngestMsgfMeta["parse_coverage"];
   msgf_meta: DocumentIngestMsgfMeta;
 }> {
   const mode = resolveDocumentIngestMode();
@@ -230,75 +278,101 @@ export async function runMsgfDocumentConverge(params: {
   let semantic_regions: SemanticRegion[] = [];
   let usedLlm = false;
   let grounding = { kept: 0, dropped: 0 };
+  let llmCharsProcessed = 0;
+  let llmChunkTotal = 0;
 
   if (mode !== "heuristic" && hasGeminiCredentials()) {
     try {
-      const raw = await generateBullets({
-        system: CONVERGE_SYSTEM,
-        user: [
-          `Slot hint (soft): ${params.slot}`,
-          SLOT_CONVERGE_HINTS[params.slot] ?? "",
-          `Manuscript id: ${params.manuscriptId}`,
-          formatSignalsForConvergePrompt(signals),
-          formatKeywordHintsForPrompt(keyword_hits, keywords),
-          lineage_reinforcement ? `Vault lineage: ${lineage_reinforcement}` : "",
-          `Existing outline excerpt (may be empty): ${(existingOutline ?? "").slice(0, 2000)}`,
-          `Authorship questions to generate: ${params.questionCount}`,
-          "",
-          "Document:",
-          params.text.slice(0, MAX_LLM_DOCUMENT_CHARS),
-        ]
-          .filter(Boolean)
-          .join("\n"),
-      });
-      const parsed = parseJsonStripFences(raw) as Record<string, unknown>;
-      usedLlm = true;
+      const chunks = splitDocumentForConverge(params.text);
+      llmChunkTotal = chunks.length;
+      if (chunks.length > 1) {
+        thoughts.push({
+          phase: "structure",
+          line: `Long document: CONVERGE will scan ${chunks.length} sections (${params.text.length.toLocaleString()} chars total).`,
+        });
+      }
 
-      const thoughtsRaw = Array.isArray(parsed.thoughts) ? parsed.thoughts : [];
-      const mapped: ScanThought[] = thoughtsRaw
-        .map((t) => String(t).trim())
-        .filter(Boolean)
-        .slice(0, 10)
-        .map((line, i) => ({
-          line,
-          phase: (i < 2
-            ? "scan"
-            : i < 4
-              ? "structure"
-              : i < 6
-                ? "character"
-                : i < 8
-                  ? "lore"
-                  : "done") as ScanThought["phase"],
-        }));
-      if (mapped.length) thoughts = mapped;
+      for (const chunk of chunks) {
+        llmCharsProcessed += chunk.text.length;
+        const raw = await generateBullets({
+          system: CONVERGE_SYSTEM,
+          user: [
+            `Slot hint (soft): ${params.slot}`,
+            SLOT_CONVERGE_HINTS[params.slot] ?? "",
+            `Manuscript id: ${params.manuscriptId}`,
+            formatSignalsForConvergePrompt(signals),
+            formatKeywordHintsForPrompt(keyword_hits, keywords),
+            lineage_reinforcement ? `Vault lineage: ${lineage_reinforcement}` : "",
+            `Existing outline excerpt (may be empty): ${(existingOutline ?? "").slice(0, 2000)}`,
+            chunk.index === 0 ? `Authorship questions to generate: ${params.questionCount}` : "",
+            chunk.total > 1
+              ? `Document part ${chunk.index + 1} of ${chunk.total}. Extract species, history/timeline, technology, government, and setting rows for THIS section only — never merge unrelated domains.`
+              : "",
+            "",
+            "Document:",
+            chunk.text,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        });
+        const parsed = parseJsonStripFences(raw) as Record<string, unknown>;
+        usedLlm = true;
 
-      const parsedSignals = parseContentSignals(parsed.content_signals);
-      if (parsedSignals.length) llmSignals = parsedSignals;
-      llmFingerprint = parseFingerprint(parsed.story_fingerprint, fingerprint);
-      llmConflicts = parseLlmConflicts(parsed.conflicts);
-      llmClarifying = parseLlmClarifying(parsed.clarifying_questions);
-      semantic_regions = parseSemanticRegions(parsed.semantic_regions);
+        if (chunk.index === 0) {
+          const thoughtsRaw = Array.isArray(parsed.thoughts) ? parsed.thoughts : [];
+          const mapped: ScanThought[] = thoughtsRaw
+            .map((t) => String(t).trim())
+            .filter(Boolean)
+            .slice(0, 10)
+            .map((line, i) => ({
+              line,
+              phase: (i < 2
+                ? "scan"
+                : i < 4
+                  ? "structure"
+                  : i < 6
+                    ? "character"
+                    : i < 8
+                      ? "lore"
+                      : "done") as ScanThought["phase"],
+            }));
+          if (mapped.length) thoughts = mapped;
 
-      const { proposed: llmWiki, outline_beats: llmBeats } = parseLlmWikiAndBeats(parsed);
-      const grounded = groundProposedWikiToSource(llmWiki, params.text);
-      proposed = grounded.kept;
-      grounding = { kept: grounded.kept.length, dropped: grounded.dropped };
-      outline_beats = mergePlotBeats(llmBeats, textBeats);
+          const parsedSignals = parseContentSignals(parsed.content_signals);
+          if (parsedSignals.length) llmSignals = parsedSignals;
+          llmFingerprint = parseFingerprint(parsed.story_fingerprint, fingerprint);
+          llmConflicts = parseLlmConflicts(parsed.conflicts);
+          llmClarifying = parseLlmClarifying(parsed.clarifying_questions);
 
-      const qRaw = parsed.questions;
-      if (params.questionCount > 0 && Array.isArray(qRaw)) {
-        for (const row of qRaw.slice(0, params.questionCount)) {
-          if (!row || typeof row !== "object") continue;
-          const q = row as Record<string, unknown>;
-          const question = String(q.question ?? "").trim();
-          if (!question) continue;
-          questions.push({
-            id: String(q.id ?? `q${questions.length + 1}`),
-            question,
-            hint: String(q.hint ?? "").trim() || undefined,
-          });
+          const qRaw = parsed.questions;
+          if (params.questionCount > 0 && Array.isArray(qRaw)) {
+            for (const row of qRaw.slice(0, params.questionCount)) {
+              if (!row || typeof row !== "object") continue;
+              const q = row as Record<string, unknown>;
+              const question = String(q.question ?? "").trim();
+              if (!question) continue;
+              questions.push({
+                id: String(q.id ?? `q${questions.length + 1}`),
+                question,
+                hint: String(q.hint ?? "").trim() || undefined,
+              });
+            }
+          }
         }
+
+        semantic_regions = [
+          ...semantic_regions,
+          ...parseSemanticRegions(parsed.semantic_regions),
+        ];
+
+        const { proposed: llmWiki, outline_beats: llmBeats } = parseLlmWikiAndBeats(parsed);
+        const grounded = groundProposedWikiToSource(llmWiki, params.text);
+        proposed = mergeProposedDedupe(proposed, grounded.kept);
+        grounding = {
+          kept: grounding.kept + grounded.kept.length,
+          dropped: grounding.dropped + grounded.dropped,
+        };
+        outline_beats = mergePlotBeats(outline_beats, llmBeats);
       }
     } catch {
       usedLlm = false;
@@ -359,11 +433,36 @@ export async function runMsgfDocumentConverge(params: {
       phase: "lore",
       line: `RAG sections paired: ${pairing_diagnostics.length} (${[...new Set(pairing_diagnostics.map((d) => d.outline_entity_kind))].join(", ")})`,
     });
+    const domains = collectSemanticDomains(proposed);
+    if (domains.length) {
+      thoughts.push({
+        phase: "lore",
+        line: `Lore domains detected: ${domains.join(", ")}`,
+      });
+    }
   }
+
+  const capped = capProposedWikiWithRagPriority(proposed, MAX_WIKI_PROPOSED);
+  proposed = capped.rows;
+  if (capped.capped) {
+    thoughts.push({
+      phase: "structure",
+      line: `Wiki preview capped at ${MAX_WIKI_PROPOSED} rows — RAG canon sections kept first.`,
+    });
+  }
+
+  const parse_coverage = {
+    source_chars: params.text.length,
+    llm_chars_processed: llmCharsProcessed,
+    llm_chunks: llmChunkTotal,
+    rag_sections: pairing_diagnostics.length,
+    domains: collectSemanticDomains(proposed),
+    capped: capped.capped,
+  };
 
   return {
     thoughts,
-    proposed: proposed.slice(0, MAX_WIKI_PROPOSED),
+    proposed,
     outline_beats,
     questions,
     content_signals: llmSignals,
@@ -373,6 +472,7 @@ export async function runMsgfDocumentConverge(params: {
     semantic_regions,
     pairing_diagnostics,
     usedLlm,
+    parse_coverage,
     msgf_meta: {
       mode,
       lineage_reinforcement,
@@ -380,6 +480,7 @@ export async function runMsgfDocumentConverge(params: {
       keyword_hits,
       grounding,
       ...(semantic_regions.length > 0 ? { semantic_regions } : {}),
+      parse_coverage,
     },
   };
 }

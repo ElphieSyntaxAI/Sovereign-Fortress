@@ -39,14 +39,15 @@ function titleForChunk(c: WikiChunk): string {
 /** Pull committed wiki rows into Plot Sandbox token pools when local state is empty. */
 export async function bootstrapPlotEngineFromWiki(
   manuscriptId: string,
-  getToken?: () => string | null | Promise<string | null>
+  getToken?: () => string | null | Promise<string | null>,
+  opts?: { force?: boolean }
 ): Promise<boolean> {
   const existing = loadPlotEngineState(manuscriptId);
   const hasTokens = existing
     ? Object.values(existing.globalRepos).some((pool) => pool.length > 0)
     : false;
   const hasBeats = (existing?.plotPoints.length ?? 0) > 0;
-  if (hasTokens && hasBeats) return false;
+  if (!opts?.force && hasTokens && hasBeats) return false;
 
   const token = getToken ? await getToken() : null;
   const res = await fetch(bffUrl(`/api/wiki/${encodeURIComponent(manuscriptId)}/chunks`), {

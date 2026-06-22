@@ -156,7 +156,19 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
         setState(next);
         setPlotBeats(flattenPlotEngineToBeats(next));
       } else {
-        reloadPlotBeatsFromStorage();
+        void bootstrapPlotEngineFromWiki(manuscriptId, () => getPreferredBffBearer(), { force: true }).then(
+          (did) => {
+            if (!did) {
+              reloadPlotBeatsFromStorage();
+              return;
+            }
+            const next = loadPlotEngineState(manuscriptId);
+            if (next) {
+              setState(next);
+              setPlotBeats(flattenPlotEngineToBeats(next));
+            }
+          }
+        );
       }
     };
     window.addEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
