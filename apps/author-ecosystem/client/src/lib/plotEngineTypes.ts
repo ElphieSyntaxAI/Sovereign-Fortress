@@ -37,9 +37,17 @@ export const PANEL_LABELS: Record<PanelKey, string> = {
   breadcrumbs: "Breadcrumbs",
 };
 
+export type BlockInputMode = "freestyle" | "outline";
+
+export type OutlineRagFields = Partial<Record<PanelKey, Record<string, string>>>;
+
 export type GlobalToken = {
   id: string;
   label: string;
+  /** Lore notes for this building block (character bio, setting facts, etc.). */
+  details?: string;
+  /** When true, details are treated as spoiler-sensitive in sync / RAG tags. */
+  containsSpoiler?: boolean;
   source?: "manual" | "ingest" | "wiki";
   wikiChunkId?: string;
   outlineEntityKind?: string;
@@ -52,6 +60,10 @@ export type Scene = {
   synopsis?: string;
   order: number;
   bindings: Record<PanelKey, string[]>;
+  /** Freestyle = token chips; outline = RAG-guided field groups. */
+  blockInputMode?: BlockInputMode;
+  /** Structured RAG field values per panel (outline mode). */
+  outlineRagFields?: OutlineRagFields;
 };
 
 export type PlotPoint = {
@@ -146,6 +158,13 @@ export function createPlotPoint(title: string, order: number): PlotPoint {
   };
 }
 
+/** Sort plot points and assign contiguous order indices. */
+export function reindexPlotPoints(plotPoints: PlotPoint[]): PlotPoint[] {
+  return [...plotPoints]
+    .sort((a, b) => a.order - b.order)
+    .map((p, order) => ({ ...p, order }));
+}
+
 export function seedPlotPoints(templateId: PlotTemplateId): PlotPoint[] {
   const titles =
     templateId === "save-the-cat"
@@ -186,8 +205,18 @@ export function resolveTokenLabels(
 ): string[] {
   const pool = state.globalRepos[panel] ?? [];
   return tokenIds
-    .map((id) => pool.find((t) => t.id === id)?.label)
-    .filter((l): l is string => Boolean(l?.trim()));
+    .map((id) => pool.find((t) => t.id === id))
+    .filter((t): t is GlobalToken => Boolean(t?.label?.trim()))
+    .map((t) => formatBuildingBlockToken(t));
+}
+
+/** Display / sync line for a pool token (name + optional details + spoiler flag). */
+export function formatBuildingBlockToken(token: GlobalToken): string {
+  const name = token.label.trim();
+  const details = token.details?.trim();
+  if (!details) return name;
+  if (token.containsSpoiler) return `${name} (spoiler): ${details}`;
+  return `${name} — ${details}`;
 }
 
 export type FlatPlotBeat = PlotBeat;

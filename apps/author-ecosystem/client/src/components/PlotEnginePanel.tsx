@@ -4,15 +4,28 @@ import { hydratePlotEngineFromIngest } from "../lib/plotEngineHydrate";
 import { flattenPlotEngineToBeats } from "../lib/plotEngineSerialize";
 import { loadPlotEngineState, savePlotEngineState } from "../lib/plotEngineStorage";
 import {
+  defaultEraForPlotIndex,
+  defaultSpoilerLevelForPlotIndex,
+} from "../lib/plotEngineRagOutlineSchema";
+import {
+  BlockInputModeToggle,
+  OutlineRagPanel,
+  sceneInputMode,
+  TokenPool,
+} from "./planningBlockUi";
+import {
   createId,
   createPlotPoint,
   createScene,
   defaultPlotEngineState,
+  reindexPlotPoints,
   PANEL_LABELS,
   seedPlotPoints,
   SHELF_PANELS,
   SIDEBAR_PANELS,
+  type BlockInputMode,
   type GlobalToken,
+  type OutlineRagFields,
   type PanelKey,
   type PlotEngineState,
   type PlotPoint,
@@ -35,84 +48,6 @@ function findPlot(state: PlotEngineState, plotId: string): PlotPoint | undefined
 function findScene(state: PlotEngineState, plotId: string, sceneId: string) {
   const plot = findPlot(state, plotId);
   return plot?.scenes.find((s) => s.id === sceneId);
-}
-
-function TokenPool(props: {
-  panel: PanelKey;
-  tokens: GlobalToken[];
-  boundIds: string[];
-  active: boolean;
-  accent: "emerald" | "violet";
-  onAdd: (label: string) => void;
-  onDelete: (tokenId: string) => void;
-  onToggle: (tokenId: string) => void;
-}) {
-  const [draft, setDraft] = useState("");
-  const ring = props.accent === "emerald" ? "ring-emerald-400/70" : "ring-violet-400/70";
-  const chipOn =
-    props.accent === "emerald"
-      ? "border-emerald-500/60 bg-emerald-950/50 text-emerald-100"
-      : "border-violet-500/60 bg-violet-950/50 text-violet-100";
-  const chipOff = "border-zinc-700 bg-zinc-900/60 text-zinc-400 hover:border-zinc-600";
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {props.tokens.map((t) => {
-          const bound = props.boundIds.includes(t.id);
-          return (
-            <span key={t.id} className="inline-flex items-center gap-0.5">
-              <button
-                type="button"
-                disabled={!props.active}
-                onClick={() => props.onToggle(t.id)}
-                className={[
-                  "rounded-full border px-2 py-0.5 text-xs transition",
-                  bound ? `${chipOn} ${props.active ? ring : ""}` : chipOff,
-                  !props.active ? "cursor-default opacity-60" : "",
-                ].join(" ")}
-              >
-                {t.label}
-              </button>
-              <button
-                type="button"
-                className="text-[10px] text-zinc-500 hover:text-rose-400"
-                title="Remove from pool"
-                onClick={() => props.onDelete(t.id)}
-              >
-                ×
-              </button>
-            </span>
-          );
-        })}
-      </div>
-      <div className="flex gap-1">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="+ Add item"
-          className="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-100"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && draft.trim()) {
-              props.onAdd(draft.trim());
-              setDraft("");
-            }
-          }}
-        />
-        <button
-          type="button"
-          className="shrink-0 rounded border border-zinc-600 px-2 py-1 text-xs text-zinc-300"
-          onClick={() => {
-            if (!draft.trim()) return;
-            props.onAdd(draft.trim());
-            setDraft("");
-          }}
-        >
-          Add
-        </button>
-      </div>
-    </div>
-  );
 }
 
 export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
@@ -175,11 +110,77 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
     return () => window.removeEventListener(DOCUMENT_INGEST_COMMITTED_EVENT, onIngest);
   }, [manuscriptId, reloadPlotBeatsFromStorage, setPlotBeats]);
 
+  const sortedPlots = useMemo(
+    () => reindexPlotPoints(state.plotPoints),
+    [state.plotPoints]
+  );
+
   const selectedScene =
     state.selection.plotPointId && state.selection.sceneId
       ? findScene(state, state.selection.plotPointId, state.selection.sceneId)
       : undefined;
+  const selectedPlot = state.selection.plotPointId
+    ? findPlot(state, state.selection.plotPointId)
+    : undefined;
+  const selectedPlotIndex = selectedPlot
+    ? sortedPlots.findIndex((p) => p.id === selectedPlot.id)
+    : -1;
   const panelsActive = Boolean(selectedScene);
+  const outlineMode = selectedScene ? sceneInputMode(selectedScene) === "outline" : false;
+
+  const patchSelectedScene = (patch: Partial<typeof selectedScene>) => {
+    if (!selectedScene || !state.selection.plotPointId) return;
+    const plotId = state.selection.plotPointId;
+    const sceneId = selectedScene.id;
+    persist({
+      ...state,
+      plotPoints: state.plotPoints.map((p) =>
+        p.id !== plotId
+          ? p
+          : {
+              ...p,
+              scenes: p.scenes.map((s) => (s.id === sceneId ? { ...s, ...patch } : s)),
+            }
+      ),
+    });
+  };
+
+  const seedOutlineDefaults = (scene: NonNullable<typeof selectedScene>): OutlineRagFields => {
+    const existing = scene.outlineRagFields ?? {};
+    const plotIdx = Math.max(selectedPlotIndex, 0);
+    const total = Math.max(sortedPlots.length, 1);
+    const plotTitle = selectedPlot?.title?.trim() ?? "";
+    const spoilerFields = { ...(existing.spoilerLevel ?? {}) };
+    if (!spoilerFields.plotPoint && plotTitle) spoilerFields.plotPoint = plotTitle;
+    if (!spoilerFields.spoilerLevel) {
+      spoilerFields.spoilerLevel = defaultSpoilerLevelForPlotIndex(plotIdx, total);
+    }
+    if (!spoilerFields.era) {
+      spoilerFields.era = defaultEraForPlotIndex(plotIdx, total);
+    }
+    return { ...existing, spoilerLevel: spoilerFields };
+  };
+
+  const setBlockInputMode = (mode: BlockInputMode) => {
+    if (!selectedScene) return;
+    const patch: Partial<typeof selectedScene> = { blockInputMode: mode };
+    if (mode === "outline") {
+      patch.outlineRagFields = seedOutlineDefaults(selectedScene);
+    }
+    patchSelectedScene(patch);
+  };
+
+  const updateOutlineRagField = (panel: PanelKey, key: string, value: string) => {
+    if (!selectedScene) return;
+    const current = selectedScene.outlineRagFields ?? {};
+    const panelFields = { ...(current[panel] ?? {}), [key]: value };
+    if (!value.trim() && key !== "containsSpoiler") {
+      delete panelFields[key];
+    }
+    patchSelectedScene({
+      outlineRagFields: { ...current, [panel]: panelFields },
+    });
+  };
 
   const changeTemplate = (templateId: PlotTemplateId) => {
     if (
@@ -197,16 +198,41 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
   };
 
   const addPlotPoint = () => {
+    const sorted = reindexPlotPoints(state.plotPoints);
+    const next = [...sorted, createPlotPoint("New plot event", sorted.length)];
     persist({
       ...state,
-      plotPoints: [...state.plotPoints, createPlotPoint("Custom beat", state.plotPoints.length)],
+      plotPoints: reindexPlotPoints(next),
     });
+  };
+
+  const insertPlotPointAfter = (afterPlotId: string | null) => {
+    const sorted = reindexPlotPoints(state.plotPoints);
+    const insertAt =
+      afterPlotId == null ? 0 : sorted.findIndex((p) => p.id === afterPlotId) + 1;
+    if (afterPlotId != null && insertAt === 0) return;
+    const newPoint = createPlotPoint("New plot event", insertAt);
+    const next = [...sorted.slice(0, insertAt), newPoint, ...sorted.slice(insertAt)];
+    persist({
+      ...state,
+      plotPoints: reindexPlotPoints(next),
+      selection: { plotPointId: newPoint.id, sceneId: null },
+    });
+  };
+
+  const movePlotPoint = (plotId: string, dir: -1 | 1) => {
+    const sorted = reindexPlotPoints(state.plotPoints);
+    const idx = sorted.findIndex((p) => p.id === plotId);
+    const j = idx + dir;
+    if (idx < 0 || j < 0 || j >= sorted.length) return;
+    [sorted[idx], sorted[j]] = [sorted[j]!, sorted[idx]!];
+    persist({ ...state, plotPoints: reindexPlotPoints(sorted) });
   };
 
   const deletePlotPoint = (plotId: string) => {
     persist({
       ...state,
-      plotPoints: state.plotPoints.filter((p) => p.id !== plotId),
+      plotPoints: reindexPlotPoints(state.plotPoints.filter((p) => p.id !== plotId)),
       selection:
         state.selection.plotPointId === plotId
           ? { plotPointId: null, sceneId: null }
@@ -221,16 +247,33 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
     });
   };
 
-  const addScene = (plotId: string) => {
+  const insertSceneAfter = (plotId: string, afterSceneId: string | null) => {
+    let newSceneId: string | null = null;
     persist({
       ...state,
       plotPoints: state.plotPoints.map((p) => {
         if (p.id !== plotId) return p;
-        const scene = createScene(`Scene ${p.scenes.length + 1}`);
-        scene.order = p.scenes.length;
-        return { ...p, scenes: [...p.scenes, scene] };
+        const scenes = [...p.scenes].sort((a, b) => a.order - b.order);
+        const insertAt =
+          afterSceneId == null ? 0 : scenes.findIndex((s) => s.id === afterSceneId) + 1;
+        if (afterSceneId != null && insertAt === 0) return p;
+        const scene = createScene(`Scene ${insertAt + 1}`);
+        newSceneId = scene.id;
+        const next = [...scenes.slice(0, insertAt), scene, ...scenes.slice(insertAt)].map(
+          (s, order) => ({ ...s, order })
+        );
+        return { ...p, scenes: next };
       }),
+      selection: newSceneId
+        ? { plotPointId: plotId, sceneId: newSceneId }
+        : state.selection,
     });
+  };
+
+  const addScene = (plotId: string) => {
+    const plot = state.plotPoints.find((p) => p.id === plotId);
+    const scenes = plot ? [...plot.scenes].sort((a, b) => a.order - b.order) : [];
+    insertSceneAfter(plotId, scenes[scenes.length - 1]?.id ?? null);
   };
 
   const deleteScene = (plotId: string, sceneId: string) => {
@@ -267,11 +310,36 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
     persist({ ...state, selection: { plotPointId: plotId, sceneId } });
   };
 
-  const addToken = (panel: PanelKey, label: string) => {
-    const token: GlobalToken = { id: createId(), label, source: "manual" };
+  const addToken = (
+    panel: PanelKey,
+    payload: { label: string; details?: string; containsSpoiler?: boolean }
+  ) => {
+    const token: GlobalToken = {
+      id: createId(),
+      label: payload.label,
+      details: payload.details,
+      containsSpoiler: payload.containsSpoiler,
+      source: "manual",
+    };
     persist({
       ...state,
       globalRepos: { ...state.globalRepos, [panel]: [...state.globalRepos[panel], token] },
+    });
+  };
+
+  const updateToken = (
+    panel: PanelKey,
+    tokenId: string,
+    patch: Partial<Pick<GlobalToken, "label" | "details" | "containsSpoiler">>
+  ) => {
+    persist({
+      ...state,
+      globalRepos: {
+        ...state.globalRepos,
+        [panel]: state.globalRepos[panel].map((t) =>
+          t.id === tokenId ? { ...t, ...patch } : t
+        ),
+      },
     });
   };
 
@@ -316,9 +384,14 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
     });
   };
 
-  const sortedPlots = useMemo(
-    () => [...state.plotPoints].sort((a, b) => a.order - b.order),
-    [state.plotPoints]
+  const insertSlotButton = (label: string, onClick: () => void) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded border border-dashed border-zinc-800 py-1 text-[10px] text-zinc-500 transition hover:border-emerald-500/40 hover:text-emerald-300"
+    >
+      {label}
+    </button>
   );
 
   const placeholder = (
@@ -355,142 +428,180 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
               + Add Custom Plot Point
             </button>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {sortedPlots.map((plot) => {
+            <div className="mx-auto flex max-w-3xl flex-col gap-1">
+              {sortedPlots.length > 0
+                ? insertSlotButton("+ Add plot event at start", () => insertPlotPointAfter(null))
+                : null}
+              {sortedPlots.map((plot, plotIndex) => {
                 const plotActive = state.selection.plotPointId === plot.id;
+                const sortedScenes = [...plot.scenes].sort((a, b) => a.order - b.order);
                 return (
-                  <article
-                    key={plot.id}
-                    className={[
-                      "rounded-xl border bg-zinc-950/60 p-3 transition duration-200",
-                      plotActive
-                        ? "scale-[1.02] border-emerald-500/50 ring-2 ring-emerald-400/40"
-                        : "border-zinc-700/50 hover:border-zinc-600",
-                    ].join(" ")}
-                    onClick={() => selectPlot(plot.id)}
-                  >
-                    <div className="mb-2 flex items-start gap-1">
-                      <input
-                        value={plot.title}
-                        onChange={(e) => updatePlotTitle(plot.id, e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="min-w-0 flex-1 bg-transparent text-sm font-medium text-zinc-100 outline-none"
-                      />
-                      <button
-                        type="button"
-                        className="text-zinc-500 hover:text-rose-400"
-                        title="Delete plot point"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deletePlotPoint(plot.id);
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="space-y-1.5">
-                      {[...plot.scenes]
-                        .sort((a, b) => a.order - b.order)
-                        .map((scene) => {
+                  <div key={plot.id} className="flex flex-col gap-1">
+                    <article
+                      className={[
+                        "rounded-xl border bg-zinc-950/60 p-3 transition duration-200",
+                        plotActive
+                          ? "border-emerald-500/50 ring-2 ring-emerald-400/40"
+                          : "border-zinc-700/50 hover:border-zinc-600",
+                      ].join(" ")}
+                      onClick={() => selectPlot(plot.id)}
+                    >
+                      <div className="mb-2 flex items-start gap-1">
+                        <span className="mt-0.5 shrink-0 font-mono text-[10px] text-zinc-600">
+                          {plotIndex + 1}
+                        </span>
+                        <input
+                          value={plot.title}
+                          onChange={(e) => updatePlotTitle(plot.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="min-w-0 flex-1 bg-transparent text-sm font-medium text-zinc-100 outline-none"
+                        />
+                        <button
+                          type="button"
+                          className="px-0.5 text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
+                          title="Move plot event up"
+                          disabled={plotIndex === 0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            movePlotPoint(plot.id, -1);
+                          }}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="px-0.5 text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
+                          title="Move plot event down"
+                          disabled={plotIndex === sortedPlots.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            movePlotPoint(plot.id, 1);
+                          }}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="text-zinc-500 hover:text-rose-400"
+                          title="Delete plot event"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deletePlotPoint(plot.id);
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="space-y-1">
+                        {sortedScenes.length > 0
+                          ? insertSlotButton("+ Scene here", () => insertSceneAfter(plot.id, null))
+                          : null}
+                        {sortedScenes.map((scene, sceneIndex) => {
                           const sceneActive =
                             state.selection.sceneId === scene.id &&
                             state.selection.plotPointId === plot.id;
                           return (
-                            <div
-                              key={scene.id}
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                selectScene(plot.id, scene.id);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") selectScene(plot.id, scene.id);
-                              }}
-                              className={[
-                                "flex items-center gap-1 rounded-lg border-l-2 bg-zinc-900/80 py-2 pl-2 pr-1 text-xs transition",
-                                sceneActive
-                                  ? "border-emerald-400 ring-1 ring-emerald-500/30"
-                                  : "border-emerald-500/30 hover:border-emerald-400/50",
-                              ].join(" ")}
-                            >
-                              <input
-                                value={scene.title}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) => {
-                                  const title = e.target.value;
-                                  persist({
-                                    ...state,
-                                    plotPoints: state.plotPoints.map((p) =>
-                                      p.id === plot.id
-                                        ? {
-                                            ...p,
-                                            scenes: p.scenes.map((s) =>
-                                              s.id === scene.id ? { ...s, title } : s
-                                            ),
-                                          }
-                                        : p
-                                    ),
-                                  });
-                                }}
-                                className="min-w-0 flex-1 bg-transparent text-zinc-200 outline-none"
-                              />
-                              <button
-                                type="button"
-                                className="px-0.5 text-zinc-500 hover:text-zinc-200"
+                            <div key={scene.id} className="flex flex-col gap-1">
+                              <div
+                                role="button"
+                                tabIndex={0}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  moveScene(plot.id, scene.id, -1);
+                                  selectScene(plot.id, scene.id);
                                 }}
-                              >
-                                ↑
-                              </button>
-                              <button
-                                type="button"
-                                className="px-0.5 text-zinc-500 hover:text-zinc-200"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  moveScene(plot.id, scene.id, 1);
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") selectScene(plot.id, scene.id);
                                 }}
+                                className={[
+                                  "flex items-center gap-1 rounded-lg border-l-2 bg-zinc-900/80 py-2 pl-2 pr-1 text-xs transition",
+                                  sceneActive
+                                    ? "border-emerald-400 ring-1 ring-emerald-500/30"
+                                    : "border-emerald-500/30 hover:border-emerald-400/50",
+                                ].join(" ")}
                               >
-                                ↓
-                              </button>
-                              <button
-                                type="button"
-                                className="text-zinc-500 hover:text-rose-400"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteScene(plot.id, scene.id);
-                                }}
-                              >
-                                🗑
-                              </button>
+                                <input
+                                  value={scene.title}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    const title = e.target.value;
+                                    persist({
+                                      ...state,
+                                      plotPoints: state.plotPoints.map((p) =>
+                                        p.id === plot.id
+                                          ? {
+                                              ...p,
+                                              scenes: p.scenes.map((s) =>
+                                                s.id === scene.id ? { ...s, title } : s
+                                              ),
+                                            }
+                                          : p
+                                      ),
+                                    });
+                                  }}
+                                  className="min-w-0 flex-1 bg-transparent text-zinc-200 outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  className="px-0.5 text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
+                                  disabled={sceneIndex === 0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveScene(plot.id, scene.id, -1);
+                                  }}
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  type="button"
+                                  className="px-0.5 text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
+                                  disabled={sceneIndex === sortedScenes.length - 1}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveScene(plot.id, scene.id, 1);
+                                  }}
+                                >
+                                  ↓
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-zinc-500 hover:text-rose-400"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteScene(plot.id, scene.id);
+                                  }}
+                                >
+                                  🗑
+                                </button>
+                              </div>
+                              {insertSlotButton("+ Scene here", () =>
+                                insertSceneAfter(plot.id, scene.id)
+                              )}
                             </div>
                           );
                         })}
-                    </div>
-                    <button
-                      type="button"
-                      className="mt-2 w-full rounded border border-zinc-700 py-1 text-xs text-emerald-300/90 hover:bg-emerald-950/30"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addScene(plot.id);
-                      }}
-                    >
-                      + Add New Scene
-                    </button>
-                  </article>
+                      </div>
+                      <button
+                        type="button"
+                        className="mt-2 w-full rounded border border-zinc-700 py-1 text-xs text-emerald-300/90 hover:bg-emerald-950/30"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addScene(plot.id);
+                        }}
+                      >
+                        + Add scene at end
+                      </button>
+                    </article>
+                    {insertSlotButton("+ Add plot event here", () => insertPlotPointAfter(plot.id))}
+                  </div>
                 );
               })}
-              {state.templateId === "custom" ? (
-                <button
-                  type="button"
-                  onClick={addPlotPoint}
-                  className="flex min-h-[8rem] items-center justify-center rounded-xl border border-dashed border-zinc-700 text-xs text-zinc-500 hover:border-emerald-500/40 hover:text-emerald-300"
-                >
-                  + Add Custom Plot Point
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={addPlotPoint}
+                className="mt-1 flex min-h-[3rem] items-center justify-center rounded-xl border border-dashed border-zinc-700 text-xs text-zinc-500 hover:border-emerald-500/40 hover:text-emerald-300"
+              >
+                + Add plot event at end
+              </button>
             </div>
           )}
         </div>
@@ -503,6 +614,10 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
         >
           {panelsActive && selectedScene ? (
             <>
+              <BlockInputModeToggle
+                mode={sceneInputMode(selectedScene)}
+                onChange={setBlockInputMode}
+              />
               <div className="mb-4 border-b border-emerald-900/30 pb-3">
                 <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-400/90">
                   Synopsis
@@ -534,16 +649,27 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
                 <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-400/90">
                   {PANEL_LABELS[panel]}
                 </h3>
-                <TokenPool
-                  panel={panel}
-                  tokens={state.globalRepos[panel]}
-                  boundIds={selectedScene.bindings[panel]}
-                  active
-                  accent="emerald"
-                  onAdd={(label) => addToken(panel, label)}
-                  onDelete={(id) => deleteToken(panel, id)}
-                  onToggle={(id) => toggleBinding(panel, id)}
-                />
+                {outlineMode ? (
+                  <OutlineRagPanel
+                    panel={panel}
+                    fields={selectedScene.outlineRagFields?.[panel] ?? {}}
+                    accent="emerald"
+                    manuscriptId={manuscriptId}
+                    onFieldChange={(key, value) => updateOutlineRagField(panel, key, value)}
+                  />
+                ) : (
+                  <TokenPool
+                    panel={panel}
+                    tokens={state.globalRepos[panel]}
+                    boundIds={selectedScene.bindings[panel]}
+                    active
+                    accent="emerald"
+                    onAdd={(payload) => addToken(panel, payload)}
+                    onUpdate={(id, patch) => updateToken(panel, id, patch)}
+                    onDelete={(id) => deleteToken(panel, id)}
+                    onToggle={(id) => toggleBinding(panel, id)}
+                  />
+                )}
               </section>
             ))}
             </>
@@ -566,16 +692,27 @@ export function PlotEnginePanel({ manuscriptId }: PlotEnginePanelProps) {
                 <h3 className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-violet-300/90">
                   {PANEL_LABELS[panel]}
                 </h3>
-                <TokenPool
-                  panel={panel}
-                  tokens={state.globalRepos[panel]}
-                  boundIds={selectedScene.bindings[panel]}
-                  active
-                  accent="violet"
-                  onAdd={(label) => addToken(panel, label)}
-                  onDelete={(id) => deleteToken(panel, id)}
-                  onToggle={(id) => toggleBinding(panel, id)}
-                />
+                {outlineMode ? (
+                  <OutlineRagPanel
+                    panel={panel}
+                    fields={selectedScene.outlineRagFields?.[panel] ?? {}}
+                    accent="violet"
+                    manuscriptId={manuscriptId}
+                    onFieldChange={(key, value) => updateOutlineRagField(panel, key, value)}
+                  />
+                ) : (
+                  <TokenPool
+                    panel={panel}
+                    tokens={state.globalRepos[panel]}
+                    boundIds={selectedScene.bindings[panel]}
+                    active
+                    accent="violet"
+                    onAdd={(payload) => addToken(panel, payload)}
+                    onUpdate={(id, patch) => updateToken(panel, id, patch)}
+                    onDelete={(id) => deleteToken(panel, id)}
+                    onToggle={(id) => toggleBinding(panel, id)}
+                  />
+                )}
               </section>
             ))}
           </div>

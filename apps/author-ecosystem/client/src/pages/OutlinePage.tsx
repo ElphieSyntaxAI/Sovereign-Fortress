@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 
 import { OutlineGoogleDocPicker } from "../components/OutlineGoogleDocPicker";
 import { PlotEnginePanel } from "../components/PlotEnginePanel";
+import { CharacterDevelopmentPanel } from "../components/CharacterDevelopmentPanel";
+import { WorldBuildingPanel } from "../components/WorldBuildingPanel";
 import { AuthorDocumentIngestPanel } from "../components/onboarding/AuthorDocumentIngestPanel";
 import {
   OutlinePlanningSessionChrome,
@@ -25,6 +27,8 @@ import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 
 type OutlineTabId =
   | "building-block-outline"
+  | "character-development"
+  | "world-building"
   | "interview-style-outline"
   | "wiki-outline"
   | "notes-brainstorming"
@@ -32,6 +36,8 @@ type OutlineTabId =
 
 const TABS: { id: OutlineTabId; label: string }[] = [
   { id: "building-block-outline", label: "Building block outline" },
+  { id: "character-development", label: "Character development" },
+  { id: "world-building", label: "World building" },
   { id: "interview-style-outline", label: "Interview style outline" },
   { id: "wiki-outline", label: "Wiki outline" },
   { id: "notes-brainstorming", label: "Notes/brainstorming" },
@@ -220,6 +226,14 @@ function OutlinePageContent(props: { manuscriptId: string; tenantId: string }) {
 
           {tab === "building-block-outline" ? (
             <PlotEnginePanel manuscriptId={props.manuscriptId} />
+          ) : null}
+
+          {tab === "character-development" ? (
+            <CharacterDevelopmentPanel manuscriptId={props.manuscriptId} />
+          ) : null}
+
+          {tab === "world-building" ? (
+            <WorldBuildingPanel manuscriptId={props.manuscriptId} />
           ) : null}
 
           {tab === "interview-style-outline" ? (

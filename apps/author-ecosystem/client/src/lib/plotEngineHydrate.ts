@@ -13,7 +13,7 @@ type IngestWikiRow = {
   title?: string;
   excerpt?: string;
   chunk_type?: string;
-  wiki_metadata?: { outline_entity_kind?: string };
+  wiki_metadata?: { outline_entity_kind?: string; spoiler_level?: string };
 };
 
 type IngestBeat = {
@@ -43,16 +43,28 @@ function upsertToken(
   repos: Record<PanelKey, GlobalToken[]>,
   panel: PanelKey,
   label: string,
-  kind?: string
+  opts?: { kind?: string; details?: string; containsSpoiler?: boolean }
 ): GlobalToken {
   const trimmed = label.trim();
-  const existing = repos[panel].find((t) => t.label.toLowerCase() === trimmed.toLowerCase());
-  if (existing) return existing;
+  const idx = repos[panel].findIndex((t) => t.label.toLowerCase() === trimmed.toLowerCase());
+  if (idx >= 0) {
+    const existing = repos[panel][idx]!;
+    const details = existing.details?.trim() || opts?.details?.trim();
+    const updated: GlobalToken = {
+      ...existing,
+      ...(details ? { details } : {}),
+      containsSpoiler: existing.containsSpoiler || opts?.containsSpoiler,
+    };
+    repos[panel][idx] = updated;
+    return updated;
+  }
   const token: GlobalToken = {
     id: createId(),
     label: trimmed,
     source: "ingest",
-    outlineEntityKind: kind,
+    outlineEntityKind: opts?.kind,
+    details: opts?.details?.trim() || undefined,
+    containsSpoiler: opts?.containsSpoiler,
   };
   repos[panel].push(token);
   return token;
@@ -72,8 +84,14 @@ export function hydratePlotEngineFromIngest(
   for (const row of proposed) {
     const title = String(row.title ?? "").trim();
     const kind = String(row.wiki_metadata?.outline_entity_kind ?? row.chunk_type ?? "note").trim();
+    const excerpt = String(row.excerpt ?? "").trim();
+    const spoilerLevel = String(row.wiki_metadata?.spoiler_level ?? "").toLowerCase();
     if (!title) continue;
-    upsertToken(globalRepos, panelForKind(kind), title, kind);
+    upsertToken(globalRepos, panelForKind(kind), title, {
+      kind,
+      details: excerpt && excerpt !== title ? excerpt.slice(0, 2000) : undefined,
+      containsSpoiler: spoilerLevel === "high" || spoilerLevel === "medium",
+    });
   }
 
   let plotPoints: PlotPoint[] = [...base.plotPoints];

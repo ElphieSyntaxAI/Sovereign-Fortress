@@ -1,5 +1,10 @@
 import type { OutlineLoreKind } from "./outlineLoreKinds";
 import { getOutlineLoreKindConfig } from "./outlineLoreKinds";
+import {
+  flattenSectionFields,
+  type RagOutlinePanelSchema,
+  type RagOutlineSection,
+} from "./plotEngineRagOutlineSchema";
 
 export type WikiFormTier = "blank" | "general" | "indepth";
 
@@ -396,6 +401,123 @@ export function composeWikiEntry(input: ComposeWikiEntryInput): ComposedWikiEntr
   if (input.kind === "spoiler" && input.spoilerLevel) {
     wiki_metadata.spoiler_level = input.spoilerLevel;
   }
+
+  return { excerpt, wiki_metadata, tags };
+}
+
+export type ComposeSectionedWikiInput = ComposeWikiEntryInput & {
+  panelSchema: RagOutlinePanelSchema;
+  authorTags?: string[];
+};
+
+function walkSectionsInOrder(
+  sections: RagOutlineSection[],
+  answers: Record<string, string>,
+  lines: string[],
+  structuredTags: Array<{ name: string; value: string }>,
+  sectionPaths: Record<string, string>
+): void {
+  for (const sec of sections) {
+    const fieldEntries = (sec.fields ?? [])
+      .map((field) => ({ field, val: String(answers[field.key] ?? "").trim() }))
+      .filter((e) => e.val);
+
+    const childHasContent = (s: RagOutlineSection): boolean => {
+      const direct = (s.fields ?? []).some((f) => String(answers[f.key] ?? "").trim());
+      return direct || (s.sections ?? []).some(childHasContent);
+    };
+    const hasContent = fieldEntries.length > 0 || childHasContent(sec);
+    if (!hasContent) continue;
+
+    lines.push(`## ${sec.sectionPath} ${sec.title}`, "");
+    if (sec.aiInstruction) {
+      lines.push(`*AI INSTRUCTION: ${sec.aiInstruction}*`, "");
+    }
+    if (sec.guidingQuestion) {
+      lines.push(`*${sec.guidingQuestion}*`, "");
+    }
+
+    for (const { field, val } of fieldEntries) {
+      if (field.ragTag) {
+        lines.push(`RAG TAG: [${field.ragTag}: ${val}]`);
+        structuredTags.push({
+          name: field.ragTag.replace(/\s+/g, "_"),
+          value: val.slice(0, 500),
+        });
+      } else {
+        lines.push(`**${field.label}:** ${val}`);
+      }
+      sectionPaths[field.key] = sec.sectionPath;
+      lines.push("");
+    }
+
+    if (sec.sections?.length) {
+      walkSectionsInOrder(sec.sections, answers, lines, structuredTags, sectionPaths);
+    }
+  }
+}
+
+/** Build wiki markdown from section-numbered outline schema (Character Sheet / World Bible style). */
+export function composeSectionedWikiEntry(input: ComposeSectionedWikiInput): ComposedWikiEntry {
+  const config = getOutlineLoreKindConfig(input.kind);
+  const schema = getWikiFormSchema(input.kind);
+  const tags = [
+    ...config.defaultTags,
+    `form_tier:${input.tier}`,
+    ...(input.authorTags ?? []).map((t) => `author:${t}`),
+  ];
+
+  const lines: string[] = [
+    `# ${config.label}: ${input.title.trim()}`,
+    "",
+    `**RAG template:** ${schema.ragTemplate}`,
+    `**Form tier:** ${input.tier}`,
+    `**Source type:** ${String(config.wiki_metadata?.source_type ?? "")}`,
+    "",
+  ];
+
+  if (input.authorTags?.length) {
+    lines.push(`**Author tags:** ${input.authorTags.join(", ")}`, "");
+  }
+
+  const structuredTags: Array<{ name: string; value: string }> = [];
+  const sectionPaths: Record<string, string> = {};
+
+  if (input.panelSchema.sections?.length) {
+    walkSectionsInOrder(
+      input.panelSchema.sections,
+      input.answers,
+      lines,
+      structuredTags,
+      sectionPaths
+    );
+  } else {
+    const { fields } = flattenSectionFields(input.panelSchema);
+    for (const field of fields) {
+      const val = String(input.answers[field.key] ?? "").trim();
+      if (!val) continue;
+      lines.push(`### ${field.label}`);
+      if (field.ragTag) {
+        lines.push(`RAG TAG: [${field.ragTag}: ${val}]`);
+        structuredTags.push({
+          name: field.ragTag.replace(/\s+/g, "_"),
+          value: val.slice(0, 500),
+        });
+      }
+      lines.push(val, "");
+    }
+  }
+
+  const excerpt = lines.join("\n").trim();
+  const wiki_metadata: Record<string, unknown> = {
+    ...config.wiki_metadata,
+    rag_template: schema.ragTemplate,
+    wiki_form_tier: input.tier,
+    wiki_form_answers: { ...input.answers },
+    section_paths: sectionPaths,
+    tags: structuredTags,
+    author_tags: input.authorTags ?? [],
+  };
 
   return { excerpt, wiki_metadata, tags };
 }
