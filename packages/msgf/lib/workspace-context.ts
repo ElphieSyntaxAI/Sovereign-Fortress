@@ -18,6 +18,7 @@ import type { User } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
+import { shouldShowMonorepoWorkspacePresets } from "@/lib/monorepo-presets-access";
 import { fetchProfileCompanyAndRole } from "@/lib/msgf-operator-access";
 import { isIndependentDeveloper } from "@/lib/msgf-tenant-governance";
 import {
@@ -96,8 +97,12 @@ export async function loadWorkspaceContext(
     tenantKey: null,
   });
 
+  /** External customers mapping custom repos — not corp team members on the platform monorepo. */
+  const isExternalProjectMapper =
+    !shouldShowMonorepoWorkspacePresets(user.email) && allProjects.length > 0;
+
   const permissions = resolveSessionPermissions({
-    isIndependentSandbox: isIndependent,
+    isIndependentSandbox: isIndependent || isExternalProjectMapper,
     teamPlatformRole: profileRow?.team_platform_role as string | undefined,
     accountStatus: profileRow?.account_status as string | undefined,
     msgfAccessRole: operatorProfile.msgf_access_role,

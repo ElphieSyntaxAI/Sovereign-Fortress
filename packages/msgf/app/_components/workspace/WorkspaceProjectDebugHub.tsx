@@ -84,6 +84,7 @@ type PillarMini = { id: string; label: string; ok: boolean };
 
 export function WorkspaceProjectDebugHub({ projectOrigin }: Props) {
   const [pillars, setPillars] = useState<PillarMini[]>([]);
+  const [pillarsLoading, setPillarsLoading] = useState(true);
   const [issues, setIssues] = useState<
     Array<{ id: string; label: string; created_at: string }>
   >([]);
@@ -91,6 +92,7 @@ export function WorkspaceProjectDebugHub({ projectOrigin }: Props) {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      setPillarsLoading(true);
       try {
         const healthRes = await fetch(
           `/api/msgf/health/pillars?project_origin=${encodeURIComponent(projectOrigin)}`,
@@ -108,9 +110,13 @@ export function WorkspaceProjectDebugHub({ projectOrigin }: Props) {
               ok: p.status === "healthy" || p.status === "ok",
             }))
           );
+        } else if (!cancelled) {
+          setPillars([]);
         }
       } catch {
         if (!cancelled) setPillars([]);
+      } finally {
+        if (!cancelled) setPillarsLoading(false);
       }
     })();
     return () => {
@@ -125,18 +131,28 @@ export function WorkspaceProjectDebugHub({ projectOrigin }: Props) {
           Local pillar health
         </h4>
         <div className="mt-3 grid grid-cols-3 gap-2">
-          {(pillars.length ? pillars : [{ id: "—", label: "Loading", ok: true }]).map((p) => (
-            <div
-              key={p.id}
-              className={`rounded-lg border px-2 py-2 text-center text-[10px] font-medium ${
-                p.ok
-                  ? "border-emerald-500/30 text-emerald-200"
-                  : "border-rose-500/30 text-rose-200"
-              }`}
-            >
-              {p.label}
+          {pillarsLoading ? (
+            <div className="col-span-3 rounded-lg border border-slate-700/60 px-2 py-3 text-center text-[10px] text-slate-500">
+              Loading pillar health…
             </div>
-          ))}
+          ) : pillars.length === 0 ? (
+            <div className="col-span-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-2 py-3 text-center text-[10px] text-amber-200/90">
+              No pillar data yet — run Shadow Scan in the IDE, then refresh.
+            </div>
+          ) : (
+            pillars.map((p) => (
+              <div
+                key={p.id}
+                className={`rounded-lg border px-2 py-2 text-center text-[10px] font-medium ${
+                  p.ok
+                    ? "border-emerald-500/30 text-emerald-200"
+                    : "border-rose-500/30 text-rose-200"
+                }`}
+              >
+                {p.label}
+              </div>
+            ))
+          )}
         </div>
       </div>
 

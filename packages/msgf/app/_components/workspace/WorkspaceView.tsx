@@ -128,7 +128,7 @@ export function WorkspaceView({
     normalizeTab(initialTab) ?? "architecture"
   );
   const [projects, setProjects] = useState<UserProjectRow[]>(initialProjects);
-  const [tabReady, setTabReady] = useState(false);
+  const [tabReady, setTabReady] = useState(true);
 
   useEffect(() => {
     setActiveTab(parseTabFromLocation());

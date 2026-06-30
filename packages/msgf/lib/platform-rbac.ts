@@ -130,7 +130,10 @@ export function filterNavLinksForPermissions<T extends { href: string; label: st
   }
   if (permissions.roles.includes("dev") && !permissions.canAccessGovernanceDashboard) {
     return links.filter(
-      (l) => l.href.startsWith("/workspace") || isAlwaysVisibleNavLink(l.href)
+      (l) =>
+        l.href.startsWith("/workspace") ||
+        l.href.startsWith("/dashboard") ||
+        isAlwaysVisibleNavLink(l.href)
     );
   }
   if (permissions.roles.includes("security") || permissions.roles.includes("auditor")) {

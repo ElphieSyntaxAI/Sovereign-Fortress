@@ -300,14 +300,14 @@ export function DashboardNav({
           </Link>
 
           <nav
-            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 lg:flex"
+            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto md:flex"
             aria-label="Workspace"
           >
             {primaryLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm transition duration-200 xl:px-3 ${
+                className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm transition duration-200 xl:px-3 ${
                   isLinkActive(pathname, link)
                     ? link.accent === "amber"
                       ? "bg-amber-500/15 font-medium text-amber-100"
@@ -384,7 +384,7 @@ export function DashboardNav({
 
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-600/50 bg-slate-900/60 text-slate-200 transition duration-200 hover:border-emerald-500/35 hover:bg-emerald-500/10 lg:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-600/50 bg-slate-900/60 text-slate-200 transition duration-200 hover:border-emerald-500/35 hover:bg-emerald-500/10 md:hidden"
               aria-expanded={mobileOpen}
               aria-controls={mobileDrawerId}
               onClick={() => setMobileOpen((o) => !o)}
@@ -397,7 +397,7 @@ export function DashboardNav({
       </header>
 
       <div
-        className={`fixed inset-0 z-[60] lg:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[60] md:hidden transition-opacity duration-300 ${
           mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         aria-hidden={!mobileOpen}

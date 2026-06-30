@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
+import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
 import {
   healthOptionsForSessionOperator,
   resolveSessionDashboardOperator,
@@ -214,7 +214,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const projectOrigin = req.nextUrl.searchParams.get("project_origin")?.trim();
+    const projectOriginRaw = req.nextUrl.searchParams.get("project_origin")?.trim();
+    const projectOrigin = projectOriginRaw
+      ? sanitizeTenantScope(projectOriginRaw)
+      : undefined;
     if (projectOrigin && reportOptions.userId) {
       reportOptions = {
         ...reportOptions,

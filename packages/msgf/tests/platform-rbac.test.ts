@@ -45,7 +45,7 @@ describe("platform-rbac", () => {
     );
     assert.deepEqual(
       links.map((l) => l.label),
-      ["Home", "Workspace"]
+      ["Home", "Dashboard", "Workspace"]
     );
   });
 

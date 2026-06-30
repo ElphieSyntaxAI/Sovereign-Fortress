@@ -102,9 +102,13 @@ export function WorkspaceActiveIdeTab({
   initialProjectOrigin,
   permissions,
 }: Props) {
-  const [expandedOrigin, setExpandedOrigin] = useState<string | null>(
-    initialProjectOrigin ?? projects[0]?.project_origin ?? null
-  );
+  const [expandedOrigin, setExpandedOrigin] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (expandedOrigin) return;
+    const preferred = initialProjectOrigin ?? projects[0]?.project_origin ?? null;
+    if (preferred) setExpandedOrigin(preferred);
+  }, [expandedOrigin, initialProjectOrigin, projects]);
   const [tokenExpiryByOrigin, setTokenExpiryByOrigin] = useState<Record<string, string | null>>({});
   const [complianceLocked, setComplianceLocked] = useState(false);
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
