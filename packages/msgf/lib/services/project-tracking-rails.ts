@@ -19,9 +19,15 @@ import {
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
 import { extractProjectOriginFromPulseBody } from "@/lib/utils/pulse-eco-context";
+import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
 import { listUserProjects } from "@/lib/services/user-projects";
 
 export { MSGF_PROJECT_ORIGIN_HEADER } from "@/lib/msgf-http-headers";
+
+/** Normalize org/repo slugs — strips stray quotes from pasted settings or overrides. */
+export function normalizeProjectOrigin(value: string | null | undefined): string {
+  return sanitizeTenantScope(value ?? "");
+}
 
 export type ProjectTrackingRailCode =
   | "ERR_PROJECT_ORIGIN_REQUIRED"
@@ -58,7 +64,7 @@ export function extractProjectOriginFromTrackingRequest(
   options?: { idePulse?: boolean }
 ): string | undefined {
   const explicitHeader = req.headers.get(MSGF_PROJECT_ORIGIN_HEADER)?.trim();
-  if (explicitHeader) return explicitHeader.slice(0, 256);
+  if (explicitHeader) return normalizeProjectOrigin(explicitHeader).slice(0, 256);
 
   const fromBody = extractProjectOriginFromPulseBody(rawBody);
   if (fromBody) return fromBody;
@@ -68,7 +74,7 @@ export function extractProjectOriginFromTrackingRequest(
       req.headers.get(MSGF_TENANT_KEY_HEADER)?.trim() ||
       req.headers.get(MSGF_TENANT_ID_HEADER)?.trim();
     if (tenantKeyLooksLikeProjectOrigin(tenantKey)) {
-      return tenantKey!.slice(0, 256);
+      return normalizeProjectOrigin(tenantKey).slice(0, 256);
     }
   }
 
@@ -80,7 +86,9 @@ export async function loadMappedProjectOrigins(
   userId: string
 ): Promise<Set<string>> {
   const projects = await listUserProjects(admin, userId).catch(() => []);
-  return new Set(projects.map((p) => p.project_origin.trim()).filter(Boolean));
+  return new Set(
+    projects.map((p) => normalizeProjectOrigin(p.project_origin)).filter(Boolean)
+  );
 }
 
 export type ProjectTrackingScope = {
@@ -106,11 +114,12 @@ export async function resolveProjectTrackingScope(params: {
     ? await loadMappedProjectOrigins(params.admin, params.userId)
     : new Set<string>();
 
-  const extracted =
+  const extractedRaw =
     params.explicitOrigin?.trim() ||
     extractProjectOriginFromTrackingRequest(params.req, params.rawBody, {
       idePulse: params.idePulse,
     });
+  const extracted = extractedRaw ? normalizeProjectOrigin(extractedRaw) : undefined;
 
   if (trackingRailsDisabled() || !params.userId || allowlist.size === 0) {
     return {

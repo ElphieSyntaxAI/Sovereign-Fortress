@@ -16,6 +16,7 @@ import { describe, test } from "node:test";
 import { MSGF_PROJECT_ORIGIN_HEADER } from "../lib/msgf-http-headers.js";
 import {
   extractProjectOriginFromTrackingRequest,
+  normalizeProjectOrigin,
   personalDashboardProjectOrigins,
   stampProjectOriginOnPayload,
   tenantKeyLooksLikeProjectOrigin,
@@ -72,5 +73,10 @@ describe("project-tracking-rails", () => {
     assert.deepEqual(personalDashboardProjectOrigins(["org/a"]), ["org/a"]);
     assert.deepEqual(personalDashboardProjectOrigins(["org/a", "org/b"]), []);
     assert.deepEqual(personalDashboardProjectOrigins([]), []);
+  });
+
+  test("normalizeProjectOrigin strips stray trailing quotes", () => {
+    assert.equal(normalizeProjectOrigin('Andrew/dealstar_pro"'), "Andrew/dealstar_pro");
+    assert.equal(normalizeProjectOrigin("Andrew/DECKHOST_PRO"), "Andrew/DECKHOST_PRO");
   });
 });

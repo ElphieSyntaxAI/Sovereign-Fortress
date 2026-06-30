@@ -61,8 +61,11 @@ function normalizePathSegment(value: string): string {
 function deriveProjectOriginFromLocalPath(localPath: string): string {
   const normalized = normalizePathSegment(localPath);
   const parts = normalized.split("/").filter(Boolean);
-  if (parts.length >= 2) return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`.slice(0, 256);
-  return (parts[parts.length - 1] ?? "local-project").slice(0, 256);
+  const raw =
+    parts.length >= 2
+      ? `${parts[parts.length - 2]}/${parts[parts.length - 1]}`
+      : (parts[parts.length - 1] ?? "local-project");
+  return sanitizeTenantScope(raw).slice(0, 256);
 }
 
 function parseGithubRepository(githubUrl: string): { fullName: string; projectOrigin: string } {
@@ -106,7 +109,27 @@ export async function listUserProjects(
     throw new Error(`list user projects failed: ${error.message}`);
   }
 
-  return (data ?? []) as UserProjectRow[];
+  const rows = (data ?? []) as UserProjectRow[];
+  for (const row of rows) {
+    const cleaned = sanitizeTenantScope(row.project_origin);
+    if (cleaned && cleaned !== row.project_origin) {
+      row.project_origin = cleaned;
+      void admin
+        .from("msgf_user_projects")
+        .update({ project_origin: cleaned })
+        .eq("id", row.id)
+        .eq("user_id", userId)
+        .then(({ error: repairErr }) => {
+          if (repairErr) {
+            console.warn(
+              `[user-projects] project_origin repair failed for ${row.id}:`,
+              repairErr.message
+            );
+          }
+        });
+    }
+  }
+  return rows;
 }
 
 export async function createUserProject(
