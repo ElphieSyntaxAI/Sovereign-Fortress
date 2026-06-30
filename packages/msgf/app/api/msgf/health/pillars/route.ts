@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
+import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
 import {
   healthOptionsForSessionOperator,
