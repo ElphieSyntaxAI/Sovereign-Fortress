@@ -17,9 +17,15 @@ import { composeSectionedWikiEntry, composeWikiEntry } from "./wikiEntityForms";
 import { getOutlineLoreKindConfig } from "./outlineLoreKinds";
 import { commitWikiEntry, updateWikiEntry } from "./wikiEntryClient";
 import { CHARACTER_DEV_SCHEMA } from "./planningBlockSchema";
-import { getStackLayerSchema } from "./civilizationStackSchema";
-import { locationPathSlug } from "./worldLocationTree";
-import { buildStackEntryRagLine, stackEntryWikiTags } from "./worldStackRag";
+import { getStackLayerSchema, getEnvironmentSchemaForKind } from "./civilizationStackSchema";
+import { locationPathSlug, buildLocationPath } from "./worldLocationTree";
+import {
+  buildStackEntryRagLine,
+  buildHierarchyContextTags,
+  buildStampedPathTitles,
+  parseHierarchyTagsFromWikiTags,
+  stackEntryWikiTags,
+} from "./worldStackRag";
 import type {
   CivilizationStackLayer,
   LocationNode,
@@ -27,7 +33,7 @@ import type {
   StoryScope,
   WorldBuildStateV2,
 } from "./worldBuildTypes";
-import { createLocationNode, createStackEntry, defaultWorldBuildStateV2 } from "./worldBuildTypes";
+import { createLocationNode, createStackEntry, defaultWorldBuildStateV2, normalizeStackLayer } from "./worldBuildTypes";
 
 function excerptFromWikiContent(content: string): string {
   const lines = content.split("\n");
@@ -73,18 +79,13 @@ function kindToLocationKind(meta: Record<string, unknown>): LocationNode["kind"]
 }
 
 function layerFromMeta(meta: Record<string, unknown>): CivilizationStackLayer {
-  const l = String(meta.stack_layer ?? "environment");
-  const allowed: CivilizationStackLayer[] = [
-    "environment",
-    "species",
-    "government",
-    "beliefs",
-    "fauna",
-    "flora_food",
-  ];
-  return allowed.includes(l as CivilizationStackLayer)
-    ? (l as CivilizationStackLayer)
-    : "environment";
+  return normalizeStackLayer(String(meta.stack_layer ?? "environment"));
+}
+
+function parseTagsFromMeta(meta: Record<string, unknown>): string[] {
+  const raw = meta.tags;
+  if (Array.isArray(raw)) return raw.map((t) => String(t).trim()).filter(Boolean);
+  return [];
 }
 
 function parseAuthorTagsFromMeta(meta: Record<string, unknown>): string[] {
@@ -175,12 +176,35 @@ export async function importWorldFromWiki(manuscriptId: string): Promise<number>
     }
 
     const layer = layerFromMeta(meta);
-    const entry = createStackEntry(loc.id, layer, String(meta.stamped_parent ?? loc.title), ref.title);
+    const wikiTags = parseTagsFromMeta(meta);
+    const hierarchyTags = parseHierarchyTagsFromWikiTags(wikiTags);
+    let contextPathTags = hierarchyTags;
+    let stampedPathTitles = String(meta.stamped_path_titles ?? "");
+
+    if (!contextPathTags.length && loc.id) {
+      const path = buildLocationPath(loc.id, state.locations);
+      if (path.length) {
+        contextPathTags = buildHierarchyContextTags(path);
+        if (!stampedPathTitles) stampedPathTitles = buildStampedPathTitles(path);
+      }
+    }
+
+    const entry = createStackEntry(
+      loc.id,
+      layer,
+      String(meta.stamped_parent ?? loc.title),
+      ref.title,
+      {
+        contextPathTags: contextPathTags.length ? contextPathTags : undefined,
+        stampedPathTitles: stampedPathTitles || undefined,
+      }
+    );
     entry.wikiRef = ref;
     entry.outlineFields = outlineFields;
     entry.freestyleDetails = excerptFromWikiContent(c.content).slice(0, 2000);
     entry.blockInputMode = outlineFields ? "outline" : "freestyle";
-    entry.authorTags = parseAuthorTagsFromMeta(meta);
+    const authorFromMeta = parseAuthorTagsFromMeta(meta);
+    entry.authorTags = [...new Set([...authorFromMeta, ...contextPathTags])];
     entry.stampedParentTitle = String(meta.stamped_parent ?? loc.title);
 
     state.stackEntries.push(entry);
@@ -249,7 +273,12 @@ export async function pushStackEntryToWiki(
   const parentTitle = location.title;
   const storyScope = state.storyScope ?? "global";
   const pathSlug = locationPathSlug(location.id, state.locations);
-  const panelSchema = getStackLayerSchema(entry.layer);
+  const panelSchema =
+    entry.layer === "environment"
+      ? getEnvironmentSchemaForKind(location.kind)
+      : getStackLayerSchema(entry.layer);
+  const stampedPath =
+    entry.stampedPathTitles ?? buildStampedPathTitles(buildLocationPath(location.id, state.locations));
 
   const composed =
     entry.blockInputMode === "outline"
@@ -268,7 +297,11 @@ export async function pushStackEntryToWiki(
           answers: { freeform: entry.freestyleDetails ?? "" },
         });
 
-  const ragLine = buildStackEntryRagLine(entry, panelSchema, parentTitle);
+  const ragLine = buildStackEntryRagLine(
+    { ...entry, stampedPathTitles: stampedPath || entry.stampedPathTitles },
+    panelSchema,
+    parentTitle
+  );
   const excerpt = ragLine
     ? `${composed.excerpt}\n\n${ragLine}`.trim()
     : composed.excerpt;
@@ -292,6 +325,8 @@ export async function pushStackEntryToWiki(
       location_path: pathSlug,
       stack_layer: entry.layer,
       stamped_parent: parentTitle,
+      stamped_path_titles: stampedPath || undefined,
+      context_path_tags: entry.contextPathTags,
     },
   };
 

@@ -15,12 +15,22 @@ export type LocationKind =
   | "neighborhood"
   | "venue";
 
+/** Ecology layers (center panel) vs cultural layers (focus drawer). */
 export type CivilizationStackLayer =
   | "environment"
-  | "species"
-  | "government"
-  | "beliefs"
   | "fauna"
+  | "flora"
+  | "history"
+  | "government"
+  | "science"
+  | "religion"
+  | "cultural"
+  | "food";
+
+/** @deprecated — migrated on load */
+export type LegacyStackLayer =
+  | "species"
+  | "beliefs"
   | "flora_food";
 
 export type LocationNode = {
@@ -35,15 +45,11 @@ export type LocationNode = {
 export type StackEntry = PlanningBlockEntity & {
   locationId: string;
   layer: CivilizationStackLayer;
-  /** Set on create; used for RAG Parent stamp (not shown as primary label). */
   stampedParentTitle?: string;
-  /** Flat hierarchy tags stamped on create, e.g. hierarchy:solar_system:andromeda */
   contextPathTags?: string[];
-  /** Human path for RAG parent line, e.g. "Andromeda › Kepler-9 › Port Helix" */
   stampedPathTitles?: string;
 };
 
-/** Location kinds that open the cultural focus drawer. */
 export const FOCUSABLE_LOCATION_KINDS: LocationKind[] = [
   "continent",
   "city",
@@ -52,30 +58,76 @@ export const FOCUSABLE_LOCATION_KINDS: LocationKind[] = [
   "venue",
 ];
 
-/** Cultural layers shown in the focus drawer (environment is scoped in center panel). */
+/** Cultural / society layers in the focus drawer. */
 export const FOCUS_CULTURAL_LAYERS: CivilizationStackLayer[] = [
-  "species",
+  "history",
   "government",
-  "beliefs",
-  "fauna",
-  "flora_food",
+  "science",
+  "religion",
+  "cultural",
+  "food",
 ];
 
-/** Location kinds that show environment stack in the center panel. */
-export const ENVIRONMENT_LOCATION_KINDS: LocationKind[] = [
+/** Physical ecology layers grouped in the center panel. */
+export const ECOLOGY_STACK_LAYERS: CivilizationStackLayer[] = [
+  "environment",
+  "fauna",
+  "flora",
+];
+
+/** Location kinds that show the ecology stack in the center panel. */
+export const ECOLOGY_LOCATION_KINDS: LocationKind[] = [
   "universe",
   "galaxy",
   "solar_system",
   "planet",
   "continent",
+  "city",
+  "district",
+  "neighborhood",
+  "venue",
 ];
+
+/** @deprecated use ECOLOGY_LOCATION_KINDS */
+export const ENVIRONMENT_LOCATION_KINDS = ECOLOGY_LOCATION_KINDS;
 
 export function isFocusableLocationKind(kind: LocationKind): boolean {
   return FOCUSABLE_LOCATION_KINDS.includes(kind);
 }
 
+export function isEcologyLocationKind(kind: LocationKind): boolean {
+  return ECOLOGY_LOCATION_KINDS.includes(kind);
+}
+
+/** @deprecated */
 export function isEnvironmentLocationKind(kind: LocationKind): boolean {
-  return ENVIRONMENT_LOCATION_KINDS.includes(kind);
+  return isEcologyLocationKind(kind);
+}
+
+const LEGACY_LAYER_MAP: Record<string, CivilizationStackLayer> = {
+  species: "cultural",
+  beliefs: "religion",
+  flora_food: "flora",
+};
+
+export function normalizeStackLayer(raw: string): CivilizationStackLayer {
+  const mapped = LEGACY_LAYER_MAP[raw];
+  if (mapped) return mapped;
+  const allowed: CivilizationStackLayer[] = [
+    "environment",
+    "fauna",
+    "flora",
+    "history",
+    "government",
+    "science",
+    "religion",
+    "cultural",
+    "food",
+  ];
+  if (allowed.includes(raw as CivilizationStackLayer)) {
+    return raw as CivilizationStackLayer;
+  }
+  return "environment";
 }
 
 export type WorldBuildStateV2 = {
@@ -84,13 +136,11 @@ export type WorldBuildStateV2 = {
   locations: LocationNode[];
   stackEntries: StackEntry[];
   activeLocationId: string | null;
-  /** Focus drawer context — continent or city/setting node id. */
   activeEntityContext: string | null;
   universalLedger?: Record<string, string>;
   selectionId: string | null;
 };
 
-/** @deprecated v1 — use WorldBuildStateV2 */
 export type WorldBuildStateV1 = {
   blocks?: unknown[];
   selectionId: string | null;
@@ -150,10 +200,6 @@ export function createStackEntry(
 }
 
 export const CIVILIZATION_STACK_LAYER_ORDER: CivilizationStackLayer[] = [
-  "environment",
-  "species",
-  "government",
-  "beliefs",
-  "fauna",
-  "flora_food",
+  ...ECOLOGY_STACK_LAYERS,
+  ...FOCUS_CULTURAL_LAYERS,
 ];

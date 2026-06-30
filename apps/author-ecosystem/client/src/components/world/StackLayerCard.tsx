@@ -7,6 +7,7 @@ import {
   CIVILIZATION_STACK_LAYER_META,
   getStackLayerSchema,
 } from "../../lib/civilizationStackSchema";
+import type { RagOutlinePanelSchema } from "../../lib/plotEngineRagOutlineSchema";
 import { buildStackEntryRagLine } from "../../lib/worldStackRag";
 import type { CivilizationStackLayer, StackEntry } from "../../lib/worldBuildTypes";
 
@@ -16,6 +17,7 @@ export function StackLayerCard(props: {
   selectedId: string | null;
   parentTitle: string;
   manuscriptId: string;
+  schemaOverride?: RagOutlinePanelSchema;
   onAdd: () => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
@@ -24,38 +26,33 @@ export function StackLayerCard(props: {
   onModeChange: (id: string, mode: "freestyle" | "outline") => void;
 }) {
   const meta = CIVILIZATION_STACK_LAYER_META[props.layer];
-  const schema = getStackLayerSchema(props.layer);
+  const schema = props.schemaOverride ?? getStackLayerSchema(props.layer);
 
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-3">
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-xs font-semibold text-zinc-100">
-            <span className="mr-1" aria-hidden>
-              {meta.emoji}
-            </span>
-            {meta.title}
-          </h3>
-          {meta.hint ? <p className="mt-0.5 text-[10px] text-zinc-500">{meta.hint}</p> : null}
-        </div>
-        <button
-          type="button"
-          onClick={props.onAdd}
-          className="shrink-0 rounded border border-emerald-600/50 px-2 py-0.5 text-[10px] text-emerald-200"
-        >
-          + Add
-        </button>
+      <div className="mb-2">
+        <h3 className="text-xs font-semibold text-zinc-100">
+          <span className="mr-1" aria-hidden>
+            {meta.emoji}
+          </span>
+          {meta.title}
+        </h3>
+        {meta.hint ? <p className="mt-0.5 text-[10px] text-zinc-500">{meta.hint}</p> : null}
       </div>
 
-      {props.entries.length === 0 ? (
-        <p className="text-[10px] italic text-zinc-600">Nothing here yet — add an entry.</p>
-      ) : (
-        <ul className="space-y-2">
-          {props.entries.map((entry) => {
+      {props.entries.length > 0 ? (
+        <ul className="mb-2 space-y-2">
+          {props.entries.map((entry, index) => {
             const expanded = props.selectedId === entry.id;
             const preview = buildStackEntryRagLine(entry, schema, props.parentTitle);
             return (
-              <li key={entry.id} className="rounded-lg border border-zinc-800 bg-zinc-950/80">
+              <li
+                key={entry.id}
+                className="rounded-lg border border-zinc-800 bg-zinc-950/80"
+              >
+                <div className="flex items-center gap-1 border-b border-zinc-800/80 px-2 py-0.5">
+                  <span className="text-[9px] tabular-nums text-zinc-600">{index + 1}</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => props.onSelect(entry.id)}
@@ -118,7 +115,17 @@ export function StackLayerCard(props: {
             );
           })}
         </ul>
+      ) : (
+        <p className="mb-2 text-[10px] italic text-zinc-600">Nothing here yet.</p>
       )}
+
+      <button
+        type="button"
+        onClick={props.onAdd}
+        className="w-full rounded border border-dashed border-emerald-600/40 bg-emerald-950/20 py-1.5 text-[10px] text-emerald-200 hover:border-emerald-500/50 hover:bg-emerald-950/35"
+      >
+        {props.entries.length > 0 ? "+ Add another entry" : "+ Add entry"}
+      </button>
     </section>
   );
 }

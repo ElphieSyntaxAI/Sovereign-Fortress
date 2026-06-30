@@ -146,5 +146,20 @@ export function getLocationChildren(
   locations: LocationNode[],
   scope: StoryScope
 ): LocationNode[] {
-  return filterVisibleLocations(locations, scope).filter((l) => l.parentId === parentId);
+  const visible = filterVisibleLocations(locations, scope);
+  const visibleIds = new Set(visible.map((l) => l.id));
+
+  if (parentId === null) {
+    // Global scope only: promote nodes whose parent kind is hidden (solar systems under galaxies).
+    if (scope === "global") {
+      return visible.filter(
+        (l) =>
+          l.parentId === null ||
+          (l.parentId !== null && !visibleIds.has(l.parentId))
+      );
+    }
+    return visible.filter((l) => l.parentId === null);
+  }
+
+  return visible.filter((l) => l.parentId === parentId);
 }

@@ -1,12 +1,20 @@
 import { StackLayerCard } from "./StackLayerCard";
-import { CIVILIZATION_STACK_LAYER_ORDER } from "../../lib/worldBuildTypes";
-import type { CivilizationStackLayer, StackEntry } from "../../lib/worldBuildTypes";
+import {
+  CIVILIZATION_STACK_LAYER_ORDER,
+  type CivilizationStackLayer,
+} from "../../lib/worldBuildTypes";
+import type { StackEntry } from "../../lib/worldBuildTypes";
+import type { RagOutlinePanelSchema } from "../../lib/plotEngineRagOutlineSchema";
 
 export function CivilizationStack(props: {
   locationTitle: string;
   entries: StackEntry[];
   selectedId: string | null;
   manuscriptId: string;
+  layers?: CivilizationStackLayer[];
+  environmentSchema?: RagOutlinePanelSchema;
+  heading?: string;
+  hint?: string;
   onAddEntry: (layer: CivilizationStackLayer) => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
@@ -14,14 +22,23 @@ export function CivilizationStack(props: {
   onFieldChange: (id: string, key: string, value: string) => void;
   onModeChange: (id: string, mode: "freestyle" | "outline") => void;
 }) {
+  const layerOrder = props.layers ?? CIVILIZATION_STACK_LAYER_ORDER;
+
   return (
     <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-emerald-100">Civilization stack</h2>
+      <h2 className="text-sm font-semibold text-emerald-100">
+        {props.heading ?? "Civilization stack"}
+      </h2>
       <p className="text-[10px] text-zinc-500">
-        Build every layer of culture for <strong className="text-zinc-400">{props.locationTitle}</strong>.
-        New entries inherit this location automatically when saved.
+        {props.hint ?? (
+          <>
+            Build every layer of culture for{" "}
+            <strong className="text-zinc-400">{props.locationTitle}</strong>. New entries inherit
+            this location automatically when saved.
+          </>
+        )}
       </p>
-      {CIVILIZATION_STACK_LAYER_ORDER.map((layer) => (
+      {layerOrder.map((layer) => (
         <StackLayerCard
           key={layer}
           layer={layer}
@@ -29,6 +46,7 @@ export function CivilizationStack(props: {
           selectedId={props.selectedId}
           parentTitle={props.locationTitle}
           manuscriptId={props.manuscriptId}
+          schemaOverride={layer === "environment" ? props.environmentSchema : undefined}
           onAdd={() => props.onAddEntry(layer)}
           onSelect={props.onSelect}
           onDelete={props.onDelete}

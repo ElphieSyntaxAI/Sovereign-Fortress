@@ -5,6 +5,7 @@ import {
   createLocationNode,
   createStackEntry,
   defaultWorldBuildStateV2,
+  normalizeStackLayer,
 } from "./worldBuildTypes";
 import { seedRootLocation } from "./worldLocationTree";
 
@@ -17,7 +18,7 @@ function layerForSection(section: WorldSectionId): CivilizationStackLayer {
     case "planet":
       return "environment";
     case "worldPersona":
-      return "beliefs";
+      return "religion";
     case "stateLedger":
       return "environment";
     default:
@@ -98,7 +99,7 @@ export function migrateWorldBuildV1ToV2(v1: LegacyWorldBuildState): WorldBuildSt
         ...block,
         id: createId(),
         locationId: targetLoc.id,
-        layer: "beliefs",
+        layer: "religion",
         stampedParentTitle: targetLoc.title,
         blockInputMode: block.blockInputMode ?? "freestyle",
       });
@@ -130,11 +131,19 @@ export function migrateWorldBuildV1ToV2(v1: LegacyWorldBuildState): WorldBuildSt
 
 export function normalizeWorldBuildState(raw: unknown): WorldBuildStateV2 {
   if (isWorldBuildStateV2(raw)) {
-    return {
+    const merged = {
       ...defaultWorldBuildStateV2(),
       ...raw,
-      version: 2,
+      version: 2 as const,
     };
+    merged.stackEntries = merged.stackEntries.map((e) => ({
+      ...e,
+      layer: normalizeStackLayer(String(e.layer)),
+    }));
+    if (merged.activeEntityContext === undefined) {
+      merged.activeEntityContext = null;
+    }
+    return merged;
   }
   if (typeof raw === "object" && raw !== null && Array.isArray((raw as LegacyWorldBuildState).blocks)) {
     return migrateWorldBuildV1ToV2(raw as LegacyWorldBuildState);

@@ -1,8 +1,9 @@
 import { useState } from "react";
 
 import { AuthorTagInput } from "./planningBlockUi";
-import { CivilizationStack } from "./world/CivilizationStack";
+import { EntityFocusPanel } from "./world/EntityFocusPanel";
 import { LocationScopeTree } from "./world/LocationScopeTree";
+import { EcologyStackPanel } from "./world/ScopedEnvironmentStack";
 import { StoryScopeGuardrail } from "./world/StoryScopeGuardrail";
 import { UniversalLedgerPanel } from "./world/UniversalLedgerPanel";
 import { useWorldBuildState } from "../hooks/useWorldBuildState";
@@ -12,6 +13,7 @@ import {
   upsertStackEntryToPlotPool,
 } from "../lib/planningBlockSync";
 import type { CivilizationStackLayer, LocationKind } from "../lib/worldBuildTypes";
+import { isEcologyLocationKind, isFocusableLocationKind } from "../lib/worldBuildTypes";
 
 export type WorldBuildingPanelProps = {
   manuscriptId: string;
@@ -23,6 +25,10 @@ export function WorldBuildingPanel({ manuscriptId }: WorldBuildingPanelProps) {
   const [busy, setBusy] = useState(false);
 
   const roots = wb.state.storyScope ? wb.getChildren(null) : [];
+  const showEcology =
+    wb.activeLocation && isEcologyLocationKind(wb.activeLocation.kind);
+  const showFocusPrompt =
+    wb.activeLocation && isFocusableLocationKind(wb.activeLocation.kind);
 
   const refreshFromWiki = async () => {
     setBusy(true);
@@ -30,23 +36,6 @@ export function WorldBuildingPanel({ manuscriptId }: WorldBuildingPanelProps) {
     try {
       const n = await importWorldFromWiki(manuscriptId);
       setStatus(n ? `Imported ${n} world entries from wiki.` : "No new world bible entries found.");
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const saveSelectedToWiki = async () => {
-    const entry = wb.selectedEntry;
-    const loc = wb.activeLocation;
-    if (!entry || !loc) return;
-    setBusy(true);
-    setStatus(null);
-    try {
-      const ref = await pushStackEntryToWiki(manuscriptId, entry, loc, wb.state);
-      wb.patchStackEntry(entry.id, { wikiRef: ref });
-      setStatus(`Saved "${entry.title}" to wiki.`);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
@@ -66,6 +55,47 @@ export function WorldBuildingPanel({ manuscriptId }: WorldBuildingPanelProps) {
     wb.addLocation(parentId, kind);
   };
 
+  const saveFocusEntryToWiki = async () => {
+    const entry = wb.selectedEntry;
+    const loc = wb.focusContextLocation;
+    if (!entry || !loc) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      const ref = await pushStackEntryToWiki(manuscriptId, entry, loc, wb.state);
+      wb.patchStackEntry(entry.id, { wikiRef: ref });
+      setStatus(`Saved "${entry.title}" to wiki.`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveEnvironmentEntryToWiki = async () => {
+    const entry = wb.selectedEntry;
+    const loc = wb.activeLocation;
+    if (!entry || !loc) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      const ref = await pushStackEntryToWiki(manuscriptId, entry, loc, wb.state);
+      wb.patchStackEntry(entry.id, { wikiRef: ref });
+      setStatus(`Saved "${entry.title}" to wiki.`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addStackEntryForContext = (
+    locationId: string,
+    layer: CivilizationStackLayer
+  ) => {
+    wb.addStackEntry(locationId, layer);
+  };
+
   return (
     <div className="flex min-h-[32rem] flex-col gap-4 overflow-hidden rounded-xl border border-zinc-800 bg-[#0a0612] p-4">
       <StoryScopeGuardrail
@@ -81,17 +111,24 @@ export function WorldBuildingPanel({ manuscriptId }: WorldBuildingPanelProps) {
             onFieldChange={wb.setUniversalLedgerField}
           />
 
-          <div className="flex min-h-[24rem] flex-col gap-4 lg:flex-row">
+          <div
+            className={[
+              "flex min-h-[24rem] flex-col gap-4 lg:flex-row",
+              wb.isFocusDrawerOpen ? "lg:gap-0" : "",
+            ].join(" ")}
+          >
             <aside className="w-full shrink-0 border-b border-zinc-800 pb-4 lg:w-1/4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-3">
               <LocationScopeTree
                 scope={wb.state.storyScope}
                 roots={roots}
                 activeLocationId={wb.state.activeLocationId}
+                focusContextId={wb.state.activeEntityContext}
                 getChildren={wb.getChildren}
                 getChildKinds={wb.getChildKindsFor}
                 onSelect={wb.setActiveLocation}
                 onAddRootSibling={() => wb.addRootLocation()}
                 onAddChild={handleAddChild}
+                onAddSibling={(parentId, kind) => wb.addLocation(parentId, kind)}
                 onDelete={wb.deleteLocation}
               />
               <button
@@ -104,7 +141,12 @@ export function WorldBuildingPanel({ manuscriptId }: WorldBuildingPanelProps) {
               </button>
             </aside>
 
-            <main className="min-w-0 flex-1">
+            <main
+              className={[
+                "min-w-0 flex-1 border-b border-zinc-800 pb-4 lg:border-b-0 lg:pb-0",
+                wb.isFocusDrawerOpen ? "lg:w-[33%] lg:border-r lg:pr-3" : "",
+              ].join(" ")}
+            >
               {status ? <p className="mb-3 text-xs text-zinc-400">{status}</p> : null}
 
               {wb.activeLocation ? (
@@ -129,56 +171,82 @@ export function WorldBuildingPanel({ manuscriptId }: WorldBuildingPanelProps) {
                     }
                   />
 
-                  <CivilizationStack
-                    locationTitle={wb.activeLocation.title}
-                    entries={wb.entriesForActiveLocation}
-                    selectedId={wb.state.selectionId}
-                    manuscriptId={manuscriptId}
-                    onAddEntry={(layer: CivilizationStackLayer) => {
-                      if (wb.state.activeLocationId) {
-                        wb.addStackEntry(wb.state.activeLocationId, layer);
-                      }
-                    }}
-                    onSelect={wb.setSelectionId}
-                    onDelete={wb.deleteStackEntry}
-                    onPatch={wb.patchStackEntry}
-                    onFieldChange={handleStackFieldChange}
-                    onModeChange={wb.setEntryMode}
-                  />
+                  {showFocusPrompt ? (
+                    <p className="rounded border border-violet-800/40 bg-violet-950/20 px-3 py-2 text-xs text-violet-200">
+                      Society & culture layers open in the focus panel on the right. Ecology
+                      (environment, fauna, flora) stays here in the center.
+                    </p>
+                  ) : null}
 
-                  <div className="flex flex-wrap gap-2 border-t border-zinc-800 pt-3">
-                    <button
-                      type="button"
-                      disabled={busy || !wb.selectedEntry}
-                      onClick={() => void saveSelectedToWiki()}
-                      className="rounded border border-emerald-600/50 bg-emerald-950/40 px-3 py-1 text-xs text-emerald-100 disabled:opacity-40"
-                    >
-                      Save selected to wiki
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!wb.selectedEntry || !wb.activeLocation}
-                      onClick={() => {
-                        if (!wb.selectedEntry || !wb.activeLocation) return;
-                        upsertStackEntryToPlotPool(
-                          manuscriptId,
-                          wb.selectedEntry,
-                          wb.activeLocation.title
-                        );
-                        setStatus(`"${wb.selectedEntry.title}" added to plot environmental pool.`);
-                      }}
-                      className="rounded border border-violet-600/50 px-3 py-1 text-xs text-violet-200 disabled:opacity-40"
-                    >
-                      Add selected to plot pools
-                    </button>
-                  </div>
+                  {showEcology ? (
+                    <>
+                      <EcologyStackPanel
+                        locationKind={wb.activeLocation.kind}
+                        locationTitle={wb.activeLocation.title}
+                        entries={wb.entriesForActiveLocation}
+                        selectedId={wb.state.selectionId}
+                        manuscriptId={manuscriptId}
+                        onAddEntry={(layer) =>
+                          addStackEntryForContext(wb.state.activeLocationId!, layer)
+                        }
+                        onSelect={wb.setSelectionId}
+                        onDelete={wb.deleteStackEntry}
+                        onPatch={wb.patchStackEntry}
+                        onFieldChange={handleStackFieldChange}
+                        onModeChange={wb.setEntryMode}
+                      />
+                      <div className="flex flex-wrap gap-2 border-t border-zinc-800 pt-3">
+                        <button
+                          type="button"
+                          disabled={busy || !wb.selectedEntry}
+                          onClick={() => void saveEnvironmentEntryToWiki()}
+                          className="rounded border border-emerald-600/50 bg-emerald-950/40 px-3 py-1 text-xs text-emerald-100 disabled:opacity-40"
+                        >
+                          Save selected to wiki
+                        </button>
+                      </div>
+                    </>
+                  ) : !showFocusPrompt ? (
+                    <p className="text-xs italic text-zinc-500">
+                      Select a location in the tree — ecology layers appear for planets and
+                      systems; continent / city nodes open the cultural focus panel.
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <p className="text-xs italic text-zinc-500">
-                  Select a location in the tree to build its civilization stack.
+                  Select a location in the tree to begin building your world.
                 </p>
               )}
             </main>
+
+            {wb.isFocusDrawerOpen && wb.focusContextLocation ? (
+              <EntityFocusPanel
+                location={wb.focusContextLocation}
+                breadcrumb={wb.focusBreadcrumb}
+                entries={wb.entriesForFocusContext}
+                selectedId={wb.state.selectionId}
+                manuscriptId={manuscriptId}
+                busy={busy}
+                onClose={wb.clearEntityContext}
+                onAddEntry={(layer) =>
+                  addStackEntryForContext(wb.state.activeEntityContext!, layer)
+                }
+                onSelect={wb.setSelectionId}
+                onDelete={wb.deleteStackEntry}
+                onPatch={wb.patchStackEntry}
+                onFieldChange={handleStackFieldChange}
+                onModeChange={wb.setEntryMode}
+                onSaveToWiki={() => void saveFocusEntryToWiki()}
+                onAddToPlotPool={() => {
+                  const entry = wb.selectedEntry;
+                  const loc = wb.focusContextLocation;
+                  if (!entry || !loc) return;
+                  upsertStackEntryToPlotPool(manuscriptId, entry, loc.title);
+                  setStatus(`"${entry.title}" added to plot environmental pool.`);
+                }}
+              />
+            ) : null}
           </div>
         </>
       ) : (

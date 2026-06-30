@@ -59,9 +59,12 @@ export function useWorldBuildState(manuscriptId: string) {
   }, [manuscriptId]);
 
   const persist = useCallback(
-    (next: WorldBuildStateV2) => {
-      setState(next);
-      if (manuscriptId) saveWorldBuildState(manuscriptId, next);
+    (next: WorldBuildStateV2 | ((prev: WorldBuildStateV2) => WorldBuildStateV2)) => {
+      setState((prev) => {
+        const resolved = typeof next === "function" ? next(prev) : next;
+        if (manuscriptId) saveWorldBuildState(manuscriptId, resolved);
+        return resolved;
+      });
     },
     [manuscriptId]
   );
@@ -117,29 +120,47 @@ export function useWorldBuildState(manuscriptId: string) {
 
   const addLocation = useCallback(
     (parentId: string | null, kind: LocationKind, title?: string) => {
-      const node = createLocationNode(
-        kind,
-        title ?? defaultTitleForChildKind(kind),
-        parentId
-      );
-      persist({
-        ...state,
-        locations: [...state.locations, node],
-        activeLocationId: node.id,
-        activeEntityContext: resolveEntityContext(node.id, [...state.locations, node]),
-        selectionId: null,
+      let created: LocationNode | null = null;
+      persist((prev) => {
+        const node = createLocationNode(
+          kind,
+          title ?? defaultTitleForChildKind(kind),
+          parentId
+        );
+        created = node;
+        const nextLocations = [...prev.locations, node];
+        return {
+          ...prev,
+          locations: nextLocations,
+          activeLocationId: node.id,
+          activeEntityContext: resolveEntityContext(node.id, nextLocations),
+          selectionId: null,
+        };
       });
-      return node;
+      return created;
     },
-    [state, persist]
+    [persist]
   );
 
   const addRootLocation = useCallback(() => {
-    if (!state.storyScope) return null;
-    const kind = getRootKindForScope(state.storyScope);
-    const title = defaultTitleForNewRoot(state.storyScope, state.locations);
-    return addLocation(null, kind, title);
-  }, [state, addLocation]);
+    let created: LocationNode | null = null;
+    persist((prev) => {
+      if (!prev.storyScope) return prev;
+      const kind = getRootKindForScope(prev.storyScope);
+      const title = defaultTitleForNewRoot(prev.storyScope, prev.locations);
+      const node = createLocationNode(kind, title, null);
+      created = node;
+      const nextLocations = [...prev.locations, node];
+      return {
+        ...prev,
+        locations: nextLocations,
+        activeLocationId: node.id,
+        activeEntityContext: resolveEntityContext(node.id, nextLocations),
+        selectionId: null,
+      };
+    });
+    return created;
+  }, [persist]);
 
   const patchLocation = useCallback(
     (id: string, patch: Partial<LocationNode>) => {
