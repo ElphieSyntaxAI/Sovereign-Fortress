@@ -153,6 +153,7 @@ export async function initializeMsgfWorkspace(
 
   ensureDir(msgfDir);
   ensureDir(keysDir);
+  ensureDir(path.join(msgfDir, "shadow-scan"));
   ensureMsgfGitignore(msgfDir);
   ensurePlaceholderKey(path.join(keysDir, "gemini.key"));
   ensurePlaceholderKey(path.join(keysDir, "claude.key"));

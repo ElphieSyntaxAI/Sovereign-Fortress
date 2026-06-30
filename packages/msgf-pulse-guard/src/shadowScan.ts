@@ -3,12 +3,21 @@ import * as vscode from "vscode";
 import { readMsgfSettings, resolveTenantId } from "./config";
 import { buildApiAuthHeaders } from "./pulseAuth";
 import { resolveMappedProjectOrigin } from "./projectOrigin";
+import {
+  openShadowScanAudit,
+  saveShadowScanArtifacts,
+} from "./shadowScanArtifacts";
 
 const MAX_FILES = 12;
 const MAX_BYTES_PER_FILE = 48_000;
 
 export type ShadowScanResult =
-  | { ok: true; message: string; detail?: Record<string, unknown> }
+  | {
+      ok: true;
+      message: string;
+      detail?: Record<string, unknown>;
+      auditRelativePath?: string;
+    }
   | { ok: false; message: string; ruleErrors: string[] };
 
 type IngestFile = { path: string; content: string };
@@ -204,13 +213,43 @@ export async function runShadowPolicyScan(
         ? raw.message
         : "Shadow policy scan completed — all pillars aligned.";
 
+    const auditMarkdown =
+      typeof raw.pre_ingestion_audit_md === "string"
+        ? raw.pre_ingestion_audit_md
+        : "";
+
+    let auditRelativePath: string | undefined;
+    if (auditMarkdown.trim()) {
+      const saved = saveShadowScanArtifacts({
+        auditMarkdown,
+        projectOrigin,
+        lineageMap: raw.lineage_map,
+        detail: {
+          ingested_count: raw.ingested_count,
+          readiness_score: raw.readiness_score,
+          brain_fully_initialized: raw.brain_fully_initialized,
+          missing_pillars: raw.missing_pillars,
+        },
+      });
+      auditRelativePath = saved?.relativeAuditPath;
+      if (saved?.relativeAuditPath) {
+        void openShadowScanAudit(saved.relativeAuditPath);
+      }
+    }
+
+    const displayMessage = auditRelativePath
+      ? `SWEEP complete. Audit saved to ${auditRelativePath}.`
+      : msg;
+
     return {
       ok: true,
-      message: msg,
+      message: displayMessage,
+      auditRelativePath,
       detail: {
         ingested_count: raw.ingested_count,
         readiness_score: raw.readiness_score,
         brain_fully_initialized: raw.brain_fully_initialized,
+        missing_pillars: raw.missing_pillars,
       },
     };
   } catch (e) {

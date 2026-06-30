@@ -94,6 +94,59 @@ function buildLineageMap(files: IngestFile[]) {
   return files.map((file) => buildIngestLineageForFile(file));
 }
 
+function buildPreIngestionAuditMarkdown(input: {
+  lineageMap: ReturnType<typeof buildLineageMap>;
+  ingestAudit: string;
+  aiAudit?: string | null;
+  readiness: Awaited<ReturnType<typeof computeBrainReadiness>>;
+  skipGeminiSummary?: boolean;
+}): string {
+  const sections = [
+    "# pre_ingestion_audit.md",
+    "",
+    "## Lineage Map",
+    "```json",
+    JSON.stringify(input.lineageMap, null, 2),
+    "```",
+    "",
+    "## SWEEP Ingestion Log",
+    input.ingestAudit || "_No ingest log._",
+    "",
+  ];
+
+  if (input.skipGeminiSummary) {
+    sections.push(
+      "## Gemini 2.5 Flash Audit Summary",
+      "_Skipped — file hashes unchanged since last SWEEP._",
+      ""
+    );
+  } else if (input.aiAudit != null) {
+    sections.push(
+      "## Gemini 2.5 Flash Audit Summary",
+      input.aiAudit.trim() || "_No summary generated._",
+      ""
+    );
+  }
+
+  sections.push(
+    "## Brain Readiness",
+    "```json",
+    JSON.stringify(
+      {
+        readiness_score: input.readiness.readiness_score,
+        brain_fully_initialized: input.readiness.brain_fully_initialized,
+        missing_pillars: input.readiness.missing_pillars,
+      },
+      null,
+      2
+    ),
+    "```",
+    ""
+  );
+
+  return sections.join("\n");
+}
+
 async function summarizeForAudit(
   req: NextRequest,
   files: IngestFile[],
@@ -360,40 +413,37 @@ export async function POST(req: NextRequest) {
         hashPartition.changed.length === 0 &&
         hashPartition.skipped_paths.length > 0;
 
-      if (normalizedPaths.length > 0 && runGeminiAudit && !skipAudit) {
-        const aiAudit = await summarizeForAudit(req, filesToSweep.length ? filesToSweep : ingestFiles, lineageMap);
-        const finalAuditDoc = [
-          "# pre_ingestion_audit.md",
-          "",
-          "## Lineage Map",
-          "```json",
-          JSON.stringify(lineageMap, null, 2),
-          "```",
-          "",
-          "## SWEEP Ingestion Log",
-          ingestAudit,
-          "",
-          "## Gemini 2.5 Flash Audit Summary",
-          aiAudit || "_No summary generated._",
-          "",
-          "## Brain Readiness",
-          JSON.stringify(
-            {
-              readiness_score: readiness.readiness_score,
-              brain_fully_initialized: readiness.brain_fully_initialized,
-            },
-            null,
-            2
-          ),
-          "",
-        ].join("\n");
+      let preIngestionAuditMd: string | null = null;
 
-        await writeFile(path.join(process.cwd(), "pre_ingestion_audit.md"), finalAuditDoc, "utf8");
+      if (normalizedPaths.length > 0) {
+        let aiAudit: string | null = null;
+        if (runGeminiAudit && !skipAudit) {
+          aiAudit = await summarizeForAudit(
+            req,
+            filesToSweep.length ? filesToSweep : ingestFiles,
+            lineageMap
+          );
+        }
+        preIngestionAuditMd = buildPreIngestionAuditMarkdown({
+          lineageMap,
+          ingestAudit,
+          aiAudit,
+          readiness,
+          skipGeminiSummary: skipAudit || !runGeminiAudit,
+        });
+
+        if (process.env.MSGF_INGEST_AUDIT_LOCAL_WRITE?.trim() === "1") {
+          await writeFile(
+            path.join(process.cwd(), "pre_ingestion_audit.md"),
+            preIngestionAuditMd,
+            "utf8"
+          );
+        }
       }
 
       const message =
         normalizedPaths.length > 0
-          ? "SWEEP complete. pre_ingestion_audit.md saved to project root."
+          ? "SWEEP complete. Audit returned for .msgf/shadow-scan/pre_ingestion_audit.md in your IDE."
           : "Pillar bootstrap complete (no files ingested).";
 
       const response = NextResponse.json({
@@ -402,6 +452,8 @@ export async function POST(req: NextRequest) {
         tenant_id: tenantId,
         project_origin: projectOrigin,
         lineage_map: lineageMap,
+        pre_ingestion_audit_md: preIngestionAuditMd,
+        audit_save_path: ".msgf/shadow-scan/pre_ingestion_audit.md",
         readiness_score: readiness.readiness_score,
         brain_fully_initialized: readiness.brain_fully_initialized,
         is_pillar_baseline_set: readiness.is_pillar_baseline_set,

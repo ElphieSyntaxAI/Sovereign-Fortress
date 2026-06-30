@@ -121,7 +121,7 @@ function renderRunScriptsSection(scripts: RunScriptEntry[]): string {
       }>
         ▶ Run latest verify
       </button>
-      <p class="run-scripts-hint muted">Scripts save to <code>.msgf/run-scripts.json</code> — zero re-prompt cost to re-test.</p>
+      <p class="run-scripts-hint muted">Shadow scan artifacts save to <code>.msgf/shadow-scan/</code> (audit + manifest). Run scripts live in <code>.msgf/run-scripts.json</code>.</p>
     </div>
   </div>`;
 }
