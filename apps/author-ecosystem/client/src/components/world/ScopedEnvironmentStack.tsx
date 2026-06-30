@@ -34,7 +34,7 @@ export function EcologyStackPanel(props: {
       layers={layers}
       environmentSchema={hasEnvFields ? envSchema : undefined}
       heading="Ecology & physical world"
-      hint="Environment (suns, tidal lock, climate), fauna, and flora for this place. Hierarchy path is stamped into tags on create."
+      hint={`Fields tailored to ${props.locationKind.replace("_", " ")} — system suns & moons here; tidal lock & aurora on planets.`}
       onAddEntry={props.onAddEntry}
       onSelect={props.onSelect}
       onDelete={props.onDelete}

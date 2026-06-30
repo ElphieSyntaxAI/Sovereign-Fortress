@@ -163,3 +163,89 @@ export function getLocationChildren(
 
   return visible.filter((l) => l.parentId === parentId);
 }
+
+export type LocationAddAction = {
+  label: string;
+  kind: LocationKind;
+  /** Add as child of this node, or sibling under the same parent. */
+  mode: "child" | "sibling";
+};
+
+export function getLocationAddActions(
+  node: LocationNode,
+  scope: StoryScope,
+  children: LocationNode[]
+): LocationAddAction[] {
+  const actions: LocationAddAction[] = [];
+  const childKinds = getChildKinds(scope, node.kind);
+  const nextChildKind = childKinds[0];
+
+  if (node.kind === "universe" && scope === "universe") {
+    const n = children.filter((c) => c.kind === "galaxy").length;
+    actions.push({
+      label: n > 0 ? "+ Add another galaxy" : "+ Add galaxy",
+      kind: "galaxy",
+      mode: "child",
+    });
+    return actions;
+  }
+
+  if (node.kind === "galaxy") {
+    const ss = children.filter((c) => c.kind === "solar_system").length;
+    actions.push({
+      label: ss > 0 ? "+ Add another solar system" : "+ Add solar system",
+      kind: "solar_system",
+      mode: "child",
+    });
+    if (node.parentId) {
+      actions.push({
+        label: "+ Add another galaxy",
+        kind: "galaxy",
+        mode: "sibling",
+      });
+    }
+    return actions;
+  }
+
+  if (node.kind === "solar_system") {
+    if (nextChildKind) {
+      const n = children.filter((c) => c.kind === nextChildKind).length;
+      actions.push({
+        label:
+          n > 0
+            ? `+ Add another ${kindLabel(nextChildKind).toLowerCase()}`
+            : `+ Add ${kindLabel(nextChildKind).toLowerCase()}`,
+        kind: nextChildKind,
+        mode: "child",
+      });
+    }
+    if (node.parentId) {
+      actions.push({
+        label: "+ Add another solar system",
+        kind: "solar_system",
+        mode: "sibling",
+      });
+    } else if (scope === "global") {
+      actions.push({
+        label: "+ Add another solar system",
+        kind: "solar_system",
+        mode: "sibling",
+      });
+    }
+    return actions;
+  }
+
+  if (nextChildKind) {
+    const n = children.filter((c) => c.kind === nextChildKind).length;
+    actions.push({
+      label:
+        n > 0
+          ? `+ Add another ${kindLabel(nextChildKind).toLowerCase()}`
+          : `+ Add ${kindLabel(nextChildKind).toLowerCase()}`,
+      kind: nextChildKind,
+      mode: "child",
+    });
+  }
+
+  return actions;
+}

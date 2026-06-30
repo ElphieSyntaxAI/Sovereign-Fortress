@@ -1,4 +1,5 @@
 import {
+  getLocationAddActions,
   getRootKindForScope,
   kindLabel,
 } from "../../lib/worldLocationTree";
@@ -10,7 +11,13 @@ function AddChildButton(props: {
   label: string;
   onClick: () => void;
   borderTop?: boolean;
+  accent?: "emerald" | "sky";
 }) {
+  const accentClass =
+    props.accent === "sky"
+      ? "border-sky-700/40 bg-sky-950/20 text-sky-300 hover:border-sky-600/50 hover:bg-sky-950/40"
+      : "border-emerald-700/40 bg-emerald-950/20 text-emerald-300 hover:border-emerald-600/50 hover:bg-emerald-950/40";
+
   return (
     <div
       className={[
@@ -22,7 +29,10 @@ function AddChildButton(props: {
       <button
         type="button"
         onClick={props.onClick}
-        className="w-full rounded border border-dashed border-emerald-700/40 bg-emerald-950/20 px-2 py-1 text-left text-[10px] text-emerald-300 hover:border-emerald-600/50 hover:bg-emerald-950/40"
+        className={[
+          "w-full rounded border border-dashed px-2 py-1 text-left text-[10px]",
+          accentClass,
+        ].join(" ")}
       >
         {props.label}
       </button>
@@ -44,11 +54,22 @@ function LocationTreeNode(props: {
   onDelete: (id: string) => void;
 }) {
   const children = props.getChildren(props.node.id);
-  const childKinds = props.getChildKinds(props.node.kind);
   const active = props.activeId === props.node.id;
   const inFocus = props.focusContextId === props.node.id;
   const focusable = isFocusableLocationKind(props.node.kind);
-  const childKind = childKinds[0];
+  const addActions = getLocationAddActions(props.node, props.scope, children);
+
+  const handleAddAction = (action: (typeof addActions)[0]) => {
+    if (action.mode === "child") {
+      props.onAddChild(props.node.id, action.kind);
+    } else {
+      const parentId =
+        props.node.kind === "solar_system" && props.scope === "global" && !props.node.parentId
+          ? null
+          : props.node.parentId;
+      props.onAddSibling(parentId, action.kind);
+    }
+  };
 
   return (
     <li className="list-none">
@@ -100,7 +121,10 @@ function LocationTreeNode(props: {
       </div>
 
       {children.length > 0 ? (
-        <ul className="mt-1 space-y-1 border-l border-zinc-800/90" style={{ marginLeft: props.depth * 12 + 10 }}>
+        <ul
+          className="mt-1 space-y-1 border-l border-zinc-800/90"
+          style={{ marginLeft: props.depth * 12 + 10 }}
+        >
           {children.map((child) => (
             <LocationTreeNode
               key={child.id}
@@ -120,35 +144,18 @@ function LocationTreeNode(props: {
         </ul>
       ) : null}
 
-      {childKind ? (
+      {addActions.map((action, i) => (
         <AddChildButton
+          key={`${action.kind}-${action.mode}-${action.label}`}
           depth={props.depth}
-          label={
-            children.length > 0
-              ? `+ Add another ${kindLabel(childKind).toLowerCase()}`
-              : `+ Add ${kindLabel(childKind).toLowerCase()}`
+          borderTop={i === 0}
+          accent={
+            action.kind === "galaxy" || action.kind === "solar_system" ? "sky" : "emerald"
           }
-          onClick={() => props.onAddChild(props.node.id, childKind)}
+          label={action.label}
+          onClick={() => handleAddAction(action)}
         />
-      ) : null}
-
-      {props.node.kind === "galaxy" && props.node.parentId ? (
-        <AddChildButton
-          depth={props.depth}
-          borderTop={false}
-          label="+ Add another galaxy"
-          onClick={() => props.onAddSibling(props.node.parentId, "galaxy")}
-        />
-      ) : null}
-
-      {props.node.kind === "solar_system" && props.node.parentId ? (
-        <AddChildButton
-          depth={props.depth}
-          borderTop={false}
-          label="+ Add another solar system"
-          onClick={() => props.onAddSibling(props.node.parentId, "solar_system")}
-        />
-      ) : null}
+      ))}
     </li>
   );
 }
@@ -176,6 +183,13 @@ export function LocationScopeTree(props: {
   return (
     <div className="flex max-h-[min(70vh,32rem)] flex-col">
       <h2 className="mb-2 shrink-0 text-sm font-semibold text-emerald-100">Locations</h2>
+
+      {props.scope === "universe" ? (
+        <p className="mb-2 text-[9px] text-zinc-500">
+          Universe → Galaxy → Solar system → Planet. Use the sky-blue buttons to add galaxies and
+          systems inside each universe.
+        </p>
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         {props.roots.length > 0 ? (

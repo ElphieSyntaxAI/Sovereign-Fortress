@@ -11,110 +11,250 @@ function field(
   return { key, label, ragTag, ...opts };
 }
 
-const ENVIRONMENT_SCHEMA: RagOutlinePanelSchema = {
-  guidingQuestion: "What is the physical feel of this place?",
-  tagGroup: "RAG TAG",
-  sections: [
-    {
-      sectionPath: "1.3.1",
-      title: "Cosmic & universal constants",
-      fields: [
-        field("cosmic_physics", "Cosmic physics & FTL rules", "Universe_Phys", {
-          multiline: true,
-          fieldType: "textarea",
-          placeholder: "Speed of light cap, wormhole gates, magic density…",
-        }),
-        field("galactic_climate", "Galactic climate bands", "Galaxy_Climate", {
-          multiline: true,
-          fieldType: "textarea",
-        }),
-      ],
-    },
-    {
-      sectionPath: "1.3.1.1",
-      title: "Solar system environment",
-      fields: [
-        field("star_type", "Star type & sun(s)", "System_Star", {
-          multiline: true,
-          fieldType: "textarea",
-          placeholder: "Red dwarf, binary pair, triple sun…",
-        }),
-        field("star_luminosity", "Luminosity & radiation", "System_Star: Luminosity", {
-          placeholder: "Dim, flare-prone, stable G-type…",
-        }),
-        field("tidal_lock", "Tidal lock & orbital resonance", "System_Tidal_Lock", {
-          multiline: true,
-          fieldType: "textarea",
-          placeholder: "Inner planet tidally locked, 3:2 spin-orbit…",
-        }),
-        field("orbital_mechanics", "Orbital mechanics & hazards", "System_Orbit", {
-          multiline: true,
-          fieldType: "textarea",
-          placeholder: "Asteroid belts, rogue planets, lagrange stations…",
-        }),
-      ],
-    },
-    {
-      sectionPath: "1.3.1.2",
-      title: "Planetary environment",
-      fields: [
-        field("planet_phys", "Gravity & atmosphere", "Planet_Phys", {
-          multiline: true,
-          fieldType: "textarea",
-        }),
-        field("planet_weather", "Climate & weather", "Planet_Weather: Type", {
-          multiline: true,
-          fieldType: "textarea",
-        }),
-        field("planet_tidal_lock", "Planetary tidal lock", "Planet_Tidal_Lock", {
-          multiline: true,
-          fieldType: "textarea",
-          placeholder: "Permanent day/night hemispheres…",
-        }),
-        field("day_length", "Day length & seasons", "Planet_Day_Season", {
-          placeholder: "42-hour days, extreme axial tilt…",
-        }),
-        field("micro_climate", "Micro-climate here", "Spatial_Env: Micro_Climate", {
-          multiline: true,
-          fieldType: "textarea",
-        }),
-      ],
-    },
-  ],
+const ENVIRONMENT_SCHEMA_BY_KIND: Record<LocationKind, RagOutlinePanelSchema> = {
+  universe: {
+    guidingQuestion: "What laws govern this universe?",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1",
+        title: "Universal constants",
+        fields: [
+          field("cosmic_physics", "Fundamental physics & FTL", "Universe_Phys", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Speed of light, magic density, causality rules…",
+          }),
+          field("universe_age", "Age & scale", "Universe: Age_Scale", {
+            placeholder: "13B years, pocket universe, cyclic…",
+          }),
+        ],
+      },
+    ],
+  },
+  galaxy: {
+    guidingQuestion: "What defines this galaxy?",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1",
+        title: "Galactic structure",
+        fields: [
+          field("galaxy_type", "Galaxy type & shape", "Galaxy: Type", {
+            placeholder: "Barred spiral, elliptical, irregular…",
+          }),
+          field("galactic_climate", "Radiation & star density", "Galaxy_Climate", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Core radiation, habitable zone band, nebula lanes…",
+          }),
+          field("galactic_center", "Core & supermassive object", "Galaxy: Core", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Active galactic nucleus, black hole, ancient construct…",
+          }),
+        ],
+      },
+    ],
+  },
+  solar_system: {
+    guidingQuestion: "What makes this solar system unique?",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1.1",
+        title: "Star(s) & light",
+        fields: [
+          field("star_type", "Star type & sun(s)", "System_Star", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Red dwarf, binary pair, pulsar…",
+          }),
+          field("star_luminosity", "Luminosity & radiation", "System_Star: Luminosity", {
+            placeholder: "Dim, flare-prone, stable G-type…",
+          }),
+          field("system_sky", "Sky appearance from habitable zone", "System_Sky", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Twin suns, violet dawn, permanent twilight…",
+          }),
+        ],
+      },
+      {
+        sectionPath: "1.3.1.2",
+        title: "Bodies & orbits",
+        fields: [
+          field("planet_catalog", "Planets & major bodies", "System: Planets", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Rocky inner, gas giant at 5 AU, ice dwarf belt…",
+          }),
+          field("moons", "Notable moons & stations", "System: Moons", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Titan-like moon, hollow orbital habitat…",
+          }),
+          field("orbital_mechanics", "Orbital mechanics & hazards", "System_Orbit", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Asteroid belt, Lagrange colonies, comet showers…",
+          }),
+        ],
+      },
+    ],
+  },
+  planet: {
+    guidingQuestion: "What makes this planet physically distinct?",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1.2",
+        title: "Planetary physics",
+        fields: [
+          field("planet_gravity", "Gravity & mass", "Planet: Gravity", {
+            placeholder: "0.8 g, super-Earth, low-G archipelago world…",
+          }),
+          field("planet_phys", "Atmosphere & pressure", "Planet_Phys", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Thin CO₂, breathable nitrogen-oxygen, toxic haze…",
+          }),
+          field("planet_tidal_lock", "Tidal lock", "Planet_Tidal_Lock", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Fully locked — eternal day side / night side…",
+          }),
+          field("day_length", "Day length, axial tilt & seasons", "Planet_Day_Season", {
+            multiline: true,
+            fieldType: "textarea",
+          }),
+        ],
+      },
+      {
+        sectionPath: "1.3.1.3",
+        title: "Sky & surface phenomena",
+        fields: [
+          field("aurora", "Aurora & magnetosphere", "Planet: Aurora", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Permanent aurora belt, crimson curtains at poles…",
+          }),
+          field("planet_weather", "Climate & weather", "Planet_Weather: Type", {
+            multiline: true,
+            fieldType: "textarea",
+          }),
+          field("planet_moons", "Moons visible from surface", "Planet: Moons", {
+            multiline: true,
+            fieldType: "textarea",
+          }),
+        ],
+      },
+    ],
+  },
+  continent: {
+    guidingQuestion: "Regional terrain and climate",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1.4",
+        title: "Continental environment",
+        fields: [
+          field("terrain", "Terrain & landforms", "Spatial_Env: Terrain", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Volcanic arc, salt flats, megafauna jungle…",
+          }),
+          field("micro_climate", "Regional climate", "Spatial_Env: Micro_Climate", {
+            multiline: true,
+            fieldType: "textarea",
+          }),
+        ],
+      },
+    ],
+  },
+  city: {
+    guidingQuestion: "Local setting conditions",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1.5",
+        title: "Setting environment",
+        fields: [
+          field("micro_climate", "Micro-climate & weather here", "Spatial_Env: Micro_Climate", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Humid docks, acid rain district, dome-controlled…",
+          }),
+          field("local_sky", "Sky & light at this setting", "Spatial_Env: Sky", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Neon haze, twin moons over rooftops…",
+          }),
+        ],
+      },
+    ],
+  },
+  district: {
+    guidingQuestion: "District-level environment",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1.5",
+        title: "District conditions",
+        fields: [
+          field("micro_climate", "Micro-climate here", "Spatial_Env: Micro_Climate", {
+            multiline: true,
+            fieldType: "textarea",
+          }),
+          field("local_sky", "Light & atmosphere", "Spatial_Env: Sky", {
+            multiline: true,
+            fieldType: "textarea",
+          }),
+        ],
+      },
+    ],
+  },
+  neighborhood: {
+    guidingQuestion: "Neighborhood environment",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1.5",
+        title: "Neighborhood conditions",
+        fields: [
+          field("micro_climate", "Micro-climate here", "Spatial_Env: Micro_Climate", {
+            multiline: true,
+            fieldType: "textarea",
+          }),
+        ],
+      },
+    ],
+  },
+  venue: {
+    guidingQuestion: "Venue atmosphere",
+    tagGroup: "RAG TAG",
+    sections: [
+      {
+        sectionPath: "1.3.1.5",
+        title: "Venue conditions",
+        fields: [
+          field("micro_climate", "Interior / local climate", "Spatial_Env: Micro_Climate", {
+            multiline: true,
+            fieldType: "textarea",
+            placeholder: "Climate-controlled vault, open-air bazaar…",
+          }),
+        ],
+      },
+    ],
+  },
 };
 
-const ENVIRONMENT_FIELDS_BY_KIND: Record<LocationKind, string[]> = {
-  universe: ["cosmic_physics"],
-  galaxy: ["cosmic_physics", "galactic_climate"],
-  solar_system: ["star_type", "star_luminosity", "tidal_lock", "orbital_mechanics"],
-  planet: ["planet_phys", "planet_weather", "planet_tidal_lock", "day_length"],
-  continent: ["micro_climate"],
-  city: ["micro_climate"],
-  district: ["micro_climate"],
-  neighborhood: ["micro_climate"],
-  venue: ["micro_climate"],
-};
+/** Legacy combined schema — used as fallback for environment layer metadata. */
+const ENVIRONMENT_SCHEMA: RagOutlinePanelSchema =
+  ENVIRONMENT_SCHEMA_BY_KIND.planet;
 
 export function getEnvironmentSchemaForKind(kind: LocationKind): RagOutlinePanelSchema {
-  const allowed = new Set(ENVIRONMENT_FIELDS_BY_KIND[kind] ?? []);
-  const sections = ENVIRONMENT_SCHEMA.sections
-    ?.map((sec) => ({
-      ...sec,
-      fields: sec.fields?.filter((f) => allowed.has(f.key)),
-    }))
-    .filter((sec) => (sec.fields?.length ?? 0) > 0);
-  return {
-    ...ENVIRONMENT_SCHEMA,
-    guidingQuestion:
-      kind === "universe" || kind === "galaxy"
-        ? "What cosmic rules govern this scope?"
-        : kind === "solar_system"
-          ? "Stars, tidal lock, and system-wide physics"
-          : kind === "planet"
-            ? "Planetary environment & orbital conditions"
-            : "Local micro-climate and conditions",
-    sections: sections ?? [],
-  };
+  return ENVIRONMENT_SCHEMA_BY_KIND[kind] ?? ENVIRONMENT_SCHEMA_BY_KIND.planet;
 }
 
 const HISTORY_SCHEMA: RagOutlinePanelSchema = {
@@ -350,7 +490,7 @@ export const CIVILIZATION_STACK_LAYER_META: Record<
   environment: {
     title: "Environmental conditions",
     emoji: "🌡️",
-    hint: "Suns, tidal lock, gravity, climate, and micro-climates.",
+    hint: "Tailored to this level — suns & moons at system scale; tidal lock & aurora on planets.",
   },
   fauna: {
     title: "Fauna & animals",
