@@ -56,6 +56,11 @@ export function operationalTenantForLocalPath(localPath: string): string | null 
   return preset ? operationalTenantForPreset(preset) : null;
 }
 
+function looksLikeProjectOrigin(key: string): boolean {
+  const slash = key.indexOf("/");
+  return slash > 0 && slash < key.length - 1;
+}
+
 /**
  * True when header tenant key matches profile/license tenant (direct or via monorepo preset).
  */
@@ -67,6 +72,9 @@ export function ideTenantKeysAlignForLicense(
   const header = sanitizeTenantScope(headerTenantKey);
   if (!header) return true;
   if (license === header) return true;
+
+  // Gated AI platform license — IDE uses mapped org/repo project_origin for telemetry.
+  if (license === "tenant_gated" && looksLikeProjectOrigin(header)) return true;
 
   const fromOrigin = operationalTenantForProjectOrigin(header);
   if (fromOrigin && fromOrigin === license) return true;

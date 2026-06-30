@@ -7,16 +7,16 @@ import { getRepoRoot } from "./workspace/msgfWorkspace";
 
 export type { MsgfGuardSettings, SmallBrainProvider } from "./settingsTypes";
 
-/** Strip stray quotes from pasted VS Code settings values. */
+/** Strip stray wrapping or trailing quotes from pasted VS Code settings values. */
 export function sanitizeMsgfSettingValue(value: string): string {
   let t = value.trim();
-  if (
+  while (
     (t.startsWith('"') && t.endsWith('"')) ||
     (t.startsWith("'") && t.endsWith("'"))
   ) {
     t = t.slice(1, -1).trim();
   }
-  return t;
+  return t.replace(/^["']+|["']+$/g, "").trim();
 }
 
 export function readMsgfSettings(): MsgfGuardSettings {

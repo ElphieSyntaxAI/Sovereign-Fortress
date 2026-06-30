@@ -53,6 +53,17 @@ describe("ide-tenant-alignment", () => {
     );
   });
 
+  test("aligns tenant_gated license with custom mapped project_origin", () => {
+    assert.equal(
+      ideTenantKeysAlignForLicense("tenant_gated", "Andrew/DECKHOST_PRO"),
+      true
+    );
+    assert.equal(
+      ideTenantKeysAlignForLicense("tenant_gated", 'Andrew/DECKHOST_PRO"'),
+      true
+    );
+  });
+
   test("aligns project_origin header with folder-path IDE token tenant", () => {
     assert.equal(
       ideTokenTenantAlignsWithHeader("apps/author-ecosystem", "elphiesyntax/author-ecosystem"),

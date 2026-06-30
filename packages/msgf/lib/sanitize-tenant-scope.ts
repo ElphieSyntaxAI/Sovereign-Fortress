@@ -10,7 +10,7 @@
  *
  * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
-/** Strip stray wrapping quotes from pasted tenant / project_origin values. */
+/** Strip stray wrapping or trailing quotes from pasted tenant / project_origin values. */
 export function sanitizeTenantScope(value: string): string {
   let t = value.trim();
   while (
@@ -19,5 +19,5 @@ export function sanitizeTenantScope(value: string): string {
   ) {
     t = t.slice(1, -1).trim();
   }
-  return t;
+  return t.replace(/^["']+|["']+$/g, "").trim();
 }
