@@ -16,8 +16,14 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { anonymizeEntityToken } from "@/lib/education/anonymize-entity-token";
 import { EduAssignmentStateSchema } from "@/lib/education/assignment-instance";
 import { HalLiteMetricsSchema } from "@/lib/education/hal-lite";
+import {
+  recommendCatalogForBoardFriction,
+  type BoardCatalogRecommendation,
+} from "@/lib/education/friction-recommend";
+import { listCatalog } from "@/lib/education/curriculum-catalog";
 
 export type ClassroomBoardStudentRow = {
   /** Anonymous display or truncated entity token — never legal name. */
@@ -40,16 +46,9 @@ export type ClassroomBoardSummary = {
   avgConfidence: number;
   pasteSpikeStudentCount: number;
   commonBottlenecks: Array<{ label: string; count: number }>;
+  catalogRecommendations: BoardCatalogRecommendation[];
   students: ClassroomBoardStudentRow[];
 };
-
-function anonymizeToken(token: string): string {
-  if (token.startsWith("Student_")) return token;
-  if (token.startsWith("tok_anon_")) {
-    return `Student_${token.slice(-6)}`;
-  }
-  return `Student_${token.slice(0, 6)}`;
-}
 
 /**
  * Build classroom board from assignment instances (HAL Lite metrics only).
@@ -121,7 +120,7 @@ export async function buildClassroomBoard(params: {
         metrics.humanEffortConfidenceScore < 0.7);
 
     students.push({
-      displayLabel: anonymizeToken(String(row.entity_token ?? "unknown")),
+      displayLabel: anonymizeEntityToken(String(row.entity_token ?? "unknown")),
       currentState: state,
       humanEffortConfidence: metrics.humanEffortConfidenceScore,
       pasteEvents: metrics.pasteEventsCount,
@@ -136,6 +135,25 @@ export async function buildClassroomBoard(params: {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
+  let catalogRecommendations: BoardCatalogRecommendation[] = [];
+  try {
+    const catalogRows = await listCatalog({
+      admin: params.admin,
+      districtTenantId: params.tenantId,
+      query: { activeOnly: true, limit: 40 },
+    });
+    catalogRecommendations = recommendCatalogForBoardFriction({
+      bottlenecks: commonBottlenecks,
+      catalogRows,
+      limit: 5,
+    });
+  } catch (e) {
+    console.warn(
+      "[classroom-board] catalog recommend skipped:",
+      e instanceof Error ? e.message : e
+    );
+  }
+
   return {
     assignmentId: params.assignmentId,
     tenantId: params.tenantId,
@@ -149,6 +167,7 @@ export async function buildClassroomBoard(params: {
         : Number((confidenceSum / rows.length).toFixed(3)),
     pasteSpikeStudentCount,
     commonBottlenecks,
+    catalogRecommendations,
     students: students.sort((a, b) => Number(b.stuck) - Number(a.stuck)),
   };
 }

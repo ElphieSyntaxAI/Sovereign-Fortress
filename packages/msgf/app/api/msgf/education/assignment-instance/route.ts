@@ -20,7 +20,7 @@ import { z } from "zod";
 import {
   EduAssignmentStateSchema,
   getAssignmentInstance,
-  submitAssignmentInstance,
+  submitAssignmentInstanceWithCertificate,
   toAssignmentInstanceWire,
   transitionAssignmentInstance,
   upsertAssignmentInstance,
@@ -114,7 +114,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (body.action === "submit") {
-      const instance = await submitAssignmentInstance({
+      const { instance, certificate } = await submitAssignmentInstanceWithCertificate({
         admin,
         assignmentInstanceId: body.assignmentInstanceId,
         tenantId,
@@ -123,6 +123,15 @@ export async function PATCH(req: NextRequest) {
         ok: true,
         instance: toAssignmentInstanceWire(instance),
         turnInLockout: true,
+        humanEffortCertificate: {
+          certificate_id: certificate.certificateId,
+          certificate_digest: certificate.certificateDigest,
+          hal_score: certificate.halScore,
+          teacher_dashboard_url: certificate.teacherDashboardUrl,
+          line_item_url: certificate.lineItemUrl,
+          status: certificate.status,
+          persisted: certificate.persisted,
+        },
       });
     }
 

@@ -79,7 +79,8 @@ export const PLATFORM_TENANT_ID: Record<PlatformId, string> = {
 /** Platforms blocked from sign-in until product launch. */
 export const PLATFORM_COMING_SOON: Record<PlatformId, boolean> = {
   author: false,
-  education: true,
+  /** Phase 1 Education auth live — student / teacher / administration_it. */
+  education: false,
   gatedai: false,
 };
 
@@ -172,7 +173,15 @@ function hostSharesAuthCookie(requestHost: string | undefined, targetOrigin: str
   }
 }
 
-export function resolvePostLoginRedirect(platform: PlatformId): string {
+/** Education SPA path after platform login (persona-aware). */
+export function educationPathForPersona(persona?: string): string {
+  const p = (persona ?? "student").trim().toLowerCase();
+  if (p === "teacher") return "/teacher";
+  if (p === "administration_it") return "/curriculum";
+  return "/sandbox";
+}
+
+export function resolvePostLoginRedirect(platform: PlatformId, persona?: string): string {
   if (platform === "author") {
     const base = authorAppOrigin();
     if (!process.env.AUTHOR_APP_URL?.trim() && !process.env.NEXT_PUBLIC_AUTHOR_APP_URL?.trim()) {
@@ -181,7 +190,7 @@ export function resolvePostLoginRedirect(platform: PlatformId): string {
     return `${base}/home`;
   }
   if (platform === "education") {
-    return educationAppOrigin();
+    return `${educationAppOrigin()}${educationPathForPersona(persona)}`;
   }
   const base = msgfAppOrigin();
   return `${base}/dashboard`;
@@ -193,17 +202,21 @@ export function resolvePostLoginRedirect(platform: PlatformId): string {
  */
 export function resolvePostLoginRedirectForRequest(
   platform: PlatformId,
-  requestHost?: string
+  requestHost?: string,
+  persona?: string
 ): string {
   if (platform === "author") {
-    return resolvePostLoginRedirect(platform);
+    return resolvePostLoginRedirect(platform, persona);
   }
 
   const destination = platform === "education" ? educationAppOrigin() : msgfAppOrigin();
-  const nextPath = platform === "education" ? "/" : "/dashboard";
+  const nextPath =
+    platform === "education" ? educationPathForPersona(persona) : "/dashboard";
 
   if (hostSharesAuthCookie(requestHost, destination)) {
-    return platform === "education" ? destination : `${destination}${nextPath}`;
+    return platform === "education"
+      ? `${destination}${nextPath}`
+      : `${destination}${nextPath}`;
   }
 
   const signInNext = encodeURIComponent(nextPath);

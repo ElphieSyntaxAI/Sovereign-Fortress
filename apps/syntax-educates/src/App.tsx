@@ -2,30 +2,38 @@ import { useEffect, useState } from "react";
 
 import { LoginModule, PillarBadge } from "@elphie-syntax/ui";
 
+import { AdminCurriculumPage } from "./pages/AdminCurriculumPage";
+import { AdminGovernancePage } from "./pages/AdminGovernancePage";
 import { AdminPortalRedirectPage } from "./pages/AdminPortalRedirectPage";
 import { AdminSignInRedirectPage } from "./pages/AdminSignInRedirectPage";
 import { AuthCallbackRedirectPage } from "./pages/AuthCallbackRedirectPage";
+import { DemoReadyPage } from "./pages/DemoReadyPage";
+import { ParentDigestPage } from "./pages/ParentDigestPage";
 import { SandboxPage } from "./pages/SandboxPage";
 import { TeacherDashboardPage } from "./pages/TeacherDashboardPage";
+import { TeacherLessonBuilderPage } from "./pages/TeacherLessonBuilderPage";
 
 type View =
   | "login"
   | "sandbox"
   | "teacher"
+  | "lessons"
+  | "curriculum"
+  | "governance"
+  | "parent"
+  | "demo"
   | "admin-sign-in"
   | "admin-portal"
   | "auth-callback";
 
-/**
- * Resolves the SPA view from the current URL path so the LTI launch controller can
- * redirect to `{EDUCATION_APP_URL}/sandbox` or `{EDUCATION_APP_URL}/teacher` and land
- * users in the correct view.
- *
- * @see packages/msgf/lib/services/education-lti-controller.ts
- */
 function viewFromPath(pathname: string): View {
   const segment = pathname.replace(/^\/+/, "").split("/")[0]?.toLowerCase() ?? "";
   if (segment === "teacher") return "teacher";
+  if (segment === "lessons") return "lessons";
+  if (segment === "curriculum") return "curriculum";
+  if (segment === "governance") return "governance";
+  if (segment === "parent") return "parent";
+  if (segment === "demo") return "demo";
   if (segment === "sandbox") return "sandbox";
   if (segment === "login") return "login";
   if (segment === "auth") {
@@ -35,6 +43,8 @@ function viewFromPath(pathname: string): View {
   if (segment === "admin") {
     const sub = pathname.replace(/^\/+/, "").split("/")[1]?.toLowerCase();
     if (sub === "portal") return "admin-portal";
+    if (sub === "curriculum") return "curriculum";
+    if (sub === "governance") return "governance";
     return "admin-sign-in";
   }
   return "sandbox";
@@ -44,6 +54,16 @@ function pathForView(view: View): string {
   switch (view) {
     case "teacher":
       return "/teacher";
+    case "lessons":
+      return "/lessons";
+    case "curriculum":
+      return "/curriculum";
+    case "governance":
+      return "/governance";
+    case "parent":
+      return "/parent";
+    case "demo":
+      return "/demo";
     case "login":
       return "/login";
     case "admin-sign-in":
@@ -104,7 +124,42 @@ export default function App() {
             className={view === "teacher" ? "text-emerald-400" : "text-zinc-500"}
             onClick={() => navigate("teacher")}
           >
-            Teacher
+            Teacher board
+          </button>
+          <button
+            type="button"
+            className={view === "lessons" ? "text-emerald-400" : "text-zinc-500"}
+            onClick={() => navigate("lessons")}
+          >
+            Lessons
+          </button>
+          <button
+            type="button"
+            className={view === "curriculum" ? "text-emerald-400" : "text-zinc-500"}
+            onClick={() => navigate("curriculum")}
+          >
+            Admin books
+          </button>
+          <button
+            type="button"
+            className={view === "governance" ? "text-emerald-400" : "text-zinc-500"}
+            onClick={() => navigate("governance")}
+          >
+            Governance
+          </button>
+          <button
+            type="button"
+            className={view === "parent" ? "text-emerald-400" : "text-zinc-500"}
+            onClick={() => navigate("parent")}
+          >
+            Parent
+          </button>
+          <button
+            type="button"
+            className={view === "demo" ? "text-emerald-400" : "text-zinc-500"}
+            onClick={() => navigate("demo")}
+          >
+            QA demo
           </button>
           <button
             type="button"
@@ -122,6 +177,11 @@ export default function App() {
 
       {view === "sandbox" && <SandboxPage />}
       {view === "teacher" && <TeacherDashboardPage />}
+      {view === "lessons" && <TeacherLessonBuilderPage />}
+      {view === "curriculum" && <AdminCurriculumPage />}
+      {view === "governance" && <AdminGovernancePage />}
+      {view === "parent" && <ParentDigestPage />}
+      {view === "demo" && <DemoReadyPage />}
       {view === "login" && (
         <div className="p-8">
           <h1 className="mb-6 text-xl font-semibold">Syntax Educates</h1>

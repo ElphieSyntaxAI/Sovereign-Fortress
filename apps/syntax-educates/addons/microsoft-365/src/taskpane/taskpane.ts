@@ -5,10 +5,12 @@
  * Uses the shared host-agnostic client in `../../shared/the-call-client.ts`.
  */
 import {
+  acceptUtahDisclosure,
   createCellMutationBatcher,
   createFocusMonitor,
   flushCellMutations,
   flushFocusBeats,
+  getUtahDisclosureStatus,
   postCitationCheck,
   postTheCall,
   pushCellMutation,
@@ -59,11 +61,48 @@ Office.onReady(async () => {
   const hostLabel = document.getElementById("hostLabel");
   if (hostLabel) hostLabel.textContent = `Host: ${surface}`;
 
+  const disclosureOk = await ensureUtahDisclosure();
+  if (!disclosureOk) {
+    const root = document.getElementById("app");
+    if (root) {
+      root.innerHTML =
+        "<p>Utah S.B. 149 disclosure was declined or unavailable. AI tools are blocked.</p>";
+    }
+    return;
+  }
+
   attachFocusMonitor(surface);
   attachResearchPortal(surface);
   attachCitationCheck(surface);
   await attachHostDocumentHandler(surface);
 });
+
+async function ensureUtahDisclosure(): Promise<boolean> {
+  const entityToken = MSGF_OPTIONS.entityId;
+  if (!entityToken) {
+    console.warn("[edu] missing entity id — disclosure cannot be attested");
+    return false;
+  }
+  try {
+    const statusRes = (await getUtahDisclosureStatus(
+      { entityToken },
+      MSGF_OPTIONS
+    )) as { status?: { accepted?: boolean; copy?: { title?: string; summary?: string } } };
+    if (statusRes.status?.accepted) return true;
+
+    const title = statusRes.status?.copy?.title ?? "Utah AI disclosure";
+    const summary =
+      statusRes.status?.copy?.summary ??
+      "This assignment may use AI assistance. Do you understand and want to continue?";
+    const accepted = window.confirm(`${title}\n\n${summary}\n\nOK = I understand — continue`);
+    if (!accepted) return false;
+    await acceptUtahDisclosure({ entityToken });
+    return true;
+  } catch (e) {
+    console.warn("[edu] utah disclosure failed", e);
+    return false;
+  }
+}
 
 // ============================================================================
 // Focus monitor (pillars §3.2)

@@ -80,6 +80,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const query = CatalogListQuerySchema.parse({
       subjectDomain: searchParams.get("subjectDomain") ?? undefined,
+      gradeBand: searchParams.get("gradeBand") ?? undefined,
       activeOnly: searchParams.get("activeOnly") !== "false",
       limit: searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined,
     });

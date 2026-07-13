@@ -23,6 +23,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { EducationPolicyHaltError } from "@/lib/education/p1-static-ledger";
+import { annotateRowsWithRecommendations } from "@/lib/education/friction-recommend";
 
 // ============================================================================
 // Layout / catalog row schemas
@@ -73,6 +74,9 @@ export const CatalogUpsertSchema = z
     subjectDomain: z
       .enum(["ela", "history", "math", "science", "general"])
       .default("general"),
+    gradeBand: z
+      .enum(["k3", "4_6", "7_9", "10_12", "12_plus", "mixed"])
+      .default("4_6"),
     sourceType: CatalogSourceTypeSchema,
     storageObjectPath: z.string().max(1024).optional(),
     externalResourceUrl: z.string().url().optional(),
@@ -97,6 +101,9 @@ export const CatalogListQuerySchema = z
     subjectDomain: z
       .enum(["ela", "history", "math", "science", "general"])
       .optional(),
+    gradeBand: z
+      .enum(["k3", "4_6", "7_9", "10_12", "12_plus", "mixed"])
+      .optional(),
     activeOnly: z.boolean().default(true),
     limit: z.number().int().min(1).max(100).default(50),
   })
@@ -113,6 +120,7 @@ export type DistrictCatalogRow = {
   publisher: string | null;
   isbn: string | null;
   subject_domain: string;
+  grade_band: string;
   source_type: CatalogSourceType;
   storage_object_path: string | null;
   external_resource_url: string | null;
@@ -202,6 +210,7 @@ export async function listCatalog(params: {
 
   if (q.activeOnly) query = query.eq("is_active", true);
   if (q.subjectDomain) query = query.eq("subject_domain", q.subjectDomain);
+  if (q.gradeBand) query = query.eq("grade_band", q.gradeBand);
 
   const { data, error } = await query;
   if (error) {
@@ -244,6 +253,7 @@ export async function upsertCatalogRow(params: {
     publisher: parsed.publisher ?? null,
     isbn: parsed.isbn ?? null,
     subject_domain: parsed.subjectDomain,
+    grade_band: parsed.gradeBand,
     source_type: parsed.sourceType,
     storage_object_path: parsed.storageObjectPath ?? null,
     external_resource_url: parsed.externalResourceUrl ?? null,
@@ -338,47 +348,7 @@ export async function loadDistrictFrictionHotspots(params: {
  * Map a hotspot bug index slug → keywords likely to appear in catalog titles / subjects.
  * Tokenizes slugs like `1.1.1_INVERSE_SIGN_ERROR` → ["inverse", "sign", "error"].
  */
-function hotspotKeywords(hotspot: FrictionHotspot): string[] {
-  const slug = `${hotspot.level_1_category} ${hotspot.level_1_1_branch} ${hotspot.level_1_1_1_instance}`;
-  return slug
-    .toLowerCase()
-    .replace(/^\d+(\.\d+)*_?/g, "")
-    .split(/[\s._]+/)
-    .filter((t) => t.length >= 3);
-}
-
-function rowMatchesKeywords(row: DistrictCatalogRow, keywords: string[]): string[] {
-  const haystack =
-    `${row.title} ${row.publisher ?? ""} ${row.subject_domain} ${JSON.stringify(row.layout).slice(0, 4000)}`
-      .toLowerCase();
-  return keywords.filter((k) => haystack.includes(k));
-}
-
-export function annotateRowsWithRecommendations(
-  rows: DistrictCatalogRow[],
-  hotspots: FrictionHotspot[]
-): CatalogRowWithRecommendation[] {
-  return rows.map((row) => {
-    const matchedHotspots: FrictionHotspot[] = [];
-    const allMatchedKeywords = new Set<string>();
-    for (const hotspot of hotspots) {
-      const keywords = hotspotKeywords(hotspot);
-      const matched = rowMatchesKeywords(row, keywords);
-      if (matched.length > 0) {
-        matchedHotspots.push(hotspot);
-        matched.forEach((k) => allMatchedKeywords.add(k));
-      }
-    }
-    return {
-      ...row,
-      recommendation: {
-        isRecommended: matchedHotspots.length > 0,
-        matchedHotspots,
-        matchedKeywords: Array.from(allMatchedKeywords),
-      },
-    };
-  });
-}
+export { annotateRowsWithRecommendations, hotspotKeywords } from "@/lib/education/friction-recommend";
 
 export async function listCatalogWithRecommendations(params: {
   admin: SupabaseClient;

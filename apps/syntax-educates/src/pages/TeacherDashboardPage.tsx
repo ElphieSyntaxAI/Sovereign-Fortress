@@ -8,7 +8,7 @@ import { PillarBadge } from "@elphie-syntax/ui";
 import { AI_ALLOWANCE_LEVELS, AI_ALLOWANCE_LEVEL_NAMES } from "@elphie-syntax/core";
 import type { AiAllowanceLevel } from "@elphie-syntax/core";
 
-const DEMO_ASSIGNMENT_ID = "00000000-0000-0000-0000-000000000abc";
+const DEMO_ASSIGNMENT_ID = "00000000-0000-4000-8000-0000000000ed";
 
 type BoardSummary = {
   studentCount: number;
@@ -18,6 +18,13 @@ type BoardSummary = {
   avgConfidence: number;
   pasteSpikeStudentCount: number;
   commonBottlenecks: Array<{ label: string; count: number }>;
+  catalogRecommendations?: Array<{
+    catalogId: string;
+    title: string;
+    subjectDomain: string;
+    matchedKeywords: string[];
+    reason: string;
+  }>;
   students: Array<{
     displayLabel: string;
     currentState: string;
@@ -82,9 +89,20 @@ export function TeacherDashboardPage() {
 
   return (
     <div className="px-6 py-6">
-      <header className="mb-6 flex items-center gap-3">
+      <header className="mb-6 flex flex-wrap items-center gap-3">
         <PillarBadge lineageLabel="P1 · P2 · P6" pillar="P1" />
         <h1 className="text-xl font-semibold">Teacher dashboard</h1>
+        <a
+          href="/lessons"
+          className="ml-auto text-sm text-sky-300 underline"
+          onClick={(e) => {
+            e.preventDefault();
+            window.history.pushState({}, "", "/lessons");
+            window.dispatchEvent(new PopStateEvent("popstate"));
+          }}
+        >
+          Open lesson builder →
+        </a>
       </header>
 
       <section className="mb-6">
@@ -168,6 +186,23 @@ export function TeacherDashboardPage() {
                     <li key={b.label}>
                       {b.label}{" "}
                       <span className="text-zinc-500">×{b.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {board.catalogRecommendations && board.catalogRecommendations.length > 0 && (
+              <div className="mb-4 rounded border border-sky-900/60 bg-sky-950/20 p-3">
+                <h3 className="mb-1 text-xs font-medium text-sky-300">
+                  Friction → catalog recommend
+                </h3>
+                <ul className="space-y-2 text-sm text-zinc-300">
+                  {board.catalogRecommendations.map((r) => (
+                    <li key={r.catalogId}>
+                      <span className="text-zinc-100">{r.title}</span>{" "}
+                      <span className="text-zinc-500">({r.subjectDomain})</span>
+                      <div className="text-xs text-zinc-500">{r.reason}</div>
                     </li>
                   ))}
                 </ul>

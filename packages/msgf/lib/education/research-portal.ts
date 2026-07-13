@@ -40,6 +40,20 @@ import {
   persistToVault,
   type ConstraintLedgerPersistResult,
 } from "@/lib/services/constraint-ledger";
+import {
+  CITATION_MATCH_THRESHOLD,
+  DEFAULT_TRUSTED_DOMAINS,
+  extractDomain,
+  isDomainTrusted,
+  pickBestSnippetMatch,
+} from "@/lib/education/trusted-domains";
+
+export {
+  CITATION_MATCH_THRESHOLD,
+  DEFAULT_TRUSTED_DOMAINS,
+  extractDomain,
+  isDomainTrusted,
+} from "@/lib/education/trusted-domains";
 
 /**
  * Snippet captured from the research portal sidebar — held in memory (or short-TTL Redis)
@@ -47,20 +61,11 @@ import {
  */
 export const ResearchSnippetSchema = z
   .object({
-    /** Snippet identifier (uuid or hash). */
     snippetId: z.string().min(1).max(128),
-    /** Source URL the student visited inside the iframe portal. */
     sourceUrl: z.string().url(),
-    /** Verbatim text the student selected / copied from the source. */
     text: z.string().min(1).max(20000),
-    /** Reading time (ms) accumulated on the source before this snippet was captured. */
     readingTimeMs: z.number().int().min(0).optional(),
-    /** Timestamp of the capture (epoch ms). */
     capturedAt: z.number().int().min(0),
-    /**
-     * Whether the student clicked "Generate Citation Anchor" before lifting the snippet
-     * into the host document. Drives Vault vs. Hall routing.
-     */
     hasCitationAnchor: z.boolean(),
   })
   .strict();
@@ -71,7 +76,6 @@ export const CitationCheckRequestSchema = z
   .object({
     assignmentId: z.string().uuid().optional(),
     sessionId: z.string().uuid().optional(),
-    /** Host where the paste landed (Doc / Sheet / Slide / Word / Excel / PowerPoint / Sandbox). */
     writingSurface: z
       .enum([
         "sandbox",
@@ -87,39 +91,12 @@ export const CitationCheckRequestSchema = z
     ecosystemSource: z
       .enum(["SANDBOX_NATIVE", "GOOGLE_EDIT", "MS_OFFICE_EDIT"])
       .optional(),
-    /** The text the student just pasted into the host document. */
     pastedText: z.string().min(1).max(20000),
-    /**
-     * Snippets the add-on knows the student lifted recently from the research portal.
-     * Pass the full recent buffer — the engine will pick the best match.
-     */
     recentSnippets: z.array(ResearchSnippetSchema).max(64),
   })
   .strict();
 
 export type CitationCheckRequest = z.infer<typeof CitationCheckRequestSchema>;
-
-/**
- * Default trusted scholarly source domains used when the tenant has no allow-list yet.
- * Real deployments override this via the admin governance dashboard (Phase 3).
- */
-export const DEFAULT_TRUSTED_DOMAINS: ReadonlySet<string> = new Set([
-  "edu",
-  "gov",
-  "nasa.gov",
-  "nih.gov",
-  "loc.gov",
-  "si.edu",
-  "jstor.org",
-  "scholar.google.com",
-  "doi.org",
-  "arxiv.org",
-  "nature.com",
-  "science.org",
-  "pubmed.ncbi.nlm.nih.gov",
-  "britannica.com",
-  "khanacademy.org",
-]);
 
 export type CitationCheckClassification =
   | "ANCHORED"
@@ -138,86 +115,6 @@ export type CitationCheckResult = {
   bugIndex: string | null;
 };
 
-function normalizeText(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/[^\p{L}\p{N}\s]/gu, "")
-    .trim();
-}
-
-/**
- * Lightweight Jaccard similarity over word shingles — good enough to catch a verbatim or
- * lightly edited paste without pulling in a heavy NLP dependency.
- */
-function shingleJaccard(a: string, b: string, k = 5): number {
-  const tokensA = normalizeText(a).split(" ").filter(Boolean);
-  const tokensB = normalizeText(b).split(" ").filter(Boolean);
-  if (tokensA.length < k || tokensB.length < k) {
-    const setA = new Set(tokensA);
-    const setB = new Set(tokensB);
-    if (setA.size === 0 || setB.size === 0) return 0;
-    let intersect = 0;
-    for (const t of setA) if (setB.has(t)) intersect += 1;
-    return intersect / (setA.size + setB.size - intersect);
-  }
-  const shingles = (tokens: string[]): Set<string> => {
-    const out = new Set<string>();
-    for (let i = 0; i <= tokens.length - k; i += 1) {
-      out.add(tokens.slice(i, i + k).join(" "));
-    }
-    return out;
-  };
-  const sa = shingles(tokensA);
-  const sb = shingles(tokensB);
-  if (sa.size === 0 || sb.size === 0) return 0;
-  let intersect = 0;
-  for (const s of sa) if (sb.has(s)) intersect += 1;
-  return intersect / (sa.size + sb.size - intersect);
-}
-
-/** Threshold above which a paste is considered to match a recent research snippet. */
-export const CITATION_MATCH_THRESHOLD = 0.45;
-
-export function extractDomain(url: string): string | null {
-  try {
-    const u = new URL(url);
-    return u.hostname.toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
-export function isDomainTrusted(
-  domain: string | null,
-  trustList: ReadonlySet<string> = DEFAULT_TRUSTED_DOMAINS
-): boolean {
-  if (!domain) return false;
-  if (trustList.has(domain)) return true;
-  const parts = domain.split(".");
-  for (let i = 0; i < parts.length - 1; i += 1) {
-    const suffix = parts.slice(i).join(".");
-    if (trustList.has(suffix)) return true;
-  }
-  return false;
-}
-
-function pickBestMatch(
-  pastedText: string,
-  snippets: ResearchSnippet[]
-): { snippet: ResearchSnippet | null; score: number } {
-  let bestSnippet: ResearchSnippet | null = null;
-  let bestScore = 0;
-  for (const snippet of snippets) {
-    const score = shingleJaccard(pastedText, snippet.text);
-    if (score > bestScore) {
-      bestSnippet = snippet;
-      bestScore = score;
-    }
-  }
-  return { snippet: bestSnippet, score: bestScore };
-}
-
 export type CitationCheckInput = {
   supabase: SupabaseClient;
   tenantId: string;
@@ -229,14 +126,16 @@ export type CitationCheckInput = {
 
 /**
  * Citation Hall Engine — classify a paste against recent research-portal snippets and
- * persist the appropriate Vault / Hall row. Idempotent vs. duplicate pastes only if the
- * caller dedupes upstream; the ledger writes once per call.
+ * persist the appropriate Vault / Hall row.
  */
 export async function evaluateCitationGap(
   input: CitationCheckInput
 ): Promise<CitationCheckResult> {
   const parsed = CitationCheckRequestSchema.parse(input.request);
-  const { snippet, score } = pickBestMatch(parsed.pastedText, parsed.recentSnippets);
+  const { snippet, score } = pickBestSnippetMatch(
+    parsed.pastedText,
+    parsed.recentSnippets
+  );
 
   const ecosystemSource = parsed.ecosystemSource ?? "SANDBOX_NATIVE";
   const writingSurface = parsed.writingSurface ?? "unknown";
@@ -251,7 +150,10 @@ export async function evaluateCitationGap(
   }
 
   const sourceDomain = extractDomain(snippet.sourceUrl);
-  const trustedDomain = isDomainTrusted(sourceDomain, input.trustedDomains);
+  const trustedDomain = isDomainTrusted(
+    sourceDomain,
+    input.trustedDomains ?? DEFAULT_TRUSTED_DOMAINS
+  );
 
   const narrativeExtra = {
     pillar_extension: "P6_2_6_1",

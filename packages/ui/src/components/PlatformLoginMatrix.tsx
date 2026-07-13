@@ -133,18 +133,13 @@ export function PlatformLoginMatrix({
           })}
         </div>
 
-        {platform === "author" ? (
+        {comingSoon ? (
           <div
-            className="platform-login-banner-emerald mb-5 rounded-lg px-4 py-2.5 text-center text-sm font-medium tracking-wide"
-            role="status"
-          >
-            Coming Soon
-          </div>
-        ) : null}
-
-        {platform === "education" ? (
-          <div
-            className="platform-login-banner-purple mb-5 rounded-lg px-4 py-2.5 text-center text-sm font-medium tracking-wide"
+            className={
+              platform === "education"
+                ? "platform-login-banner-purple mb-5 rounded-lg px-4 py-2.5 text-center text-sm font-medium tracking-wide"
+                : "platform-login-banner-emerald mb-5 rounded-lg px-4 py-2.5 text-center text-sm font-medium tracking-wide"
+            }
             role="status"
           >
             Coming Soon

@@ -7,7 +7,27 @@
 
 **Shared engine:** MSGF (guardrails, Pulse, Vault/Hall) — **https://elphiesgatedai.elphiesyntax.com** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) and [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md).
 
-**Last updated:** 2026-05-25
+**Last updated:** 2026-07-13
+
+---
+
+## 0. Progress pulse (2026-07-13)
+
+| Scope | % complete | Notes |
+| :--- | :---: | :--- |
+| **Project switcher plan** (nav + hub isolation) | **100%** | All five plan todos shipped — see §3 Phase 1 row + changelog. |
+| **Phase 1 — Foundation** (table below) | **~72%** | Ingest / hub / switcher / RAG strong; HAL cert export + tier/copy alignment still partial. |
+| **Phase 2 — Professionalization** | **~35%** | Cool-down locks and revision reports partial; Editor Suite + Guild mostly not started. |
+| **Phase 3 — Scaling & Sovereignty** | **~5%** | Lore-bot / multimedia / growth analytics mostly future. |
+| **Author Ecosystem overall (Phases 1–3)** | **~45%** | Weighted toward Phase 1 shipping surface on authorecosystem. |
+
+**Project switcher plan checklist (100%):**
+
+1. ~~Selection identity (`manuscriptId` + `tenantId` + `seriesId`)~~
+2. ~~Nav `MS:` dropdown (series / standalone groups + confirm)~~
+3. ~~Hub activate harden + series rename/delete fix~~
+4. ~~No cross-book client bleed (per-`manuscriptId` remount/keys; series RAG share kept)~~
+5. ~~Smoke / helper verification~~
 
 ---
 
@@ -26,6 +46,8 @@ ElphieSyntax is a sovereign narrative infrastructure that transitions authors fr
 | **Cool Down Lock** | A mandatory read-only period (2 / 4 / 6 weeks) after a draft is finished. | Forces professional distance; triggers audit. |
 | **Bicameral Audit** | Dual-AI review (Librarian for logic, Critic for sensitivity). | Provides a logic audit receipt for publishers. |
 | **Publisher Hub** | Anonymized WIP feed showing HAL scores, blurbs, and genre. | Proof-based scouting without IP exposure. |
+| **Active Project** | The manuscript currently in scope (`manuscriptId` + `tenantId` + optional `seriesId`). | Wiki, outline, drafting, and HAL client state bind to this book; no cross-book bleed. |
+| **Series RAG share** | Sibling manuscripts in the same `p4_series` may share wiki/lore retrieval. | Intentional continuity within a series; never across different series/standalone books. |
 
 **Implementation note (engineering):** Tiered manuscript locks today use **4w / 6w / 8w** `lock_tier` values in `p4_manuscripts` plus a separate **24h planning-sync cooldown** (`COOLDOWN_LOCKED`) for Apprentice/Guild gates. Product copy and pricing should converge on this SSOT over time.
 
@@ -33,34 +55,37 @@ ElphieSyntax is a sovereign narrative infrastructure that transitions authors fr
 
 ## 3. Development Phases
 
-### Phase 1: The Foundation (Current WIP)
+### Phase 1: The Foundation (Current WIP — ~72%)
 
-| Feature | Description |
-| :--- | :--- |
-| **Document ingest (MSGF V3.2)** | Uploads & Google Docs → scan → authorship Q&A → review → commit (wiki, outline, world bible). |
-| **HAL v2 Certificate** | Telemetry summary + Vault Seal + Lore-Git chain (exportable proof bundle). |
-| **MSGF Pulse bridge** | HAL chunk-pulse → Gated AI routing; token savings on `tenant_id=author_ecosystem`. |
-| **Author RAG Model** | Sidekick for continuity and outline adherence. |
-| **Progress Tracking** | Word count + outline percentage. |
-| **Unified Registration** | Atomic transaction (Auth + Profile + Pact + Legacy). |
+| Feature | Description | Status |
+| :--- | :--- | :---: |
+| **Document ingest (MSGF V3.2)** | Uploads & Google Docs → scan → authorship Q&A → review → commit (wiki, outline, world bible). | ~85% |
+| **Project switcher (nav + hub)** | Always-visible `MS:` dropdown + hub kanban; activate with `manuscriptId` / `tenantId` / `seriesId`; outline & docs remount per book; series siblings may share RAG. | **100%** |
+| **HAL v2 Certificate** | Telemetry summary + Vault Seal + Lore-Git chain (exportable proof bundle). | ~50% |
+| **MSGF Pulse bridge** | HAL chunk-pulse → Gated AI routing; token savings on `tenant_id=author_ecosystem`. | ~80% |
+| **Author RAG Model** | Sidekick for continuity and outline adherence. | ~70% |
+| **Progress Tracking** | Word count + outline percentage. | ~40% |
+| **Unified Registration** | Atomic transaction (Auth + Profile + Pact + Legacy). | ~60% |
 
-### Phase 2: Professionalization (Immediate Focus)
+**Project switcher evidence:** `ActiveManuscriptChip.tsx`, `NarrativeContext.tsx`, `manuscriptTypes.ts` (`hubRowToSelection`), `ManuscriptHub.tsx`, `PlanningCommandCenter.tsx`, series scope via `seriesRagScope.ts`.
 
-| Feature | Description |
-| :--- | :--- |
-| **Cool Down Revision Lock** | Read-only state gate with timer-based unlocks. |
-| **Revision Reports** | Automated insights on continuity, plot holes, and market appeal. |
-| **Editor Suite** | Dashboard for human editors to view HAL scores and revision history. |
-| **Community Guild** | Marketplace for verified human translators, artists, and VAs. |
+### Phase 2: Professionalization (Immediate Focus — ~35%)
 
-### Phase 3: Scaling & Sovereignty
+| Feature | Description | Status |
+| :--- | :--- | :---: |
+| **Cool Down Revision Lock** | Read-only state gate with timer-based unlocks. | ~55% |
+| **Revision Reports** | Automated insights on continuity, plot holes, and market appeal. | ~40% |
+| **Editor Suite** | Dashboard for human editors to view HAL scores and revision history. | ~15% |
+| **Community Guild** | Marketplace for verified human translators, artists, and VAs. | ~10% |
 
-| Feature | Description |
-| :--- | :--- |
-| **Author Growth Tracking** | Vocabulary and craft analytics. |
-| **Multimedia Vault** | Video / audio uploads (Patreon-style or Stripe-gated). |
-| **Graph Comparison** | Sales data vs. multimedia engagement vs. AI insights. |
-| **Personality Lore Bots** | Character-specific RAG models for fan interaction (non-spoiler). |
+### Phase 3: Scaling & Sovereignty (~5%)
+
+| Feature | Description | Status |
+| :--- | :--- | :---: |
+| **Author Growth Tracking** | Vocabulary and craft analytics. | ~5% |
+| **Multimedia Vault** | Video / audio uploads (Patreon-style or Stripe-gated). | ~0% |
+| **Graph Comparison** | Sales data vs. multimedia engagement vs. AI insights. | ~0% |
+| **Personality Lore Bots** | Character-specific RAG models for fan interaction (non-spoiler). | ~15% |
 
 ---
 
@@ -108,5 +133,6 @@ Target lifecycle vocabulary (product / guardrail layer). Map to `p4_manuscripts.
 
 | Date | Change |
 | :--- | :--- |
+| 2026-07-13 | **Project switcher shipped (plan 100%):** nav `MS:` dropdown + hub activate with `seriesId`; per-book outline/wiki/drafting isolation; series RAG share retained. Added §0 progress pulse (Phase 1 ~72%, overall ~45%). Lexicon: Active Project, Series RAG share. |
 | 2026-05-15 | Linked production URL (elphiesyntax.com), MSGF engine (elphiesgatedai.elphiesyntax.com), and monorepo/MSGF 1.0 companion docs. |
 | 2026-05-13 | Initial SSoT: Creative Integrity Flywheel, Sovereign Lexicon, three phases, five author tiers, four publisher key levels, MSGF state model. |

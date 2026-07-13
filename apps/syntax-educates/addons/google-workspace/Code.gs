@@ -316,14 +316,39 @@ function submitTurnIn(_payload) {
   if (res && res.ok && res.turnInLockout) {
     try {
       if (typeof DocumentApp !== "undefined" && DocumentApp.getActiveDocument()) {
-        // Best-effort local hint; Classroom permissions own true lock.
+        var cert = res.humanEffortCertificate;
+        var certLine = cert && cert.certificate_id
+          ? "\nHuman Effort Certificate: " + cert.certificate_id +
+            " (score " + cert.hal_score + ")"
+          : "";
         DocumentApp.getUi().alert(
-          "Turned in. Your teacher can still review; further edits may be blocked by Classroom."
+          "Turned in. Your teacher can still review; further edits may be blocked by Classroom." +
+            certLine
         );
       }
     } catch (e) {}
   }
   return res;
+}
+
+function fetchUtahDisclosure(_payload) {
+  var cfg = getMsgfConfig_();
+  var instanceId = getAssignmentInstanceId_();
+  var q = "?entityToken=" + encodeURIComponent(cfg.entityId || "");
+  if (instanceId) q += "&assignmentInstanceId=" + encodeURIComponent(instanceId);
+  var url = cfg.baseUrl.replace(/\/+$/, "") + "/api/msgf/education/utah-disclosure" + q;
+  return msgfFetch_(url, "GET", null);
+}
+
+function acceptUtahDisclosure(_payload) {
+  var cfg = getMsgfConfig_();
+  var instanceId = getAssignmentInstanceId_();
+  var url = cfg.baseUrl.replace(/\/+$/, "") + "/api/msgf/education/utah-disclosure";
+  return msgfFetch_(url, "POST", {
+    entityToken: cfg.entityId,
+    assignmentInstanceId: instanceId || null,
+    accepted: true,
+  });
 }
 
 /**
@@ -383,9 +408,11 @@ function msgfFetch_(url, method, body) {
     method: method.toLowerCase(),
     contentType: "application/json",
     headers: headers,
-    payload: JSON.stringify(body),
     muteHttpExceptions: true,
   };
+  if (body != null && String(method).toUpperCase() !== "GET") {
+    options.payload = JSON.stringify(body);
+  }
   var res = UrlFetchApp.fetch(url, options);
   var status = res.getResponseCode();
   var text = res.getContentText();

@@ -1,12 +1,14 @@
 /**
  * POST /api/msgf/education/admin/curriculum-ingest
- * Scan + optional commit wrapper for district curriculum PDFs/text.
+ * Scan + optional commit + optional grade-banded catalog registration.
  */
 import { randomUUID } from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { upsertCatalogRow, type CatalogActor } from "@/lib/education/curriculum-catalog";
+import { buildCatalogLayoutFromText } from "@/lib/education/layout-from-text";
 import { applyPulseCorsHeaders, pulseCorsPreflightResponse } from "@/lib/msgf-cors";
 import {
   buildDocumentCompilerStructuralSignals,
@@ -23,8 +25,17 @@ const BodySchema = z.object({
   tenant_id: z.string().min(1),
   source_document: z.string().max(512).optional(),
   subject_domain: z.enum(["ela", "history", "math", "science", "general"]).optional(),
+  grade_band: z
+    .enum(["k3", "4_6", "7_9", "10_12", "12_plus", "mixed"])
+    .optional(),
+  /** When true, upserts a district catalog row with auto-derived layout. */
+  register_catalog: z.boolean().optional(),
+  catalog_title: z.string().max(256).optional(),
+  publisher: z.string().max(128).optional(),
   commit: z.boolean().optional(),
   session_id: z.string().uuid().optional(),
+  actor_role: z.string().optional(),
+  actor_user_id: z.string().uuid().optional(),
 });
 
 function json(req: NextRequest, data: unknown, init?: ResponseInit) {
@@ -82,10 +93,41 @@ export async function POST(req: NextRequest) {
       status: "review",
     });
 
+    const layout = buildCatalogLayoutFromText(
+      body.text,
+      body.catalog_title ?? body.source_document
+    );
+
+    let catalogRow = null;
+    if (body.register_catalog) {
+      const actor: CatalogActor = {
+        role: body.actor_role ?? "admin",
+        districtTenantId: body.tenant_id,
+        userId: body.actor_user_id,
+      };
+      const storageObjectPath = `inline/curriculum/${session.id}.txt`;
+      catalogRow = await upsertCatalogRow({
+        admin,
+        actor,
+        input: {
+          title: body.catalog_title ?? body.source_document ?? "Curriculum upload",
+          publisher: body.publisher,
+          subjectDomain: body.subject_domain ?? "general",
+          gradeBand: body.grade_band ?? "4_6",
+          sourceType: "local_pdf",
+          storageObjectPath,
+          layout,
+          isActive: true,
+        },
+      });
+    }
+
     return json(req, {
       ok: true,
       trace_id: traceId,
       session_id: session.id,
+      layout,
+      catalog: catalogRow,
       compiler_state: result.state,
       artifacts: {
         proposed: result.proposed,

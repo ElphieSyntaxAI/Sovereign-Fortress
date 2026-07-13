@@ -58,6 +58,8 @@ export type AssignmentInstance = {
   currentState: EduAssignmentState;
   halLite: HalLiteMetrics;
   documentReadOnly: boolean;
+  utahDisclosureAcceptedAt?: string | null;
+  utahDisclosureLegalVersion?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -70,6 +72,9 @@ export type AssignmentInstanceWire = {
   hal_lite_metrics: ReturnType<typeof toHalLiteWire>;
   document_read_only: boolean;
   milestone_template_id: MilestoneTemplateId;
+  utah_disclosure_accepted: boolean;
+  utah_disclosure_accepted_at: string | null;
+  utah_disclosure_legal_version: string | null;
 };
 
 const ALLOWED_TRANSITIONS: Record<EduAssignmentState, EduAssignmentState[]> = {
@@ -97,6 +102,9 @@ export function toAssignmentInstanceWire(
     hal_lite_metrics: toHalLiteWire(instance.halLite),
     document_read_only: instance.documentReadOnly,
     milestone_template_id: instance.milestoneTemplateId,
+    utah_disclosure_accepted: Boolean(instance.utahDisclosureAcceptedAt),
+    utah_disclosure_accepted_at: instance.utahDisclosureAcceptedAt ?? null,
+    utah_disclosure_legal_version: instance.utahDisclosureLegalVersion ?? null,
   };
 }
 
@@ -123,6 +131,12 @@ function rowToInstance(row: Record<string, unknown>): AssignmentInstance {
     currentState: EduAssignmentStateSchema.parse(row.current_state),
     halLite: halParsed.success ? halParsed.data : emptyHalLiteMetrics(),
     documentReadOnly: Boolean(row.document_read_only),
+    utahDisclosureAcceptedAt: row.utah_disclosure_accepted_at
+      ? String(row.utah_disclosure_accepted_at)
+      : null,
+    utahDisclosureLegalVersion: row.utah_disclosure_legal_version
+      ? String(row.utah_disclosure_legal_version)
+      : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -256,4 +270,28 @@ export async function submitAssignmentInstance(params: {
     ...params,
     nextState: "EDU_SUBMITTED_LOCK",
   });
+}
+
+export type { ClassroomGradeStubResult } from "@/lib/education/human-effort-classroom-stub";
+
+/**
+ * Submit + issue Classroom Human Effort Certificate stub (non-blocking if DB unavailable).
+ */
+export async function submitAssignmentInstanceWithCertificate(params: {
+  admin: SupabaseClient;
+  assignmentInstanceId: string;
+  tenantId: string;
+}): Promise<{
+  instance: AssignmentInstance;
+  certificate: import("@/lib/education/human-effort-classroom-stub").ClassroomGradeStubResult;
+}> {
+  const instance = await submitAssignmentInstance(params);
+  const { issueClassroomGradeStubOnSubmit } = await import(
+    "@/lib/education/human-effort-classroom-stub"
+  );
+  const certificate = await issueClassroomGradeStubOnSubmit({
+    admin: params.admin,
+    instance,
+  });
+  return { instance, certificate };
 }

@@ -26,6 +26,10 @@ import { z } from "zod";
 
 import { getAssignmentResource } from "@/lib/education/assignment-resources";
 import { EducationPolicyHaltError } from "@/lib/education/p1-static-ledger";
+import {
+  findReadingGateBeat,
+  isReadingGateSatisfied,
+} from "@/lib/education/reading-gate-policy";
 import { appendP4InstructionalBeat } from "@/lib/services/p4-state-ledger-controller";
 
 export const ReadingGateRequestSchema = z
@@ -76,7 +80,7 @@ export async function evaluateReadingGate(params: {
   }
 
   const minMs = row.min_focus_block_ms;
-  const gateSatisfied = parsed.focusBlockMs >= minMs;
+  const gateSatisfied = isReadingGateSatisfied(parsed.focusBlockMs, minMs);
   let beatPersisted = false;
 
   if (gateSatisfied) {
@@ -145,17 +149,5 @@ export async function loadReadingGateStatus(params: {
     return { satisfied: false, satisfiedAt: null, focusBlockMs: null };
   }
 
-  for (const row of data ?? []) {
-    const meta = (row.metadata ?? {}) as Record<string, unknown>;
-    if (meta.resource_context_id === params.resourceContextId) {
-      const focus =
-        typeof meta.focus_block_ms === "number" ? (meta.focus_block_ms as number) : null;
-      return {
-        satisfied: true,
-        satisfiedAt: String(row.created_at),
-        focusBlockMs: focus,
-      };
-    }
-  }
-  return { satisfied: false, satisfiedAt: null, focusBlockMs: null };
+  return findReadingGateBeat(data ?? [], params.resourceContextId);
 }

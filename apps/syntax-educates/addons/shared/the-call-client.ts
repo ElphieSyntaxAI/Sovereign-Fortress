@@ -373,3 +373,48 @@ export function submitAssignmentTurnIn(
     "PATCH"
   );
 }
+
+const UTAH_DISCLOSURE_PATH = "/api/msgf/education/utah-disclosure";
+
+/** Fetch Utah S.B. 149 disclosure status / copy (GET). */
+export async function getUtahDisclosureStatus(
+  query: { entityToken: string; assignmentInstanceId?: string },
+  options: TheCallClientOptions
+): Promise<unknown> {
+  const qs = new URLSearchParams({ entityToken: query.entityToken });
+  if (query.assignmentInstanceId) {
+    qs.set("assignmentInstanceId", query.assignmentInstanceId);
+  }
+  const url = `${joinUrl(options.msgfBaseUrl, UTAH_DISCLOSURE_PATH)}?${qs}`;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const headers: Record<string, string> = {
+    [MSGF_HEADERS.entityId]: options.entityId,
+    [MSGF_HEADERS.tenantId]: options.tenantId ?? "syntax_education",
+  };
+  if (options.serviceRoleToken) {
+    headers.authorization = `Bearer ${options.serviceRoleToken}`;
+  }
+  const res = await fetchImpl(url, { method: "GET", headers });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`disclosure GET failed: ${res.status} ${text.slice(0, 256)}`);
+  }
+  return res.json();
+}
+
+/** Accept Utah S.B. 149 disclosure for this entity token. */
+export function acceptUtahDisclosure(
+  body: {
+    entityToken: string;
+    assignmentInstanceId?: string | null;
+    assignmentId?: string | null;
+  },
+  options: TheCallClientOptions
+): Promise<unknown> {
+  return postJson(
+    joinUrl(options.msgfBaseUrl, UTAH_DISCLOSURE_PATH),
+    { ...body, accepted: true },
+    options,
+    "POST"
+  );
+}

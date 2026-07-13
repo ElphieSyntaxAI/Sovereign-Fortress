@@ -30,6 +30,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { evaluateCitationGap } from "@/lib/education/research-portal";
+import { trustedDomainsFromEnv } from "@/lib/education/trusted-domains";
 import { applyPulseCorsHeaders, pulseCorsPreflightResponse } from "@/lib/msgf-cors";
 import {
   MSGF_ENTITY_ID_HEADER,
@@ -78,6 +79,7 @@ export async function POST(req: NextRequest) {
       tenantId,
       entityId,
       request: rawBody,
+      trustedDomains: trustedDomainsFromEnv(),
     });
 
     return json(req, {
@@ -139,6 +141,7 @@ export async function PUT(req: NextRequest) {
       tenantId,
       entityId,
       request: rawBody,
+      trustedDomains: trustedDomainsFromEnv(),
     });
 
     return json(req, {

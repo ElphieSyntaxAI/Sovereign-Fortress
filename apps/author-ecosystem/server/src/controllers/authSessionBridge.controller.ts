@@ -338,7 +338,7 @@ authSessionBridgeController.post("/login", (req: Request, res: Response) => {
           msgf_license_provisioned: entitlement.provisionedLicense,
           activated_personas: u.activated_personas,
         },
-        redirectUrl: resolvePostLoginRedirect(platform),
+        redirectUrl: resolvePostLoginRedirect(platform, persona),
       });
     } catch (e) {
       console.error("[bff/auth/login]", e);

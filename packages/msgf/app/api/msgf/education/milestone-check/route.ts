@@ -27,9 +27,12 @@ import {
   MilestoneTemplateIdSchema,
 } from "@/lib/education/milestone-gate";
 import {
+  MSGF_ENTITY_ID_HEADER,
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
+import { EducationPolicyHaltError } from "@/lib/education/p1-static-ledger";
+import { assertUtahDisclosureAccepted } from "@/lib/education/utah-disclosure";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const BodySchema = z.object({
@@ -55,6 +58,29 @@ export async function POST(req: NextRequest) {
     });
     if (!current) {
       return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+
+    try {
+      await assertUtahDisclosureAccepted({
+        admin,
+        tenantId,
+        entityToken:
+          req.headers.get(MSGF_ENTITY_ID_HEADER)?.trim() || current.entityToken,
+      });
+    } catch (e) {
+      if (e instanceof EducationPolicyHaltError) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: e.message,
+            code: e.code,
+            disclosureRequired: true,
+            instance: toAssignmentInstanceWire(current),
+          },
+          { status: 403 }
+        );
+      }
+      throw e;
     }
     if (current.currentState === "EDU_SUBMITTED_LOCK") {
       return NextResponse.json(

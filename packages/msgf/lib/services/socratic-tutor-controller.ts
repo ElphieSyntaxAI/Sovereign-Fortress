@@ -26,6 +26,7 @@ import {
   type CurriculumResourceScopeFilter,
 } from "@/lib/education/education-curriculum-rag";
 import { assertAiAllowanceForSocraticTutor } from "@/lib/education/p1-static-ledger";
+import { assertUtahDisclosureAccepted } from "@/lib/education/utah-disclosure";
 import { routeLlmPromptChain } from "@/lib/education/workspace/llm-routing-controller";
 import {
   getAssignmentAllowanceLevel,
@@ -103,6 +104,13 @@ export async function askSocraticTutor(
   input: SocraticTutorAskInput
 ): Promise<SocraticTutorAskResult> {
   const body = SocraticTutorAskBodySchema.parse(input.body);
+
+  const { createAdminClient } = await import("@/utils/supabase/admin");
+  await assertUtahDisclosureAccepted({
+    admin: createAdminClient(),
+    tenantId: input.tenantId,
+    entityToken: input.entityId,
+  });
 
   const gradeCohort =
     body.gradeCohort ??

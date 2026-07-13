@@ -8,13 +8,13 @@
 
 **MSGF platform SSOT (1.0 release, V3 master spec, three production domains):** [`docs/MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md)
 
-**Last reviewed:** 2026-05-23
+**Last reviewed:** 2026-07-13
 
 ---
 
 ## Vision summary
 
-Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) (HAL Ledger, Vault Seal, Cool Down Lock, Bicameral Audit, Publisher Hub).
+Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) (HAL Ledger, Vault Seal, Cool Down Lock, Bicameral Audit, Publisher Hub, Active Project, Series RAG share).
 
 | Pillar | Goal |
 |--------|------|
@@ -36,7 +36,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 | Stylometric fingerprint | Partial | `packages/msgf/supabase/migrations/*hal_ledger*rolling*`, `apps/author-ecosystem/server/src/lib/forensics/`, `packages/core/src/lib/forensics/` |
 | Revision gates | Partial → strong | `apps/author-ecosystem/server/src/lib/RevisionLockService.ts`, `20260515180000_p4_manuscripts_revision_p4_revision_reports.sql` |
 | Immutable audit | Partial | `p4_narrative_logs`, `packages/msgf/lib/pov-logger.ts`, `ContractAutomationService.ts`, `p4_legal_contracts` migration |
-| RAG / world | Partial → strong | `20240508_unified_ecosystem.sql` (`vector`), narrative library migrations, `IngestionService.ts`, librarian routes/controllers |
+| RAG / world | Partial → strong | `20240508_unified_ecosystem.sql` (`vector`), narrative library migrations, `IngestionService.ts`, librarian routes/controllers; **Active Project switcher** scopes client to `manuscriptId` / `seriesId` (`ActiveManuscriptChip.tsx`, `seriesRagScope.ts`) |
 
 ---
 
@@ -109,6 +109,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 
 | Date | Change |
 |------|--------|
+| 2026-07-13 | **Author project switcher (plan 100%):** nav `MS:` dropdown + hub selection identity (`tenantId`/`seriesId`); per-book outline/wiki remount. Tracked in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) §0 (~72% Phase 1). |
 | 2026-05-22 | Strict Zod ingest + Vault/Hall metadata (`ingest-metadata.ts`, genealogical root coherence); `POST /api/msgf/ingest` returns `INGEST_VALIDATION_ERROR` before Postgres. |
 | 2026-05-22 | Roadmap §2.6/§7 refresh; AUTH-23 **Done** for MSGF ingest; MSGF V3.2 table + §7.1 dead-end API registry in `MSGF_V1_ROADMAP.md`. |
 | 2026-05-21 | **V3.2-ULTRA §2.6 closure:** `v32_directive` on Pulse responses; `MSGF_REQUIRE_REDIS` + `/health` SHARD probe; ingest DEFEND (`preFlightCheck`); signed-in dashboard Human Arbitrate; `POST /api/msgf/ops/v32-heartbeat` (tier batches + 30d Hall purge); live checklist on `/status`. |
