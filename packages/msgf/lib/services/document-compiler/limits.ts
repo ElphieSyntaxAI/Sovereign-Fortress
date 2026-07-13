@@ -1,0 +1,1 @@
+export const MAX_LLM_DOCUMENT_CHARS = 56_000;

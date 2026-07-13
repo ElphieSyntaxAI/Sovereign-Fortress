@@ -11,11 +11,14 @@ import type {
 } from "./documentIngestGate.js";
 import { answerFoundInSource, buildHeuristicScanThoughts, heuristicProposedWiki } from "./documentIngestGate.js";
 import { areNearDuplicateTexts } from "./documentIngestCompile.js";
-import { splitDocumentForConverge } from "./documentIngestConvergeChunks.js";
 import { mergeRagProposedWiki, type IngestPairingDiagnostic } from "./documentIngestRagParser.js";
 import { MAX_WIKI_PROPOSED } from "./documentIngestLimits.js";
 import {
-  formatKeywordHintsForPrompt,
+  compilerStateDigest,
+  runMultiPassDocumentCompiler,
+  type DocumentIngestCompilerState,
+} from "./documentIngestMultiPassCompiler.js";
+import {
   loadDocumentIngestKeywords,
   matchKeywordHintsInText,
 } from "./documentIngestKeywords.js";
@@ -25,7 +28,6 @@ import {
 } from "./documentIngestOutline.js";
 import {
   buildDocumentIngestSignals,
-  formatSignalsForConvergePrompt,
 } from "./documentIngestSignals.js";
 import type {
   ClarifyingQuestion,
@@ -42,19 +44,9 @@ import {
   mergeConflicts,
 } from "./documentIngestStructure.js";
 import type { SemanticRegion } from "./narrative/semanticChunking.js";
-import {
-  parseContentSignals,
-  parseFingerprint,
-  parseLlmClarifying,
-  parseLlmConflicts,
-  parseJsonStripFences,
-  parseLlmWikiAndBeats,
-  parseSemanticRegions,
-} from "./documentIngestLlmParse.js";
 
 const require = createRequire(import.meta.url);
-const { generateBullets, hasGeminiCredentials } = require("../services/geminiClient.js") as {
-  generateBullets: (opts: { system: string; user: string; model?: string }) => Promise<string>;
+const { hasGeminiCredentials } = require("../services/geminiClient.js") as {
   hasGeminiCredentials: () => boolean;
 };
 
@@ -75,6 +67,9 @@ export type DocumentIngestMsgfMeta = {
     domains: string[];
     capped: boolean;
   };
+  compiler_state?: DocumentIngestCompilerState;
+  compiler_passes?: Array<"pass1" | "pass2" | "pass3">;
+  compiler_digest?: string;
 };
 
 export function resolveDocumentIngestMode(): DocumentIngestMode {
@@ -119,34 +114,6 @@ function collectSemanticDomains(rows: ProposedWikiEntry[]): string[] {
   }
   return [...domains].sort();
 }
-
-const CONVERGE_SYSTEM = [
-  "MSGF V3.2 Author document ingest — CONVERGE phase.",
-  "Map AUTHOR UPLOADS into a story wiki + outline. Read CONTENT ONLY; ignore filename unless it disambiguates slot.",
-  "Structural signals and optional keywords are HINTS — never invent facts to satisfy a hint.",
-  "Forms you may see: scene cards, chapter breakdowns, character cards, world bible, notes, beat sheets, draft prose, bullet outlines, TABLES (markdown | col |), SECTION breaks (--- SECTION ---), GOOGLE DOC TABS (--- TAB: Name ---).",
-  "Planning layers (wiki_metadata.planning_layer when supported): front_matter, book_synopsis, macro_outline, chapter_breakdown, scene_grid, notes.",
-  "POV: detect any viewpoint name (Name Pov, Name's POV, Summers POV, POV: Name, told in X's POV, POV column with bare name). One POV → single; two+ or split POV → split. Do not duplicate macro/blurb across tabs.",
-  "macro_outline titles must use section headings (Beginning, Middle) or beat text — never generic 'Item 1'.",
-  "Do NOT collapse macro_outline and chapter_breakdown. Do NOT merge scene_grid rows into one beat.",
-  "Each table DATA ROW → its own outline_beat and/or proposed_wiki when it carries distinct story facts.",
-  "Detect macro-thematic DOMAIN SHIFTS even without markdown headers (inline caps, tone shifts, vocabulary changes).",
-  "When the text shifts domains (e.g. vehicle propulsion metrics → governmental hierarchy → species biology), start a NEW proposed_wiki row and semantic_regions entry — never merge unrelated domains into one excerpt.",
-  "Tag each proposed_wiki row with wiki_metadata.semantic_domain (technology, government, species, history, setting, etc.).",
-  "Excerpts in proposed_wiki MUST be verbatim substrings from the document (>=40 chars).",
-  "Output ONLY valid JSON (no markdown fences).",
-  `Schema: {
-  "thoughts":["string"],
-  "content_signals":[{"kind":"scene_cards|chapter_breakdown|character_cards|world_lore|notes_brainstorm|full_draft|outline_list|mixed|topic_shift","confidence":"high|medium|low","evidence":"string"}],
-  "story_fingerprint":{"working_title":null,"protagonist_names":["string"],"setting_anchors":["string"],"tone_or_genre":null},
-  "conflicts":[{"code":"string","severity":"blocking|warning","message":"string"}],
-  "clarifying_questions":[{"id":"string","code":"string","question":"string","hint":"string","required":true,"options":["string"]}],
-  "semantic_regions":[{"domain":"technology|government|species|history|setting|other","anchor_excerpt":"verbatim 40+ chars from doc","char_hint":0}],
-  "proposed_wiki":[{"title":"string","excerpt":"string","chunk_type":"character|location|plot|theme|other","outline_entity_kind":"character|setting|environment|technology|plot_point|genre|theme|spoiler|note|chapter","semantic_domain":"string","tags":["string"],"plot_point_order":1,"planning_layer":"string"}],
-  "outline_beats":[{"synopsis":"string","order":0,"plot_point_order":1,"title":"string","chapter_number":null}],
-  "questions":[{"id":"q1","question":"string","hint":"phrase in text"}]
-}`,
-].join("\n");
 
 const SLOT_CONVERGE_HINTS: Record<DocumentIngestSlot, string> = {
   character_sheet:
@@ -280,99 +247,89 @@ export async function runMsgfDocumentConverge(params: {
   let grounding = { kept: 0, dropped: 0 };
   let llmCharsProcessed = 0;
   let llmChunkTotal = 0;
+  let compiler_state: DocumentIngestCompilerState | undefined;
 
   if (mode !== "heuristic" && hasGeminiCredentials()) {
     try {
-      const chunks = splitDocumentForConverge(params.text);
-      llmChunkTotal = chunks.length;
-      if (chunks.length > 1) {
+      const multiPass = await runMultiPassDocumentCompiler({
+        text: params.text,
+        slot: params.slot,
+        manuscriptId: params.manuscriptId,
+        signals,
+        slotHint: SLOT_CONVERGE_HINTS[params.slot] ?? "",
+        lineageReinforcement: lineage_reinforcement,
+        existingOutline,
+      });
+
+      compiler_state = multiPass.state;
+      llmChunkTotal = multiPass.state.macro_windows.length;
+      llmCharsProcessed = multiPass.state.macro_windows.reduce((n, w) => n + w.text.length, 0);
+      usedLlm = multiPass.state.passes_completed.length > 0;
+
+      if (multiPass.state.macro_windows.length > 1) {
         thoughts.push({
           phase: "structure",
-          line: `Long document: CONVERGE will scan ${chunks.length} sections (${params.text.length.toLocaleString()} chars total).`,
+          line: `Multi-pass CONVERGE: ${multiPass.state.macro_windows.length} structural windows × 3 passes (${params.text.length.toLocaleString()} chars).`,
+        });
+      } else {
+        thoughts.push({
+          phase: "structure",
+          line: "Multi-pass CONVERGE: 3-pass stateful compiler (Entity Map → Event Arc → Metacognitive Weaver).",
         });
       }
 
-      for (const chunk of chunks) {
-        llmCharsProcessed += chunk.text.length;
-        const raw = await generateBullets({
-          system: CONVERGE_SYSTEM,
-          user: [
-            `Slot hint (soft): ${params.slot}`,
-            SLOT_CONVERGE_HINTS[params.slot] ?? "",
-            `Manuscript id: ${params.manuscriptId}`,
-            formatSignalsForConvergePrompt(signals),
-            formatKeywordHintsForPrompt(keyword_hits, keywords),
-            lineage_reinforcement ? `Vault lineage: ${lineage_reinforcement}` : "",
-            `Existing outline excerpt (may be empty): ${(existingOutline ?? "").slice(0, 2000)}`,
-            chunk.index === 0 ? `Authorship questions to generate: ${params.questionCount}` : "",
-            chunk.total > 1
-              ? `Document part ${chunk.index + 1} of ${chunk.total}. Extract species, history/timeline, technology, government, and setting rows for THIS section only — never merge unrelated domains.`
-              : "",
-            "",
-            "Document:",
-            chunk.text,
-          ]
-            .filter(Boolean)
-            .join("\n"),
+      thoughts.push({
+        phase: "character",
+        line: `Pass 1 entities: ${multiPass.state.entities.length} · Pass 2 beats: ${multiPass.state.plot_beats.length} · Pass 3 windows: ${multiPass.state.window_metacognition.length}`,
+      });
+
+      if (multiPass.window_errors.length) {
+        thoughts.push({
+          phase: "structure",
+          line: `Compiler window errors: ${multiPass.window_errors.length} (partial state retained).`,
         });
-        const parsed = parseJsonStripFences(raw) as Record<string, unknown>;
-        usedLlm = true;
+      }
 
-        if (chunk.index === 0) {
-          const thoughtsRaw = Array.isArray(parsed.thoughts) ? parsed.thoughts : [];
-          const mapped: ScanThought[] = thoughtsRaw
-            .map((t) => String(t).trim())
-            .filter(Boolean)
-            .slice(0, 10)
-            .map((line, i) => ({
-              line,
-              phase: (i < 2
-                ? "scan"
-                : i < 4
-                  ? "structure"
-                  : i < 6
-                    ? "character"
-                    : i < 8
-                      ? "lore"
-                      : "done") as ScanThought["phase"],
-            }));
-          if (mapped.length) thoughts = mapped;
+      const grounded = groundProposedWikiToSource(multiPass.proposed, params.text);
+      proposed = mergeProposedDedupe([], grounded.kept);
+      grounding = { kept: grounded.kept.length, dropped: grounded.dropped };
+      outline_beats = mergePlotBeats(outline_beats, multiPass.outline_beats);
+      semantic_regions = [...semantic_regions, ...multiPass.semantic_regions];
 
-          const parsedSignals = parseContentSignals(parsed.content_signals);
-          if (parsedSignals.length) llmSignals = parsedSignals;
-          llmFingerprint = parseFingerprint(parsed.story_fingerprint, fingerprint);
-          llmConflicts = parseLlmConflicts(parsed.conflicts);
-          llmClarifying = parseLlmClarifying(parsed.clarifying_questions);
-
-          const qRaw = parsed.questions;
-          if (params.questionCount > 0 && Array.isArray(qRaw)) {
-            for (const row of qRaw.slice(0, params.questionCount)) {
-              if (!row || typeof row !== "object") continue;
-              const q = row as Record<string, unknown>;
-              const question = String(q.question ?? "").trim();
-              if (!question) continue;
-              questions.push({
-                id: String(q.id ?? `q${questions.length + 1}`),
-                question,
-                hint: String(q.hint ?? "").trim() || undefined,
-              });
-            }
-          }
-        }
-
-        semantic_regions = [
-          ...semantic_regions,
-          ...parseSemanticRegions(parsed.semantic_regions),
-        ];
-
-        const { proposed: llmWiki, outline_beats: llmBeats } = parseLlmWikiAndBeats(parsed);
-        const grounded = groundProposedWikiToSource(llmWiki, params.text);
-        proposed = mergeProposedDedupe(proposed, grounded.kept);
-        grounding = {
-          kept: grounding.kept + grounded.kept.length,
-          dropped: grounding.dropped + grounded.dropped,
+      const protagonistNames = multiPass.state.entities
+        .filter((e) => e.kind === "character")
+        .map((e) => e.name)
+        .slice(0, 8);
+      if (protagonistNames.length) {
+        llmFingerprint = {
+          ...llmFingerprint,
+          protagonist_names: [
+            ...new Set([...llmFingerprint.protagonist_names, ...protagonistNames]),
+          ].slice(0, 8),
         };
-        outline_beats = mergePlotBeats(outline_beats, llmBeats);
+      }
+
+      const settingAnchors = multiPass.state.entities
+        .filter((e) => e.kind === "setting")
+        .map((e) => e.name)
+        .slice(0, 8);
+      if (settingAnchors.length) {
+        llmFingerprint = {
+          ...llmFingerprint,
+          setting_anchors: [
+            ...new Set([...llmFingerprint.setting_anchors, ...settingAnchors]),
+          ].slice(0, 8),
+        };
+      }
+
+      for (const meta of multiPass.state.window_metacognition) {
+        if (meta.thematic_breadcrumbs.some((t) => /foreshadow|contradict|conflict/i.test(t))) {
+          llmConflicts.push({
+            code: "thematic_tension",
+            severity: "warning",
+            message: `Thematic breadcrumbs in ${meta.window_id}: ${meta.thematic_breadcrumbs.join(", ")}`,
+          });
+        }
       }
     } catch {
       usedLlm = false;
@@ -481,6 +438,13 @@ export async function runMsgfDocumentConverge(params: {
       grounding,
       ...(semantic_regions.length > 0 ? { semantic_regions } : {}),
       parse_coverage,
+      ...(compiler_state
+        ? {
+            compiler_state,
+            compiler_passes: compiler_state.passes_completed,
+            compiler_digest: compilerStateDigest(compiler_state),
+          }
+        : {}),
     },
   };
 }

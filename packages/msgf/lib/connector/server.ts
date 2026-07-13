@@ -189,3 +189,38 @@ export {
   type PulseFullPipelineInput,
   type PulseFullPipelineResult,
 } from "../services/PulseEngine";
+
+export {
+  runMultiPassDocumentCompiler,
+  compileStateToArtifacts,
+  compilerStateDigest,
+  buildStructuralMacroWindows,
+  splitDocumentForConverge,
+  resolveEnrichedChunkTopology,
+  buildEducationChunkTopology,
+  buildDocumentCompilerStructuralSignals,
+  resolveDomainProfile,
+  buildEntityFingerprint,
+  buildBeatId,
+  type DocumentIngestCompilerState,
+  type DocumentCompilerDomainProfile,
+  type MultiPassCompilerResult,
+  type EnrichedIngestChunkTopology,
+  type StructuralMacroWindow,
+  type ConvergeTextChunk,
+  type EntityRecord,
+  type PlotBeatRecord,
+  type WindowMetacognition,
+} from "../services/document-compiler";
+export {
+  runDocumentCompilerDefend,
+  buildCommitPreviewText,
+  detectStructureMergeRisk,
+  runDualStructureReview,
+  runDocumentCompilerShadowPreflight,
+} from "../services/document-compiler/defend-guard";
+export {
+  createDocumentCompilerSession,
+  loadDocumentCompilerSession,
+  updateDocumentCompilerSession,
+} from "../services/document-compiler/session-store";

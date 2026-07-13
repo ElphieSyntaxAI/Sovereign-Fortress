@@ -18,6 +18,10 @@ import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
 export type NarrativeSelection = {
   manuscriptId: string;
   tenantId: string;
+  /** Series folder id when the book belongs to a series; null for standalone. */
+  seriesId?: string | null;
+  /** Optional series title for nav display when known. */
+  seriesTitle?: string | null;
   title?: string | null;
   revision_status?: string | null;
   cooldown_revision_status?: string | null;
@@ -62,6 +66,7 @@ export function NarrativeProvider({ children }: { children: ReactNode }) {
             id: string;
             tenant_id: string;
             title?: string | null;
+            series_id?: string | null;
             revision_status?: string | null;
             cooldown_revision_status?: string | null;
             locked_until?: string | null;
@@ -74,6 +79,7 @@ export function NarrativeProvider({ children }: { children: ReactNode }) {
         const fromApi: NarrativeSelection = {
           manuscriptId: m.id,
           tenantId: m.tenant_id,
+          seriesId: m.series_id ?? null,
           title: m.title,
           revision_status: m.revision_status,
           cooldown_revision_status: m.cooldown_revision_status,
@@ -82,7 +88,22 @@ export function NarrativeProvider({ children }: { children: ReactNode }) {
           revision_cooldown_until: m.revision_cooldown_until,
         };
         setSelectionState((prev) => {
-          if (prev?.manuscriptId === fromApi.manuscriptId) return prev;
+          // Same active book: backfill seriesId / tenantId if older localStorage omitted them.
+          if (prev?.manuscriptId === fromApi.manuscriptId) {
+            const needsSeries = prev.seriesId === undefined;
+            const needsTenant = !prev.tenantId;
+            if (needsSeries || needsTenant) {
+              const merged: NarrativeSelection = {
+                ...prev,
+                seriesId: needsSeries ? (fromApi.seriesId ?? null) : prev.seriesId,
+                tenantId: prev.tenantId || fromApi.tenantId,
+                title: prev.title ?? fromApi.title,
+              };
+              storeManuscriptSelection(merged);
+              return merged;
+            }
+            return prev;
+          }
           if (prev && prev.manuscriptId !== fromApi.manuscriptId) return prev;
           storeManuscriptSelection(fromApi);
           return fromApi;

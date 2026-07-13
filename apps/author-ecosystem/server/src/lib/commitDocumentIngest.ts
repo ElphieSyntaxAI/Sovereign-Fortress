@@ -30,6 +30,7 @@ import {
 } from "./ingestConverge.js";
 import { buildAuthorDocumentSweepFiles } from "./documentIngestMsgfSweep.js";
 import { pipeToMsgfIngestService } from "./fetchManuscript.js";
+import type { DocumentIngestCompilerState } from "./documentIngestMultiPassCompiler.js";
 
 export type PlanningIngestSnapshot = {
   manuscript_outline: string;
@@ -65,6 +66,7 @@ export async function commitDocumentIngestToBackend(params: {
   outlineBeats: IngestOutlineBeat[];
   syncMsgfBrain?: boolean;
   semanticRegions?: SemanticRegion[];
+  compilerState?: DocumentIngestCompilerState;
 }): Promise<{
   lore_ingest: { chunksTotal: number; chunksInserted: number } | null;
   plot_ingest: { chunksTotal: number; chunksInserted: number } | null;
@@ -101,12 +103,17 @@ export async function commitDocumentIngestToBackend(params: {
       filename,
       boundaryHints,
       semanticRegions: params.semanticRegions,
+      compilerState: params.compilerState,
+      ingestSlot: slot,
+      manuscriptId,
       metadata: {
         manuscript_id: manuscriptId,
         ingest_slot: slot,
         file_import: true,
         rag_index: true,
         type: "lore",
+        wiki_visibility: "draft",
+        ledger: "source_manuscript",
         file_import_committed_at: new Date().toISOString(),
       },
     });
@@ -134,6 +141,9 @@ export async function commitDocumentIngestToBackend(params: {
         filename: "import-outline.txt",
         boundaryHints,
         semanticRegions: params.semanticRegions,
+        compilerState: params.compilerState,
+        ingestSlot: slot,
+        manuscriptId,
         metadata: {
           outline: true,
           is_outline: true,
@@ -141,6 +151,8 @@ export async function commitDocumentIngestToBackend(params: {
           file_import: true,
           rag_index: true,
           ingest_slot: slot,
+          wiki_visibility: "draft",
+          ledger: "source_manuscript",
         },
       });
     } catch (e) {
@@ -182,6 +194,10 @@ export async function commitDocumentIngestToBackend(params: {
                 wiki_visibility: "draft",
                 outline_entity_kind: isChapter ? "chapter" : "plot_point",
                 proposed_chunk_title: beat.title?.trim() || undefined,
+                ...(beat.beat_id ? { beat_id: beat.beat_id } : {}),
+                ...(beat.active_entity_fingerprints?.length
+                  ? { active_entities: beat.active_entity_fingerprints }
+                  : {}),
               },
             };
           }),

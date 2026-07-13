@@ -188,6 +188,10 @@ export type IngestOutlineBeat = {
   chapter_number?: number | null;
   pov_mode?: "single" | "split" | "unknown";
   pov_names?: string[];
+  /** Multi-pass compiler beat identifier (Pass 2). */
+  beat_id?: string;
+  /** Entity fingerprints active in this beat (Pass 2). */
+  active_entity_fingerprints?: string[];
 };
 
 export function slotDefaultMetadata(

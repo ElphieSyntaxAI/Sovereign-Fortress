@@ -16,6 +16,9 @@ import {
   allocateChunkIndices,
   isUserOverrideChunk,
 } from "../chunkLifecycle.js";
+import type { DocumentIngestCompilerState } from "../documentIngestMultiPassCompiler.js";
+import { resolveEnrichedChunkTopology } from "../documentIngestMultiPassCompiler.js";
+import type { DocumentIngestSlot } from "../documentIngestGate.js";
 
 export type { EmbedBatchFn } from "./narrativeEmbedder.js";
 export {
@@ -38,6 +41,10 @@ export type IngestManuscriptInput = {
   filename: string;
   /** Extra JSON metadata stored per row (merged with defaults). */
   metadata?: Record<string, unknown>;
+  /** Multi-pass compiler state for enriched shard metadata (commit-time). */
+  compilerState?: DocumentIngestCompilerState;
+  ingestSlot?: DocumentIngestSlot;
+  manuscriptId?: string;
   /** Optional semantic boundary hints from CONVERGE / heuristics. */
   boundaryHints?: SemanticBoundary[];
   semanticRegions?: SemanticRegion[];
@@ -196,24 +203,48 @@ export class IngestionService {
       ...(extraMeta && typeof extraMeta === "object" ? extraMeta : {}),
     };
 
-    const rows = chunks.map((content, i) => ({
-      tenant_id: tenantId,
-      source_document: sourceDocument,
-      chunk_type: chunkType,
-      chunk_index: assignedIndices[i]!,
-      content,
-      word_count: content.split(/\s+/).filter(Boolean).length,
-      embedding: embeddings[i]!,
-      metadata: {
-        ...baseMeta,
-        ...(shardMeta[i]?.semantic_domain ? { semantic_domain: shardMeta[i]!.semantic_domain } : {}),
-        ...(shardMeta[i]?.boundary_sources?.length
-          ? { boundary_sources: shardMeta[i]!.boundary_sources }
-          : {}),
-        segment_index: shardMeta[i]?.segment_index ?? 0,
-      },
-      is_deleted: false,
-    }));
+    const rows = chunks.map((content, i) => {
+      const shard = shardMeta[i];
+      let enrichedMeta: Record<string, unknown> = {};
+      if (
+        input.compilerState &&
+        input.ingestSlot &&
+        input.manuscriptId &&
+        shard?.char_start != null &&
+        shard?.char_end != null
+      ) {
+        const topology = resolveEnrichedChunkTopology({
+          charStart: shard.char_start,
+          charEnd: shard.char_end,
+          compilerState: input.compilerState,
+          manuscriptId: input.manuscriptId,
+          ingestSlot: input.ingestSlot,
+        });
+        enrichedMeta = { ...topology };
+      }
+
+      return {
+        tenant_id: tenantId,
+        source_document: sourceDocument,
+        chunk_type: chunkType,
+        chunk_index: assignedIndices[i]!,
+        content,
+        word_count: content.split(/\s+/).filter(Boolean).length,
+        embedding: embeddings[i]!,
+        metadata: {
+          ...baseMeta,
+          ...enrichedMeta,
+          ...(shard?.semantic_domain ? { semantic_domain: shard.semantic_domain } : {}),
+          ...(shard?.boundary_sources?.length
+            ? { boundary_sources: shard.boundary_sources }
+            : {}),
+          segment_index: shard?.segment_index ?? 0,
+          ...(shard?.char_start != null ? { char_start: shard.char_start } : {}),
+          ...(shard?.char_end != null ? { char_end: shard.char_end } : {}),
+        },
+        is_deleted: false,
+      };
+    });
 
     const { data, error } = await this.supabase.from("p4_narrative_library_chunks").insert(rows).select("id");
 

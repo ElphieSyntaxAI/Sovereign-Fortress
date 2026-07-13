@@ -55,7 +55,7 @@ export default function OutlinePage() {
     <div className="space-y-6">
       <CreativePageHeader title="Outline" description="Multi-mode outlining workspace for" />
       {selection ? (
-        <PlanningSessionProvider manuscriptId={selection.manuscriptId}>
+        <PlanningSessionProvider key={selection.manuscriptId} manuscriptId={selection.manuscriptId}>
           <CreativeManuscriptShell>
             <OutlinePageContent
               manuscriptId={selection.manuscriptId}

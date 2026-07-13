@@ -1030,6 +1030,40 @@ export {
   type PulseFullPipelineInput,
   type PulseFullPipelineResult,
 } from "../pulse-engine";
+export {
+  runMultiPassDocumentCompiler,
+  compileStateToArtifacts,
+  compilerStateDigest,
+  buildStructuralMacroWindows,
+  splitDocumentForConverge,
+  resolveEnrichedChunkTopology,
+  buildEducationChunkTopology,
+  buildDocumentCompilerStructuralSignals,
+  resolveDomainProfile,
+  buildEntityFingerprint,
+  buildBeatId,
+  type DocumentIngestCompilerState,
+  type DocumentCompilerDomainProfile,
+  type MultiPassCompilerResult,
+  type EnrichedIngestChunkTopology,
+  type StructuralMacroWindow,
+  type ConvergeTextChunk,
+  type EntityRecord,
+  type PlotBeatRecord,
+  type WindowMetacognition,
+} from "../document-compiler";
+export {
+  runDocumentCompilerDefend,
+  buildCommitPreviewText,
+  detectStructureMergeRisk,
+  runDualStructureReview,
+  runDocumentCompilerShadowPreflight,
+} from "../document-compiler-defend";
+export {
+  createDocumentCompilerSession,
+  loadDocumentCompilerSession,
+  updateDocumentCompilerSession,
+} from "../document-compiler-sessions";
 `
 );
 
@@ -1275,6 +1309,40 @@ export type PulseFullPipelineResult =
   | { kind: "baseline_required"; public: Record<string, unknown>; forensic: Record<string, unknown> };
 export declare class PulseEngine { runFullPipeline(input: PulseFullPipelineInput): Promise<PulseFullPipelineResult>; }
 export declare const pulseEngine: PulseEngine;`,
+  "document-compiler.d.ts": `export type DocumentCompilerDomainProfile = "author_narrative" | "education_curriculum" | "generic";
+export type DocumentIngestCompilerState = Record<string, unknown> & { version: "3-pass-v1" };
+export type MultiPassCompilerResult = {
+  state: DocumentIngestCompilerState;
+  proposed: Array<Record<string, unknown>>;
+  outline_beats: Array<Record<string, unknown>>;
+  semantic_regions: Array<Record<string, unknown>>;
+  window_errors: Array<{ window_id: string; pass: string; message: string }>;
+};
+export type EnrichedIngestChunkTopology = Record<string, unknown>;
+export type StructuralMacroWindow = Record<string, unknown>;
+export type ConvergeTextChunk = { index: number; total: number; text: string };
+export type EntityRecord = Record<string, unknown>;
+export type PlotBeatRecord = Record<string, unknown>;
+export type WindowMetacognition = Record<string, unknown>;
+export declare function runMultiPassDocumentCompiler(...args: unknown[]): Promise<MultiPassCompilerResult>;
+export declare function compileStateToArtifacts(...args: unknown[]): Pick<MultiPassCompilerResult, "proposed" | "outline_beats" | "semantic_regions">;
+export declare function compilerStateDigest(...args: unknown[]): string;
+export declare function buildStructuralMacroWindows(...args: unknown[]): StructuralMacroWindow[];
+export declare function splitDocumentForConverge(...args: unknown[]): ConvergeTextChunk[];
+export declare function resolveEnrichedChunkTopology(...args: unknown[]): EnrichedIngestChunkTopology;
+export declare function buildEducationChunkTopology(...args: unknown[]): Record<string, unknown> | null;
+export declare function buildDocumentCompilerStructuralSignals(...args: unknown[]): Record<string, unknown>;
+export declare function resolveDomainProfile(...args: unknown[]): Record<string, unknown>;
+export declare function buildEntityFingerprint(...args: unknown[]): string;
+export declare function buildBeatId(...args: unknown[]): string;`,
+  "document-compiler-defend.d.ts": `export declare function runDocumentCompilerDefend(...args: unknown[]): Promise<Record<string, unknown>>;
+export declare function buildCommitPreviewText(...args: unknown[]): string;
+export declare function detectStructureMergeRisk(...args: unknown[]): Record<string, unknown>;
+export declare function runDualStructureReview(...args: unknown[]): Promise<Record<string, unknown>>;
+export declare function runDocumentCompilerShadowPreflight(...args: unknown[]): Promise<Record<string, unknown>>;`,
+  "document-compiler-sessions.d.ts": `export declare function createDocumentCompilerSession(...args: unknown[]): Promise<{ id: string } | { error: string }>;
+export declare function loadDocumentCompilerSession(...args: unknown[]): Promise<Record<string, unknown> | null>;
+export declare function updateDocumentCompilerSession(...args: unknown[]): Promise<{ ok: boolean; error?: string }>;`,
 };
 
 for (const [file, body] of Object.entries(stubModules)) {

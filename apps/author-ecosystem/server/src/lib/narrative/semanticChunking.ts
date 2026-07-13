@@ -19,6 +19,9 @@ export type SemanticShardMeta = {
   semantic_domain?: string;
   boundary_sources: string[];
   segment_index: number;
+  /** Source text offsets for multi-pass compiler metadata attachment. */
+  char_start?: number;
+  char_end?: number;
 };
 
 export type ChunkTextSemanticOptions = {
@@ -302,17 +305,30 @@ function segmentsFromBoundaries(
 
 function packSegment(
   segmentText: string,
+  segmentStart: number,
   maxWords: number,
   overlapWords: number
-): string[] {
-  if (wordCount(segmentText) <= maxWords) return [segmentText.trim()].filter(Boolean);
-  const words = segmentText.split(/\s+/).filter(Boolean);
+): Array<{ text: string; char_start: number; char_end: number }> {
+  const trimmed = segmentText.trim();
+  if (!trimmed) return [];
+  if (wordCount(trimmed) <= maxWords) {
+    const relStart = segmentText.indexOf(trimmed);
+    const start = segmentStart + (relStart >= 0 ? relStart : 0);
+    return [{ text: trimmed, char_start: start, char_end: start + trimmed.length }];
+  }
+  const words = trimmed.split(/\s+/).filter(Boolean);
   const step = Math.max(1, maxWords - overlapWords);
-  const chunks: string[] = [];
+  const chunks: Array<{ text: string; char_start: number; char_end: number }> = [];
+  let searchFrom = 0;
   for (let i = 0; i < words.length; i += step) {
     const slice = words.slice(i, i + maxWords);
     if (slice.length === 0) break;
-    chunks.push(slice.join(" "));
+    const text = slice.join(" ");
+    const localIdx = trimmed.indexOf(text, searchFrom);
+    const relStart = localIdx >= 0 ? localIdx : 0;
+    const start = segmentStart + relStart;
+    chunks.push({ text, char_start: start, char_end: start + text.length });
+    searchFrom = relStart + Math.max(1, text.length - 20);
     if (i + maxWords >= words.length) break;
   }
   return chunks;
@@ -365,7 +381,7 @@ export async function chunkTextSemantic(
   if (wordCount(plain) < MIN_SEMANTIC_WORDS) {
     return {
       chunks: [plain],
-      shardMeta: [{ boundary_sources: ["short_doc"], segment_index: 0 }],
+      shardMeta: [{ boundary_sources: ["short_doc"], segment_index: 0, char_start: 0, char_end: plain.length }],
     };
   }
 
@@ -400,21 +416,35 @@ export async function chunkTextSemantic(
   segments.forEach((seg, segmentIndex) => {
     const segmentText = plain.slice(seg.start, seg.end).trim();
     if (!segmentText) return;
-    const packed = packSegment(segmentText, maxWords, overlapWords);
+    const packed = packSegment(segmentText, seg.start, maxWords, overlapWords);
     for (const chunk of packed) {
-      chunks.push(chunk);
+      chunks.push(chunk.text);
       shardMeta.push({
         semantic_domain: seg.label,
         boundary_sources: seg.sources.length ? seg.sources : ["heuristic"],
         segment_index: segmentIndex,
+        char_start: chunk.char_start,
+        char_end: chunk.char_end,
       });
     }
   });
 
   if (chunks.length === 0) {
+    const fallback = chunkTextByWordsFallback(plain, maxWords, overlapWords);
+    let offset = 0;
     return {
-      chunks: chunkTextByWordsFallback(plain, maxWords, overlapWords),
-      shardMeta: [{ boundary_sources: ["fallback"], segment_index: 0 }],
+      chunks: fallback,
+      shardMeta: fallback.map((c, i) => {
+        const start = plain.indexOf(c, offset);
+        const char_start = start >= 0 ? start : offset;
+        offset = char_start + c.length;
+        return {
+          boundary_sources: ["fallback"],
+          segment_index: i,
+          char_start,
+          char_end: char_start + c.length,
+        };
+      }),
     };
   }
 

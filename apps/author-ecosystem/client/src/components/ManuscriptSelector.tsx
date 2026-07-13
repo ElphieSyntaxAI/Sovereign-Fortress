@@ -2,11 +2,14 @@ import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 
 import { getPreferredBffBearer } from "../lib/authAccessToken";
 import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
+import { useActivateManuscript } from "../hooks/useActivateManuscript";
 import { useNarrative } from "../context/NarrativeContext";
+
 export type ManuscriptRow = {
   id: string;
   tenant_id: string;
   title: string | null;
+  series_id?: string | null;
   revision_status: string | null;
   updated_at: string | null;
   lock_expires_at?: string | null;
@@ -18,6 +21,7 @@ export type ManuscriptRow = {
 
 export function ManuscriptSelector() {
   const { selection, setSelection } = useNarrative();
+  const activate = useActivateManuscript();
   const [rows, setRows] = useState<ManuscriptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +68,10 @@ export function ManuscriptSelector() {
     }
     const row = rows.find((r) => r.id === id);
     if (!row) return;
-    setSelection({
+    await activate({
       manuscriptId: row.id,
       tenantId: row.tenant_id,
+      seriesId: row.series_id ?? null,
       title: row.title,
       revision_status: row.revision_status,
       cooldown_revision_status: row.cooldown_revision_status,
@@ -74,16 +79,6 @@ export function ManuscriptSelector() {
       lock_expires_at: row.lock_expires_at,
       revision_cooldown_until: row.revision_cooldown_until,
     });
-    try {
-      const token = await getPreferredBffBearer();
-      await fetch(bffUrl(`/api/manuscripts/${encodeURIComponent(row.id)}/touch`), {
-        method: "POST",
-        ...bffCredentials,
-        headers: { ...bffAuthHeaders(token) },
-      });
-    } catch {
-      /* non-fatal: active-manuscript ordering best-effort */
-    }
   };
 
   const selectValue = selection?.manuscriptId ?? "";
@@ -120,7 +115,7 @@ export function ManuscriptSelector() {
           <select
             className="w-full max-w-md rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-600"
             value={selectValue}
-            onChange={onChange}
+            onChange={(e) => void onChange(e)}
           >
             <option value="">— Choose —</option>
             {rows.map((r) => (

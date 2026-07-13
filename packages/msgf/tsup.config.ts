@@ -57,6 +57,7 @@ export const clientSdkEntries = {
 /** Server / BFF — minified JS + stub .d.ts from scripts/generate-server-dts.mjs */
 export const serverSdkEntries = {
   "connector/server": "lib/connector/server.ts",
+  "lib/services/document-compiler/index": "lib/services/document-compiler/index.ts",
   onboarding: "lib/msgf-onboarding.ts",
   remediation: "lib/services/RemediationEngine.ts",
   "hal-author-bridge": "lib/hal-author-bridge.ts",

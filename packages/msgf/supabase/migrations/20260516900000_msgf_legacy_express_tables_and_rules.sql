@@ -131,6 +131,19 @@ INSERT INTO public.msgf_legacy_tiers (
 )
 ON CONFLICT (name) DO NOTHING;
 
+-- p4_profiles.tier_id FK (p4_profiles is created before msgf_legacy_tiers in 20260514140000).
+DO $$
+BEGIN
+  IF to_regclass('public.p4_profiles') IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM pg_constraint WHERE conname = 'p4_profiles_tier_id_fkey'
+     ) THEN
+    ALTER TABLE public.p4_profiles
+      ADD CONSTRAINT p4_profiles_tier_id_fkey
+      FOREIGN KEY (tier_id) REFERENCES public.msgf_legacy_tiers (tier_id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.msgf_legacy_users (
   user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username VARCHAR(50) UNIQUE NOT NULL,

@@ -128,6 +128,7 @@ function SeriesBoardMenu(props: {
   seriesId: string;
   seriesTitle: string;
   onChanged: () => void;
+  apiJson: (path: string, init?: RequestInit) => Promise<{ error?: string }>;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -137,7 +138,7 @@ function SeriesBoardMenu(props: {
     if (!next || next === props.seriesTitle) return;
     setBusy(true);
     try {
-      await apiJson(`/api/series/${encodeURIComponent(props.seriesId)}`, {
+      await props.apiJson(`/api/series/${encodeURIComponent(props.seriesId)}`, {
         method: "PATCH",
         body: JSON.stringify({ title: next }),
       });
@@ -160,7 +161,7 @@ function SeriesBoardMenu(props: {
     }
     setBusy(true);
     try {
-      await apiJson(`/api/series/${encodeURIComponent(props.seriesId)}`, { method: "DELETE" });
+      await props.apiJson(`/api/series/${encodeURIComponent(props.seriesId)}`, { method: "DELETE" });
       props.onChanged();
     } catch (e) {
       window.alert(e instanceof Error ? e.message : String(e));
@@ -215,16 +216,18 @@ function KanbanBoard(props: {
   onFinishRevisions: (row: HubManuscript) => void;
   seriesId?: string;
   onSeriesChanged?: () => void;
+  apiJson?: (path: string, init?: RequestInit) => Promise<{ error?: string }>;
 }) {
   return (
     <section className="space-y-2">
       <div className="flex items-center gap-2">
         <h3 className="text-sm font-semibold text-zinc-200">{props.title}</h3>
-        {props.seriesId && props.onSeriesChanged ? (
+        {props.seriesId && props.onSeriesChanged && props.apiJson ? (
           <SeriesBoardMenu
             seriesId={props.seriesId}
             seriesTitle={props.title.replace(/^Series · /, "")}
             onChanged={props.onSeriesChanged}
+            apiJson={props.apiJson}
           />
         ) : null}
       </div>
@@ -303,10 +306,16 @@ export function ManuscriptHub() {
     return json;
   };
 
+  const selectionFromRow = (row: HubManuscript) => {
+    const seriesTitle =
+      hub?.series.find((s) => s.series.id === row.series_id)?.series.title ?? null;
+    return { ...hubRowToSelection(row), seriesTitle };
+  };
+
   const onSelectProject = (row: HubManuscript) => {
     if (selection?.manuscriptId === row.id) return;
     if (!selection) {
-      void activate(hubRowToSelection(row));
+      void activate(selectionFromRow(row));
       return;
     }
     setPendingSwitch(row);
@@ -314,7 +323,7 @@ export function ManuscriptHub() {
 
   const confirmSwitch = () => {
     if (!pendingSwitch) return;
-    void activate(hubRowToSelection(pendingSwitch));
+    void activate(selectionFromRow(pendingSwitch));
     setPendingSwitch(null);
   };
 
@@ -488,7 +497,7 @@ export function ManuscriptHub() {
               onStatusChange={() => void load()}
             />
           ) : null}
-          <PlanningSessionProvider manuscriptId={selection.manuscriptId}>
+          <PlanningSessionProvider key={selection.manuscriptId} manuscriptId={selection.manuscriptId}>
             <div className="grid gap-4 lg:grid-cols-3">
               <DocumentIngestFlow
                 slot="world_bible"
@@ -565,6 +574,7 @@ export function ManuscriptHub() {
               title={`Series · ${series.title}`}
               seriesId={series.id}
               onSeriesChanged={() => void load()}
+              apiJson={apiJson}
               columns={columns}
               activeId={activeId}
               onSelect={onSelectProject}

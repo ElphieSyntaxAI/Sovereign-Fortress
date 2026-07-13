@@ -15,6 +15,12 @@ export default function WikiPage() {
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
+    setFanPreview(false);
+    setWikiEditable(true);
+    setStatus(null);
+  }, [selection?.manuscriptId]);
+
+  useEffect(() => {
     if (!selection?.manuscriptId) return;
     void (async () => {
       try {
@@ -102,7 +108,7 @@ export default function WikiPage() {
       ) : null}
 
       {selection ? (
-        <WikiDraftProvider manuscriptId={selection.manuscriptId}>
+        <WikiDraftProvider key={selection.manuscriptId} manuscriptId={selection.manuscriptId}>
           <WikiAuthorView
             manuscriptId={selection.manuscriptId}
             tenantId={selection.tenantId}

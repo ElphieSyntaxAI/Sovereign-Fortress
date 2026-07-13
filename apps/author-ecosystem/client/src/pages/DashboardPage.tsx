@@ -73,7 +73,11 @@ function DashboardInner() {
             }}
           >
             <main className="space-y-10">
-              <PlanningCommandCenter manuscriptId={selection.manuscriptId} tenantId={selection.tenantId} />
+              <PlanningCommandCenter
+                key={selection.manuscriptId}
+                manuscriptId={selection.manuscriptId}
+                tenantId={selection.tenantId}
+              />
               <HALTracker />
             </main>
           </CoolDownLock>

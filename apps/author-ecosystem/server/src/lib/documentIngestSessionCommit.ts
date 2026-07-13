@@ -183,6 +183,12 @@ export async function executeDocumentIngestSessionCommit(
     const semanticRegions = Array.isArray(msgf.semantic_regions)
       ? (msgf.semantic_regions as import("./narrative/semanticChunking.js").SemanticRegion[])
       : undefined;
+    const compilerState =
+      msgf.compiler_state &&
+      typeof msgf.compiler_state === "object" &&
+      (msgf.compiler_state as { version?: string }).version === "3-pass-v1"
+        ? (msgf.compiler_state as import("./documentIngestMultiPassCompiler.js").DocumentIngestCompilerState)
+        : undefined;
 
     const result = await commitDocumentIngestToBackend({
       supabase,
@@ -196,6 +202,7 @@ export async function executeDocumentIngestSessionCommit(
       syncMsgfBrain:
         params.syncMsgfBrain === true || process.env.MSGF_DOCUMENT_INGEST_SYNC_BRAIN === "1",
       semanticRegions,
+      compilerState,
     });
 
     await supabase

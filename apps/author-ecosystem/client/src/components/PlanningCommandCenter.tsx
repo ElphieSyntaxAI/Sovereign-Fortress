@@ -503,7 +503,7 @@ export function PlanningCommandCenter(props: PlanningCommandCenterProps) {
     return <PlanningCommandCenterInner {...props} />;
   }
   return (
-    <PlanningSessionProvider>
+    <PlanningSessionProvider manuscriptId={props.manuscriptId}>
       <PlanningCommandCenterInner {...props} />
     </PlanningSessionProvider>
   );

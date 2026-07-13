@@ -69,9 +69,52 @@ export function hasRevisionCooldownLock(row: HubManuscript): boolean {
 export function hubRowToSelection(row: HubManuscript) {
   return {
     manuscriptId: row.id,
+    tenantId: row.tenant_id,
     title: row.title,
-    projectPhase: normalizePhase(row.project_phase),
+    seriesId: row.series_id ?? null,
+    revision_status: row.revision_status,
+    cooldown_revision_status: row.cooldown_revision_status,
+    locked_until: row.locked_until,
+    lock_expires_at: row.lock_expires_at,
+    revision_cooldown_until: row.revision_cooldown_until,
   };
+}
+
+/** Flat list of books for nav switcher, grouped by series / standalone. */
+export type HubProjectGroup = {
+  seriesId: string | null;
+  seriesTitle: string | null;
+  books: HubManuscript[];
+};
+
+export function hubPayloadToProjectGroups(hub: ManuscriptHubPayload): HubProjectGroup[] {
+  const groups: HubProjectGroup[] = [];
+
+  for (const { series, columns } of hub.series) {
+    const books = [...columns.working, ...columns.editing, ...columns.finished];
+    if (books.length === 0) continue;
+    groups.push({
+      seriesId: series.id,
+      seriesTitle: series.title,
+      books,
+    });
+  }
+
+  const standalone = [
+    ...hub.standalone.working,
+    ...hub.standalone.editing,
+    ...hub.standalone.finished,
+    ...hub.unlinked,
+  ];
+  if (standalone.length > 0) {
+    groups.push({
+      seriesId: null,
+      seriesTitle: null,
+      books: standalone,
+    });
+  }
+
+  return groups;
 }
 
 /** Locate a manuscript row anywhere in the hub payload (linked or unlinked). */

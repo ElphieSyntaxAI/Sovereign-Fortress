@@ -53,6 +53,12 @@
       "import": "./dist/connector/server.js",
       "default": "./dist/connector/server.js"
     },
+    "./lib/services/document-compiler": {
+      "types": "./dist/lib/services/document-compiler/index.d.ts",
+      "development": "./lib/services/document-compiler/index.ts",
+      "import": "./dist/lib/services/document-compiler/index.js",
+      "default": "./dist/lib/services/document-compiler/index.js"
+    },
     "./connector/MsgfBridge": {
       "types": "./dist/connector/MsgfBridge.d.ts",
       "development": "./lib/connector/MsgfBridge.ts",

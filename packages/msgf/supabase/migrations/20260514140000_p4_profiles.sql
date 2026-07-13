@@ -13,7 +13,8 @@ create table if not exists public.p4_profiles (
   user_id uuid primary key references auth.users (id) on delete cascade,
   legacy_user_id uuid unique,
   username text not null,
-  tier_id integer references public.msgf_legacy_tiers (tier_id) on delete set null,
+  -- FK to msgf_legacy_tiers added in 20260516900000 (tiers table is created later).
+  tier_id integer,
   user_role text not null default 'fan',
   preferred_theme text not null default 'Pleasure',
   migrated_at timestamptz not null default now(),

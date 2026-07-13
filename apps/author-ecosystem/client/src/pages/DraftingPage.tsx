@@ -15,7 +15,7 @@ export default function DraftingPage() {
         description="Link a Google Doc, write there with HAL — velocity and sessions appear below"
       />
       {selection ? (
-        <CreativeManuscriptShell>
+        <CreativeManuscriptShell key={selection.manuscriptId}>
           <DraftingHalSetupPanel manuscriptId={selection.manuscriptId} />
           <BrainPillarHealth pollIntervalMs={20_000} lookbackHours={168} />
           <DashboardModePanel

@@ -233,6 +233,81 @@ export class MsgfBridge {
     return parseIngestApiResponse(raw);
   }
 
+  /** Run 3-pass document compiler scan (external hookups — Dealstar, etc.). */
+  async documentCompilerScan(params: {
+    text: string;
+    domainProfile?: "author_narrative" | "education_curriculum" | "generic";
+    projectOrigin?: string;
+    slot?: "world_bible" | "current_draft" | "character_sheet";
+    manuscriptId?: string;
+    subjectDomain?: "ela" | "history" | "math" | "science" | "general";
+    filename?: string;
+  }): Promise<Record<string, unknown>> {
+    assertTenantId(this.tenantId, "MsgfBridge.documentCompilerScan");
+    const url = `${this.baseUrl}/api/msgf/document-compiler/scan`;
+    const res = await this.fetchImpl(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...licenseBearerHeaders(this.licenseKey, { [MSGF_TENANT_ID_HEADER]: this.tenantId }),
+      },
+      credentials: this.credentials,
+      body: JSON.stringify({
+        text: params.text,
+        domain_profile: params.domainProfile ?? "generic",
+        tenant_id: this.tenantId,
+        project_origin: params.projectOrigin,
+        slot: params.slot,
+        manuscript_id: params.manuscriptId,
+        subject_domain: params.subjectDomain,
+        filename: params.filename,
+      }),
+    });
+    const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) {
+      const detail =
+        typeof raw.error === "string" ? raw.error : `Document compiler scan failed (${res.status}).`;
+      throw new Error(detail);
+    }
+    return raw;
+  }
+
+  /** DEFEND-guarded document compiler commit for a prior scan session. */
+  async documentCompilerCommit(params: {
+    sessionId: string;
+    proposed?: Array<Record<string, unknown>>;
+    outlineBeats?: Array<Record<string, unknown>>;
+    forceCommit?: boolean;
+  }): Promise<Record<string, unknown>> {
+    assertTenantId(this.tenantId, "MsgfBridge.documentCompilerCommit");
+    const url = `${this.baseUrl}/api/msgf/document-compiler/commit`;
+    const res = await this.fetchImpl(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...licenseBearerHeaders(this.licenseKey, { [MSGF_TENANT_ID_HEADER]: this.tenantId }),
+      },
+      credentials: this.credentials,
+      body: JSON.stringify({
+        session_id: params.sessionId,
+        proposed: params.proposed,
+        outline_beats: params.outlineBeats,
+        force_commit: params.forceCommit,
+      }),
+    });
+    const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) {
+      const detail =
+        typeof raw.error === "string"
+          ? raw.error
+          : typeof raw.reason === "string"
+            ? raw.reason
+            : `Document compiler commit failed (${res.status}).`;
+      throw new Error(detail);
+    }
+    return raw;
+  }
+
   /** True when {@link IngestResult.readiness_score} is 100 (Brain fully initialized). */
   isBrainReady(result: Pick<IngestResult, "readiness_score" | "brain_fully_initialized">): boolean {
     return result.brain_fully_initialized || result.readiness_score >= 100;
