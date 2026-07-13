@@ -218,6 +218,114 @@ function checkCitation(payload) {
   });
 }
 
+var MSGF_ASSIGNMENT_INSTANCE_PROPERTY = "MSGF_ASSIGNMENT_INSTANCE_ID";
+
+function getAssignmentInstanceId_() {
+  var props = PropertiesService.getUserProperties();
+  return props.getProperty(MSGF_ASSIGNMENT_INSTANCE_PROPERTY) || "";
+}
+
+/**
+ * HAL Lite — measure Docs body length delta and POST to /api/msgf/education/hal-lite.
+ */
+function pushHalLiteDelta(_payload) {
+  var cfg = getMsgfConfig_();
+  var instanceId = getAssignmentInstanceId_();
+  if (!instanceId) return { ok: false, error: "missing_assignment_instance_id" };
+
+  var text = "";
+  try {
+    if (typeof DocumentApp !== "undefined" && DocumentApp.getActiveDocument()) {
+      text = DocumentApp.getActiveDocument().getBody().getText() || "";
+    }
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+
+  var cache = CacheService.getUserCache();
+  var cacheKey = "HAL_LITE_LAST_CHARS:" + instanceId;
+  var lastRaw = cache ? cache.get(cacheKey) : null;
+  var lastChars = lastRaw != null ? Number(lastRaw) : text.length;
+  var delta = text.length - lastChars;
+  if (cache) cache.put(cacheKey, String(text.length), 21600);
+
+  if (delta <= 0) {
+    return { ok: true, docChars: text.length, delta: delta, confidence: null };
+  }
+
+  var url = cfg.baseUrl.replace(/\/+$/, "") + "/api/msgf/education/hal-lite";
+  var res = msgfFetch_(url, "POST", {
+    assignmentInstanceId: instanceId,
+    deltaChars: delta,
+    matchingKeystrokeCount: 0,
+    activeWritingSecondsDelta: 0,
+  });
+  var confidence =
+    res &&
+    res.instance &&
+    res.instance.hal_lite_metrics &&
+    res.instance.hal_lite_metrics.human_effort_confidence_score;
+  return {
+    ok: res && res.ok !== false,
+    docChars: text.length,
+    delta: delta,
+    pasteWarning: res && res.pasteWarning,
+    confidence: confidence,
+    error: res && res.error,
+  };
+}
+
+/**
+ * Structural Milestone Gate against current Docs body text.
+ */
+function runMilestoneCheck(_payload) {
+  var cfg = getMsgfConfig_();
+  var instanceId = getAssignmentInstanceId_();
+  if (!instanceId) return { ok: false, error: "missing_assignment_instance_id" };
+
+  var text = "";
+  try {
+    if (typeof DocumentApp !== "undefined" && DocumentApp.getActiveDocument()) {
+      text = DocumentApp.getActiveDocument().getBody().getText() || "";
+    }
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+
+  var url = cfg.baseUrl.replace(/\/+$/, "") + "/api/msgf/education/milestone-check";
+  return msgfFetch_(url, "POST", {
+    assignmentInstanceId: instanceId,
+    documentText: text.slice(0, 200000),
+  });
+}
+
+/**
+ * Turn-In Lockout — Author Cool Down → EDU_SUBMITTED_LOCK.
+ */
+function submitTurnIn(_payload) {
+  var cfg = getMsgfConfig_();
+  var instanceId = getAssignmentInstanceId_();
+  if (!instanceId) return { ok: false, error: "missing_assignment_instance_id" };
+
+  var url = cfg.baseUrl.replace(/\/+$/, "") + "/api/msgf/education/assignment-instance";
+  var res = msgfFetch_(url, "PATCH", {
+    action: "submit",
+    assignmentInstanceId: instanceId,
+  });
+
+  if (res && res.ok && res.turnInLockout) {
+    try {
+      if (typeof DocumentApp !== "undefined" && DocumentApp.getActiveDocument()) {
+        // Best-effort local hint; Classroom permissions own true lock.
+        DocumentApp.getUi().alert(
+          "Turned in. Your teacher can still review; further edits may be blocked by Classroom."
+        );
+      }
+    } catch (e) {}
+  }
+  return res;
+}
+
 /**
  * Universal-action handler — mints a citation anchor for the active selection in the host doc.
  */

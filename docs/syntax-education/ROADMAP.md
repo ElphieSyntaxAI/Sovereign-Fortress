@@ -1,7 +1,7 @@
 # Syntax Education — Product Roadmap
 
 **Status:** Delivery tracker aligned to MSGF P1–P6 and phased master spec.  
-**Last updated:** 2026-05-18
+**Last updated:** 2026-07-13
 
 | Document | Purpose |
 | :--- | :--- |
@@ -12,7 +12,10 @@
 
 **Production URL (target):** https://syntaxeducates.elphiesyntax.com  
 **Repo:** `apps/syntax-educates/` · **MSGF tenant:** `tenant_education` / `syntax_education`  
-**Login (platform matrix):** Education tab — **Coming Soon** on apex until Phase 1 auth ships.
+**Login (platform matrix):** Education tab — **Coming Soon** on apex until Phase 1 auth ships.  
+**Launch hosts:** **Google Classroom first**, Canvas LTI second.  
+**Student surface:** Google Docs / Slides / Sheets (Author SSoT lite) — native sandbox is fallback only.  
+**Grade focus:** 4th grade+ (K–3 print / light path later).
 
 ---
 
@@ -20,30 +23,49 @@
 
 | Area | Status | Notes |
 | :--- | :--- | :--- |
-| Vite shell (`apps/syntax-educates`) | 🟡 Scaffold | Placeholder login UI only |
+| Vite shell (`apps/syntax-educates`) | 🟡 Scaffold → wiring | Teacher board + allowance live against MSGF APIs |
 | MSGF tenant manifest | 🟢 Present | `tenant_education` in `packages/msgf/config/tenant-manifest.json` |
-| Platform login personas | 🟡 Defined | Student / Teacher / Admin IT in `platform-persona-auth.ts`; sign-in gated |
-| Shared Supabase / `p4_profiles` | 🟢 Shared | Same brain as Author/MSGF; education entitlement path TBD |
-| HAL / "The Call" in education UI | 🔴 Not started | Reuse Author extension patterns + in-sandbox hooks (P4) |
-| Socratic sandbox dual-pane | 🔴 Not started | Phase 1 MVP |
-| Curriculum RAG (district PDF) | 🔴 Not started | MSGF ingest + P6 shard (Author RAG is reference) |
-| Canvas LTI 1.3 | 🔴 Not started | Phase 1 MVP |
-| Parent / teacher dashboards | 🔴 Not started | Phase 2–3 |
-| Utah S.B. 149 / H.B. 273 gates | 🔴 Not started | P1 policy pack for education |
+| Platform login personas | 🟡 Defined | Student / Teacher / Admin IT; real Classroom OAuth still next |
+| Shared Supabase / `p4_profiles` | 🟢 Shared | Same brain as Author/MSGF |
+| HAL Lite (Author HAL → classroom) | 🟢 Modules + API | `hal-lite.ts`, `/api/msgf/education/hal-lite`, Docs sidebar sync |
+| Milestone Gate (Bicameral lite) | 🟢 Modules + API | CER / outline / explain-solution; `/milestone-check` |
+| Turn-In Lockout (Cool Down lite) | 🟢 State machine | `EDU_SUBMITTED_LOCK` on `education_assignment_instances` |
+| Teacher Classroom Board | 🟢 API + UI | Publisher Hub lite — cohort trends, no raw drafts |
+| Classroom launch | 🟢 API | `/api/education/classroom/launch` privacy vault + instance |
+| Curriculum RAG / catalog | 🟡 Present | Ingest + catalog paths; teacher lesson builder UX next |
+| Canvas LTI 1.3 | 🟡 Present | Secondary host after Classroom |
+| Google Workspace add-on | 🟡 HAL Lite hooks | Sidebar sync / milestone / turn-in |
+| Utah S.B. 149 / H.B. 273 gates | 🟡 Policy pack | Wire into live Docs path next |
+| Parent dashboard | 🔴 Phase 2 | |
 
 ---
 
 ## 2. Phase overview
 
 ```
-Phase 1 (MVP)          Phase 2                    Phase 3
-─────────────────      ─────────────────────      ─────────────────────────
-ELA/History sandbox    Math step tracker          K–3 print hub (H.B. 273)
-The Call → P4          Science lab RAG            Gamified practice (P6 index)
-Socratic tutor         Parent dashboard           Admin legal dashboard (P1)
-Canvas LTI → P3        Subject models (P5/P6)   District scale / UDL
-Static curriculum RAG  Cohort dual-model alerts   State lab launch
+Phase 1 (MVP)                    Phase 2                      Phase 3
+─────────────────                ─────────────────────        ─────────────────────────
+Classroom + Docs (HAL Lite)      M365 add-in parity           K–3 print hub (H.B. 273)
+Admin books → teacher lessons    Parent digest                Gamified practice (P6)
+Socratic + strength bridge       Sheets numeric telemetry     Admin legal dashboard
+Milestone Gate + Turn-In Lock    Dual-model cohort alerts     State lab launch
+Teacher Classroom Board          Subject models as bricks     UDL / district scale
+Canvas LTI secondary
 ```
+
+---
+
+## 2b. Author SSoT → Education vectors
+
+| Author Core | Education vector | Behavior |
+| :--- | :--- | :--- |
+| HAL Ledger | HAL Lite / Human Effort Signal | Paste + velocity in Docs sidebar |
+| Vault Seal | Student Privacy Gate | FERPA/COPPA; anon token |
+| Cool Down Lock | Turn-In Lockout | Read-only after Classroom submit |
+| Bicameral Audit | Milestone Gate | CER / outline structure before Socratic |
+| Publisher Hub | Teacher Classroom Board | Cohort trends; no raw text |
+
+State map: `STATE_SOVEREIGN`→`EDU_ACTIVE_DRAFTING`, `STATE_AUDIT`→`EDU_MILESTONE_CHECKING`, `STATE_COOLDOWN`→`EDU_SUBMITTED_LOCK`.
 
 ---
 
@@ -180,11 +202,12 @@ These deltas are intentional in this roadmap so Cursor indexes **one** pillar tr
 
 ## 8. Success metrics (Phase 1 exit)
 
-- [ ] Student completes Utah disclosure (P1) before first keystroke (P4).
-- [ ] Teacher assigns AI Allowance level; L3 blocks tutor responses (P1/P2).
-- [ ] Sandbox captures ≥1 HAL session with paste detection (P4 → P6).
-- [ ] Tutor answers only from ingested chapter shards (P6); zero direct-answer violations in test suite (P2/P6).
-- [ ] Canvas LTI launches sandbox and receives effort token (P3/P6).
+- [ ] Admin uploads grade-tagged book; teacher builds lesson slice + milestone template; assigns via Classroom.
+- [ ] Student opens Docs add-on; Utah disclosure passes; HAL Lite records; large paste → `PASTE_INJECTION`.
+- [ ] Milestone Gate can enter `EDU_MILESTONE_CHECKING`; tutor uses ≥1 Vault strength; both recorded.
+- [ ] Classroom submit → `EDU_SUBMITTED_LOCK` (Turn-In Lockout).
+- [ ] Teacher Classroom Board shows cohort strengths/issues / paste spikes — no raw drafts.
+- [ ] Canvas LTI launch works as secondary smoke path.
 - [ ] `tenant_education` passes `bootstrapTenantBrain` / pillar baseline probe.
 
 ---
@@ -193,6 +216,7 @@ These deltas are intentional in this roadmap so Cursor indexes **one** pillar tr
 
 | Date | Change |
 | :--- | :--- |
+| 2026-07-13 | Classroom-first + Docs host; Author→Edu HAL Lite / Milestone / Turn-In / Classroom Board; assignment instances migration |
 | 2026-05-18 | Initial roadmap; feature–pillar matrix; HAL on P4 per MSGF SSOT |
 | 2026-05-18 | Phase 2/3 expansion: Google Workspace add-on, MS 365 add-in, focus monitor, embedded research portal, Citation Hall Engine; aligned to pillars §3 / §2.4.1 / §2.6.1 |
 | 2026-05-18 | Phase 2/3 expansion: admin curriculum catalog + recommendation engine, teacher slicing widget (`resource_context_id`), Socratic boundary sync, reading dependency trigger; aligned to masterdoc §4 + pillars §2.1.4 / §2.2.1 |

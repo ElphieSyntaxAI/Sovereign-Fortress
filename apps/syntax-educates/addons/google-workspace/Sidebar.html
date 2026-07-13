@@ -35,6 +35,7 @@
     <div class="row">
       <span class="stat" id="focusStat">focused</span>
       <span class="stat" id="ecosystemStat">GOOGLE_EDIT</span>
+      <span class="stat ok" id="halStat">HAL Lite</span>
     </div>
 
     <h2>Active session</h2>
@@ -42,6 +43,21 @@
       <span>Active time:</span>
       <span class="stat ok" id="activeTime">0s</span>
     </div>
+    <div class="row">
+      <span>Effort:</span>
+      <span class="stat ok" id="confidenceStat">—</span>
+    </div>
+    <div class="row" id="pasteWarnRow" style="display:none">
+      <span class="stat warn" id="pasteWarn">PASTE_INJECTION</span>
+    </div>
+
+    <h2>Document check</h2>
+    <div class="row">
+      <button id="syncDocBtn" type="button">Sync doc length (HAL Lite)</button>
+      <button id="milestoneBtn" type="button">Check milestones</button>
+      <button id="submitBtn" type="button">Turn in (lock)</button>
+    </div>
+    <div class="footer" id="halResult">HAL Lite idle.</div>
 
     <h2>Embedded Research Portal</h2>
     <div class="row">
@@ -152,6 +168,77 @@
           });
       });
       document.body.appendChild(pasteButton);
+
+      // ---- HAL Lite (document length deltas + milestone / turn-in) ----
+      var lastDocChars = null;
+      var PASTE_THRESHOLD = 120;
+
+      function showHalResult(msg, warn) {
+        document.getElementById("halResult").textContent = msg;
+        document.getElementById("pasteWarnRow").style.display = warn ? "flex" : "none";
+      }
+
+      document.getElementById("syncDocBtn").addEventListener("click", function () {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || res.ok === false) {
+              showHalResult("HAL Lite sync failed: " + ((res && res.error) || "unknown"), true);
+              return;
+            }
+            var chars = typeof res.docChars === "number" ? res.docChars : 0;
+            var delta = lastDocChars == null ? 0 : chars - lastDocChars;
+            lastDocChars = chars;
+            if (delta > PASTE_THRESHOLD) {
+              showHalResult("PASTE_INJECTION flagged (+" + delta + " chars). Confidence updated.", true);
+            } else {
+              showHalResult("Synced doc length " + chars + " (Δ " + delta + ").", false);
+            }
+            if (res.confidence != null) {
+              document.getElementById("confidenceStat").textContent =
+                Math.round(Number(res.confidence) * 100) + "%";
+            }
+          })
+          .withFailureHandler(function (err) {
+            showHalResult("HAL Lite error: " + err, true);
+          })
+          .pushHalLiteDelta({});
+      });
+
+      document.getElementById("milestoneBtn").addEventListener("click", function () {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || res.ok === false) {
+              showHalResult("Milestone check failed: " + ((res && res.error) || "unknown"), true);
+              return;
+            }
+            var incomplete = (res.check && res.check.incompleteSteps) || [];
+            var label =
+              incomplete.length === 0
+                ? "Milestones complete — Socratic unlocked."
+                : "Still need: " + incomplete.map(function (s) { return s.label; }).join(", ");
+            showHalResult(label, incomplete.length > 0);
+          })
+          .withFailureHandler(function (err) {
+            showHalResult("Milestone error: " + err, true);
+          })
+          .runMilestoneCheck({});
+      });
+
+      document.getElementById("submitBtn").addEventListener("click", function () {
+        if (!window.confirm("Turn in this assignment? Your document will become read-only.")) return;
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || res.ok === false) {
+              showHalResult("Submit failed: " + ((res && res.error) || "unknown"), true);
+              return;
+            }
+            showHalResult("Turn-In Lockout active — document is read-only.", false);
+          })
+          .withFailureHandler(function (err) {
+            showHalResult("Submit error: " + err, true);
+          })
+          .submitTurnIn({});
+      });
 
       function cryptoRandomId() {
         if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();

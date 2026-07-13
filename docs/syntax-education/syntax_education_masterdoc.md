@@ -35,13 +35,14 @@ This roadmap outlines the structural implementation plan for deploying the state
 
 ### Phase 1: The Core MVP
 
-- **Engineering target:** Native key-up/key-down telemetry hook (**"The Call"**) in the composition sandbox workspace.
-- **Domain focus:** Middle school (grades 6–8) English/Language Arts (ELA) and History descriptive compositions.
+- **Engineering target:** Classroom-first launch into **Google Docs** with **HAL Lite** (Author HAL → classroom Human Effort Signal), Milestone Gate, and Turn-In Lockout.
+- **Domain focus:** Grades **4+**, subject-agnostic writing grounded in **admin-uploaded school books** and teacher lesson slices (rule bricks). ELA/History/Science/Math explanations all use the same Docs host.
 - **Feature set:**
-  - **The Socratic Sandbox:** Dual-pane layout — left: multi-modal editing workspace; right: Socratic Tutor terminal.
-  - **Static context RAG:** Context window isolated to district-uploaded curriculum (single chapter/workbook PDF) sharded into the **1.1.1 genealogical tree** (MSGF P6 cold layer).
-  - **The Baseline HAL Ledger:** Captures typing intervals ($D_{down}$, $I_{flight}$) → Human Effort Score; defends against block-pasting.
-  - **Canvas LTI 1.3 handshake:** SSO and gradebook payload delivery to SpeedGrader.
+  - **Google Workspace composition:** Docs / Slides sidebar — not a proprietary sandbox as the day-1 path.
+  - **HAL Lite + Milestone Gate + Turn-In Lockout:** Author SSoT lite vectors (see ROADMAP §2b).
+  - **Static context RAG:** District-uploaded curriculum sliced by teacher `resource_context_id` (P6).
+  - **Teacher Classroom Board:** Cohort strengths / bottlenecks / paste spikes (Publisher Hub lite).
+  - **Canvas LTI 1.3:** Secondary SSO / gradebook path after Classroom.
 
 ### Phase 2: Cross-curricular expansion
 

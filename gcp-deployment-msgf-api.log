@@ -2,3 +2,2533 @@ Using Python for Google Cloud CLI: /c/Users/jessi/AppData/Local/Python/pythoncor
 
 === MSGF — Cloud Build + Cloud Run deploy ===
 
+Using project: msgf-shield
+Setting active gcloud project...
+Updated property [core/project].
+
+Ensuring default Compute Engine SA can access Secret Manager secrets...
+bindings:
+- members:
+  - serviceAccount:vertex-express@msgf-shield.iam.gserviceaccount.com
+  role: roles/aiplatform.expressUser
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-aiplatform.iam.gserviceaccount.com
+  role: roles/aiplatform.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/aiplatform.user
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-artifactregistry.iam.gserviceaccount.com
+  role: roles/artifactregistry.serviceAgent
+- members:
+  - serviceAccount:504003558298@cloudbuild.gserviceaccount.com
+  role: roles/artifactregistry.writer
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-cloudaicompanion.iam.gserviceaccount.com
+  role: roles/cloudaicompanion.serviceAgent
+- members:
+  - serviceAccount:504003558298@cloudbuild.gserviceaccount.com
+  role: roles/cloudbuild.builds.builder
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-cloudbuild.iam.gserviceaccount.com
+  role: roles/cloudbuild.serviceAgent
+- members:
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/cloudsql.client
+- members:
+  - serviceAccount:504003558298@cloudservices.gserviceaccount.com
+  role: roles/compute.instanceGroupManagerServiceAgent
+- members:
+  - serviceAccount:service-504003558298@compute-system.iam.gserviceaccount.com
+  role: roles/compute.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@container-engine-robot.iam.gserviceaccount.com
+  role: roles/container.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@containerregistry.iam.gserviceaccount.com
+  role: roles/containerregistry.ServiceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  - serviceAccount:504003558298@cloudservices.gserviceaccount.com
+  role: roles/editor
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-notebooks.iam.gserviceaccount.com
+  role: roles/notebooks.serviceAgent
+- members:
+  - user:elphiesyntax@gmail.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/owner
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-pubsub.iam.gserviceaccount.com
+  role: roles/pubsub.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@cloud-redis.iam.gserviceaccount.com
+  role: roles/redis.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@serverless-robot-prod.iam.gserviceaccount.com
+  role: roles/run.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  role: roles/secretmanager.secretAccessor
+- members:
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/serviceusage.serviceUsageConsumer
+- members:
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/storage.objectAdmin
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-vpcaccess.iam.gserviceaccount.com
+  role: roles/vpcaccess.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  role: roles/vpcaccess.user
+etag: BwZWhDO1gN0=
+version: 1
+
+Enabling required APIs...
+Operation "operations/acat.p2-504003558298-d9f760c6-fa79-458d-88ad-0add66d14426" finished successfully.
+
+Ensuring Serverless VPC Access connector 'msgf-connector' (us-central1, 10.8.0.0/28)...
+Connector already exists.
+
+Ensuring Artifact Registry repo 'msgf' (us-central1)...
+createTime: '2026-05-15T23:57:46.759524Z'
+description: MSGF container images
+format: DOCKER
+mode: STANDARD_REPOSITORY
+name: projects/msgf-shield/locations/us-central1/repositories/msgf
+registryUri: us-central1-docker.pkg.dev/msgf-shield/msgf
+satisfiesPzi: true
+updateTime: '2026-06-30T04:15:03.822286Z'
+vulnerabilityScanningConfig:
+  enablementState: SCANNING_DISABLED
+  enablementStateReason: API containerscanning.googleapis.com is not enabled.
+  lastEnableTime: '2026-05-15T23:57:38.219550809Z'
+Repository exists.
+bindings:
+- members:
+  - serviceAccount:vertex-express@msgf-shield.iam.gserviceaccount.com
+  role: roles/aiplatform.expressUser
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-aiplatform.iam.gserviceaccount.com
+  role: roles/aiplatform.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/aiplatform.user
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-artifactregistry.iam.gserviceaccount.com
+  role: roles/artifactregistry.serviceAgent
+- members:
+  - serviceAccount:504003558298@cloudbuild.gserviceaccount.com
+  role: roles/artifactregistry.writer
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-cloudaicompanion.iam.gserviceaccount.com
+  role: roles/cloudaicompanion.serviceAgent
+- members:
+  - serviceAccount:504003558298@cloudbuild.gserviceaccount.com
+  role: roles/cloudbuild.builds.builder
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-cloudbuild.iam.gserviceaccount.com
+  role: roles/cloudbuild.serviceAgent
+- members:
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/cloudsql.client
+- members:
+  - serviceAccount:504003558298@cloudservices.gserviceaccount.com
+  role: roles/compute.instanceGroupManagerServiceAgent
+- members:
+  - serviceAccount:service-504003558298@compute-system.iam.gserviceaccount.com
+  role: roles/compute.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@container-engine-robot.iam.gserviceaccount.com
+  role: roles/container.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@containerregistry.iam.gserviceaccount.com
+  role: roles/containerregistry.ServiceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  - serviceAccount:504003558298@cloudservices.gserviceaccount.com
+  role: roles/editor
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-notebooks.iam.gserviceaccount.com
+  role: roles/notebooks.serviceAgent
+- members:
+  - user:elphiesyntax@gmail.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/owner
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-pubsub.iam.gserviceaccount.com
+  role: roles/pubsub.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@cloud-redis.iam.gserviceaccount.com
+  role: roles/redis.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@serverless-robot-prod.iam.gserviceaccount.com
+  role: roles/run.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  role: roles/secretmanager.secretAccessor
+- members:
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/serviceusage.serviceUsageConsumer
+- members:
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/storage.objectAdmin
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-vpcaccess.iam.gserviceaccount.com
+  role: roles/vpcaccess.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  role: roles/vpcaccess.user
+etag: BwZWhDVPsn0=
+version: 1
+bindings:
+- members:
+  - serviceAccount:vertex-express@msgf-shield.iam.gserviceaccount.com
+  role: roles/aiplatform.expressUser
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-aiplatform.iam.gserviceaccount.com
+  role: roles/aiplatform.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/aiplatform.user
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-artifactregistry.iam.gserviceaccount.com
+  role: roles/artifactregistry.serviceAgent
+- members:
+  - serviceAccount:504003558298@cloudbuild.gserviceaccount.com
+  role: roles/artifactregistry.writer
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-cloudaicompanion.iam.gserviceaccount.com
+  role: roles/cloudaicompanion.serviceAgent
+- members:
+  - serviceAccount:504003558298@cloudbuild.gserviceaccount.com
+  role: roles/cloudbuild.builds.builder
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-cloudbuild.iam.gserviceaccount.com
+  role: roles/cloudbuild.serviceAgent
+- members:
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/cloudsql.client
+- members:
+  - serviceAccount:504003558298@cloudservices.gserviceaccount.com
+  role: roles/compute.instanceGroupManagerServiceAgent
+- members:
+  - serviceAccount:service-504003558298@compute-system.iam.gserviceaccount.com
+  role: roles/compute.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@container-engine-robot.iam.gserviceaccount.com
+  role: roles/container.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@containerregistry.iam.gserviceaccount.com
+  role: roles/containerregistry.ServiceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  - serviceAccount:504003558298@cloudservices.gserviceaccount.com
+  role: roles/editor
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-notebooks.iam.gserviceaccount.com
+  role: roles/notebooks.serviceAgent
+- members:
+  - user:elphiesyntax@gmail.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/owner
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-pubsub.iam.gserviceaccount.com
+  role: roles/pubsub.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@cloud-redis.iam.gserviceaccount.com
+  role: roles/redis.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@serverless-robot-prod.iam.gserviceaccount.com
+  role: roles/run.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  role: roles/secretmanager.secretAccessor
+- members:
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/serviceusage.serviceUsageConsumer
+- members:
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/storage.objectAdmin
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-vpcaccess.iam.gserviceaccount.com
+  role: roles/vpcaccess.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  role: roles/vpcaccess.user
+etag: BwZWhDWfPPo=
+version: 1
+bindings:
+- members:
+  - serviceAccount:vertex-express@msgf-shield.iam.gserviceaccount.com
+  role: roles/aiplatform.expressUser
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-aiplatform.iam.gserviceaccount.com
+  role: roles/aiplatform.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/aiplatform.user
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-artifactregistry.iam.gserviceaccount.com
+  role: roles/artifactregistry.serviceAgent
+- members:
+  - serviceAccount:504003558298@cloudbuild.gserviceaccount.com
+  role: roles/artifactregistry.writer
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-cloudaicompanion.iam.gserviceaccount.com
+  role: roles/cloudaicompanion.serviceAgent
+- members:
+  - serviceAccount:504003558298@cloudbuild.gserviceaccount.com
+  role: roles/cloudbuild.builds.builder
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-cloudbuild.iam.gserviceaccount.com
+  role: roles/cloudbuild.serviceAgent
+- members:
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/cloudsql.client
+- members:
+  - serviceAccount:504003558298@cloudservices.gserviceaccount.com
+  role: roles/compute.instanceGroupManagerServiceAgent
+- members:
+  - serviceAccount:service-504003558298@compute-system.iam.gserviceaccount.com
+  role: roles/compute.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@container-engine-robot.iam.gserviceaccount.com
+  role: roles/container.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@containerregistry.iam.gserviceaccount.com
+  role: roles/containerregistry.ServiceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  - serviceAccount:504003558298@cloudservices.gserviceaccount.com
+  role: roles/editor
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-notebooks.iam.gserviceaccount.com
+  role: roles/notebooks.serviceAgent
+- members:
+  - user:elphiesyntax@gmail.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/owner
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-pubsub.iam.gserviceaccount.com
+  role: roles/pubsub.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@cloud-redis.iam.gserviceaccount.com
+  role: roles/redis.serviceAgent
+- members:
+  - serviceAccount:service-504003558298@serverless-robot-prod.iam.gserviceaccount.com
+  role: roles/run.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  role: roles/secretmanager.secretAccessor
+- members:
+  - serviceAccount:msgf-shield@msgf-shield.iam.gserviceaccount.com
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/serviceusage.serviceUsageConsumer
+- members:
+  - user:jessicapickens@elphiesyntax.com
+  role: roles/storage.objectAdmin
+- members:
+  - serviceAccount:service-504003558298@gcp-sa-vpcaccess.iam.gserviceaccount.com
+  role: roles/vpcaccess.serviceAgent
+- members:
+  - serviceAccount:504003558298-compute@developer.gserviceaccount.com
+  role: roles/vpcaccess.user
+etag: BwZWhDXloms=
+version: 1
+Loading Cloud Run / build env from .env.cloudrun
+
+Building and pushing: us-central1-docker.pkg.dev/msgf-shield/msgf/msgf-api:cc47ea1
+Context: /c/Users/jessi/OneDrive/Desktop/ElphieSyntaxLLC  Dockerfile: Dockerfile
+Creating temporary archive of 1480 file(s) totalling 11.8 MiB before compression.
+Some files were not included in the source upload.
+
+Check the gcloud log [C:\Users\jessi\AppData\Roaming\gcloud\logs\2026.07.13\14.48.23.975737.log] to see which files and the contents of the
+default gcloudignore file used (see `$ gcloud topic gcloudignore` to learn
+more).
+
+Uploading tarball of [C:/Users/jessi/OneDrive/Desktop/ElphieSyntaxLLC] to [gs://msgf-shield_cloudbuild/source/1783975704.587778-677718fa79de4c76a7ffe26cc566254a.tgz]
+Created [https://cloudbuild.googleapis.com/v1/projects/msgf-shield/locations/global/builds/3e5d612c-7532-4e72-a587-e93ee2611e0b].
+Logs are available at [ https://console.cloud.google.com/cloud-build/builds/3e5d612c-7532-4e72-a587-e93ee2611e0b?project=504003558298 ].
+Waiting for build to complete. Polling interval: 1 second(s).
+----------------------------- REMOTE BUILD OUTPUT ------------------------------
+starting build "3e5d612c-7532-4e72-a587-e93ee2611e0b"
+
+FETCHSOURCE
+Fetching storage object: gs://msgf-shield_cloudbuild/source/1783975704.587778-677718fa79de4c76a7ffe26cc566254a.tgz#1783975710605378
+Copying gs://msgf-shield_cloudbuild/source/1783975704.587778-677718fa79de4c76a7ffe26cc566254a.tgz#1783975710605378...
+/ [0 files][    0.0 B/  3.5 MiB]                                                / [1 files][  3.5 MiB/  3.5 MiB]                                                
+Operation completed over 1 objects/3.5 MiB.
+BUILD
+Already have image (with digest): gcr.io/cloud-builders/docker
+Sending build context to Docker daemon  12.99MB
+Step 1/51 : FROM node:20-bookworm-slim AS deps
+20-bookworm-slim: Pulling from library/node
+ff86ea2e5edc: Pulling fs layer
+e54aec64c365: Pulling fs layer
+804d4d68057c: Pulling fs layer
+64cfb949317c: Pulling fs layer
+3c02fd806613: Pulling fs layer
+3c02fd806613: Verifying Checksum
+3c02fd806613: Download complete
+e54aec64c365: Download complete
+64cfb949317c: Verifying Checksum
+64cfb949317c: Download complete
+ff86ea2e5edc: Verifying Checksum
+ff86ea2e5edc: Download complete
+804d4d68057c: Verifying Checksum
+804d4d68057c: Download complete
+ff86ea2e5edc: Pull complete
+e54aec64c365: Pull complete
+804d4d68057c: Pull complete
+64cfb949317c: Pull complete
+3c02fd806613: Pull complete
+Digest: sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+Status: Downloaded newer image for node:20-bookworm-slim
+ ---> 9da6b4e352d0
+Step 2/51 : WORKDIR /app
+ ---> Running in 27445774a469
+Removing intermediate container 27445774a469
+ ---> 01979c7e6bfd
+Step 3/51 : ENV NEXT_TELEMETRY_DISABLED=1
+ ---> Running in c8337ac2f328
+Removing intermediate container c8337ac2f328
+ ---> 48a2653b200c
+Step 4/51 : RUN apt-get update   && apt-get install -y --no-install-recommends     ca-certificates     python3     make     g++   && rm -rf /var/lib/apt/lists/*
+ ---> Running in 4beca0c44195
+Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
+Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
+Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [316 kB]
+Fetched 9368 kB in 1s (9416 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  binutils binutils-common binutils-x86-64-linux-gnu cpp cpp-12 g++-12 gcc
+  gcc-12 libasan8 libatomic1 libbinutils libc-bin libc-dev-bin libc6 libc6-dev
+  libcc1-0 libcrypt-dev libctf-nobfd0 libctf0 libexpat1 libgcc-12-dev libgomp1
+  libgprofng0 libgssapi-krb5-2 libisl23 libitm1 libjansson4 libk5crypto3
+  libkeyutils1 libkrb5-3 libkrb5support0 liblsan0 libmpc3 libmpfr6
+  libncursesw6 libnsl-dev libnsl2 libpython3-stdlib libpython3.11-minimal
+  libpython3.11-stdlib libquadmath0 libreadline8 libsqlite3-0 libssl3
+  libstdc++-12-dev libtirpc-common libtirpc-dev libtirpc3 libtsan2 libubsan1
+  linux-libc-dev media-types openssl python3-minimal python3.11
+  python3.11-minimal readline-common rpcsvc-proto
+Suggested packages:
+  binutils-doc cpp-doc gcc-12-locales cpp-12-doc g++-multilib g++-12-multilib
+  gcc-12-doc gcc-multilib manpages-dev autoconf automake libtool flex bison
+  gdb gcc-doc gcc-12-multilib glibc-doc libc-l10n locales libnss-nis
+  libnss-nisplus krb5-doc krb5-user libstdc++-12-doc make-doc python3-doc
+  python3-tk python3-venv python3.11-venv python3.11-doc binfmt-support
+  readline-doc
+Recommended packages:
+  manpages manpages-dev libc-devtools krb5-locales libgpm2
+The following NEW packages will be installed:
+  binutils binutils-common binutils-x86-64-linux-gnu ca-certificates cpp
+  cpp-12 g++ g++-12 gcc gcc-12 libasan8 libatomic1 libbinutils libc-dev-bin
+  libc6-dev libcc1-0 libcrypt-dev libctf-nobfd0 libctf0 libexpat1
+  libgcc-12-dev libgomp1 libgprofng0 libgssapi-krb5-2 libisl23 libitm1
+  libjansson4 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 liblsan0
+  libmpc3 libmpfr6 libncursesw6 libnsl-dev libnsl2 libpython3-stdlib
+  libpython3.11-minimal libpython3.11-stdlib libquadmath0 libreadline8
+  libsqlite3-0 libssl3 libstdc++-12-dev libtirpc-common libtirpc-dev libtirpc3
+  libtsan2 libubsan1 linux-libc-dev make media-types openssl python3
+  python3-minimal python3.11 python3.11-minimal readline-common rpcsvc-proto
+The following packages will be upgraded:
+  libc-bin libc6
+2 upgraded, 60 newly installed, 0 to remove and 11 not upgraded.
+Need to get 78.2 MB of archives.
+After this operation, 296 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian bookworm/main amd64 libc6 amd64 2.36-9+deb12u14 [2759 kB]
+Get:2 http://deb.debian.org/debian bookworm/main amd64 libc-bin amd64 2.36-9+deb12u14 [609 kB]
+Get:3 http://deb.debian.org/debian bookworm/main amd64 libssl3 amd64 3.0.20-1~deb12u2 [2036 kB]
+Get:4 http://deb.debian.org/debian bookworm/main amd64 libpython3.11-minimal amd64 3.11.2-6+deb12u8 [818 kB]
+Get:5 http://deb.debian.org/debian bookworm/main amd64 libexpat1 amd64 2.5.0-1+deb12u2 [99.9 kB]
+Get:6 http://deb.debian.org/debian bookworm/main amd64 python3.11-minimal amd64 3.11.2-6+deb12u8 [2065 kB]
+Get:7 http://deb.debian.org/debian bookworm/main amd64 python3-minimal amd64 3.11.2-1+b1 [26.3 kB]
+Get:8 http://deb.debian.org/debian bookworm/main amd64 media-types all 10.0.0 [26.1 kB]
+Get:9 http://deb.debian.org/debian bookworm/main amd64 libncursesw6 amd64 6.4-4 [134 kB]
+Get:10 http://deb.debian.org/debian bookworm/main amd64 libkrb5support0 amd64 1.20.1-2+deb12u5 [33.2 kB]
+Get:11 http://deb.debian.org/debian bookworm/main amd64 libk5crypto3 amd64 1.20.1-2+deb12u5 [79.7 kB]
+Get:12 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2 [8808 B]
+Get:13 http://deb.debian.org/debian bookworm/main amd64 libkrb5-3 amd64 1.20.1-2+deb12u5 [332 kB]
+Get:14 http://deb.debian.org/debian bookworm/main amd64 libgssapi-krb5-2 amd64 1.20.1-2+deb12u5 [135 kB]
+Get:15 http://deb.debian.org/debian bookworm/main amd64 libtirpc-common all 1.3.3+ds-1 [14.0 kB]
+Get:16 http://deb.debian.org/debian bookworm/main amd64 libtirpc3 amd64 1.3.3+ds-1 [85.2 kB]
+Get:17 http://deb.debian.org/debian bookworm/main amd64 libnsl2 amd64 1.3.0-2 [39.5 kB]
+Get:18 http://deb.debian.org/debian bookworm/main amd64 readline-common all 8.2-1.3 [69.0 kB]
+Get:19 http://deb.debian.org/debian bookworm/main amd64 libreadline8 amd64 8.2-1.3 [166 kB]
+Get:20 http://deb.debian.org/debian bookworm/main amd64 libsqlite3-0 amd64 3.40.1-2+deb12u2 [839 kB]
+Get:21 http://deb.debian.org/debian bookworm/main amd64 libpython3.11-stdlib amd64 3.11.2-6+deb12u8 [1799 kB]
+Get:22 http://deb.debian.org/debian bookworm/main amd64 python3.11 amd64 3.11.2-6+deb12u8 [574 kB]
+Get:23 http://deb.debian.org/debian bookworm/main amd64 libpython3-stdlib amd64 3.11.2-1+b1 [9312 B]
+Get:24 http://deb.debian.org/debian bookworm/main amd64 python3 amd64 3.11.2-1+b1 [26.3 kB]
+Get:25 http://deb.debian.org/debian bookworm/main amd64 openssl amd64 3.0.20-1~deb12u2 [1439 kB]
+Get:26 http://deb.debian.org/debian bookworm/main amd64 ca-certificates all 20230311+deb12u1 [155 kB]
+Get:27 http://deb.debian.org/debian bookworm/main amd64 binutils-common amd64 2.40-2 [2487 kB]
+Get:28 http://deb.debian.org/debian bookworm/main amd64 libbinutils amd64 2.40-2 [572 kB]
+Get:29 http://deb.debian.org/debian bookworm/main amd64 libctf-nobfd0 amd64 2.40-2 [153 kB]
+Get:30 http://deb.debian.org/debian bookworm/main amd64 libctf0 amd64 2.40-2 [89.8 kB]
+Get:31 http://deb.debian.org/debian bookworm/main amd64 libgprofng0 amd64 2.40-2 [812 kB]
+Get:32 http://deb.debian.org/debian bookworm/main amd64 libjansson4 amd64 2.14-2 [40.8 kB]
+Get:33 http://deb.debian.org/debian bookworm/main amd64 binutils-x86-64-linux-gnu amd64 2.40-2 [2246 kB]
+Get:34 http://deb.debian.org/debian bookworm/main amd64 binutils amd64 2.40-2 [65.0 kB]
+Get:35 http://deb.debian.org/debian bookworm/main amd64 libisl23 amd64 0.25-1.1 [683 kB]
+Get:36 http://deb.debian.org/debian bookworm/main amd64 libmpfr6 amd64 4.2.0-1 [701 kB]
+Get:37 http://deb.debian.org/debian bookworm/main amd64 libmpc3 amd64 1.3.1-1 [51.5 kB]
+Get:38 http://deb.debian.org/debian bookworm/main amd64 cpp-12 amd64 12.2.0-14+deb12u1 [9768 kB]
+Get:39 http://deb.debian.org/debian bookworm/main amd64 cpp amd64 4:12.2.0-3 [6836 B]
+Get:40 http://deb.debian.org/debian bookworm/main amd64 libcc1-0 amd64 12.2.0-14+deb12u1 [41.7 kB]
+Get:41 http://deb.debian.org/debian bookworm/main amd64 libgomp1 amd64 12.2.0-14+deb12u1 [116 kB]
+Get:42 http://deb.debian.org/debian bookworm/main amd64 libitm1 amd64 12.2.0-14+deb12u1 [26.1 kB]
+Get:43 http://deb.debian.org/debian bookworm/main amd64 libatomic1 amd64 12.2.0-14+deb12u1 [9376 B]
+Get:44 http://deb.debian.org/debian bookworm/main amd64 libasan8 amd64 12.2.0-14+deb12u1 [2193 kB]
+Get:45 http://deb.debian.org/debian bookworm/main amd64 liblsan0 amd64 12.2.0-14+deb12u1 [969 kB]
+Get:46 http://deb.debian.org/debian bookworm/main amd64 libtsan2 amd64 12.2.0-14+deb12u1 [2197 kB]
+Get:47 http://deb.debian.org/debian bookworm/main amd64 libubsan1 amd64 12.2.0-14+deb12u1 [883 kB]
+Get:48 http://deb.debian.org/debian bookworm/main amd64 libquadmath0 amd64 12.2.0-14+deb12u1 [145 kB]
+Get:49 http://deb.debian.org/debian bookworm/main amd64 libgcc-12-dev amd64 12.2.0-14+deb12u1 [2437 kB]
+Get:50 http://deb.debian.org/debian bookworm/main amd64 gcc-12 amd64 12.2.0-14+deb12u1 [19.3 MB]
+Get:51 http://deb.debian.org/debian bookworm/main amd64 gcc amd64 4:12.2.0-3 [5216 B]
+Get:52 http://deb.debian.org/debian bookworm/main amd64 libc-dev-bin amd64 2.36-9+deb12u14 [48.1 kB]
+Get:53 http://deb.debian.org/debian bookworm/main amd64 linux-libc-dev amd64 6.1.176-1 [2304 kB]
+Get:54 http://deb.debian.org/debian bookworm/main amd64 libcrypt-dev amd64 1:4.4.33-2 [118 kB]
+Get:55 http://deb.debian.org/debian bookworm/main amd64 libtirpc-dev amd64 1.3.3+ds-1 [191 kB]
+Get:56 http://deb.debian.org/debian bookworm/main amd64 libnsl-dev amd64 1.3.0-2 [66.4 kB]
+Get:57 http://deb.debian.org/debian bookworm/main amd64 rpcsvc-proto amd64 1.4.3-1 [63.3 kB]
+Get:58 http://deb.debian.org/debian bookworm/main amd64 libc6-dev amd64 2.36-9+deb12u14 [1904 kB]
+Get:59 http://deb.debian.org/debian bookworm/main amd64 libstdc++-12-dev amd64 12.2.0-14+deb12u1 [2047 kB]
+Get:60 http://deb.debian.org/debian bookworm/main amd64 g++-12 amd64 12.2.0-14+deb12u1 [10.7 MB]
+Get:61 http://deb.debian.org/debian bookworm/main amd64 g++ amd64 4:12.2.0-3 [1356 B]
+Get:62 http://deb.debian.org/debian bookworm/main amd64 make amd64 4.3-4.1 [396 kB]
+[91mdebconf: delaying package configuration, since apt-utils is not installed
+[0mFetched 78.2 MB in 0s (166 MB/s)
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../libc6_2.36-9+deb12u14_amd64.deb ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Unpacking libc6:amd64 (2.36-9+deb12u14) over (2.36-9+deb12u13) ...
+Setting up libc6:amd64 (2.36-9+deb12u14) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../libc-bin_2.36-9+deb12u14_amd64.deb ...
+Unpacking libc-bin (2.36-9+deb12u14) over (2.36-9+deb12u13) ...
+Setting up libc-bin (2.36-9+deb12u14) ...
+Selecting previously unselected package libssl3:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../libssl3_3.0.20-1~deb12u2_amd64.deb ...
+Unpacking libssl3:amd64 (3.0.20-1~deb12u2) ...
+Selecting previously unselected package libpython3.11-minimal:amd64.
+Preparing to unpack .../libpython3.11-minimal_3.11.2-6+deb12u8_amd64.deb ...
+Unpacking libpython3.11-minimal:amd64 (3.11.2-6+deb12u8) ...
+Selecting previously unselected package libexpat1:amd64.
+Preparing to unpack .../libexpat1_2.5.0-1+deb12u2_amd64.deb ...
+Unpacking libexpat1:amd64 (2.5.0-1+deb12u2) ...
+Selecting previously unselected package python3.11-minimal.
+Preparing to unpack .../python3.11-minimal_3.11.2-6+deb12u8_amd64.deb ...
+Unpacking python3.11-minimal (3.11.2-6+deb12u8) ...
+Setting up libssl3:amd64 (3.0.20-1~deb12u2) ...
+Setting up libpython3.11-minimal:amd64 (3.11.2-6+deb12u8) ...
+Setting up libexpat1:amd64 (2.5.0-1+deb12u2) ...
+Setting up python3.11-minimal (3.11.2-6+deb12u8) ...
+Selecting previously unselected package python3-minimal.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6424 files and directories currently installed.)
+Preparing to unpack .../00-python3-minimal_3.11.2-1+b1_amd64.deb ...
+Unpacking python3-minimal (3.11.2-1+b1) ...
+Selecting previously unselected package media-types.
+Preparing to unpack .../01-media-types_10.0.0_all.deb ...
+Unpacking media-types (10.0.0) ...
+Selecting previously unselected package libncursesw6:amd64.
+Preparing to unpack .../02-libncursesw6_6.4-4_amd64.deb ...
+Unpacking libncursesw6:amd64 (6.4-4) ...
+Selecting previously unselected package libkrb5support0:amd64.
+Preparing to unpack .../03-libkrb5support0_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libk5crypto3:amd64.
+Preparing to unpack .../04-libk5crypto3_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libkeyutils1:amd64.
+Preparing to unpack .../05-libkeyutils1_1.6.3-2_amd64.deb ...
+Unpacking libkeyutils1:amd64 (1.6.3-2) ...
+Selecting previously unselected package libkrb5-3:amd64.
+Preparing to unpack .../06-libkrb5-3_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libgssapi-krb5-2:amd64.
+Preparing to unpack .../07-libgssapi-krb5-2_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libtirpc-common.
+Preparing to unpack .../08-libtirpc-common_1.3.3+ds-1_all.deb ...
+Unpacking libtirpc-common (1.3.3+ds-1) ...
+Selecting previously unselected package libtirpc3:amd64.
+Preparing to unpack .../09-libtirpc3_1.3.3+ds-1_amd64.deb ...
+Unpacking libtirpc3:amd64 (1.3.3+ds-1) ...
+Selecting previously unselected package libnsl2:amd64.
+Preparing to unpack .../10-libnsl2_1.3.0-2_amd64.deb ...
+Unpacking libnsl2:amd64 (1.3.0-2) ...
+Selecting previously unselected package readline-common.
+Preparing to unpack .../11-readline-common_8.2-1.3_all.deb ...
+Unpacking readline-common (8.2-1.3) ...
+Selecting previously unselected package libreadline8:amd64.
+Preparing to unpack .../12-libreadline8_8.2-1.3_amd64.deb ...
+Unpacking libreadline8:amd64 (8.2-1.3) ...
+Selecting previously unselected package libsqlite3-0:amd64.
+Preparing to unpack .../13-libsqlite3-0_3.40.1-2+deb12u2_amd64.deb ...
+Unpacking libsqlite3-0:amd64 (3.40.1-2+deb12u2) ...
+Selecting previously unselected package libpython3.11-stdlib:amd64.
+Preparing to unpack .../14-libpython3.11-stdlib_3.11.2-6+deb12u8_amd64.deb ...
+Unpacking libpython3.11-stdlib:amd64 (3.11.2-6+deb12u8) ...
+Selecting previously unselected package python3.11.
+Preparing to unpack .../15-python3.11_3.11.2-6+deb12u8_amd64.deb ...
+Unpacking python3.11 (3.11.2-6+deb12u8) ...
+Selecting previously unselected package libpython3-stdlib:amd64.
+Preparing to unpack .../16-libpython3-stdlib_3.11.2-1+b1_amd64.deb ...
+Unpacking libpython3-stdlib:amd64 (3.11.2-1+b1) ...
+Setting up python3-minimal (3.11.2-1+b1) ...
+Selecting previously unselected package python3.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6932 files and directories currently installed.)
+Preparing to unpack .../00-python3_3.11.2-1+b1_amd64.deb ...
+Unpacking python3 (3.11.2-1+b1) ...
+Selecting previously unselected package openssl.
+Preparing to unpack .../01-openssl_3.0.20-1~deb12u2_amd64.deb ...
+Unpacking openssl (3.0.20-1~deb12u2) ...
+Selecting previously unselected package ca-certificates.
+Preparing to unpack .../02-ca-certificates_20230311+deb12u1_all.deb ...
+Unpacking ca-certificates (20230311+deb12u1) ...
+Selecting previously unselected package binutils-common:amd64.
+Preparing to unpack .../03-binutils-common_2.40-2_amd64.deb ...
+Unpacking binutils-common:amd64 (2.40-2) ...
+Selecting previously unselected package libbinutils:amd64.
+Preparing to unpack .../04-libbinutils_2.40-2_amd64.deb ...
+Unpacking libbinutils:amd64 (2.40-2) ...
+Selecting previously unselected package libctf-nobfd0:amd64.
+Preparing to unpack .../05-libctf-nobfd0_2.40-2_amd64.deb ...
+Unpacking libctf-nobfd0:amd64 (2.40-2) ...
+Selecting previously unselected package libctf0:amd64.
+Preparing to unpack .../06-libctf0_2.40-2_amd64.deb ...
+Unpacking libctf0:amd64 (2.40-2) ...
+Selecting previously unselected package libgprofng0:amd64.
+Preparing to unpack .../07-libgprofng0_2.40-2_amd64.deb ...
+Unpacking libgprofng0:amd64 (2.40-2) ...
+Selecting previously unselected package libjansson4:amd64.
+Preparing to unpack .../08-libjansson4_2.14-2_amd64.deb ...
+Unpacking libjansson4:amd64 (2.14-2) ...
+Selecting previously unselected package binutils-x86-64-linux-gnu.
+Preparing to unpack .../09-binutils-x86-64-linux-gnu_2.40-2_amd64.deb ...
+Unpacking binutils-x86-64-linux-gnu (2.40-2) ...
+Selecting previously unselected package binutils.
+Preparing to unpack .../10-binutils_2.40-2_amd64.deb ...
+Unpacking binutils (2.40-2) ...
+Selecting previously unselected package libisl23:amd64.
+Preparing to unpack .../11-libisl23_0.25-1.1_amd64.deb ...
+Unpacking libisl23:amd64 (0.25-1.1) ...
+Selecting previously unselected package libmpfr6:amd64.
+Preparing to unpack .../12-libmpfr6_4.2.0-1_amd64.deb ...
+Unpacking libmpfr6:amd64 (4.2.0-1) ...
+Selecting previously unselected package libmpc3:amd64.
+Preparing to unpack .../13-libmpc3_1.3.1-1_amd64.deb ...
+Unpacking libmpc3:amd64 (1.3.1-1) ...
+Selecting previously unselected package cpp-12.
+Preparing to unpack .../14-cpp-12_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking cpp-12 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package cpp.
+Preparing to unpack .../15-cpp_4%3a12.2.0-3_amd64.deb ...
+Unpacking cpp (4:12.2.0-3) ...
+Selecting previously unselected package libcc1-0:amd64.
+Preparing to unpack .../16-libcc1-0_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libcc1-0:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libgomp1:amd64.
+Preparing to unpack .../17-libgomp1_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libgomp1:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libitm1:amd64.
+Preparing to unpack .../18-libitm1_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libitm1:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libatomic1:amd64.
+Preparing to unpack .../19-libatomic1_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libatomic1:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libasan8:amd64.
+Preparing to unpack .../20-libasan8_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libasan8:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package liblsan0:amd64.
+Preparing to unpack .../21-liblsan0_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking liblsan0:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libtsan2:amd64.
+Preparing to unpack .../22-libtsan2_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libtsan2:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libubsan1:amd64.
+Preparing to unpack .../23-libubsan1_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libubsan1:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libquadmath0:amd64.
+Preparing to unpack .../24-libquadmath0_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libquadmath0:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libgcc-12-dev:amd64.
+Preparing to unpack .../25-libgcc-12-dev_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libgcc-12-dev:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package gcc-12.
+Preparing to unpack .../26-gcc-12_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking gcc-12 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package gcc.
+Preparing to unpack .../27-gcc_4%3a12.2.0-3_amd64.deb ...
+Unpacking gcc (4:12.2.0-3) ...
+Selecting previously unselected package libc-dev-bin.
+Preparing to unpack .../28-libc-dev-bin_2.36-9+deb12u14_amd64.deb ...
+Unpacking libc-dev-bin (2.36-9+deb12u14) ...
+Selecting previously unselected package linux-libc-dev:amd64.
+Preparing to unpack .../29-linux-libc-dev_6.1.176-1_amd64.deb ...
+Unpacking linux-libc-dev:amd64 (6.1.176-1) ...
+Selecting previously unselected package libcrypt-dev:amd64.
+Preparing to unpack .../30-libcrypt-dev_1%3a4.4.33-2_amd64.deb ...
+Unpacking libcrypt-dev:amd64 (1:4.4.33-2) ...
+Selecting previously unselected package libtirpc-dev:amd64.
+Preparing to unpack .../31-libtirpc-dev_1.3.3+ds-1_amd64.deb ...
+Unpacking libtirpc-dev:amd64 (1.3.3+ds-1) ...
+Selecting previously unselected package libnsl-dev:amd64.
+Preparing to unpack .../32-libnsl-dev_1.3.0-2_amd64.deb ...
+Unpacking libnsl-dev:amd64 (1.3.0-2) ...
+Selecting previously unselected package rpcsvc-proto.
+Preparing to unpack .../33-rpcsvc-proto_1.4.3-1_amd64.deb ...
+Unpacking rpcsvc-proto (1.4.3-1) ...
+Selecting previously unselected package libc6-dev:amd64.
+Preparing to unpack .../34-libc6-dev_2.36-9+deb12u14_amd64.deb ...
+Unpacking libc6-dev:amd64 (2.36-9+deb12u14) ...
+Selecting previously unselected package libstdc++-12-dev:amd64.
+Preparing to unpack .../35-libstdc++-12-dev_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libstdc++-12-dev:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package g++-12.
+Preparing to unpack .../36-g++-12_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking g++-12 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package g++.
+Preparing to unpack .../37-g++_4%3a12.2.0-3_amd64.deb ...
+Unpacking g++ (4:12.2.0-3) ...
+Selecting previously unselected package make.
+Preparing to unpack .../38-make_4.3-4.1_amd64.deb ...
+Unpacking make (4.3-4.1) ...
+Setting up media-types (10.0.0) ...
+Setting up libkeyutils1:amd64 (1.6.3-2) ...
+Setting up libtirpc-common (1.3.3+ds-1) ...
+Setting up libsqlite3-0:amd64 (3.40.1-2+deb12u2) ...
+Setting up binutils-common:amd64 (2.40-2) ...
+Setting up linux-libc-dev:amd64 (6.1.176-1) ...
+Setting up libctf-nobfd0:amd64 (2.40-2) ...
+Setting up libgomp1:amd64 (12.2.0-14+deb12u1) ...
+Setting up libjansson4:amd64 (2.14-2) ...
+Setting up libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+Setting up rpcsvc-proto (1.4.3-1) ...
+Setting up make (4.3-4.1) ...
+Setting up libmpfr6:amd64 (4.2.0-1) ...
+Setting up libquadmath0:amd64 (12.2.0-14+deb12u1) ...
+Setting up libmpc3:amd64 (1.3.1-1) ...
+Setting up libatomic1:amd64 (12.2.0-14+deb12u1) ...
+Setting up libncursesw6:amd64 (6.4-4) ...
+Setting up libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+Setting up libubsan1:amd64 (12.2.0-14+deb12u1) ...
+Setting up libcrypt-dev:amd64 (1:4.4.33-2) ...
+Setting up libasan8:amd64 (12.2.0-14+deb12u1) ...
+Setting up libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+Setting up libtsan2:amd64 (12.2.0-14+deb12u1) ...
+Setting up libbinutils:amd64 (2.40-2) ...
+Setting up libisl23:amd64 (0.25-1.1) ...
+Setting up libc-dev-bin (2.36-9+deb12u14) ...
+Setting up openssl (3.0.20-1~deb12u2) ...
+Setting up readline-common (8.2-1.3) ...
+Setting up libcc1-0:amd64 (12.2.0-14+deb12u1) ...
+Setting up liblsan0:amd64 (12.2.0-14+deb12u1) ...
+Setting up libitm1:amd64 (12.2.0-14+deb12u1) ...
+Setting up libctf0:amd64 (2.40-2) ...
+Setting up cpp-12 (12.2.0-14+deb12u1) ...
+Setting up libreadline8:amd64 (8.2-1.3) ...
+Setting up ca-certificates (20230311+deb12u1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Updating certificates in /etc/ssl/certs...
+142 added, 0 removed; done.
+Setting up libgprofng0:amd64 (2.40-2) ...
+Setting up libgcc-12-dev:amd64 (12.2.0-14+deb12u1) ...
+Setting up libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+Setting up cpp (4:12.2.0-3) ...
+Setting up binutils-x86-64-linux-gnu (2.40-2) ...
+Setting up libtirpc3:amd64 (1.3.3+ds-1) ...
+Setting up binutils (2.40-2) ...
+Setting up libtirpc-dev:amd64 (1.3.3+ds-1) ...
+Setting up gcc-12 (12.2.0-14+deb12u1) ...
+Setting up libnsl2:amd64 (1.3.0-2) ...
+Setting up libpython3.11-stdlib:amd64 (3.11.2-6+deb12u8) ...
+Setting up gcc (4:12.2.0-3) ...
+Setting up libnsl-dev:amd64 (1.3.0-2) ...
+Setting up libc6-dev:amd64 (2.36-9+deb12u14) ...
+Setting up libpython3-stdlib:amd64 (3.11.2-1+b1) ...
+Setting up python3.11 (3.11.2-6+deb12u8) ...
+Setting up libstdc++-12-dev:amd64 (12.2.0-14+deb12u1) ...
+Setting up python3 (3.11.2-1+b1) ...
+running python rtupdate hooks for python3.11...
+running python post-rtupdate hooks for python3.11...
+Setting up g++-12 (12.2.0-14+deb12u1) ...
+Setting up g++ (4:12.2.0-3) ...
+update-alternatives: using /usr/bin/g++ to provide /usr/bin/c++ (c++) in auto mode
+Processing triggers for libc-bin (2.36-9+deb12u14) ...
+Processing triggers for ca-certificates (20230311+deb12u1) ...
+Updating certificates in /etc/ssl/certs...
+0 added, 0 removed; done.
+Running hooks in /etc/ca-certificates/update.d...
+done.
+Removing intermediate container 4beca0c44195
+ ---> 8e671cd8fe66
+Step 5/51 : COPY package.json package-lock.json ./
+ ---> 566543f44fff
+Step 6/51 : COPY packages ./packages
+ ---> ca7b1a34f516
+Step 7/51 : COPY apps ./apps
+ ---> 89d3147ac097
+Step 8/51 : COPY tools ./tools
+ ---> b3793e6d59fe
+Step 9/51 : RUN npm ci --no-audit --no-fund   && mkdir -p /app/packages/msgf/node_modules
+ ---> Running in 85c184741556
+[91mnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+[0m[91mnpm warn deprecated npmlog@5.0.1: This package is no longer supported.
+[0m[91mnpm warn deprecated multer@1.4.5-lts.2: Multer 1.x is impacted by a number of vulnerabilities, which have been patched in 2.x. You should upgrade to the latest 2.x version.
+[0m[91mnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+[0m[91mnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[0m[91mnpm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[0m[91mnpm warn deprecated gauge@3.0.2: This package is no longer supported.
+[0m[91mnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+[0m[91mnpm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+[0m[91mnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+[0m[91mnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[0m
+> prepare
+> node tools/enforce-silo.js install
+
+
+added 722 packages in 23s
+[91mnpm notice
+npm notice New major version of npm available! 10.8.2 -> 12.0.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.1
+npm notice To update run: npm install -g npm@12.0.1
+npm notice
+[0mRemoving intermediate container 85c184741556
+ ---> 8abbafe41da8
+Step 10/51 : FROM node:20-bookworm-slim AS builder
+ ---> 9da6b4e352d0
+Step 11/51 : WORKDIR /app
+ ---> Using cache
+ ---> 01979c7e6bfd
+Step 12/51 : ENV NEXT_TELEMETRY_DISABLED=1
+ ---> Using cache
+ ---> 48a2653b200c
+Step 13/51 : ENV NODE_ENV=production
+ ---> Running in 4da0f03dc81f
+Removing intermediate container 4da0f03dc81f
+ ---> 57ba6cb52aab
+Step 14/51 : ENV MSGF_DOCKER_BUILD_SKIP_SA=1
+ ---> Running in 3bc61205f201
+Removing intermediate container 3bc61205f201
+ ---> c6a08bd59199
+Step 15/51 : RUN apt-get update   && apt-get install -y --no-install-recommends     ca-certificates     python3     make     g++   && rm -rf /var/lib/apt/lists/*
+ ---> Running in 377b72abce39
+Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
+Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
+Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [316 kB]
+Fetched 9368 kB in 1s (9834 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  binutils binutils-common binutils-x86-64-linux-gnu cpp cpp-12 g++-12 gcc
+  gcc-12 libasan8 libatomic1 libbinutils libc-bin libc-dev-bin libc6 libc6-dev
+  libcc1-0 libcrypt-dev libctf-nobfd0 libctf0 libexpat1 libgcc-12-dev libgomp1
+  libgprofng0 libgssapi-krb5-2 libisl23 libitm1 libjansson4 libk5crypto3
+  libkeyutils1 libkrb5-3 libkrb5support0 liblsan0 libmpc3 libmpfr6
+  libncursesw6 libnsl-dev libnsl2 libpython3-stdlib libpython3.11-minimal
+  libpython3.11-stdlib libquadmath0 libreadline8 libsqlite3-0 libssl3
+  libstdc++-12-dev libtirpc-common libtirpc-dev libtirpc3 libtsan2 libubsan1
+  linux-libc-dev media-types openssl python3-minimal python3.11
+  python3.11-minimal readline-common rpcsvc-proto
+Suggested packages:
+  binutils-doc cpp-doc gcc-12-locales cpp-12-doc g++-multilib g++-12-multilib
+  gcc-12-doc gcc-multilib manpages-dev autoconf automake libtool flex bison
+  gdb gcc-doc gcc-12-multilib glibc-doc libc-l10n locales libnss-nis
+  libnss-nisplus krb5-doc krb5-user libstdc++-12-doc make-doc python3-doc
+  python3-tk python3-venv python3.11-venv python3.11-doc binfmt-support
+  readline-doc
+Recommended packages:
+  manpages manpages-dev libc-devtools krb5-locales libgpm2
+The following NEW packages will be installed:
+  binutils binutils-common binutils-x86-64-linux-gnu ca-certificates cpp
+  cpp-12 g++ g++-12 gcc gcc-12 libasan8 libatomic1 libbinutils libc-dev-bin
+  libc6-dev libcc1-0 libcrypt-dev libctf-nobfd0 libctf0 libexpat1
+  libgcc-12-dev libgomp1 libgprofng0 libgssapi-krb5-2 libisl23 libitm1
+  libjansson4 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 liblsan0
+  libmpc3 libmpfr6 libncursesw6 libnsl-dev libnsl2 libpython3-stdlib
+  libpython3.11-minimal libpython3.11-stdlib libquadmath0 libreadline8
+  libsqlite3-0 libssl3 libstdc++-12-dev libtirpc-common libtirpc-dev libtirpc3
+  libtsan2 libubsan1 linux-libc-dev make media-types openssl python3
+  python3-minimal python3.11 python3.11-minimal readline-common rpcsvc-proto
+The following packages will be upgraded:
+  libc-bin libc6
+2 upgraded, 60 newly installed, 0 to remove and 11 not upgraded.
+Need to get 78.2 MB of archives.
+After this operation, 296 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian bookworm/main amd64 libc6 amd64 2.36-9+deb12u14 [2759 kB]
+Get:2 http://deb.debian.org/debian bookworm/main amd64 libc-bin amd64 2.36-9+deb12u14 [609 kB]
+Get:3 http://deb.debian.org/debian bookworm/main amd64 libssl3 amd64 3.0.20-1~deb12u2 [2036 kB]
+Get:4 http://deb.debian.org/debian bookworm/main amd64 libpython3.11-minimal amd64 3.11.2-6+deb12u8 [818 kB]
+Get:5 http://deb.debian.org/debian bookworm/main amd64 libexpat1 amd64 2.5.0-1+deb12u2 [99.9 kB]
+Get:6 http://deb.debian.org/debian bookworm/main amd64 python3.11-minimal amd64 3.11.2-6+deb12u8 [2065 kB]
+Get:7 http://deb.debian.org/debian bookworm/main amd64 python3-minimal amd64 3.11.2-1+b1 [26.3 kB]
+Get:8 http://deb.debian.org/debian bookworm/main amd64 media-types all 10.0.0 [26.1 kB]
+Get:9 http://deb.debian.org/debian bookworm/main amd64 libncursesw6 amd64 6.4-4 [134 kB]
+Get:10 http://deb.debian.org/debian bookworm/main amd64 libkrb5support0 amd64 1.20.1-2+deb12u5 [33.2 kB]
+Get:11 http://deb.debian.org/debian bookworm/main amd64 libk5crypto3 amd64 1.20.1-2+deb12u5 [79.7 kB]
+Get:12 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2 [8808 B]
+Get:13 http://deb.debian.org/debian bookworm/main amd64 libkrb5-3 amd64 1.20.1-2+deb12u5 [332 kB]
+Get:14 http://deb.debian.org/debian bookworm/main amd64 libgssapi-krb5-2 amd64 1.20.1-2+deb12u5 [135 kB]
+Get:15 http://deb.debian.org/debian bookworm/main amd64 libtirpc-common all 1.3.3+ds-1 [14.0 kB]
+Get:16 http://deb.debian.org/debian bookworm/main amd64 libtirpc3 amd64 1.3.3+ds-1 [85.2 kB]
+Get:17 http://deb.debian.org/debian bookworm/main amd64 libnsl2 amd64 1.3.0-2 [39.5 kB]
+Get:18 http://deb.debian.org/debian bookworm/main amd64 readline-common all 8.2-1.3 [69.0 kB]
+Get:19 http://deb.debian.org/debian bookworm/main amd64 libreadline8 amd64 8.2-1.3 [166 kB]
+Get:20 http://deb.debian.org/debian bookworm/main amd64 libsqlite3-0 amd64 3.40.1-2+deb12u2 [839 kB]
+Get:21 http://deb.debian.org/debian bookworm/main amd64 libpython3.11-stdlib amd64 3.11.2-6+deb12u8 [1799 kB]
+Get:22 http://deb.debian.org/debian bookworm/main amd64 python3.11 amd64 3.11.2-6+deb12u8 [574 kB]
+Get:23 http://deb.debian.org/debian bookworm/main amd64 libpython3-stdlib amd64 3.11.2-1+b1 [9312 B]
+Get:24 http://deb.debian.org/debian bookworm/main amd64 python3 amd64 3.11.2-1+b1 [26.3 kB]
+Get:25 http://deb.debian.org/debian bookworm/main amd64 openssl amd64 3.0.20-1~deb12u2 [1439 kB]
+Get:26 http://deb.debian.org/debian bookworm/main amd64 ca-certificates all 20230311+deb12u1 [155 kB]
+Get:27 http://deb.debian.org/debian bookworm/main amd64 binutils-common amd64 2.40-2 [2487 kB]
+Get:28 http://deb.debian.org/debian bookworm/main amd64 libbinutils amd64 2.40-2 [572 kB]
+Get:29 http://deb.debian.org/debian bookworm/main amd64 libctf-nobfd0 amd64 2.40-2 [153 kB]
+Get:30 http://deb.debian.org/debian bookworm/main amd64 libctf0 amd64 2.40-2 [89.8 kB]
+Get:31 http://deb.debian.org/debian bookworm/main amd64 libgprofng0 amd64 2.40-2 [812 kB]
+Get:32 http://deb.debian.org/debian bookworm/main amd64 libjansson4 amd64 2.14-2 [40.8 kB]
+Get:33 http://deb.debian.org/debian bookworm/main amd64 binutils-x86-64-linux-gnu amd64 2.40-2 [2246 kB]
+Get:34 http://deb.debian.org/debian bookworm/main amd64 binutils amd64 2.40-2 [65.0 kB]
+Get:35 http://deb.debian.org/debian bookworm/main amd64 libisl23 amd64 0.25-1.1 [683 kB]
+Get:36 http://deb.debian.org/debian bookworm/main amd64 libmpfr6 amd64 4.2.0-1 [701 kB]
+Get:37 http://deb.debian.org/debian bookworm/main amd64 libmpc3 amd64 1.3.1-1 [51.5 kB]
+Get:38 http://deb.debian.org/debian bookworm/main amd64 cpp-12 amd64 12.2.0-14+deb12u1 [9768 kB]
+Get:39 http://deb.debian.org/debian bookworm/main amd64 cpp amd64 4:12.2.0-3 [6836 B]
+Get:40 http://deb.debian.org/debian bookworm/main amd64 libcc1-0 amd64 12.2.0-14+deb12u1 [41.7 kB]
+Get:41 http://deb.debian.org/debian bookworm/main amd64 libgomp1 amd64 12.2.0-14+deb12u1 [116 kB]
+Get:42 http://deb.debian.org/debian bookworm/main amd64 libitm1 amd64 12.2.0-14+deb12u1 [26.1 kB]
+Get:43 http://deb.debian.org/debian bookworm/main amd64 libatomic1 amd64 12.2.0-14+deb12u1 [9376 B]
+Get:44 http://deb.debian.org/debian bookworm/main amd64 libasan8 amd64 12.2.0-14+deb12u1 [2193 kB]
+Get:45 http://deb.debian.org/debian bookworm/main amd64 liblsan0 amd64 12.2.0-14+deb12u1 [969 kB]
+Get:46 http://deb.debian.org/debian bookworm/main amd64 libtsan2 amd64 12.2.0-14+deb12u1 [2197 kB]
+Get:47 http://deb.debian.org/debian bookworm/main amd64 libubsan1 amd64 12.2.0-14+deb12u1 [883 kB]
+Get:48 http://deb.debian.org/debian bookworm/main amd64 libquadmath0 amd64 12.2.0-14+deb12u1 [145 kB]
+Get:49 http://deb.debian.org/debian bookworm/main amd64 libgcc-12-dev amd64 12.2.0-14+deb12u1 [2437 kB]
+Get:50 http://deb.debian.org/debian bookworm/main amd64 gcc-12 amd64 12.2.0-14+deb12u1 [19.3 MB]
+Get:51 http://deb.debian.org/debian bookworm/main amd64 gcc amd64 4:12.2.0-3 [5216 B]
+Get:52 http://deb.debian.org/debian bookworm/main amd64 libc-dev-bin amd64 2.36-9+deb12u14 [48.1 kB]
+Get:53 http://deb.debian.org/debian bookworm/main amd64 linux-libc-dev amd64 6.1.176-1 [2304 kB]
+Get:54 http://deb.debian.org/debian bookworm/main amd64 libcrypt-dev amd64 1:4.4.33-2 [118 kB]
+Get:55 http://deb.debian.org/debian bookworm/main amd64 libtirpc-dev amd64 1.3.3+ds-1 [191 kB]
+Get:56 http://deb.debian.org/debian bookworm/main amd64 libnsl-dev amd64 1.3.0-2 [66.4 kB]
+Get:57 http://deb.debian.org/debian bookworm/main amd64 rpcsvc-proto amd64 1.4.3-1 [63.3 kB]
+Get:58 http://deb.debian.org/debian bookworm/main amd64 libc6-dev amd64 2.36-9+deb12u14 [1904 kB]
+Get:59 http://deb.debian.org/debian bookworm/main amd64 libstdc++-12-dev amd64 12.2.0-14+deb12u1 [2047 kB]
+Get:60 http://deb.debian.org/debian bookworm/main amd64 g++-12 amd64 12.2.0-14+deb12u1 [10.7 MB]
+Get:61 http://deb.debian.org/debian bookworm/main amd64 g++ amd64 4:12.2.0-3 [1356 B]
+Get:62 http://deb.debian.org/debian bookworm/main amd64 make amd64 4.3-4.1 [396 kB]
+[91mdebconf: delaying package configuration, since apt-utils is not installed
+[0mFetched 78.2 MB in 0s (186 MB/s)
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../libc6_2.36-9+deb12u14_amd64.deb ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Unpacking libc6:amd64 (2.36-9+deb12u14) over (2.36-9+deb12u13) ...
+Setting up libc6:amd64 (2.36-9+deb12u14) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../libc-bin_2.36-9+deb12u14_amd64.deb ...
+Unpacking libc-bin (2.36-9+deb12u14) over (2.36-9+deb12u13) ...
+Setting up libc-bin (2.36-9+deb12u14) ...
+Selecting previously unselected package libssl3:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../libssl3_3.0.20-1~deb12u2_amd64.deb ...
+Unpacking libssl3:amd64 (3.0.20-1~deb12u2) ...
+Selecting previously unselected package libpython3.11-minimal:amd64.
+Preparing to unpack .../libpython3.11-minimal_3.11.2-6+deb12u8_amd64.deb ...
+Unpacking libpython3.11-minimal:amd64 (3.11.2-6+deb12u8) ...
+Selecting previously unselected package libexpat1:amd64.
+Preparing to unpack .../libexpat1_2.5.0-1+deb12u2_amd64.deb ...
+Unpacking libexpat1:amd64 (2.5.0-1+deb12u2) ...
+Selecting previously unselected package python3.11-minimal.
+Preparing to unpack .../python3.11-minimal_3.11.2-6+deb12u8_amd64.deb ...
+Unpacking python3.11-minimal (3.11.2-6+deb12u8) ...
+Setting up libssl3:amd64 (3.0.20-1~deb12u2) ...
+Setting up libpython3.11-minimal:amd64 (3.11.2-6+deb12u8) ...
+Setting up libexpat1:amd64 (2.5.0-1+deb12u2) ...
+Setting up python3.11-minimal (3.11.2-6+deb12u8) ...
+Selecting previously unselected package python3-minimal.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6424 files and directories currently installed.)
+Preparing to unpack .../00-python3-minimal_3.11.2-1+b1_amd64.deb ...
+Unpacking python3-minimal (3.11.2-1+b1) ...
+Selecting previously unselected package media-types.
+Preparing to unpack .../01-media-types_10.0.0_all.deb ...
+Unpacking media-types (10.0.0) ...
+Selecting previously unselected package libncursesw6:amd64.
+Preparing to unpack .../02-libncursesw6_6.4-4_amd64.deb ...
+Unpacking libncursesw6:amd64 (6.4-4) ...
+Selecting previously unselected package libkrb5support0:amd64.
+Preparing to unpack .../03-libkrb5support0_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libk5crypto3:amd64.
+Preparing to unpack .../04-libk5crypto3_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libkeyutils1:amd64.
+Preparing to unpack .../05-libkeyutils1_1.6.3-2_amd64.deb ...
+Unpacking libkeyutils1:amd64 (1.6.3-2) ...
+Selecting previously unselected package libkrb5-3:amd64.
+Preparing to unpack .../06-libkrb5-3_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libgssapi-krb5-2:amd64.
+Preparing to unpack .../07-libgssapi-krb5-2_1.20.1-2+deb12u5_amd64.deb ...
+Unpacking libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+Selecting previously unselected package libtirpc-common.
+Preparing to unpack .../08-libtirpc-common_1.3.3+ds-1_all.deb ...
+Unpacking libtirpc-common (1.3.3+ds-1) ...
+Selecting previously unselected package libtirpc3:amd64.
+Preparing to unpack .../09-libtirpc3_1.3.3+ds-1_amd64.deb ...
+Unpacking libtirpc3:amd64 (1.3.3+ds-1) ...
+Selecting previously unselected package libnsl2:amd64.
+Preparing to unpack .../10-libnsl2_1.3.0-2_amd64.deb ...
+Unpacking libnsl2:amd64 (1.3.0-2) ...
+Selecting previously unselected package readline-common.
+Preparing to unpack .../11-readline-common_8.2-1.3_all.deb ...
+Unpacking readline-common (8.2-1.3) ...
+Selecting previously unselected package libreadline8:amd64.
+Preparing to unpack .../12-libreadline8_8.2-1.3_amd64.deb ...
+Unpacking libreadline8:amd64 (8.2-1.3) ...
+Selecting previously unselected package libsqlite3-0:amd64.
+Preparing to unpack .../13-libsqlite3-0_3.40.1-2+deb12u2_amd64.deb ...
+Unpacking libsqlite3-0:amd64 (3.40.1-2+deb12u2) ...
+Selecting previously unselected package libpython3.11-stdlib:amd64.
+Preparing to unpack .../14-libpython3.11-stdlib_3.11.2-6+deb12u8_amd64.deb ...
+Unpacking libpython3.11-stdlib:amd64 (3.11.2-6+deb12u8) ...
+Selecting previously unselected package python3.11.
+Preparing to unpack .../15-python3.11_3.11.2-6+deb12u8_amd64.deb ...
+Unpacking python3.11 (3.11.2-6+deb12u8) ...
+Selecting previously unselected package libpython3-stdlib:amd64.
+Preparing to unpack .../16-libpython3-stdlib_3.11.2-1+b1_amd64.deb ...
+Unpacking libpython3-stdlib:amd64 (3.11.2-1+b1) ...
+Setting up python3-minimal (3.11.2-1+b1) ...
+Selecting previously unselected package python3.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6932 files and directories currently installed.)
+Preparing to unpack .../00-python3_3.11.2-1+b1_amd64.deb ...
+Unpacking python3 (3.11.2-1+b1) ...
+Selecting previously unselected package openssl.
+Preparing to unpack .../01-openssl_3.0.20-1~deb12u2_amd64.deb ...
+Unpacking openssl (3.0.20-1~deb12u2) ...
+Selecting previously unselected package ca-certificates.
+Preparing to unpack .../02-ca-certificates_20230311+deb12u1_all.deb ...
+Unpacking ca-certificates (20230311+deb12u1) ...
+Selecting previously unselected package binutils-common:amd64.
+Preparing to unpack .../03-binutils-common_2.40-2_amd64.deb ...
+Unpacking binutils-common:amd64 (2.40-2) ...
+Selecting previously unselected package libbinutils:amd64.
+Preparing to unpack .../04-libbinutils_2.40-2_amd64.deb ...
+Unpacking libbinutils:amd64 (2.40-2) ...
+Selecting previously unselected package libctf-nobfd0:amd64.
+Preparing to unpack .../05-libctf-nobfd0_2.40-2_amd64.deb ...
+Unpacking libctf-nobfd0:amd64 (2.40-2) ...
+Selecting previously unselected package libctf0:amd64.
+Preparing to unpack .../06-libctf0_2.40-2_amd64.deb ...
+Unpacking libctf0:amd64 (2.40-2) ...
+Selecting previously unselected package libgprofng0:amd64.
+Preparing to unpack .../07-libgprofng0_2.40-2_amd64.deb ...
+Unpacking libgprofng0:amd64 (2.40-2) ...
+Selecting previously unselected package libjansson4:amd64.
+Preparing to unpack .../08-libjansson4_2.14-2_amd64.deb ...
+Unpacking libjansson4:amd64 (2.14-2) ...
+Selecting previously unselected package binutils-x86-64-linux-gnu.
+Preparing to unpack .../09-binutils-x86-64-linux-gnu_2.40-2_amd64.deb ...
+Unpacking binutils-x86-64-linux-gnu (2.40-2) ...
+Selecting previously unselected package binutils.
+Preparing to unpack .../10-binutils_2.40-2_amd64.deb ...
+Unpacking binutils (2.40-2) ...
+Selecting previously unselected package libisl23:amd64.
+Preparing to unpack .../11-libisl23_0.25-1.1_amd64.deb ...
+Unpacking libisl23:amd64 (0.25-1.1) ...
+Selecting previously unselected package libmpfr6:amd64.
+Preparing to unpack .../12-libmpfr6_4.2.0-1_amd64.deb ...
+Unpacking libmpfr6:amd64 (4.2.0-1) ...
+Selecting previously unselected package libmpc3:amd64.
+Preparing to unpack .../13-libmpc3_1.3.1-1_amd64.deb ...
+Unpacking libmpc3:amd64 (1.3.1-1) ...
+Selecting previously unselected package cpp-12.
+Preparing to unpack .../14-cpp-12_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking cpp-12 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package cpp.
+Preparing to unpack .../15-cpp_4%3a12.2.0-3_amd64.deb ...
+Unpacking cpp (4:12.2.0-3) ...
+Selecting previously unselected package libcc1-0:amd64.
+Preparing to unpack .../16-libcc1-0_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libcc1-0:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libgomp1:amd64.
+Preparing to unpack .../17-libgomp1_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libgomp1:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libitm1:amd64.
+Preparing to unpack .../18-libitm1_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libitm1:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libatomic1:amd64.
+Preparing to unpack .../19-libatomic1_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libatomic1:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libasan8:amd64.
+Preparing to unpack .../20-libasan8_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libasan8:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package liblsan0:amd64.
+Preparing to unpack .../21-liblsan0_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking liblsan0:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libtsan2:amd64.
+Preparing to unpack .../22-libtsan2_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libtsan2:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libubsan1:amd64.
+Preparing to unpack .../23-libubsan1_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libubsan1:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libquadmath0:amd64.
+Preparing to unpack .../24-libquadmath0_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libquadmath0:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package libgcc-12-dev:amd64.
+Preparing to unpack .../25-libgcc-12-dev_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libgcc-12-dev:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package gcc-12.
+Preparing to unpack .../26-gcc-12_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking gcc-12 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package gcc.
+Preparing to unpack .../27-gcc_4%3a12.2.0-3_amd64.deb ...
+Unpacking gcc (4:12.2.0-3) ...
+Selecting previously unselected package libc-dev-bin.
+Preparing to unpack .../28-libc-dev-bin_2.36-9+deb12u14_amd64.deb ...
+Unpacking libc-dev-bin (2.36-9+deb12u14) ...
+Selecting previously unselected package linux-libc-dev:amd64.
+Preparing to unpack .../29-linux-libc-dev_6.1.176-1_amd64.deb ...
+Unpacking linux-libc-dev:amd64 (6.1.176-1) ...
+Selecting previously unselected package libcrypt-dev:amd64.
+Preparing to unpack .../30-libcrypt-dev_1%3a4.4.33-2_amd64.deb ...
+Unpacking libcrypt-dev:amd64 (1:4.4.33-2) ...
+Selecting previously unselected package libtirpc-dev:amd64.
+Preparing to unpack .../31-libtirpc-dev_1.3.3+ds-1_amd64.deb ...
+Unpacking libtirpc-dev:amd64 (1.3.3+ds-1) ...
+Selecting previously unselected package libnsl-dev:amd64.
+Preparing to unpack .../32-libnsl-dev_1.3.0-2_amd64.deb ...
+Unpacking libnsl-dev:amd64 (1.3.0-2) ...
+Selecting previously unselected package rpcsvc-proto.
+Preparing to unpack .../33-rpcsvc-proto_1.4.3-1_amd64.deb ...
+Unpacking rpcsvc-proto (1.4.3-1) ...
+Selecting previously unselected package libc6-dev:amd64.
+Preparing to unpack .../34-libc6-dev_2.36-9+deb12u14_amd64.deb ...
+Unpacking libc6-dev:amd64 (2.36-9+deb12u14) ...
+Selecting previously unselected package libstdc++-12-dev:amd64.
+Preparing to unpack .../35-libstdc++-12-dev_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking libstdc++-12-dev:amd64 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package g++-12.
+Preparing to unpack .../36-g++-12_12.2.0-14+deb12u1_amd64.deb ...
+Unpacking g++-12 (12.2.0-14+deb12u1) ...
+Selecting previously unselected package g++.
+Preparing to unpack .../37-g++_4%3a12.2.0-3_amd64.deb ...
+Unpacking g++ (4:12.2.0-3) ...
+Selecting previously unselected package make.
+Preparing to unpack .../38-make_4.3-4.1_amd64.deb ...
+Unpacking make (4.3-4.1) ...
+Setting up media-types (10.0.0) ...
+Setting up libkeyutils1:amd64 (1.6.3-2) ...
+Setting up libtirpc-common (1.3.3+ds-1) ...
+Setting up libsqlite3-0:amd64 (3.40.1-2+deb12u2) ...
+Setting up binutils-common:amd64 (2.40-2) ...
+Setting up linux-libc-dev:amd64 (6.1.176-1) ...
+Setting up libctf-nobfd0:amd64 (2.40-2) ...
+Setting up libgomp1:amd64 (12.2.0-14+deb12u1) ...
+Setting up libjansson4:amd64 (2.14-2) ...
+Setting up libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+Setting up rpcsvc-proto (1.4.3-1) ...
+Setting up make (4.3-4.1) ...
+Setting up libmpfr6:amd64 (4.2.0-1) ...
+Setting up libquadmath0:amd64 (12.2.0-14+deb12u1) ...
+Setting up libmpc3:amd64 (1.3.1-1) ...
+Setting up libatomic1:amd64 (12.2.0-14+deb12u1) ...
+Setting up libncursesw6:amd64 (6.4-4) ...
+Setting up libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+Setting up libubsan1:amd64 (12.2.0-14+deb12u1) ...
+Setting up libcrypt-dev:amd64 (1:4.4.33-2) ...
+Setting up libasan8:amd64 (12.2.0-14+deb12u1) ...
+Setting up libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+Setting up libtsan2:amd64 (12.2.0-14+deb12u1) ...
+Setting up libbinutils:amd64 (2.40-2) ...
+Setting up libisl23:amd64 (0.25-1.1) ...
+Setting up libc-dev-bin (2.36-9+deb12u14) ...
+Setting up openssl (3.0.20-1~deb12u2) ...
+Setting up readline-common (8.2-1.3) ...
+Setting up libcc1-0:amd64 (12.2.0-14+deb12u1) ...
+Setting up liblsan0:amd64 (12.2.0-14+deb12u1) ...
+Setting up libitm1:amd64 (12.2.0-14+deb12u1) ...
+Setting up libctf0:amd64 (2.40-2) ...
+Setting up cpp-12 (12.2.0-14+deb12u1) ...
+Setting up libreadline8:amd64 (8.2-1.3) ...
+Setting up ca-certificates (20230311+deb12u1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Updating certificates in /etc/ssl/certs...
+142 added, 0 removed; done.
+Setting up libgprofng0:amd64 (2.40-2) ...
+Setting up libgcc-12-dev:amd64 (12.2.0-14+deb12u1) ...
+Setting up libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+Setting up cpp (4:12.2.0-3) ...
+Setting up binutils-x86-64-linux-gnu (2.40-2) ...
+Setting up libtirpc3:amd64 (1.3.3+ds-1) ...
+Setting up binutils (2.40-2) ...
+Setting up libtirpc-dev:amd64 (1.3.3+ds-1) ...
+Setting up gcc-12 (12.2.0-14+deb12u1) ...
+Setting up libnsl2:amd64 (1.3.0-2) ...
+Setting up libpython3.11-stdlib:amd64 (3.11.2-6+deb12u8) ...
+Setting up gcc (4:12.2.0-3) ...
+Setting up libnsl-dev:amd64 (1.3.0-2) ...
+Setting up libc6-dev:amd64 (2.36-9+deb12u14) ...
+Setting up libpython3-stdlib:amd64 (3.11.2-1+b1) ...
+Setting up python3.11 (3.11.2-6+deb12u8) ...
+Setting up libstdc++-12-dev:amd64 (12.2.0-14+deb12u1) ...
+Setting up python3 (3.11.2-1+b1) ...
+running python rtupdate hooks for python3.11...
+running python post-rtupdate hooks for python3.11...
+Setting up g++-12 (12.2.0-14+deb12u1) ...
+Setting up g++ (4:12.2.0-3) ...
+update-alternatives: using /usr/bin/g++ to provide /usr/bin/c++ (c++) in auto mode
+Processing triggers for libc-bin (2.36-9+deb12u14) ...
+Processing triggers for ca-certificates (20230311+deb12u1) ...
+Updating certificates in /etc/ssl/certs...
+0 added, 0 removed; done.
+Running hooks in /etc/ca-certificates/update.d...
+done.
+Removing intermediate container 377b72abce39
+ ---> 1ec93895aaca
+Step 16/51 : COPY --from=deps /app/node_modules ./node_modules
+ ---> cc616f247aeb
+Step 17/51 : COPY package.json package-lock.json ./
+ ---> fc08d53bfb6c
+Step 18/51 : COPY packages ./packages
+ ---> da7f593fe30e
+Step 19/51 : COPY apps ./apps
+ ---> 3ccafb5146a7
+Step 20/51 : COPY tools ./tools
+ ---> 8c88273bab88
+Step 21/51 : COPY --from=deps /app/packages/msgf/node_modules ./packages/msgf/node_modules
+ ---> 6a1781183bcf
+Step 22/51 : ARG NEXT_PUBLIC_SUPABASE_URL=
+ ---> Running in ec5a5844b5b1
+Removing intermediate container ec5a5844b5b1
+ ---> c12b98fa8a5e
+Step 23/51 : ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+ ---> Running in 35aad0b98fd3
+Removing intermediate container 35aad0b98fd3
+ ---> a4a1d856fee7
+Step 24/51 : ARG NEXT_PUBLIC_AUTHOR_APP_URL=
+ ---> Running in dd9da99ab178
+Removing intermediate container dd9da99ab178
+ ---> ad98d0cba5d9
+Step 25/51 : ARG NEXT_PUBLIC_EDUCATION_APP_URL=
+ ---> Running in 846d6e11c7a3
+Removing intermediate container 846d6e11c7a3
+ ---> 6e594c48a6a8
+Step 26/51 : ARG NEXT_PUBLIC_MSGF_APP_URL=
+ ---> Running in 2ed2baee8763
+Removing intermediate container 2ed2baee8763
+ ---> c4b9644c155d
+Step 27/51 : ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+ ---> Running in f58e5b5e2601
+Removing intermediate container f58e5b5e2601
+ ---> f7faf944bf5e
+Step 28/51 : ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+ ---> Running in fd0f172d289e
+Removing intermediate container fd0f172d289e
+ ---> e143364ba89d
+Step 29/51 : ENV NEXT_PUBLIC_AUTHOR_APP_URL=${NEXT_PUBLIC_AUTHOR_APP_URL}
+ ---> Running in 62066cbff70d
+Removing intermediate container 62066cbff70d
+ ---> 34e3d2ebd04c
+Step 30/51 : ENV NEXT_PUBLIC_EDUCATION_APP_URL=${NEXT_PUBLIC_EDUCATION_APP_URL}
+ ---> Running in 020a5fcb6480
+Removing intermediate container 020a5fcb6480
+ ---> a0addbef0175
+Step 31/51 : ENV NEXT_PUBLIC_MSGF_APP_URL=${NEXT_PUBLIC_MSGF_APP_URL}
+ ---> Running in 8693c794ea83
+Removing intermediate container 8693c794ea83
+ ---> 008078f0077f
+Step 32/51 : RUN node tools/package-pulse-guard.js
+ ---> Running in c77f102b9fc8
+
+> msgf-pulse-guard@0.2.3 compile
+> node esbuild.config.mjs
+[91mnpm notice
+npm notice New major version of npm available! 10.8.2 -> 12.0.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.1
+npm notice To update run: npm install -g npm@12.0.1
+npm notice
+[0m[91mnpm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+[0m[91mnpm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+[0mExecuting prepublish script 'npm run vscode:prepublish'...
+
+> msgf-pulse-guard@0.2.3 vscode:prepublish
+> npm run compile
+
+
+> msgf-pulse-guard@0.2.3 compile
+> node esbuild.config.mjs
+[91m WARNING  LICENSE, LICENSE.md, or LICENSE.txt not found
+[0m INFO  Files included in the VSIX:
+msgf-pulse-guard-0.2.3.vsix
+?? [Content_Types].xml 
+?? extension.vsixmanifest 
+?? extension/
+   ?? esbuild.config.mjs [0.68 KB]
+   ?? package.json [9.29 KB]
+   ?? media/
+   ?  ?? msgf.svg [0.18 KB]
+   ?? out/
+   ?  ?? extension.js [205.35 KB]
+   ?? resources/
+      ?? dev-kit/
+         ?? KIT_VERSION.json [0.09 KB]
+         ?? dev/
+            ?? env.example.json [0.21 KB]
+            ?? requests/
+            ?  ?? agent-context.json [0.16 KB]
+            ?  ?? report-issue.json [0.27 KB]
+            ?  ?? verify-result.json [0.18 KB]
+            ?? scripts/
+            ?  ?? smoke-integrator.mjs [1.83 KB]
+            ?  ?? test-connection.ps1 [1.5 KB]
+            ?  ?? test-connection.sh [1.17 KB]
+            ?? tasks/
+               ?? msgf-tasks.json [0.78 KB]
+
+The file extension/out/extension.js is large (205.35 KB)
+
+ DONE  Packaged: /app/packages/msgf-pulse-guard/msgf-pulse-guard-0.2.3.vsix (15 files, 58.34 KB)
+package-pulse-guard: /app/packages/msgf/public/downloads/msgf-pulse-guard.vsix (59744 bytes)
+Removing intermediate container c77f102b9fc8
+ ---> cff32e286536
+Step 33/51 : RUN npm run build -w msgf   && (rm -rf /tmp/* /root/.npm 2>/dev/null || true)
+ ---> Running in a212e6ca1e82
+
+> prebuild
+> node msgf-init.cjs
+
+MSGF init: skipping service-account.json check (MSGF_DOCKER_BUILD_SKIP_SA). Inject GCP credentials at container runtime.
+
+> build
+> npm run build:sdk:prod && npm run _next -- build
+
+
+> build:sdk:prod
+> npm run license:stamp && node ../../node_modules/cross-env/src/bin/cross-env.js NODE_ENV=production MSGF_SDK_PRODUCTION=1 npm run build:sdk && node scripts/obfuscate-dist.mjs && npm run verify:sdk-dist
+
+> license:stamp
+> node scripts/apply-license-headers.mjs
+
+[license-header] .msgf/msgf-ingest.ts
+[license-header] app/_components/admin/AdminDevStackBanner.tsx
+[license-header] app/_components/admin/AdminPortalNav.tsx
+[license-header] app/_components/admin/AdminProductLauncher.tsx
+[license-header] app/_components/admin/ops/AdminArbitrateSection.tsx
+[license-header] app/_components/admin/ops/AdminDocuSignPanel.tsx
+[license-header] app/_components/admin/ops/AdminResolutionPanel.tsx
+[license-header] app/_components/admin/ops/AdminStrategyMatrix.tsx
+[license-header] app/_components/admin/ops/PillarHaltBanner.tsx
+[license-header] app/_components/auth/AuthForm.tsx
+[license-header] app/_components/auth/ForgotPasswordForm.tsx
+[license-header] app/_components/auth/ResetPasswordClient.tsx
+[license-header] app/_components/auth/ResetPasswordSuccessPanel.tsx
+[license-header] app/_components/auth/SignOutButton.tsx
+[license-header] app/_components/brand/BrandLogo.tsx
+[license-header] app/_components/dashboard/BigBrainIssuesPanel.tsx
+[license-header] app/_components/dashboard/DailyReportsAccordion.tsx
+[license-header] app/_components/dashboard/DashboardNav.tsx
+[license-header] app/_components/dashboard/DashboardShell.tsx
+[license-header] app/_components/dashboard/GovernanceEnvironmentalShelf.tsx
+[license-header] app/_components/dashboard/GovernanceLatestActivityLog.tsx
+[license-header] app/_components/dashboard/PostIngestHealingConsole.tsx
+[license-header] app/_components/dashboard/ProductExplorerSection.tsx
+[license-header] app/_components/dashboard/ProjectGovernanceAccordion.tsx
+[license-header] app/_components/dashboard/SecurityLensToggle.tsx
+[license-header] app/_components/dashboard/SecurityViewSection.tsx
+[license-header] app/_components/dashboard/ShippedCapabilitiesStrip.tsx
+[license-header] app/_components/dashboard/TokenSavingsFeaturesPanel.tsx
+[license-header] app/_components/dashboard/TokenSavingsRouteSection.tsx
+[license-header] app/_components/dashboard/UserBlueprintEcoPanel.tsx
+[license-header] app/_components/dashboard/dashboard-nav-links.ts
+[license-header] app/_components/dashboard/governance-pillar-blocks.tsx
+[license-header] app/_components/getting-started/PillarGuideSection.tsx
+[license-header] app/_components/landing/AuthLandingNav.tsx
+[license-header] app/_components/landing/HomeLanding.tsx
+[license-header] app/_components/landing/LandingNav.tsx
+[license-header] app/_components/landing/PlatformHubLanding.tsx
+[license-header] app/_components/landing/PublicEcoMetricsWidget.tsx
+[license-header] app/_components/marketing/FeatureGrid.tsx
+[license-header] app/_components/marketing/MarketingSection.tsx
+[license-header] app/_components/marketing/MarketingShell.tsx
+[license-header] app/_components/marketing/WorkflowStrip.tsx
+[license-header] app/_components/marketing/shipped-capabilities.ts
+[license-header] app/_components/pricing/PricingCard.tsx
+[license-header] app/_components/pricing/PricingCheckoutNotice.tsx
+[license-header] app/_components/pricing/PricingCtaButton.tsx
+[license-header] app/_components/pricing/PricingMatrix.tsx
+[license-header] app/_components/pricing/pricing-tiers.ts
+[license-header] app/_components/products/ProductDetailShell.tsx
+[license-header] app/_components/workspace/DocusignComplianceBanner.tsx
+[license-header] app/_components/workspace/TeamInviteOnboardingSection.tsx
+[license-header] app/_components/workspace/TeamManagementModule.tsx
+[license-header] app/_components/workspace/TeamRosterTable.tsx
+[license-header] app/_components/workspace/WorkspaceActiveIdeTab.tsx
+[license-header] app/_components/workspace/WorkspaceIdeSetup.tsx
+[license-header] app/_components/workspace/WorkspaceMsgfSentinel.tsx
+[license-header] app/_components/workspace/WorkspaceOnboardingPack.tsx
+[license-header] app/_components/workspace/WorkspaceProjectDebugHub.tsx
+[license-header] app/_components/workspace/WorkspaceProjectIdePanel.tsx
+[license-header] app/_components/workspace/WorkspaceSetupProjectsTab.tsx
+[license-header] app/_components/workspace/WorkspaceView.tsx
+[license-header] app/_components/workspace/workspace-ui.tsx
+[license-header] app/admin/(authenticated)/dashboard/page.tsx
+[license-header] app/admin/(authenticated)/layout.tsx
+[license-header] app/admin/(authenticated)/ops/page.tsx
+[license-header] app/admin/(authenticated)/portal/page.tsx
+[license-header] app/admin/page.tsx
+[license-header] app/admin/sign-in/page.tsx
+[license-header] app/api/billing/checkout/route.ts
+[license-header] app/api/contracts/sign-nda/route.ts
+[license-header] app/api/downloads/pulse-guard/route.ts
+[license-header] app/api/ecosystem/bridge/route.ts
+[license-header] app/api/editor/forensic-bundle/route.ts
+[license-header] app/api/education/lti/ags/passback/route.ts
+[license-header] app/api/education/lti/jwks/route.ts
+[license-header] app/api/education/lti/launch/route.ts
+[license-header] app/api/education/lti/login/route.ts
+[license-header] app/api/education/workspace/allowance/route.ts
+[license-header] app/api/education/workspace/allowance/stream/route.ts
+[license-header] app/api/education/workspace/config/route.ts
+[license-header] app/api/helper/complete-project/route.ts
+[license-header] app/api/helper/milestone/route.ts
+[license-header] app/api/middleware.ts
+[license-header] app/api/msgf/admin/author-handoff/route.ts
+[license-header] app/api/msgf/admin/dashboard/savings-features/route.ts
+[license-header] app/api/msgf/admin/docusign/envelopes/route.ts
+[license-header] app/api/msgf/admin/global-insight/absorb/route.ts
+[license-header] app/api/msgf/admin/global-insight/feed/route.ts
+[license-header] app/api/msgf/admin/global-rules/route.ts
+[license-header] app/api/msgf/admin/incidents/[id]/route.ts
+[license-header] app/api/msgf/admin/incidents/[id]/strategies/route.ts
+[license-header] app/api/msgf/admin/incidents/notify-reject/route.ts
+[license-header] app/api/msgf/admin/incidents/route.ts
+[license-header] app/api/msgf/admin/law-book/route.ts
+[license-header] app/api/msgf/admin/logs/[id]/route.ts
+[license-header] app/api/msgf/admin/promotions/approve/route.ts
+[license-header] app/api/msgf/admin/promotions/company-validate/route.ts
+[license-header] app/api/msgf/admin/promotions/pending/route.ts
+[license-header] app/api/msgf/admin/rule-submissions/[id]/route.ts
+[license-header] app/api/msgf/admin/rule-submissions/route.ts
+[license-header] app/api/msgf/admin/self-heal/purge/route.ts
+[license-header] app/api/msgf/admin/self-heal/report/route.ts
+[license-header] app/api/msgf/agent-context/route.ts
+[license-header] app/api/msgf/author/chapter-validation/route.ts
+[license-header] app/api/msgf/compliance/export/route.ts
+[license-header] app/api/msgf/confirm-pack/route.ts
+[license-header] app/api/msgf/dashboard/daily-report/route.ts
+[license-header] app/api/msgf/dashboard/daily-reports/route.ts
+[license-header] app/api/msgf/dashboard/pillar/[pillar]/arbitrate/route.ts
+[license-header] app/api/msgf/dashboard/pillar/[pillar]/route.ts
+[license-header] app/api/msgf/dashboard/pulse-routing/route.ts
+[license-header] app/api/msgf/dashboard/savings-features/route.ts
+[license-header] app/api/msgf/dashboard/security-snapshot/route.ts
+[license-header] app/api/msgf/dashboard/ticker/route.ts
+[license-header] app/api/msgf/dev-event/route.ts
+[license-header] app/api/msgf/document-compiler/commit/route.ts
+[license-header] app/api/msgf/document-compiler/scan/route.ts
+[license-header] app/api/msgf/eco/my-usage/route.ts
+[license-header] app/api/msgf/education/admin/curriculum-catalog/route.ts
+[license-header] app/api/msgf/education/admin/curriculum-ingest/route.ts
+[license-header] app/api/msgf/education/research/citation-check/route.ts
+[license-header] app/api/msgf/education/socratic-tutor/route.ts
+[license-header] app/api/msgf/education/student/reading-gate/route.ts
+[license-header] app/api/msgf/education/teacher/assignment-resources/route.ts
+[license-header] app/api/msgf/heal-queue/human-arbitration/route.ts
+[license-header] app/api/msgf/heal-queue/route.ts
+[license-header] app/api/msgf/health/pillars/route.ts
+[license-header] app/api/msgf/ide/connectivity-check/route.ts
+[license-header] app/api/msgf/incidents/report/route.ts
+[license-header] app/api/msgf/ingest/route.ts
+[license-header] app/api/msgf/jira/status/route.ts
+[license-header] app/api/msgf/master/eco-rollups/route.ts
+[license-header] app/api/msgf/ops/docusign-webhook/route.ts
+[license-header] app/api/msgf/ops/v32-heartbeat/route.ts
+[license-header] app/api/msgf/p4/state-ledger/route.ts
+[license-header] app/api/msgf/projects/[id]/route.ts
+[license-header] app/api/msgf/projects/route.ts
+[license-header] app/api/msgf/prompt-optimizer/route.ts
+[license-header] app/api/msgf/pulse/route.ts
+[license-header] app/api/msgf/refactoring-directive/route.ts
+[license-header] app/api/msgf/report-issue/route.ts
+[license-header] app/api/msgf/tenant/provider-keys/route.ts
+[license-header] app/api/msgf/verify-result/route.ts
+[license-header] app/api/msgf/workspace/compliance-status/route.ts
+[license-header] app/api/msgf/workspace/docusign/mock-complete/route.ts
+[license-header] app/api/msgf/workspace/onboarding-pack/route.ts
+[license-header] app/api/msgf/workspace/team/bootstrap/route.ts
+[license-header] app/api/msgf/workspace/team/invite/route.ts
+[license-header] app/api/msgf/workspace/team/onboarding-documents/route.ts
+[license-header] app/api/msgf/workspace/team/roster/route.ts
+[license-header] app/api/public-eco-metrics/route.ts
+[license-header] app/api/publisher-grants/route.ts
+[license-header] app/api/v1/verify-badge/[badge_id]/route.ts
+[license-header] app/api/webhooks/stripe/route.ts
+[license-header] app/api/workspace/ide-connectivity-check/route.ts
+[license-header] app/api/workspace/ide-credentials/route.ts
+[license-header] app/api/workspace/ide-token/route.ts
+[license-header] app/api/workspace/ide-tokens/route.ts
+[license-header] app/api/workspace/monorepo-presets/route.ts
+[license-header] app/api/workspace/register-workspace/route.ts
+[license-header] app/audit-log/page.tsx
+[license-header] app/auth/callback/page.tsx
+[license-header] app/brain/page.tsx
+[license-header] app/confirm-email/page.tsx
+[license-header] app/dashboard/daily-reports/page.tsx
+[license-header] app/dashboard/page.tsx
+[license-header] app/features/page.tsx
+[license-header] app/forgot-password/page.tsx
+[license-header] app/getting-started/page.tsx
+[license-header] app/health/route.ts
+[license-header] app/layout.tsx
+[license-header] app/other-products/page.tsx
+[license-header] app/page.tsx
+[license-header] app/pricing/page.tsx
+[license-header] app/products/author/page.tsx
+[license-header] app/products/education/page.tsx
+[license-header] app/products/msgf/page.tsx
+[license-header] app/reset-password/page.tsx
+[license-header] app/setup/projects/ProjectIdeTokenControls.tsx
+[license-header] app/setup/projects/ProjectSetupClient.tsx
+[license-header] app/setup/projects/page.tsx
+[license-header] app/sign-in/page.tsx
+[license-header] app/sign-up/page.tsx
+[license-header] app/status/page.tsx
+[license-header] app/todos/page.tsx
+[license-header] app/unauthorized/page.tsx
+[license-header] app/verify/[token]/page.tsx
+[license-header] app/workspace/page.tsx
+[license-header] day-zero-scan.js
+[license-header] index.ts
+[license-header] instrumentation.ts
+[license-header] lib/MsgfClient.ts
+[license-header] lib/P4.ts
+[license-header] lib/admin-browser-api.ts
+[license-header] lib/admin-decision-portal.ts
+[license-header] lib/admin-product-surfaces.ts
+[license-header] lib/admin-system-impact.ts
+[license-header] lib/ai-utils.ts
+[license-header] lib/api-key-tenant.ts
+[license-header] lib/auth-post-login.ts
+[license-header] lib/author/chapter-constraint-engine.ts
+[license-header] lib/author/chapter-validation-controller.ts
+[license-header] lib/billing/stripe-checkout-plans.ts
+[license-header] lib/connector/MsgfBridge.ts
+[license-header] lib/connector/agent-handoff.ts
+[license-header] lib/connector/bearer-auth.ts
+[license-header] lib/connector/brain-sensitivity.ts
+[license-header] lib/connector/client.ts
+[license-header] lib/connector/error-mapper.ts
+[license-header] lib/connector/exceptions.ts
+[license-header] lib/connector/index.ts
+[license-header] lib/connector/ingest-payload.ts
+[license-header] lib/connector/notify-author-pulse-rejected.ts
+[license-header] lib/connector/p1-standard.ts
+[license-header] lib/connector/report-system-issue.ts
+[license-header] lib/connector/self-heal-report-ui.ts
+[license-header] lib/connector/sentinel-snapshot-bundle.ts
+[license-header] lib/connector/server.ts
+[license-header] lib/connector/session-store.ts
+[license-header] lib/connector/tenant.ts
+[license-header] lib/credit-reservation.ts
+[license-header] lib/creditGuard.ts
+[license-header] lib/crypto/CryptoService.ts
+[license-header] lib/dashboard-access.ts
+[license-header] lib/dashboard-health-scope.ts
+[license-header] lib/dashboard-pillar-copy.ts
+[license-header] lib/dev-heal-config.ts
+[license-header] lib/dev-stack-status.ts
+[license-header] lib/education/assignment-resources.ts
+[license-header] lib/education/curriculum-catalog.ts
+[license-header] lib/education/curriculum-metadata.ts
+[license-header] lib/education/education-curriculum-ingest.ts
+[license-header] lib/education/education-curriculum-rag.ts
+[license-header] lib/education/learning-breakdown-index.ts
+[license-header] lib/education/lti/lti-ags.ts
+[license-header] lib/education/lti/lti-config.ts
+[license-header] lib/education/lti/lti-jwt.ts
+[license-header] lib/education/lti/lti-oidc-state.ts
+[license-header] lib/education/lti/lti-oidc.ts
+[license-header] lib/education/lti/lti-roles.ts
+[license-header] lib/education/lti/lti-session.ts
+[license-header] lib/education/lti/lti-tool-jwks.ts
+[license-header] lib/education/p1-static-ledger.ts
+[license-header] lib/education/privacy-gate.ts
+[license-header] lib/education/reading-gate.ts
+[license-header] lib/education/research-portal.ts
+[license-header] lib/education/socratic-tutor-consensus.ts
+[license-header] lib/education/socratic-tutor-prompt.ts
+[license-header] lib/education/student-vault-strengths.ts
+[license-header] lib/education/the-call-telemetry.ts
+[license-header] lib/education/workspace/allowance-broadcast.ts
+[license-header] lib/education/workspace/layer-b-prompts.ts
+[license-header] lib/education/workspace/llm-routing-controller.ts
+[license-header] lib/education/workspace/workspace-assignment-store.ts
+[license-header] lib/email/branded-auth-email.ts
+[license-header] lib/errors/sovereign-violation.ts
+[license-header] lib/hal-author-bridge.ts
+[license-header] lib/hal-author-telemetry.ts
+[license-header] lib/hal-word-chunk-packet.ts
+[license-header] lib/heal-queue-tenant.ts
+[license-header] lib/heal-queue-web-client.ts
+[license-header] lib/ide-connector.ts
+[license-header] lib/ide-error-codes.ts
+[license-header] lib/ide-tenant-alignment.ts
+[license-header] lib/identity-violation-log.ts
+[license-header] lib/index.ts
+[license-header] lib/jira-bridge.ts
+[license-header] lib/jira-client.ts
+[license-header] lib/jira-env.ts
+[license-header] lib/middleware/entitlementGuard.ts
+[license-header] lib/middleware/individual-tenant-promotion.ts
+[license-header] lib/monorepo-presets-access.ts
+[license-header] lib/msgf-admin-auth.ts
+[license-header] lib/msgf-admin-request-operator.ts
+[license-header] lib/msgf-admin-session.ts
+[license-header] lib/msgf-auth-cookies.ts
+[license-header] lib/msgf-consensus.ts
+[license-header] lib/msgf-cors.ts
+[license-header] lib/msgf-hot-layer.ts
+[license-header] lib/msgf-http-headers.ts
+[license-header] lib/msgf-index.ts
+[license-header] lib/msgf-ingest.ts
+[license-header] lib/msgf-legal.ts
+[license-header] lib/msgf-onboarding.ts
+[license-header] lib/msgf-operator-access.ts
+[license-header] lib/msgf-pillar-meta.ts
+[license-header] lib/msgf-pillar-table.ts
+[license-header] lib/msgf-plugins.ts
+[license-header] lib/msgf-pulse.ts
+[license-header] lib/msgf-report-url.ts
+[license-header] lib/msgf-request-origin.ts
+[license-header] lib/msgf-shadow.ts
+[license-header] lib/msgf-shield.ts
+[license-header] lib/msgf-tenant-governance.ts
+[license-header] lib/msgf-vertex.ts
+[license-header] lib/msgf.ts
+[license-header] lib/pillar-guide-copy.ts
+[license-header] lib/platform-persona-auth.ts
+[license-header] lib/platform-rbac.ts
+[license-header] lib/pov-logger.ts
+[license-header] lib/prelaunch-product-access.ts
+[license-header] lib/public-types.ts
+[license-header] lib/redis-client.ts
+[license-header] lib/redis.ts
+[license-header] lib/runtime/listen-port.ts
+[license-header] lib/runtime/msgf-dev-defaults.ts
+[license-header] lib/runtime/pulse-trace-context.ts
+[license-header] lib/runtime/shutdown-coordinator.ts
+[license-header] lib/sanitize-tenant-scope.ts
+[license-header] lib/schemas/dev-event.ts
+[license-header] lib/schemas/diagnostic-snapshot.ts
+[license-header] lib/schemas/heal-queue.ts
+[license-header] lib/schemas/hitl-strategies.ts
+[license-header] lib/schemas/ingest-metadata.ts
+[license-header] lib/schemas/mitigation-action.ts
+[license-header] lib/schemas/msgf-profile.ts
+[license-header] lib/schemas/prompt-optimizer.ts
+[license-header] lib/schemas/remediation-state.ts
+[license-header] lib/schemas/report-issue.ts
+[license-header] lib/schemas/vault-hall-metadata.ts
+[license-header] lib/schemas/verify-result.ts
+[license-header] lib/security-view-lens.ts
+[license-header] lib/services/EcoAggregatorClient.ts
+[license-header] lib/services/HealthService.ts
+[license-header] lib/services/IngestService.ts
+[license-header] lib/services/LogicDriftService.ts
+[license-header] lib/services/MitigationService.ts
+[license-header] lib/services/PulseEngine.ts
+[license-header] lib/services/RemediationEngine.ts
+[license-header] lib/services/ReportingEngine.ts
+[license-header] lib/services/TelemetryService.ts
+[license-header] lib/services/active-incident-report.ts
+[license-header] lib/services/admin-incident-resolution.ts
+[license-header] lib/services/admin-incident-resolve.ts
+[license-header] lib/services/agent-context-service.ts
+[license-header] lib/services/anthropic-direct-fallback.ts
+[license-header] lib/services/arbitrate-narrative-meta.ts
+[license-header] lib/services/brain-readiness.ts
+[license-header] lib/services/brain-routing-policy.ts
+[license-header] lib/services/company-team.ts
+[license-header] lib/services/compliance-export-service.ts
+[license-header] lib/services/consensus-output-comparison.ts
+[license-header] lib/services/constraint-ledger.ts
+[license-header] lib/services/context-loader.ts
+[license-header] lib/services/converge-cache.ts
+[license-header] lib/services/converge-consensus-routing.ts
+[license-header] lib/services/converge-context-budget.ts
+[license-header] lib/services/cost-runaway-guard.ts
+[license-header] lib/services/daily-reports-history.ts
+[license-header] lib/services/dashboard-orchestration.ts
+[license-header] lib/services/dev-event-auth.ts
+[license-header] lib/services/dev-event-build-heal.ts
+[license-header] lib/services/dev-event-routing.ts
+[license-header] lib/services/dev-handoff-service.ts
+[license-header] lib/services/dev-session-profile.ts
+[license-header] lib/services/document-compiler/dedupe.ts
+[license-header] lib/services/document-compiler/defend-guard.ts
+[license-header] lib/services/document-compiler/fingerprints.ts
+[license-header] lib/services/document-compiler/gates/input-gate.ts
+[license-header] lib/services/document-compiler/gates/output-gate.ts
+[license-header] lib/services/document-compiler/index.ts
+[license-header] lib/services/document-compiler/limits.ts
+[license-header] lib/services/document-compiler/llm-adapter.ts
+[license-header] lib/services/document-compiler/macro-windows.ts
+[license-header] lib/services/document-compiler/orchestrator.ts
+[license-header] lib/services/document-compiler/parse-json.ts
+[license-header] lib/services/document-compiler/profiles/index.ts
+[license-header] lib/services/document-compiler/session-store.ts
+[license-header] lib/services/document-compiler/structural-signals.ts
+[license-header] lib/services/document-compiler/topology.ts
+[license-header] lib/services/document-compiler/types.ts
+[license-header] lib/services/docusign-gateway.ts
+[license-header] lib/services/docusign-rest.ts
+[license-header] lib/services/dual-model-consensus-gateway.ts
+[license-header] lib/services/education-lti-controller.ts
+[license-header] lib/services/education-workspace-controller.ts
+[license-header] lib/services/emergency-lom-session.ts
+[license-header] lib/services/feature-verify-scripts.ts
+[license-header] lib/services/global-approval-gate.ts
+[license-header] lib/services/global-insight.ts
+[license-header] lib/services/global-promotion.ts
+[license-header] lib/services/hall-purge-protocol.ts
+[license-header] lib/services/hall-redis-purge.ts
+[license-header] lib/services/heal-incident-scope.ts
+[license-header] lib/services/heal-queue-audience.ts
+[license-header] lib/services/heal-queue-cron-batch.ts
+[license-header] lib/services/heal-queue-service.ts
+[license-header] lib/services/heal-token-estimate.ts
+[license-header] lib/services/hitl-strategy-generator.ts
+[license-header] lib/services/ide-api-auth.ts
+[license-header] lib/services/ide-connectivity-check.ts
+[license-header] lib/services/ide-pack-auth.ts
+[license-header] lib/services/ide-token-service.ts
+[license-header] lib/services/individual-perpetual-license.ts
+[license-header] lib/services/ingest-hash-cache.ts
+[license-header] lib/services/llm-dead-letter.ts
+[license-header] lib/services/local-session-delta.ts
+[license-header] lib/services/local-state-cache.ts
+[license-header] lib/services/local-state-gateway.ts
+[license-header] lib/services/logic-drift.ts
+[license-header] lib/services/logic-pattern-sanitize.ts
+[license-header] lib/services/monorepo-workspace-presets.ts
+[license-header] lib/services/msgf-admin-logs.ts
+[license-header] lib/services/msgf-global-rules.ts
+[license-header] lib/services/msgf-incidents.ts
+[license-header] lib/services/msgf-metadata-scope.ts
+[license-header] lib/services/msgf-rule-submissions.ts
+[license-header] lib/services/my-eco-usage.ts
+[license-header] lib/services/p2-flow-roadmap.ts
+[license-header] lib/services/p4-state-ledger-controller.ts
+[license-header] lib/services/p4-state-ledger-incidents.ts
+[license-header] lib/services/pack-registry.ts
+[license-header] lib/services/paid-individual-usage.ts
+[license-header] lib/services/pillar-baseline.ts
+[license-header] lib/services/project-tracking-rails.ts
+[license-header] lib/services/prompt-optimizer-service.ts
+[license-header] lib/services/public-eco-metrics.ts
+[license-header] lib/services/pulse-admin-vault.ts
+[license-header] lib/services/pulse-byok-from-request.ts
+[license-header] lib/services/pulse-eco-savings.ts
+[license-header] lib/services/pulse-hot-session.ts
+[license-header] lib/services/pulse-http-error.ts
+[license-header] lib/services/pulse-idempotency.ts
+[license-header] lib/services/pulse-license.ts
+[license-header] lib/services/pulse-pipeline/arbitrate-phase.ts
+[license-header] lib/services/pulse-pipeline/consensus-phase.ts
+[license-header] lib/services/pulse-pipeline/converge-timeout.ts
+[license-header] lib/services/pulse-pipeline/gate-phase.ts
+[license-header] lib/services/pulse-pipeline/human-arbitration.ts
+[license-header] lib/services/pulse-pipeline/index.ts
+[license-header] lib/services/pulse-pipeline/local-gateway-phase.ts
+[license-header] lib/services/pulse-pipeline/persist-phase.ts
+[license-header] lib/services/pulse-pipeline/run-v32-pipeline.ts
+[license-header] lib/services/pulse-public-response.ts
+[license-header] lib/services/pulse-routing-stats.ts
+[license-header] lib/services/refactoring-directive-service.ts
+[license-header] lib/services/registered-workspace-service.ts
+[license-header] lib/services/remediation-retry-circuit.ts
+[license-header] lib/services/report-issue-auth.ts
+[license-header] lib/services/report-issue-orchestrator.ts
+[license-header] lib/services/resolve-dashboard-operator.ts
+[license-header] lib/services/savings-features-stats.ts
+[license-header] lib/services/security-dev-settings.ts
+[license-header] lib/services/security-snapshot.ts
+[license-header] lib/services/self-heal-report.ts
+[license-header] lib/services/shadow-scan-shard-lookup.ts
+[license-header] lib/services/socratic-tutor-controller.ts
+[license-header] lib/services/sovereign-auditor.ts
+[license-header] lib/services/sweep-ingest-index.ts
+[license-header] lib/services/tenant-ingest-metadata.ts
+[license-header] lib/services/tenant-onboarding-vault.ts
+[license-header] lib/services/tenant-provider-credentials.ts
+[license-header] lib/services/tenant-query-scope.ts
+[license-header] lib/services/tenant-sentinel-response.ts
+[license-header] lib/services/tenant-token-wallet.ts
+[license-header] lib/services/token-usage-estimate.ts
+[license-header] lib/services/user-projects.ts
+[license-header] lib/services/v32-ops-heartbeat.ts
+[license-header] lib/services/v32-tier-maintenance.ts
+[license-header] lib/services/vault-lineage-111.ts
+[license-header] lib/services/vault-lineage-p2-cache.ts
+[license-header] lib/services/verify-result-auth.ts
+[license-header] lib/services/verify-result-ledger.ts
+[license-header] lib/services/verify-result-savings.ts
+[license-header] lib/services/verify-result-service.ts
+[license-header] lib/supabase-node-realtime.ts
+[license-header] lib/supabase.ts
+[license-header] lib/tenant-silo.ts
+[license-header] lib/upstash-redis-client.ts
+[license-header] lib/usage-monitor.ts
+[license-header] lib/utils/ecoCalculator.ts
+[license-header] lib/utils/ecoEquivalencies.ts
+[license-header] lib/utils/formatLocale.ts
+[license-header] lib/utils/pulse-eco-context.ts
+[license-header] lib/utils/savings-calculator.ts
+[license-header] lib/utils/shell-safe-path.ts
+[license-header] lib/v32-ultra-directive.ts
+[license-header] lib/workspace-context.ts
+[license-header] lib/workspace-ide-deep-link.ts
+[license-header] lib/workspace-ide-setup.ts
+[license-header] lib/workspace-team-auth.ts
+[license-header] middleware.ts
+[license-header] msgf-init.cjs
+[license-header] next.config.ts
+[license-header] packages/core/src/P4.ts
+[license-header] packages/core/src/index.ts
+[license-header] packages/core/src/msgf-consensus.ts
+[license-header] packages/core/src/msgf-hot-layer.ts
+[license-header] packages/core/src/msgf-legal.ts
+[license-header] packages/core/src/msgf-pillar-meta.ts
+[license-header] packages/core/src/msgf-shadow.ts
+[license-header] packages/core/src/msgf-vertex.ts
+[license-header] postcss.config.mjs
+[license-header] scripts/apply-license-headers.mjs
+[license-header] scripts/bootstrap-author-msgf.mjs
+[license-header] scripts/bootstrap-solo-deep-test.ts
+[license-header] scripts/build-supabase-email-templates.mjs
+[license-header] scripts/create-buyer-test-user.mjs
+[license-header] scripts/create-platform-admin-test-user.ts
+[license-header] scripts/daily-report.mjs
+[license-header] scripts/deep-test-solo.mjs
+[license-header] scripts/diagnose-pillar-vectors-crossref.mjs
+[license-header] scripts/fix-tenant-quote-suffix.mjs
+[license-header] scripts/generate-server-dts.mjs
+[license-header] scripts/grant-tenant-wallet.mjs
+[license-header] scripts/init-tenant-brain.mjs
+[license-header] scripts/lib/msgf-local-origin.mjs
+[license-header] scripts/lib/normalize-database-url.mjs
+[license-header] scripts/mint-license.mjs
+[license-header] scripts/msgf-ide-mcp-server.mjs
+[license-header] scripts/msgf-tier-processor.js
+[license-header] scripts/obfuscate-dist.mjs
+[license-header] scripts/ops-purge-hall.mjs
+[license-header] scripts/patch-migrations-idempotent-policies.mjs
+[license-header] scripts/print-build-id.mjs
+[license-header] scripts/probe-author-ecosystem.mjs
+[license-header] scripts/probe-buyer-session.mjs
+[license-header] scripts/probe-msgf-solo.mjs
+[license-header] scripts/purge-hall.mjs
+[license-header] scripts/reload-postgrest-schema.mjs
+[license-header] scripts/resolve-build-id.mjs
+[license-header] scripts/run-integration-tests.mjs
+[license-header] scripts/run-next.mjs
+[license-header] scripts/run-savings-tests.mjs
+[license-header] scripts/run-unit-tests.mjs
+[license-header] scripts/security-primer-pillars.mjs
+[license-header] scripts/seed-cold-layer.js
+[license-header] scripts/smoke-all-phases.mjs
+[license-header] scripts/smoke-dev-kit.mjs
+[license-header] scripts/smoke-p1-ide-setup.mjs
+[license-header] scripts/smoke-p2-dev-heal.mjs
+[license-header] scripts/smoke-p3-verify-mcp.mjs
+[license-header] scripts/smoke-p4-ide-token.mjs
+[license-header] scripts/smoke-pulse-converge.mjs
+[license-header] scripts/supabase-db-push.mjs
+[license-header] scripts/test-jira.js
+[license-header] scripts/track-author-msgf-token-savings.ts
+[license-header] scripts/upstash-redis-ping.mjs
+[license-header] scripts/verify-brain-routing.ts
+[license-header] scripts/verify-connector-client.mjs
+[license-header] scripts/verify-msgf-env.mjs
+[license-header] scripts/verify-platform-login.ts
+[license-header] scripts/verify-sdk-dist.mjs
+[license-header] scripts/verify-supabase-schema.mjs
+[license-header] src/lib/BadgeCertificationBridge.ts
+[license-header] src/lib/ContractAutomationBridge.ts
+[license-header] src/lib/EcosystemBridge.ts
+[license-header] src/lib/PublisherGrantService.ts
+[license-header] src/lib/ai.ts
+[license-header] src/lib/gatekeeper.ts
+[license-header] src/lib/guard.ts
+[license-header] src/lib/logger.ts
+[license-header] src/lib/stripe.ts
+[license-header] src/lib/supabase/service-role.ts
+[license-header] src/lib/system-connection-status.ts
+[license-header] src/lib/tenant-ids.ts
+[license-header] src/lib/universal/p1HalStandard.ts
+[license-header] supabase/migrations/20240508_unified_ecosystem.sql
+[license-header] supabase/migrations/20260505103000_state_beats.sql
+[license-header] supabase/migrations/20260505105000_add_legal_version_to_state_beats.sql
+[license-header] supabase/migrations/20260505112000_create_biometric_profile.sql
+[license-header] supabase/migrations/20260505210000_p4_state_ledger.sql
+[license-header] supabase/migrations/20260506200000_pillar_vectors_1536_and_gin.sql
+[license-header] supabase/migrations/20260506201000_p4_state_ledger_check_and_gin.sql
+[license-header] supabase/migrations/20260506203000_p4_active_incidents.sql
+[license-header] supabase/migrations/20260506220000_msgf_core_init.sql
+[license-header] supabase/migrations/20260508200000_p4_narrative_logs_tenant_silo_policy.sql
+[license-header] supabase/migrations/20260510120000_align_p4_narrative_logs_tenant_uuid.sql
+[license-header] supabase/migrations/20260510140000_p4_forensic_profiles.sql
+[license-header] supabase/migrations/20260510150000_p4_hal_ledger_rolling_avg_5_view.sql
+[license-header] supabase/migrations/20260510160000_recalibration_biometric_adjustments.sql
+[license-header] supabase/migrations/20260511100000_hal_recalibration_support.sql
+[license-header] supabase/migrations/20260512140000_p4_narrative_library_chunks.sql
+[license-header] supabase/migrations/20260513150000_p4_consistency_review_flags.sql
+[license-header] supabase/migrations/20260513160000_match_p4_narrative_library_chunks.sql
+[license-header] supabase/migrations/20260514120000_demo_todos.sql
+[license-header] supabase/migrations/20260514140000_p4_profiles.sql
+[license-header] supabase/migrations/20260515120000_msgf_incidents_source.sql
+[license-header] supabase/migrations/20260515143000_p4_profiles_entitlements.sql
+[license-header] supabase/migrations/20260515180000_p4_manuscripts_revision_p4_revision_reports.sql
+[license-header] supabase/migrations/20260515200000_p4_audit_queue_drawer_signals.sql
+[license-header] supabase/migrations/20260515210000_p4_manuscripts_outline.sql
+[license-header] supabase/migrations/20260516200000_p4_manual_marketing_data.sql
+[license-header] supabase/migrations/20260516220000_p4_author_signal_realtime.sql
+[license-header] supabase/migrations/20260516300000_p4_access_grants.sql
+[license-header] supabase/migrations/20260516310000_marketplace_intent_interactions.sql
+[license-header] supabase/migrations/20260516320000_helper_proof_milestones_guild.sql
+[license-header] supabase/migrations/20260516450000_p4_manuscript_badges.sql
+[license-header] supabase/migrations/20260516500000_p4_apprentice_matching.sql
+[license-header] supabase/migrations/20260516600000_p4_legal_contracts.sql
+[license-header] supabase/migrations/20260516700000_p4_revision_gate_cooldown.sql
+[license-header] supabase/migrations/20260516800000_p4_legacy_hal_manuscript_field_parity.sql
+[license-header] supabase/migrations/20260516900000_msgf_legacy_express_tables_and_rules.sql
+[license-header] supabase/migrations/20260518100000_legal_attestations.sql
+[license-header] supabase/migrations/20260518160000_education_curriculum_rag.sql
+[license-header] supabase/migrations/20260518180000_education_canvas_lti.sql
+[license-header] supabase/migrations/20260518200000_education_workspace_control.sql
+[license-header] supabase/migrations/20260518220000_education_curriculum_catalog.sql
+[license-header] supabase/migrations/20260520120000_p4_manuscripts_vault_seal_rls.sql
+[license-header] supabase/migrations/20260520150000_p4_series_manuscript_hub.sql
+[license-header] supabase/migrations/20260520160000_google_oauth_fan_hub.sql
+[license-header] supabase/migrations/20260520170000_p4_project_phase_working_editing.sql
+[license-header] supabase/migrations/20260520180000_p4_author_onboarding.sql
+[license-header] supabase/migrations/20260521100000_register_author_with_vault_pact.sql
+[license-header] supabase/migrations/20260522120000_p4_manuscripts_cooldown_gate_ssot.sql
+[license-header] supabase/migrations/20260522144500_pillar_vectors_remediation_state_repair.sql
+[license-header] supabase/migrations/20260522160000_heal_queue_scheduling.sql
+[license-header] supabase/migrations/20260523120000_crossref_db_enums.sql
+[license-header] supabase/migrations/20260523120100_p4_revision_reports_critic_summary.sql
+[license-header] supabase/migrations/20260523140000_remediation_circuit_breaker.sql
+[license-header] supabase/migrations/20260523140100_revision_reports_librarian_logic.sql
+[license-header] supabase/migrations/20260523160000_p4_revision_reports_report_json.sql
+[license-header] supabase/migrations/20260524120000_p4_editor_ledger.sql
+[license-header] supabase/migrations/20260525120000_p4_document_ingest_clarify.sql
+[license-header] supabase/migrations/20260525120100_p4_editor_ledger_typed_entries.sql
+[license-header] supabase/migrations/20260526120000_usage_monitor_credit_guard.sql
+[license-header] supabase/migrations/20260526183000_p4_document_ingest_clarify_repair.sql
+[license-header] supabase/migrations/20260526200000_p4_manuscript_book_google_docs.sql
+[license-header] supabase/migrations/20260527120000_msgf_licensing.sql
+[license-header] supabase/migrations/20260528120000_msgf_incidents.sql
+[license-header] supabase/migrations/20260529120000_msgf_incidents_strategies.sql
+[license-header] supabase/migrations/20260530120000_msgf_incidents_metadata.sql
+[license-header] supabase/migrations/20260530130000_msgf_rules_tenant_id.sql
+[license-header] supabase/migrations/20260530140000_state_beats_tenant_id.sql
+[license-header] supabase/migrations/20260530150000_msgf_tenant_sovereign_rls.sql
+[license-header] supabase/migrations/20260530160000_msgf_sandbox.sql
+[license-header] supabase/migrations/20260530200000_local_state_cache.sql
+[license-header] supabase/migrations/20260530201000_local_state_cache_promotion_audit.sql
+[license-header] supabase/migrations/20260530203000_admin_vault.sql
+[license-header] supabase/migrations/20260530204000_p4_profiles_msgf_operator_access.sql
+[license-header] supabase/migrations/20260530205000_msgf_rules_scope_silo_submissions.sql
+[license-header] supabase/migrations/20260530210000_local_state_cache_company_validation.sql
+[license-header] supabase/migrations/20260530220000_msgf_global_insight_absorptions.sql
+[license-header] supabase/migrations/20260531100000_msgf_credit_reservation.sql
+[license-header] supabase/migrations/20260531120000_msgf_tenant_provider_credentials.sql
+[license-header] supabase/migrations/20260601120000_upgrade_vector_dimensions.sql
+[license-header] supabase/migrations/20260602120000_msgf_paid_individual_usage.sql
+[license-header] supabase/migrations/20260603120000_p4_profiles_individual_perpetual.sql
+[license-header] supabase/migrations/20260603160000_author_chapter_validation.sql
+[license-header] supabase/migrations/20260604120000_msgf_master_global_eco_rollups.sql
+[license-header] supabase/migrations/20260605120000_user_projects_and_eco_rollups.sql
+[license-header] supabase/migrations/20260620120000_p4_chunk_rag_exclusion.sql
+[license-header] supabase/migrations/20260621120000_p4_chunk_is_deleted.sql
+[license-header] supabase/migrations/20260622120000_usage_monitor_increment.sql
+[license-header] supabase/migrations/20260622130000_repair_pillar_vectors_crossref_columns.sql
+[license-header] supabase/migrations/20260627120000_p4_active_incidents_legacy_users_rls.sql
+[license-header] supabase/migrations/20260628130000_msgf_ide_tokens_workspaces.sql
+[license-header] supabase/migrations/20260628140000_context_pack_transactions.sql
+[license-header] supabase/migrations/20260629120000_company_team_vault_docusign.sql
+[license-header] supabase/migrations/20260629150000_promote_jessica_dealstar_global_admin.sql
+[license-header] supabase/migrations/20260629160000_promote_jessica_dealstar_io_global_admin.sql
+[license-header] supabase/migrations/20260706180000_document_compiler_sessions.sql
+[license-header] test-log.ts
+[license-header] test-msgf-aiplatform.js
+[license-header] test-msgf-vertex.js
+[license-header] test-shield.js
+[license-header] tsup.config.ts
+[license-header] ui/MsgfSentinel.tsx
+[license-header] ui/index.ts
+[license-header] ui/lib/cn.ts
+[license-header] utils/msgf/pulse-client.ts
+[license-header] utils/supabase/admin.ts
+[license-header] utils/supabase/client.ts
+[license-header] utils/supabase/middleware.ts
+[license-header] utils/supabase/server.ts
+[license-header] Build ID: MSGF-nogit-20260713T205112Z-internal
+[license-header] Manifest: .msgf/BUILD_ID
+[license-header] Updated 665 file(s).
+
+> build:sdk
+> tsup && node ../../node_modules/cross-env/src/bin/cross-env.js MSGF_SDK_DTS_ONLY=1 tsup && node scripts/generate-server-dts.mjs
+CLI Building entry: {"index":"lib/index.ts","connector":"lib/connector/client.ts","connector/MsgfBridge":"lib/connector/MsgfBridge.ts","lib/msgf-auth-cookies":"lib/msgf-auth-cookies.ts","lib/platform-persona-auth":"lib/platform-persona-auth.ts","universal/p1-hal-standard":"src/lib/universal/p1HalStandard.ts","ui":"ui/index.ts","ide-connector":"lib/ide-connector.ts","connector/server":"lib/connector/server.ts","lib/services/document-compiler/index":"lib/services/document-compiler/index.ts","onboarding":"lib/msgf-onboarding.ts","remediation":"lib/services/RemediationEngine.ts","hal-author-bridge":"lib/hal-author-bridge.ts"}
+CLI Using tsconfig: tsconfig.sdk.json
+CLI tsup v8.5.1
+CLI Using tsup config: /app/packages/msgf/tsup.config.ts
+CLI Target: es2020
+CLI Cleaning output folder
+ESM Build start
+[91m"NextResponse" is imported from external module "next/server" but never used in "dist/onboarding.js".
+[0m[91m"NextResponse" is imported from external module "next/server" but never used in "dist/connector/server.js".
+[0mESM dist/connector.js                            15.97 KB
+ESM dist/connector/MsgfBridge.js                 15.07 KB
+ESM dist/lib/msgf-auth-cookies.js                1.00 KB
+ESM dist/universal/p1-hal-standard.js            738.00 B
+ESM dist/lib/platform-persona-auth.js            3.64 KB
+ESM dist/ui.js                                   9.21 KB
+ESM dist/index.js                                24.39 KB
+ESM dist/ide-connector.js                        8.60 KB
+ESM dist/onboarding.js                           14.73 KB
+ESM dist/remediation.js                          16.65 KB
+ESM dist/hal-author-bridge.js                    4.92 KB
+ESM dist/connector/server.js                     218.49 KB
+ESM dist/lib/services/document-compiler/index.js 18.52 KB
+ESM ?? Build success in 1490ms
+CLI Building entry: {"index":"lib/index.ts","connector":"lib/connector/client.ts","connector/MsgfBridge":"lib/connector/MsgfBridge.ts","lib/msgf-auth-cookies":"lib/msgf-auth-cookies.ts","lib/platform-persona-auth":"lib/platform-persona-auth.ts","universal/p1-hal-standard":"src/lib/universal/p1HalStandard.ts","ui":"ui/index.ts","ide-connector":"lib/ide-connector.ts"}
+CLI Using tsconfig: tsconfig.sdk.json
+CLI tsup v8.5.1
+CLI Using tsup config: /app/packages/msgf/tsup.config.ts
+DTS Build start
+DTS ?? Build success in 15619ms
+DTS dist/index.d.ts                        1.96 KB
+DTS dist/connector.d.ts                    5.38 KB
+DTS dist/lib/msgf-auth-cookies.d.ts        950.00 B
+DTS dist/lib/platform-persona-auth.d.ts    2.83 KB
+DTS dist/ui.d.ts                           1.36 KB
+DTS dist/ide-connector.d.ts                5.67 KB
+DTS dist/universal/p1-hal-standard.d.ts    2.47 KB
+DTS dist/connector/MsgfBridge.d.ts         450.00 B
+DTS dist/sovereign-violation-CwCozudS.d.ts 900.00 B
+DTS dist/MsgfBridge-CVAedzuR.d.ts          19.16 KB
+DTS dist/MsgfSentinel-BYLwQWwT.d.ts        2.36 KB
+[generate-server-dts] connector/server.d.ts
+[generate-server-dts] remediation.d.ts
+[generate-server-dts] remediation-types.d.ts
+[generate-server-dts] onboarding.d.ts
+[generate-server-dts] onboarding-types.d.ts
+[generate-server-dts] msgf-runtime.d.ts
+[generate-server-dts] pillar-baseline.d.ts
+[generate-server-dts] metadata-scope.d.ts
+[generate-server-dts] tenant-ingest-metadata.d.ts
+[generate-server-dts] ingest-service.d.ts
+[generate-server-dts] logic-drift.d.ts
+[generate-server-dts] local-state-gateway.d.ts
+[generate-server-dts] sweep-ingest.d.ts
+[generate-server-dts] brain-readiness.d.ts
+[generate-server-dts] diagnostic-snapshot.d.ts
+[generate-server-dts] self-heal-report.d.ts
+[generate-server-dts] logic-drift-service.d.ts
+[generate-server-dts] emergency-lom-session.d.ts
+[generate-server-dts] local-session-delta.d.ts
+[generate-server-dts] vault-lineage-111.d.ts
+[generate-server-dts] vault-lineage-p2-cache.d.ts
+[generate-server-dts] mitigation-service.d.ts
+[generate-server-dts] global-mitigations.d.ts
+[generate-server-dts] redis-client.d.ts
+[generate-server-dts] redis-key.d.ts
+[generate-server-dts] msgf-incidents.d.ts
+[generate-server-dts] health-service.d.ts
+[generate-server-dts] pulse-engine.d.ts
+[generate-server-dts] document-compiler.d.ts
+[generate-server-dts] document-compiler-defend.d.ts
+[generate-server-dts] document-compiler-sessions.d.ts
+[generate-server-dts] Done.
+[obfuscate-dist] connector/MsgfBridge.js
+[obfuscate-dist] connector/server.js
+[obfuscate-dist] connector.js
+[obfuscate-dist] hal-author-bridge.js
+[obfuscate-dist] ide-connector.js
+[obfuscate-dist] index.js
+[obfuscate-dist] lib/msgf-auth-cookies.js
+[obfuscate-dist] lib/platform-persona-auth.js
+[obfuscate-dist] lib/services/document-compiler/index.js
+[obfuscate-dist] onboarding.js
+[obfuscate-dist] remediation.js
+[obfuscate-dist] ui.js
+[obfuscate-dist] universal/p1-hal-standard.js
+[obfuscate-dist] Done ? 13 file(s).
+
+> verify:sdk-dist
+> node scripts/verify-sdk-dist.mjs
+
+[verify-sdk-dist] OK ? exports point at minified dist + declaration files.
+
+> _next
+> node scripts/run-next.mjs build
+   ? Next.js 15.5.18
+   - Experiments (use with caution):
+     ? externalDir
+
+   Creating an optimized production build ...
+[91m<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+[0m[91m<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+[0m[91m ? Compiled with warnings in 76s
+
+[0m[91m./dist/connector/server.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./dist/connector/server.js
+../../apps/author-ecosystem/server/src/lib/documentIngestMultiPassCompiler.ts
+../../apps/author-ecosystem/server/src/lib/narrative/IngestionService.ts
+../../apps/author-ecosystem/server/src/lib/narrative/LibrarianChat.ts
+../../apps/author-ecosystem/server/src/lib/AuthorSovereigntyService.ts
+./src/lib/EcosystemBridge.ts
+./app/api/ecosystem/bridge/route.ts
+
+./dist/connector/server.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./dist/connector/server.js
+../../apps/author-ecosystem/server/src/lib/documentIngestMultiPassCompiler.ts
+../../apps/author-ecosystem/server/src/lib/narrative/IngestionService.ts
+../../apps/author-ecosystem/server/src/lib/narrative/LibrarianChat.ts
+../../apps/author-ecosystem/server/src/lib/AuthorSovereigntyService.ts
+./src/lib/EcosystemBridge.ts
+./app/api/ecosystem/bridge/route.ts
+
+./dist/connector/server.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./dist/connector/server.js
+../../apps/author-ecosystem/server/src/lib/documentIngestMultiPassCompiler.ts
+../../apps/author-ecosystem/server/src/lib/narrative/IngestionService.ts
+../../apps/author-ecosystem/server/src/lib/narrative/LibrarianChat.ts
+../../apps/author-ecosystem/server/src/lib/AuthorSovereigntyService.ts
+./src/lib/EcosystemBridge.ts
+./app/api/ecosystem/bridge/route.ts
+
+./lib/msgf-admin-auth.ts
+A Node.js module is loaded ('crypto' at line 14) which is not supported in the Edge Runtime.
+Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+
+Import trace for requested module:
+./lib/msgf-admin-auth.ts
+./lib/msgf-operator-access.ts
+./lib/middleware/individual-tenant-promotion.ts
+./app/api/middleware.ts
+
+./lib/services/ide-token-service.ts
+A Node.js module is loaded ('crypto' at line 14) which is not supported in the Edge Runtime.
+Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+
+Import trace for requested module:
+./lib/services/ide-token-service.ts
+./lib/services/pulse-license.ts
+./lib/middleware/individual-tenant-promotion.ts
+./app/api/middleware.ts
+
+./lib/services/pulse-license.ts
+A Node.js module is loaded ('crypto' at line 15) which is not supported in the Edge Runtime.
+Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+
+Import trace for requested module:
+./lib/services/pulse-license.ts
+./lib/middleware/individual-tenant-promotion.ts
+./app/api/middleware.ts
+
+[0m   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/113) ...
+[91m ? metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[0m   Generating static pages (28/113) 
+   Generating static pages (56/113) 
+   Generating static pages (84/113)
+ ? Generating static pages (113/113)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                              Size  First Load JS
+? ? /                                                   136 B         178 kB
+? ? /_not-found                                         989 B         103 kB
+? ? /admin                                              353 B         103 kB
+? ? /admin/dashboard                                    142 B         218 kB
+? ? /admin/ops                                        9.31 kB         112 kB
+? ? /admin/portal                                       162 B         106 kB
+? ? /admin/sign-in                                      136 B         178 kB
+? ? /api/billing/checkout                               353 B         103 kB
+? ? /api/contracts/sign-nda                             353 B         103 kB
+? ? /api/downloads/pulse-guard                          353 B         103 kB
+? ? /api/ecosystem/bridge                               353 B         103 kB
+? ? /api/editor/forensic-bundle                         353 B         103 kB
+? ? /api/education/lti/ags/passback                     353 B         103 kB
+? ? /api/education/lti/jwks                             353 B         103 kB
+? ? /api/education/lti/launch                           353 B         103 kB
+? ? /api/education/lti/login                            353 B         103 kB
+? ? /api/education/workspace/allowance                  353 B         103 kB
+? ? /api/education/workspace/allowance/stream           353 B         103 kB
+? ? /api/education/workspace/config                     353 B         103 kB
+? ? /api/helper/complete-project                        353 B         103 kB
+? ? /api/helper/milestone                               353 B         103 kB
+? ? /api/msgf/admin/author-handoff                      353 B         103 kB
+? ? /api/msgf/admin/dashboard/savings-features          353 B         103 kB
+? ? /api/msgf/admin/docusign/envelopes                  353 B         103 kB
+? ? /api/msgf/admin/global-insight/absorb               353 B         103 kB
+? ? /api/msgf/admin/global-insight/feed                 353 B         103 kB
+? ? /api/msgf/admin/global-rules                        353 B         103 kB
+? ? /api/msgf/admin/incidents                           353 B         103 kB
+? ? /api/msgf/admin/incidents/[id]                      353 B         103 kB
+? ? /api/msgf/admin/incidents/[id]/strategies           353 B         103 kB
+? ? /api/msgf/admin/incidents/notify-reject             353 B         103 kB
+? ? /api/msgf/admin/law-book                            353 B         103 kB
+? ? /api/msgf/admin/logs/[id]                           353 B         103 kB
+? ? /api/msgf/admin/promotions/approve                  353 B         103 kB
+? ? /api/msgf/admin/promotions/company-validate         353 B         103 kB
+? ? /api/msgf/admin/promotions/pending                  353 B         103 kB
+? ? /api/msgf/admin/rule-submissions                    353 B         103 kB
+? ? /api/msgf/admin/rule-submissions/[id]               353 B         103 kB
+? ? /api/msgf/admin/self-heal/purge                     353 B         103 kB
+? ? /api/msgf/admin/self-heal/report                    353 B         103 kB
+? ? /api/msgf/agent-context                             353 B         103 kB
+? ? /api/msgf/author/chapter-validation                 353 B         103 kB
+? ? /api/msgf/compliance/export                         353 B         103 kB
+? ? /api/msgf/confirm-pack                              353 B         103 kB
+? ? /api/msgf/dashboard/daily-report                    353 B         103 kB
+? ? /api/msgf/dashboard/daily-reports                   353 B         103 kB
+? ? /api/msgf/dashboard/pillar/[pillar]                 353 B         103 kB
+? ? /api/msgf/dashboard/pillar/[pillar]/arbitrate       353 B         103 kB
+? ? /api/msgf/dashboard/pulse-routing                   353 B         103 kB
+? ? /api/msgf/dashboard/savings-features                353 B         103 kB
+? ? /api/msgf/dashboard/security-snapshot               353 B         103 kB
+? ? /api/msgf/dashboard/ticker                          353 B         103 kB
+? ? /api/msgf/dev-event                                 353 B         103 kB
+? ? /api/msgf/document-compiler/commit                  353 B         103 kB
+? ? /api/msgf/document-compiler/scan                    353 B         103 kB
+? ? /api/msgf/eco/my-usage                              353 B         103 kB
+? ? /api/msgf/education/admin/curriculum-catalog        353 B         103 kB
+? ? /api/msgf/education/admin/curriculum-ingest         353 B         103 kB
+? ? /api/msgf/education/research/citation-check         353 B         103 kB
+? ? /api/msgf/education/socratic-tutor                  353 B         103 kB
+? ? /api/msgf/education/student/reading-gate            353 B         103 kB
+? ? /api/msgf/education/teacher/assignment-resources    353 B         103 kB
+? ? /api/msgf/heal-queue                                353 B         103 kB
+? ? /api/msgf/heal-queue/human-arbitration              353 B         103 kB
+? ? /api/msgf/health/pillars                            353 B         103 kB
+? ? /api/msgf/ide/connectivity-check                    353 B         103 kB
+? ? /api/msgf/incidents/report                          353 B         103 kB
+? ? /api/msgf/ingest                                    353 B         103 kB
+? ? /api/msgf/jira/status                               353 B         103 kB
+? ? /api/msgf/master/eco-rollups                        353 B         103 kB
+? ? /api/msgf/ops/docusign-webhook                      353 B         103 kB
+? ? /api/msgf/ops/v32-heartbeat                         353 B         103 kB
+? ? /api/msgf/p4/state-ledger                           353 B         103 kB
+? ? /api/msgf/projects                                  353 B         103 kB
+? ? /api/msgf/projects/[id]                             353 B         103 kB
+? ? /api/msgf/prompt-optimizer                          353 B         103 kB
+? ? /api/msgf/pulse                                     353 B         103 kB
+? ? /api/msgf/refactoring-directive                     353 B         103 kB
+? ? /api/msgf/report-issue                              353 B         103 kB
+? ? /api/msgf/tenant/provider-keys                      353 B         103 kB
+? ? /api/msgf/verify-result                             353 B         103 kB
+? ? /api/msgf/workspace/compliance-status               353 B         103 kB
+? ? /api/msgf/workspace/docusign/mock-complete          353 B         103 kB
+? ? /api/msgf/workspace/onboarding-pack                 353 B         103 kB
+? ? /api/msgf/workspace/team/bootstrap                  353 B         103 kB
+? ? /api/msgf/workspace/team/invite                     353 B         103 kB
+? ? /api/msgf/workspace/team/onboarding-documents       353 B         103 kB
+? ? /api/msgf/workspace/team/roster                     353 B         103 kB
+? ? /api/public-eco-metrics                             353 B         103 kB
+? ? /api/publisher-grants                               353 B         103 kB
+? ? /api/v1/verify-badge/[badge_id]                     353 B         103 kB
+? ? /api/webhooks/stripe                                353 B         103 kB
+? ? /api/workspace/ide-connectivity-check               353 B         103 kB
+? ? /api/workspace/ide-credentials                      353 B         103 kB
+? ? /api/workspace/ide-token                            353 B         103 kB
+? ? /api/workspace/ide-tokens                           353 B         103 kB
+? ? /api/workspace/monorepo-presets                     353 B         103 kB
+? ? /api/workspace/register-workspace                   353 B         103 kB
+? ? /audit-log                                          178 B         106 kB
+? ? /auth/callback                                    2.27 kB         168 kB
+? ? /brain                                              136 B         178 kB
+? ? /confirm-email                                    1.34 kB         175 kB
+? ? /dashboard                                          143 B         218 kB
+? ? /dashboard/daily-reports                          4.11 kB         185 kB
+? ? /features                                         1.34 kB         175 kB
+? ? /forgot-password                                  1.89 kB         176 kB
+? ? /getting-started                                    965 B         181 kB
+? ? /health                                             353 B         103 kB
+? ? /icon.png                                             0 B            0 B
+? ? /other-products                                     583 B         179 kB
+? ? /pricing                                          1.65 kB         177 kB
+? ? /products/author                                    178 B         106 kB
+? ? /products/education                                 178 B         106 kB
+? ? /products/msgf                                      178 B         106 kB
+? ? /reset-password                                   2.87 kB         177 kB
+? ? /setup/projects                                     353 B         103 kB
+? ? /sign-in                                            136 B         178 kB
+? ? /sign-up                                            136 B         178 kB
+? ? /status                                           1.34 kB         175 kB
+? ? /todos                                              353 B         103 kB
+? ? /unauthorized                                       178 B         106 kB
+? ? /verify/[token]                                     178 B         106 kB
+? ? /workspace                                        25.4 kB         205 kB
++ First Load JS shared by all                          102 kB
+  ? chunks/18-0c598fde9e79b86d.js                     46.1 kB
+  ? chunks/87c73c54-0375ba195de27293.js               54.2 kB
+  ? other shared chunks (total)                       1.92 kB
+
+
+? Middleware                                          93.4 kB
+
+?  (Static)   prerendered as static content
+?  (Dynamic)  server-rendered on demand
+Removing intermediate container a212e6ca1e82
+ ---> ea124bd9351f
+Step 34/51 : FROM node:20-bookworm-slim AS production
+ ---> 9da6b4e352d0
+Step 35/51 : ARG GIT_REVISION=unknown
+ ---> Running in 5960008c4fe0
+Removing intermediate container 5960008c4fe0
+ ---> 089482761731
+Step 36/51 : ARG APP_IMAGE_VERSION=0.0.0
+ ---> Running in a8e8102e9ec4
+Removing intermediate container a8e8102e9ec4
+ ---> a6d990dcf187
+Step 37/51 : WORKDIR /home/node/app
+ ---> Running in c88aba6b9881
+Removing intermediate container c88aba6b9881
+ ---> 11394414401b
+Step 38/51 : ENV NODE_ENV=production
+ ---> Running in 9c786078ae0e
+Removing intermediate container 9c786078ae0e
+ ---> e55e4d8bcf38
+Step 39/51 : ENV NEXT_TELEMETRY_DISABLED=1
+ ---> Running in 2704f50f10d7
+Removing intermediate container 2704f50f10d7
+ ---> 9d30609621a5
+Step 40/51 : LABEL org.opencontainers.image.title="MSGF Core"
+ ---> Running in efbb772b2baa
+Removing intermediate container efbb772b2baa
+ ---> d8b434f88c58
+Step 41/51 : LABEL org.opencontainers.image.description="Elphie Syntax MSGF ? Next.js standalone"
+ ---> Running in 414a4ee62ec8
+Removing intermediate container 414a4ee62ec8
+ ---> 75686f23d911
+Step 42/51 : LABEL org.opencontainers.image.version="${APP_IMAGE_VERSION}"
+ ---> Running in d46cf87653f9
+Removing intermediate container d46cf87653f9
+ ---> 169aab621dd7
+Step 43/51 : LABEL org.opencontainers.image.revision="${GIT_REVISION}"
+ ---> Running in 61dd07d172b9
+Removing intermediate container 61dd07d172b9
+ ---> efbabcaa02a3
+Step 44/51 : LABEL org.opencontainers.image.vendor="Elphie Syntax LLC"
+ ---> Running in 4b8183826608
+Removing intermediate container 4b8183826608
+ ---> 084be281a200
+Step 45/51 : RUN apt-get update   && apt-get install -y --no-install-recommends ca-certificates   && rm -rf /var/lib/apt/lists/*
+ ---> Running in cb3f67ed7638
+Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
+Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
+Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [316 kB]
+Fetched 9368 kB in 1s (8648 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libssl3 openssl
+The following NEW packages will be installed:
+  ca-certificates libssl3 openssl
+0 upgraded, 3 newly installed, 0 to remove and 13 not upgraded.
+Need to get 3630 kB of archives.
+After this operation, 8936 kB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian bookworm/main amd64 libssl3 amd64 3.0.20-1~deb12u2 [2036 kB]
+Get:2 http://deb.debian.org/debian bookworm/main amd64 openssl amd64 3.0.20-1~deb12u2 [1439 kB]
+Get:3 http://deb.debian.org/debian bookworm/main amd64 ca-certificates all 20230311+deb12u1 [155 kB]
+[91mdebconf: delaying package configuration, since apt-utils is not installed
+[0mFetched 3630 kB in 0s (41.1 MB/s)
+Selecting previously unselected package libssl3:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../libssl3_3.0.20-1~deb12u2_amd64.deb ...
+Unpacking libssl3:amd64 (3.0.20-1~deb12u2) ...
+Selecting previously unselected package openssl.
+Preparing to unpack .../openssl_3.0.20-1~deb12u2_amd64.deb ...
+Unpacking openssl (3.0.20-1~deb12u2) ...
+Selecting previously unselected package ca-certificates.
+Preparing to unpack .../ca-certificates_20230311+deb12u1_all.deb ...
+Unpacking ca-certificates (20230311+deb12u1) ...
+Setting up libssl3:amd64 (3.0.20-1~deb12u2) ...
+Setting up openssl (3.0.20-1~deb12u2) ...
+Setting up ca-certificates (20230311+deb12u1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Updating certificates in /etc/ssl/certs...
+142 added, 0 removed; done.
+Processing triggers for libc-bin (2.36-9+deb12u13) ...
+Processing triggers for ca-certificates (20230311+deb12u1) ...
+Updating certificates in /etc/ssl/certs...
+0 added, 0 removed; done.
+Running hooks in /etc/ca-certificates/update.d...
+done.
+Removing intermediate container cb3f67ed7638
+ ---> 6d078ef5aa71
+Step 46/51 : COPY --from=builder --chown=node:node /app/packages/msgf/.next/standalone ./
+ ---> 729e7a964951
+Step 47/51 : COPY --from=builder --chown=node:node /app/packages/msgf/.next/static ./packages/msgf/.next/static
+ ---> bde1bf509fa6
+Step 48/51 : COPY --from=builder --chown=node:node /app/packages/msgf/public ./packages/msgf/public
+ ---> 6a9e7a0133cc
+Step 49/51 : USER node
+ ---> Running in d2e9f478af8b
+Removing intermediate container d2e9f478af8b
+ ---> cb8ea02bee17
+Step 50/51 : EXPOSE 8080
+ ---> Running in e32815c62830
+Removing intermediate container e32815c62830
+ ---> 0f8e3f10256a
+Step 51/51 : CMD ["sh", "-c", "if [ -f server.js ]; then HOSTNAME=0.0.0.0 exec node server.js; elif [ -f packages/msgf/server.js ]; then HOSTNAME=0.0.0.0 exec node packages/msgf/server.js; else echo 'MSGF: server.js not found in standalone layout' >&2; find . -maxdepth 4 -name server.js -print; exit 1; fi"]
+ ---> Running in 2e81a953e2c8
+Removing intermediate container 2e81a953e2c8
+ ---> 805684b64307
+Successfully built 805684b64307
+Successfully tagged us-central1-docker.pkg.dev/msgf-shield/msgf/msgf-api:cc47ea1
+PUSH
+Pushing us-central1-docker.pkg.dev/msgf-shield/msgf/msgf-api:cc47ea1
+The push refers to repository [us-central1-docker.pkg.dev/msgf-shield/msgf/msgf-api]
+844bcaa6c351: Preparing
+c36c6be27164: Preparing
+936458e5437a: Preparing
+58b61f05dad4: Preparing
+205c3db7475b: Preparing
+d592f6b23cfa: Preparing
+f991bccee0f1: Preparing
+631e9f799a80: Preparing
+4337a9b79b84: Preparing
+0da811fd3ed4: Preparing
+f991bccee0f1: Layer already exists
+631e9f799a80: Layer already exists
+d592f6b23cfa: Layer already exists
+4337a9b79b84: Layer already exists
+844bcaa6c351: Pushed
+205c3db7475b: Pushed
+c36c6be27164: Pushed
+58b61f05dad4: Pushed
+936458e5437a: Pushed
+0da811fd3ed4: Pushed
+cc47ea1: digest: sha256:d3342832385998379b030c22ce76f22e50dd0fba5f50ad87ecc0ffb170e135f9 size: 2418
+DONE
+--------------------------------------------------------------------------------
+ID                                    CREATE_TIME                DURATION  SOURCE                                                                                     IMAGES                                                        STATUS
+3e5d612c-7532-4e72-a587-e93ee2611e0b  2026-07-13T20:48:30+00:00  6M28S     gs://msgf-shield_cloudbuild/source/1783975704.587778-677718fa79de4c76a7ffe26cc566254a.tgz  us-central1-docker.pkg.dev/msgf-shield/msgf/msgf-api:cc47ea1  SUCCESS
+createTime: '2026-05-15T23:15:41.511900Z'
+etag: '"1651e36440f1f0"'
+name: projects/504003558298/secrets/gemini-key
+replication:
+  automatic: {}
+createTime: '2026-05-15T23:15:55.084166Z'
+etag: '"1651e3650f1e21"'
+name: projects/504003558298/secrets/anthropic-key
+replication:
+  automatic: {}
+
+Deploying Cloud Run service: msgf-api
+Deploying container to Cloud Run service [msgf-api] in project [msgf-shield] region [us-central1]
+Deploying...
+Setting IAM Policy............done
+Creating Revision..............................................................................................................................done
+Routing traffic.....done
+Done.
+Service [msgf-api] revision [msgf-api-00067-j72] has been deployed and is serving 100 percent of traffic.
+Service URL: https://msgf-api-504003558298.us-central1.run.app
+
+=== Done ===
+Service URL: https://msgf-api-bkracxai6q-uc.a.run.app
+
+Tip: set GCP_PROJECT_ID / GCP_REGION / IMAGE_NAME at the top or export before running.
+     VPC: VPC_NETWORK=default VPC_CONNECTOR_NAME=msgf-connector VPC_CONNECTOR_RANGE=10.8.0.0/28
+     Optional env file: .env.cloudrun (KEY=VALUE lines).
+

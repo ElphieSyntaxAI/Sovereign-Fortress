@@ -137,6 +137,7 @@
     "test:remediation-circuit": "tsx --test tests/remediation-retry-circuit.test.ts",
     "test:human-arbitration": "tsx --test tests/human-arbitration.test.ts",
     "test:hal-word-chunk": "tsx --test tests/hal-word-chunk-packet.test.ts",
+    "test:education-hal-lite": "tsx --test tests/education-hal-lite-milestone.test.ts",
     "test:token-usage-estimate": "tsx --test tests/token-usage-estimate.test.ts",
     "test:heal-token-estimate": "tsx --test tests/heal-token-estimate.test.ts",
     "test:credit-reservation": "tsx --test tests/credit-reservation-routing.test.ts",

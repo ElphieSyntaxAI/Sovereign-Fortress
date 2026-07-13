@@ -290,3 +290,86 @@ export async function flushCellMutations(
     options
   );
 }
+
+// -------- HAL Lite (Author HAL → classroom Human Effort Signal) ----------
+
+/** Characters in one delta that raise PASTE_INJECTION (mirrors MSGF hal-lite). */
+export const PASTE_INJECTION_CHAR_THRESHOLD = 120;
+
+export type HalLitePasteResult = {
+  isPasteInjection: boolean;
+  warningCode: "PASTE_INJECTION" | null;
+  charsPasted: number;
+};
+
+/**
+ * Client-side paste heuristic for Google Docs sidebar length deltas.
+ * Server recomputes confidence via `/api/msgf/education/hal-lite`.
+ */
+export function assessHalLitePasteDelta(input: {
+  deltaChars: number;
+  matchingKeystrokeCount?: number;
+  threshold?: number;
+}): HalLitePasteResult {
+  const threshold = input.threshold ?? PASTE_INJECTION_CHAR_THRESHOLD;
+  const charsPasted = Math.max(0, input.deltaChars);
+  const keys = input.matchingKeystrokeCount ?? 0;
+  const isPasteInjection =
+    charsPasted >= threshold && keys < Math.max(3, Math.floor(charsPasted / 40));
+  return {
+    isPasteInjection,
+    charsPasted,
+    warningCode: isPasteInjection ? "PASTE_INJECTION" : null,
+  };
+}
+
+export type HalLiteIngestBody = {
+  assignmentInstanceId: string;
+  deltaChars?: number;
+  matchingKeystrokeCount?: number;
+  activeWritingSecondsDelta?: number;
+  keystrokeBurstCount?: number;
+};
+
+const HAL_LITE_PATH = "/api/msgf/education/hal-lite";
+const MILESTONE_CHECK_PATH = "/api/msgf/education/milestone-check";
+const ASSIGNMENT_INSTANCE_PATH = "/api/msgf/education/assignment-instance";
+
+/** POST HAL Lite metrics to MSGF (paste velocity + writing time). */
+export function postHalLite(
+  body: HalLiteIngestBody,
+  options: TheCallClientOptions
+): Promise<unknown> {
+  return postJson(joinUrl(options.msgfBaseUrl, HAL_LITE_PATH), body, options, "POST");
+}
+
+/** POST structural milestone check (CER / outline / explain-solution). */
+export function postMilestoneCheck(
+  body: {
+    assignmentInstanceId: string;
+    documentText: string;
+    templateId?: string;
+    strictUnlock?: boolean;
+  },
+  options: TheCallClientOptions
+): Promise<unknown> {
+  return postJson(
+    joinUrl(options.msgfBaseUrl, MILESTONE_CHECK_PATH),
+    body,
+    options,
+    "POST"
+  );
+}
+
+/** Classroom turn-in → EDU_SUBMITTED_LOCK (read-only). */
+export function submitAssignmentTurnIn(
+  assignmentInstanceId: string,
+  options: TheCallClientOptions
+): Promise<unknown> {
+  return postJson(
+    joinUrl(options.msgfBaseUrl, ASSIGNMENT_INSTANCE_PATH),
+    { action: "submit", assignmentInstanceId },
+    options,
+    "PATCH"
+  );
+}
