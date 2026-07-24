@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * GET /api/workspace/ide-tokens — list active long-lived IDE tokens (metadata only).
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
         error: "pending_signatures",
         signing_url: compliance.signing_url,
         message:
-          "Complete your DocuSign compliance packet before minting IDE tokens.",
+          "Complete your compliance signature before minting IDE tokens.",
       },
       { status: 403 }
     );

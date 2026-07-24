@@ -23,6 +23,7 @@ import {
 import { registerMsgfDashboardProvider } from "./providers/msgfDashboardProvider";
 import { StoplightStatusBar } from "./stoplightStatusBar";
 import { MsgfOptInStatusBar } from "./msgfOptInStatusBar";
+import { registerMsgfShadowApplier } from "./shadowStatusBridge";
 import { initializeMsgfWorkspace } from "./workspace/msgfWorkspace";
 import {
   msgfDisabledHint,
@@ -44,6 +45,7 @@ async function disarmGuard(): Promise<void> {
   guardArmed = false;
   session?.dispose();
   session = null;
+  registerMsgfShadowApplier(null);
   stoplightBar?.dispose();
   stoplightBar = null;
   if (!optInStatusBar) {
@@ -82,6 +84,9 @@ async function armGuard(context: vscode.ExtensionContext): Promise<void> {
     context.subscriptions.push({ dispose: () => stoplightBar?.dispose() });
   }
   stoplightBar.start();
+  registerMsgfShadowApplier((state, detail) => {
+    stoplightBar?.setShadowState(state, detail);
+  });
 
   if (!session) {
     session = new GuardSession(context, {

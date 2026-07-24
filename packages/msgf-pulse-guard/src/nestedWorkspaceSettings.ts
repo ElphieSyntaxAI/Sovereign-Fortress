@@ -27,6 +27,10 @@ function msgfKeysFromRecord(raw: Record<string, unknown>): Partial<MsgfGuardSett
       out.enabled = value;
     } else if (short === "devSession" && typeof value === "boolean") {
       out.devSession = value;
+    } else if (short === "asyncPreflight" && typeof value === "boolean") {
+      out.asyncPreflight = value;
+    } else if (short === "skipMsgf" && typeof value === "boolean") {
+      out.skipMsgf = value;
     } else if (typeof value === "string") {
       (out as Record<string, string | boolean>)[short] = sanitizeMsgfSettingValue(value);
     }

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * POST /api/msgf/p4/state-ledger
@@ -107,6 +107,9 @@ export async function POST(req: NextRequest) {
       event_count: result.eventCount,
       chunk_count: result.chunks.length,
       hot_layer_hit: result.hotLayerHit,
+      hot_layer_read_latency_ns: result.hotLayerReadLatencyNs ?? null,
+      hot_layer_primary_read: result.hotLayerPrimaryRead ?? false,
+      gate_validation_latency_ns: result.gateValidationLatencyNs ?? null,
       verify_results: result.verifyResults,
       suggested_learning_breakdowns: result.suggestedBreakdowns,
       incident_ids,
@@ -188,6 +191,9 @@ export async function PUT(req: NextRequest) {
       event_count: result.eventCount,
       chunk_count: result.chunks.length,
       hot_layer_hit: result.hotLayerHit,
+      hot_layer_read_latency_ns: result.hotLayerReadLatencyNs ?? null,
+      hot_layer_primary_read: result.hotLayerPrimaryRead ?? false,
+      gate_validation_latency_ns: result.gateValidationLatencyNs ?? null,
       verify_results: result.verifyResults,
       suggested_learning_breakdowns: result.suggestedBreakdowns,
       incident_ids,

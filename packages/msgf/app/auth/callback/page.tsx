@@ -10,6 +10,42 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221141Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T220451Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
 /**
@@ -159,6 +195,65 @@ export default function AuthCallbackPage() {
           throw new Error(
             "No session after auth callback. Confirm the link was opened on the same host that sent the email, or sign in with password."
           );
+        }
+
+        // Persist GitHub provider_token when linking / signing in with GitHub (repo picker).
+        const providerToken = sessionData.session.provider_token?.trim();
+        const identities = sessionData.session.user?.identities ?? [];
+        const hasGithubIdentity = identities.some((id) => id.provider === "github");
+        if (providerToken && hasGithubIdentity) {
+          try {
+            await fetch("/api/msgf/github/connection", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                access_token: providerToken,
+                scopes: "read:user repo",
+              }),
+            });
+          } catch (persistErr) {
+            console.warn("[auth/callback] GitHub token persist failed", persistErr);
+          }
+        }
+
+        // Google Workspace SSO — domain allowlist → company attach (I3).
+        const hasGoogleIdentity = identities.some((id) => id.provider === "google");
+        if (hasGoogleIdentity) {
+          try {
+            const ssoRes = await fetch("/api/msgf/auth/workspace-sso-complete", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ next }),
+            });
+            const ssoJson = (await ssoRes.json()) as {
+              ok?: boolean;
+              redirect?: string;
+              message?: string;
+            };
+            if (!ssoRes.ok || !ssoJson.ok) {
+              await supabase.auth.signOut().catch(() => undefined);
+              const dest =
+                ssoJson.redirect ||
+                `/invite-only?reason=domain_unmapped`;
+              if (cancelled) return;
+              window.location.assign(resolveAuthRedirectUrl(dest));
+              return;
+            }
+            if (cancelled) return;
+            window.location.assign(
+              resolveAuthRedirectUrl(ssoJson.redirect || next)
+            );
+            return;
+          } catch (ssoErr) {
+            console.warn("[auth/callback] Workspace SSO complete failed", ssoErr);
+            await fetch("/api/msgf/auth/google-sso-status", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ event: "failure", reason: "callback_exception" }),
+            }).catch(() => undefined);
+          }
         }
 
         if (cancelled) return;

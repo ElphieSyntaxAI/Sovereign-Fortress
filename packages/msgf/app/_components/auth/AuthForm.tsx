@@ -10,6 +10,42 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221141Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T220451Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
 /**
@@ -805,7 +841,7 @@
  * Distribution Build ID: MSGF-4e22f0c-20260518T205132Z-internal
  */
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   msgfPostLoginPath,
@@ -830,9 +866,12 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
+  const [circuitOpen, setCircuitOpen] = useState(false);
+  const [workspaceSsoEnabled, setWorkspaceSsoEnabled] = useState(true);
 
   const isSignUp = mode === "sign-up";
   const isAdmin = variant === "admin";
@@ -846,6 +885,71 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
           : msgfPostLoginPath();
     return resolveMsgfAuthCallbackHref(targetPath);
   }, [postLoginPath, isAdmin]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/msgf/auth/google-sso-status", { cache: "no-store" });
+        const json = (await res.json()) as {
+          circuit_open?: boolean;
+          workspace_sso_enabled?: boolean;
+        };
+        if (cancelled) return;
+        setCircuitOpen(Boolean(json.circuit_open));
+        setWorkspaceSsoEnabled(json.workspace_sso_enabled !== false);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const signInWithGoogleWorkspace = useCallback(async () => {
+    setOauthLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const supabase = createClient();
+      const targetPath =
+        postLoginPath?.trim().startsWith("/")
+          ? postLoginPath.trim()
+          : isAdmin
+            ? "/admin/portal"
+            : msgfPostLoginPath();
+      const redirectTo = resolveMsgfAuthCallbackHref(targetPath);
+      const hd =
+        process.env.NEXT_PUBLIC_GOOGLE_WORKSPACE_HD?.trim() ||
+        process.env.NEXT_PUBLIC_MSGF_GOOGLE_HD?.trim() ||
+        "";
+      const queryParams: Record<string, string> = { prompt: "select_account" };
+      if (hd) queryParams.hd = hd;
+
+      const { error: oauthErr } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams,
+        },
+      });
+      if (oauthErr) {
+        await fetch("/api/msgf/auth/google-sso-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event: "failure", reason: oauthErr.message }),
+        }).catch(() => undefined);
+        setError(oauthErr.message);
+        setOauthLoading(false);
+      }
+      // Browser navigates away on success
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || "Google Workspace sign-in failed.");
+      setOauthLoading(false);
+    }
+  }, [isAdmin, postLoginPath]);
 
   const submit = useCallback(
     async (e: React.FormEvent) => {
@@ -971,6 +1075,36 @@ export function AuthForm({ mode, postLoginPath, variant = "default" }: Props) {
       className="glass-panel glass-panel-emerald space-y-4 rounded-2xl p-6 sm:p-8"
       onSubmit={submit}
     >
+      {!isSignUp && workspaceSsoEnabled ? (
+        <div className="space-y-2">
+          <button
+            type="button"
+            disabled={loading || oauthLoading || circuitOpen}
+            onClick={() => void signInWithGoogleWorkspace()}
+            className="w-full rounded-full border border-emerald-500/35 bg-emerald-500/10 py-3 text-sm font-semibold text-emerald-100 transition hover:border-emerald-400/50 hover:bg-emerald-500/20 disabled:opacity-60"
+          >
+            {oauthLoading
+              ? "Redirecting to Google…"
+              : isAdmin
+                ? "Continue with Google Workspace"
+                : "Sign in with Google Workspace"}
+          </button>
+          {circuitOpen ? (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+              Workspace SSO is temporarily degraded. Use email/password if you already have a team
+              invite, or try Google again shortly.
+            </p>
+          ) : (
+            <p className="text-center text-xs text-slate-500">
+              Company tenancy requires an allowlisted Workspace domain (not personal Gmail).
+            </p>
+          )}
+          <div className="relative py-1 text-center text-xs uppercase tracking-wide text-slate-600">
+            <span className="bg-transparent px-2">or email</span>
+          </div>
+        </div>
+      ) : null}
+
       <label className="block space-y-1.5">
         <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Email</span>
         <input

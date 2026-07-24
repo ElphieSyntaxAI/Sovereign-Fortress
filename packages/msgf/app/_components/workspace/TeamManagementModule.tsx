@@ -10,6 +10,42 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221141Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T220451Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
 /**
@@ -79,6 +115,7 @@ import {
   type OnboardingFormState,
 } from "@/app/_components/workspace/TeamInviteOnboardingSection";
 import { TeamRosterTable } from "@/app/_components/workspace/TeamRosterTable";
+import { TeamReadinessPanel } from "@/app/_components/workspace/TeamReadinessPanel";
 import { InfoTip } from "@/app/_components/workspace/workspace-ui";
 import type { TeamRosterRow } from "@/lib/services/company-team";
 import type { UserProjectRow } from "@/lib/services/user-projects";
@@ -181,6 +218,8 @@ export function TeamManagementModule({ projects }: Props) {
           Invite engineers with scoped project origins and secure onboarding documents.
         </p>
       </div>
+
+      <TeamReadinessPanel />
 
       <TeamRosterTable rows={roster} loading={loadingRoster} />
 

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -38,17 +38,21 @@ export default async function AdminPortalPage() {
           <span className="text-gradient-jewel">Test the product family</span>
         </h1>
         <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-          Open Author Ecosystem and Syntax Education from here. Pillar health and incident queues
-          live on the{" "}
+          Launch product surfaces from here. MSGF team onboarding (domains, signing, archive) lives
+          on{" "}
+          <Link href="/workspace?tab=setup" className="text-emerald-300 hover:underline">
+            Setup Projects → Manage Team
+          </Link>
+          . Pillar health and incident queues live on the{" "}
           <Link href="/admin/ops" className="text-violet-300 hover:underline">
             ops console
           </Link>
           {" "}
-          (ARBITRATE + DocuSign) or{" "}
+          or{" "}
           <Link href="/admin/dashboard" className="text-violet-300 hover:underline">
             pillar health
           </Link>
-          ; your personal stats stay on{" "}
+          ; personal stats stay on the{" "}
           <Link href="/dashboard" className="text-emerald-300 hover:underline">
             governance dashboard
           </Link>
@@ -57,6 +61,20 @@ export default async function AdminPortalPage() {
       </header>
 
       {devProbes.length > 0 ? <AdminDevStackBanner probes={devProbes} /> : null}
+
+      <section className="glass-panel rounded-2xl border border-emerald-500/25 p-5 text-sm text-slate-300">
+        <h2 className="text-base font-semibold text-emerald-100">Team readiness (MSGF)</h2>
+        <p className="mt-2 text-slate-400">
+          After Workspace SSO or first invite, complete: allowlisted domains, signing provider,
+          optional Dropbox archive path, and mapped projects. Checklist + settings:{" "}
+          <Link href="/workspace?tab=setup" className="text-emerald-300 hover:underline">
+            workspace team panel
+          </Link>
+          {" "}
+          · API{" "}
+          <code className="text-violet-300">GET /api/msgf/workspace/team/readiness</code>.
+        </p>
+      </section>
 
       <AdminProductLauncher surfaces={surfaces} />
 

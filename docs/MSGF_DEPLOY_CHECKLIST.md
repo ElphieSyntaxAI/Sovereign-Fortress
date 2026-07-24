@@ -12,6 +12,13 @@ Use after merging the P0–P4 roadmap work. **Code is built; production needs de
 | `20260627120000_p4_active_incidents_legacy_users_rls.sql` | Incidents RLS |
 | `20260531100000_msgf_credit_reservation.sql` | Credit ledger RPCs |
 | `20260628130000_msgf_ide_tokens_workspaces.sql` | Long-lived `msgf_ide_*` tokens |
+| `20260724010000_msgf_user_github_connections.sql` | GitHub project picker |
+| `20260724020000_company_domains_signing_provider.sql` | Domains + signing provider |
+| `20260724020100_*` (quarantine) | Vault quarantine columns |
+| `20260724030000_pillar_vectors_compound_scope.sql` | A4 compound tenant scope |
+| `20260724030100_webhook_inbox_archive_status.sql` | I5 webhook inbox + archive |
+| `20260724030200_msgf_skip_audit.sql` | A5 skip-MSGF audit |
+| `20260724030300_msgf_arbitrate_audit.sql` | A6 signed ARBITRATE audit |
 
 ```bash
 npm run db:push -w msgf
@@ -25,6 +32,10 @@ npm run verify:db-schema -w msgf
 ```bash
 MSGF_CREDIT_RESERVATION_ENABLED=1
 MSGF_CREDIT_RESERVATION_PROD_DEFAULT=1
+MSGF_OPS_CRON_SECRET=...          # required: heartbeat, workers, audit fallback
+# Prefer dedicated keys in prod (fallback to ops cron is OK for soft launch):
+# MSGF_SKIP_AUDIT_SECRET=...
+# MSGF_ARBITRATE_AUDIT_KEY=...
 # Optional:
 # MSGF_IDE_TOKEN_TTL_DAYS=90
 # MSGF_HEAL_RESERVE_CHUNK=400

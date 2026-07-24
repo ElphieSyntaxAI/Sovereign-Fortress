@@ -8,10 +8,14 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
+import { AdminArbitrateAuditPanel } from "@/app/_components/admin/ops/AdminArbitrateAuditPanel";
 import { AdminArbitrateSection } from "@/app/_components/admin/ops/AdminArbitrateSection";
 import { AdminDocuSignPanel } from "@/app/_components/admin/ops/AdminDocuSignPanel";
+import { AdminSentryPanel } from "@/app/_components/admin/ops/AdminSentryPanel";
+import { AdminSkipAuditPanel } from "@/app/_components/admin/ops/AdminSkipAuditPanel";
+import { AdminVaultQuarantinePanel } from "@/app/_components/admin/ops/AdminVaultQuarantinePanel";
 
 export default function AdminOpsPage() {
   return (
@@ -24,12 +28,18 @@ export default function AdminOpsPage() {
           <span className="text-gradient-jewel">Ops console</span>
         </h1>
         <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-          Live ARBITRATE incident queue and team DocuSign compliance — same APIs as the Vite
-          msgf-dashboard, authenticated with your admin session (no service-role token in the browser).
+          ARBITRATE, signed HITL audit, Vault quarantine, Sentry, signing, and skip-MSGF — one
+          ops surface. Prefer the same <code className="text-slate-300">project_origin</code> when
+          filtering. Deploy gate:{" "}
+          <code className="text-slate-300">GET /api/msgf/deploy-gate?project_origin=…</code>
         </p>
       </header>
 
       <AdminArbitrateSection hideDeveloperKeystrokes />
+      <AdminArbitrateAuditPanel />
+      <AdminVaultQuarantinePanel />
+      <AdminSkipAuditPanel />
+      <AdminSentryPanel />
       <AdminDocuSignPanel />
     </main>
   );

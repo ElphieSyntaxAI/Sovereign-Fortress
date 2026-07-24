@@ -13,6 +13,9 @@ export type VerifyResultPayload = {
   incident_id?: string | null;
   actor_id?: string;
   pack_id?: string;
+  /** A5 fire-and-forget from Pulse Guard */
+  async?: boolean;
+  correlation_id?: string;
 };
 
 export async function postVerifyResult(params: {

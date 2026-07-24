@@ -8,13 +8,14 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * Tenant / entity silo fields on `pillar_vectors.metadata` and related JSONB.
  */
 
 import { isUuidString } from "@/src/lib/tenant-ids";
+import { resolveSubpathHash } from "@/lib/services/vector-scope-key";
 
 export type MsgfMetadataScope = {
   /** License / project silo (pillars, ingest, narrative tenant_id). */
@@ -25,6 +26,11 @@ export type MsgfMetadataScope = {
   projectOrigin?: string;
   /** Employer / tenant company silo (dashboard isolation, incident metadata). */
   companyId?: string | null;
+  /** File path or dir used to stamp `subpath_hash` (A4 dual-key). */
+  filePath?: string | null;
+  dirPrefix?: string | null;
+  /** Override hash when already computed. */
+  subpathHash?: string | null;
 };
 
 export function normalizeTenantId(tenantId: string): string {
@@ -63,7 +69,7 @@ export function deriveProjectOrigin(
   return segments[0][0] ?? "unknown";
 }
 
-/** Merges tenant silo + optional entity + repo tag into metadata JSONB. */
+/** Merges tenant silo + optional entity + repo tag + subpath_hash into metadata JSONB. */
 export function withMsgfMetadataScope(
   meta: Record<string, unknown>,
   scope: MsgfMetadataScope
@@ -71,8 +77,13 @@ export function withMsgfMetadataScope(
   const tenantId = normalizeTenantId(scope.tenantId);
   const entityCandidate = scope.entityId?.trim() || (isUuidString(tenantId) ? tenantId : "");
   const projectOrigin = scope.projectOrigin?.trim();
-
   const companyRaw = scope.companyId?.trim();
+  const subpathHash = resolveSubpathHash({
+    filePath: scope.filePath,
+    dirPrefix: scope.dirPrefix,
+    explicitHash: scope.subpathHash,
+  });
+  const filePath = scope.filePath?.trim();
 
   return {
     ...meta,
@@ -82,6 +93,8 @@ export function withMsgfMetadataScope(
       : {}),
     ...(projectOrigin ? { project_origin: projectOrigin.slice(0, 256) } : {}),
     ...(companyRaw && isUuidString(companyRaw) ? { company_id: companyRaw } : {}),
+    ...(subpathHash ? { subpath_hash: subpathHash } : {}),
+    ...(filePath ? { file_path: filePath.replace(/\\/g, "/").slice(0, 512) } : {}),
   };
 }
 

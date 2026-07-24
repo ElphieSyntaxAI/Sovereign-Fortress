@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+-- =============================================================================
 -- MSGF document compiler sessions (product-neutral scan/commit orchestration).
 
 CREATE TABLE IF NOT EXISTS public.msgf_document_compiler_sessions (

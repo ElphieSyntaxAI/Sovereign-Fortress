@@ -3,11 +3,13 @@
 **Audience:** Integrators (Deckhost, solo devs), ops.  
 **Production API:** `https://elphiesgatedai.elphiesyntax.com`
 
+**GitHub multi-repo picker:** [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) — Connect GitHub on `/setup/projects`, map many repos + local monorepo subfolders. One IDE `msgf.authToken` (User settings) covers all; only `msgf.tenantKey` changes per project.
+
 ---
 
 ## Required workspace settings
 
-Put these in **`.vscode/settings.json`** (workspace scope), not only User settings:
+Put **`msgf.authToken`** (and usually `msgf.apiUrl`) in **User** settings once. Put **`msgf.tenantKey`** in each **workspace** `.vscode/settings.json`:
 
 ```json
 {
@@ -18,6 +20,7 @@ Put these in **`.vscode/settings.json`** (workspace scope), not only User settin
 }
 ```
 
+You may still paste the full JSON per workspace; the token does not need to differ per repo.
 **Common mistakes:**
 
 - Trailing `"` on `msgf.tenantKey` (e.g. `deckhostwmsgf/deck_host"`) → auth/tenant failures.

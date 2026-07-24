@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * POST verify-result — audit log after local or cloud heal verification.
@@ -48,6 +48,10 @@ export async function persistVerifyResult(
     command: body.command ?? null,
     exit_code: body.exit_code ?? null,
     file_paths: body.file_paths ?? [],
+    project_origin: body.tenant_id,
+    tenant_id: body.tenant_id,
+    async: body.async === true,
+    correlation_id: body.correlation_id ?? null,
     dev_heal_choice: body.dev_heal_choice ?? null,
     incident_id: body.incident_id ?? null,
     product_surface: body.product_surface ?? "ide",

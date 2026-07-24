@@ -8,25 +8,28 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
- * POST /api/msgf/workspace/docusign/mock-complete — dev-only DocuSign completion (MSGF_DOCUSIGN_MOCK=1).
+ * POST /api/msgf/workspace/docusign/mock-complete — dev-only signing completion
+ * (MSGF_SIGNING_MOCK=1 or MSGF_DOCUSIGN_MOCK=1). Uses I5 idempotent pipeline.
  */
 
 import { NextResponse } from "next/server";
 
-import {
-  handleConnectWebhook,
-  mockMode,
-} from "@/lib/services/docusign-gateway";
+import type { SigningProviderId } from "@/lib/services/signing/SigningProvider";
+import { processSigningWebhookCompletion } from "@/lib/services/signing/processSigningWebhook";
+import { signingMockMode } from "@/lib/services/signing/resolveSigningProvider";
 import { requireWorkspaceTeamSession } from "@/lib/workspace-team-auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function POST(req: Request) {
-  if (!mockMode()) {
+  if (!signingMockMode()) {
     return NextResponse.json(
-      { ok: false, error: "Mock completion is only available when MSGF_DOCUSIGN_MOCK=1." },
+      {
+        ok: false,
+        error: "Mock completion is only available when MSGF_SIGNING_MOCK=1 or MSGF_DOCUSIGN_MOCK=1.",
+      },
       { status: 403 }
     );
   }
@@ -43,30 +46,52 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Invalid JSON." }, { status: 400 });
   }
 
+  const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const inviteId =
-    body && typeof body === "object" && typeof (body as Record<string, unknown>).invite_id === "string"
-      ? String((body as Record<string, unknown>).invite_id).trim()
-      : "";
+    typeof record.invite_id === "string" ? record.invite_id.trim() : "";
+  const providerHint =
+    typeof record.provider === "string" ? record.provider.trim().toLowerCase() : "";
 
   const admin = createAdminClient();
   const { data: envelope } = await admin
     .from("msgf_docusign_envelopes")
-    .select("envelope_id, invite_id")
+    .select("envelope_id, external_request_id, invite_id, provider")
     .eq("user_id", session.user.id)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (!envelope?.envelope_id) {
+  if (
+    !envelope?.envelope_id &&
+    !(envelope as { external_request_id?: string } | null)?.external_request_id
+  ) {
     return NextResponse.json({ ok: false, error: "No envelope for this user." }, { status: 404 });
   }
 
-  const result = await handleConnectWebhook(admin, {
-    event: "envelope-completed",
-    envelopeId: envelope.envelope_id as string,
-    inviteId: inviteId || (envelope.invite_id as string),
-    data: { envelopeSummary: { status: "completed" } },
+  const provider: SigningProviderId =
+    providerHint === "dropbox_sign" ||
+    (envelope as { provider?: string }).provider === "dropbox_sign"
+      ? "dropbox_sign"
+      : "docusign";
+
+  const external =
+    (envelope as { external_request_id?: string }).external_request_id ||
+    (envelope as { envelope_id: string }).envelope_id;
+
+  const result = await processSigningWebhookCompletion({
+    admin,
+    provider,
+    external_request_id: external,
+    invite_id: inviteId || ((envelope as { invite_id: string }).invite_id as string),
+    event: "mock-complete",
+    rawPayload: { mock: true, invite_id: inviteId || null },
   });
 
-  return NextResponse.json({ ok: result.ok, message: result.message });
+  return NextResponse.json({
+    ok: result.ok,
+    message: result.message,
+    invite_id: result.invite_id,
+    duplicate: result.duplicate ?? false,
+    archive: result.archive ?? null,
+  });
 }

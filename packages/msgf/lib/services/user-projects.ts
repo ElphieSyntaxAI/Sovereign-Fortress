@@ -8,12 +8,15 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
+import {
+  deriveProjectOriginFromLocalPath,
+} from "@/lib/services/user-project-paths";
 
 export type UserProjectSourceType = "local" | "github";
 
@@ -54,19 +57,28 @@ export const CreateUserProjectBodySchema = z
 
 export type CreateUserProjectBody = z.infer<typeof CreateUserProjectBodySchema>;
 
-function normalizePathSegment(value: string): string {
-  return value.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\/+|\/+$/g, "");
-}
+export const BULK_CREATE_USER_PROJECTS_MAX = 50;
 
-function deriveProjectOriginFromLocalPath(localPath: string): string {
-  const normalized = normalizePathSegment(localPath);
-  const parts = normalized.split("/").filter(Boolean);
-  const raw =
-    parts.length >= 2
-      ? `${parts[parts.length - 2]}/${parts[parts.length - 1]}`
-      : (parts[parts.length - 1] ?? "local-project");
-  return sanitizeTenantScope(raw).slice(0, 256);
-}
+export const BulkCreateUserProjectsBodySchema = z
+  .object({
+    projects: z.array(CreateUserProjectBodySchema).min(1).max(BULK_CREATE_USER_PROJECTS_MAX),
+  })
+  .strict();
+
+export type BulkCreateUserProjectsBody = z.infer<typeof BulkCreateUserProjectsBodySchema>;
+
+export type BulkCreateUserProjectsResult = {
+  created: UserProjectRow[];
+  skipped: Array<{ display_name: string; project_origin: string; reason: string }>;
+  errors: Array<{ display_name: string; error: string }>;
+};
+
+export {
+  buildLocalChildProjectInput,
+  deriveProjectOriginFromLocalPath,
+  joinParentAndRelativeChild,
+  normalizePathSegment,
+} from "@/lib/services/user-project-paths";
 
 function parseGithubRepository(githubUrl: string): { fullName: string; projectOrigin: string } {
   const url = new URL(githubUrl);
@@ -185,4 +197,62 @@ export async function deleteUserProject(
   if (error) {
     throw new Error(`delete user project failed: ${error.message}`);
   }
+}
+
+/**
+ * Create many project mappings. Duplicate `project_origin` rows are skipped (not hard errors).
+ */
+export async function createUserProjectsBulk(
+  admin: SupabaseClient,
+  userId: string,
+  inputs: CreateUserProjectBody[]
+): Promise<BulkCreateUserProjectsResult> {
+  const created: UserProjectRow[] = [];
+  const skipped: BulkCreateUserProjectsResult["skipped"] = [];
+  const errors: BulkCreateUserProjectsResult["errors"] = [];
+  const seenOrigins = new Set<string>();
+
+  for (const input of inputs) {
+    let projectOrigin: string;
+    try {
+      projectOrigin = resolveProjectOriginInput(input);
+    } catch (e) {
+      errors.push({
+        display_name: input.display_name,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      continue;
+    }
+
+    if (seenOrigins.has(projectOrigin)) {
+      skipped.push({
+        display_name: input.display_name,
+        project_origin: projectOrigin,
+        reason: "duplicate_in_request",
+      });
+      continue;
+    }
+    seenOrigins.add(projectOrigin);
+
+    try {
+      const row = await createUserProject(admin, userId, input);
+      created.push(row);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      const isDuplicate =
+        /duplicate|unique|msgf_user_projects_user_origin/i.test(message) ||
+        /23505/.test(message);
+      if (isDuplicate) {
+        skipped.push({
+          display_name: input.display_name,
+          project_origin: projectOrigin,
+          reason: "already_mapped",
+        });
+      } else {
+        errors.push({ display_name: input.display_name, error: message });
+      }
+    }
+  }
+
+  return { created, skipped, errors };
 }

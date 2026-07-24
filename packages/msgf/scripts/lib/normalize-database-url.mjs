@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /** GCP region names are not valid Supabase pooler hosts (common mis-copy from GCP_LOCATION). */
 const INVALID_POOLER_HOST_PATTERNS = [

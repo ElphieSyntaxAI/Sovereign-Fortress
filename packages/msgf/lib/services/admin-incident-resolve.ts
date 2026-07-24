@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -36,6 +36,10 @@ import {
   type MsgfIncidentStatus,
 } from "@/lib/services/msgf-incidents";
 import { pulseEngine } from "@/lib/services/PulseEngine";
+import {
+  recordArbitrateAuditSafe,
+  type ArbitrateAuditPayload,
+} from "@/lib/services/arbitrate-audit";
 
 export const patchIncidentBodySchema = z.object({
   status: z.enum(["pending", "resolved"]),
@@ -56,6 +60,7 @@ export type ResolveAdminIncidentResult = {
   global_rules_updated?: boolean;
   global_promotion_status?: string;
   local_cache_id?: string;
+  arbitrate_audit_id?: string | null;
 };
 
 export async function resolveAdminIncident(params: {
@@ -193,6 +198,47 @@ export async function resolveAdminIncident(params: {
     resolutionNote,
   });
 
+  let arbitrateAuditId: string | null = null;
+  if (params.body.status === "resolved") {
+    const projectOrigin =
+      (typeof incidentMeta.project_origin === "string" &&
+        incidentMeta.project_origin.trim()) ||
+      tenantId;
+    const payload: ArbitrateAuditPayload = {
+      schema_version: 1,
+      source: "admin_incident_resolve",
+      project_origin: projectOrigin,
+      operator_id: params.operator?.operatorUserId ?? null,
+      action: "RESOLVED",
+      incident_id: existing.id,
+      file_path:
+        typeof incidentMeta.file_path === "string" ? incidentMeta.file_path : null,
+      tenant_id: tenantId,
+      entity_id: existing.user_id,
+      bug_index: bugIndex,
+      model_opinions: existing.strategies ?? incidentMeta.model_opinions ?? null,
+      inputs: {
+        status: params.body.status,
+        remediation_strategy_label: params.body.remediation_strategy_label ?? null,
+        mitigation_action: params.body.mitigation_action ?? null,
+        human_reasoning: humanReasoning,
+        final_fix_applied: finalFixApplied,
+        resolution_note: resolutionNote,
+      },
+      resolution: {
+        arbitration_beat_log_id: arbitrationBeatLogId ?? null,
+        education_vault_log_id: educationVaultLogId ?? null,
+        global_mitigation_id: globalMitigationId ?? null,
+        global_rules_updated: globalRulesUpdated,
+        global_promotion_status: globalPromotionStatus ?? null,
+        local_cache_id: localCacheId ?? null,
+      },
+      ts: new Date().toISOString(),
+    };
+    const audit = await recordArbitrateAuditSafe(params.adminSupabase, payload);
+    arbitrateAuditId = audit?.id ?? null;
+  }
+
   return {
     incident,
     arbitration_beat_log_id: arbitrationBeatLogId,
@@ -203,6 +249,7 @@ export async function resolveAdminIncident(params: {
       globalPromotionStatus ??
       (globalFix ? GLOBAL_PROMOTION_STATUS_LOCAL_SUCCESS_GLOBAL_PENDING : undefined),
     local_cache_id: localCacheId,
+    arbitrate_audit_id: arbitrateAuditId,
   };
 }
 

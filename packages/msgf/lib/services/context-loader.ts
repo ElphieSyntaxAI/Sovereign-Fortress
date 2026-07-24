@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * Pulse context — dual **Law Books** for Vault lineage:
@@ -31,6 +31,7 @@ import {
   filterPillarRowsByTenant,
   resolveTenantIdForQuery,
 } from "@/lib/services/tenant-query-scope";
+import { filterVaultRowsForRetrieval } from "@/lib/services/vault-quarantine";
 import { fetchVaultLineage111 } from "@/lib/services/vault-lineage-111";
 
 /** Book 1 — system Hall / global vault tenant. */
@@ -172,7 +173,9 @@ export async function listVaultLawBookExcerpts(
     throw new Error(`listVaultLawBookExcerpts: ${error.message}`);
   }
 
-  return filterPillarRowsByTenant((data ?? []) as VaultLineageRow[], tid).map((row) => ({
+  return filterVaultRowsForRetrieval(
+    filterPillarRowsByTenant((data ?? []) as VaultLineageRow[], tid)
+  ).map((row) => ({
     id: row.id,
     content: row.content,
     metadata: row.metadata,

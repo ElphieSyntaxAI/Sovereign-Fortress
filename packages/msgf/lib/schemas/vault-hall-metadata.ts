@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * Zod contracts for V3.2 differential state (Vault vs Hall) and 1.1.1 genealogical bug index.
@@ -179,6 +179,15 @@ export const VaultHallMetadataObjectSchema = z
     instance_slug: BugIndexLevel111Schema,
     entity_id: z.string().uuid().optional(),
     tenant_id: z.string().optional(),
+    /** A4 / tenant silo — repo tag for compound scope filters. */
+    project_origin: z.string().min(1).max(256).optional(),
+    company_id: z.string().uuid().optional(),
+    /** A4 dual-key path hash (16 hex chars). */
+    subpath_hash: z
+      .string()
+      .regex(/^[a-f0-9]{16}$/i, "subpath_hash must be 16 hex chars")
+      .optional(),
+    file_path: z.string().min(1).max(512).optional(),
     legal_version: z.string().optional(),
     hal_score: z.number().finite().optional(),
     summary: z.string().max(2000).optional(),
@@ -371,6 +380,10 @@ export function buildVaultHallMetadata(input: {
   reason?: string;
   lomAttempts?: number;
   testForceMismatch?: boolean;
+  projectOrigin?: string | null;
+  companyId?: string | null;
+  filePath?: string | null;
+  dirPrefix?: string | null;
 }): VaultHallMetadata {
   const entityId = input.entityId?.trim() || input.authorId?.trim();
   const tenantId = input.tenantId?.trim();
@@ -399,6 +412,10 @@ export function buildVaultHallMetadata(input: {
       ? withMsgfMetadataScope(base, {
           tenantId,
           ...(entityId ? { entityId } : {}),
+          projectOrigin: input.projectOrigin ?? undefined,
+          companyId: input.companyId ?? undefined,
+          filePath: input.filePath ?? undefined,
+          dirPrefix: input.dirPrefix ?? undefined,
         })
       : base;
 

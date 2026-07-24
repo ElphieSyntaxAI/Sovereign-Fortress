@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -16,10 +16,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fromPillarVectors } from "@/lib/msgf-pillar-table";
 import { isDevTestTenant } from "@/lib/msgf-tenant-governance";
 import {
-  applyPillarVectorsTenantFilter,
-  filterPillarRowsByTenant,
+  applyPillarVectorsCompoundScopeFilter,
+  filterPillarRowsByCompoundScope,
   resolveTenantIdForQuery,
+  type CompoundVectorScope,
 } from "@/lib/services/tenant-query-scope";
+import { filterVaultRowsForRetrieval } from "@/lib/services/vault-quarantine";
 
 export interface LogicLineageRequest {
   queryText: string;
@@ -31,6 +33,11 @@ export interface LogicLineageRequest {
    */
   queryEmbedding?: number[];
   matchCount?: number;
+  /** A4 compound scope — applied when IDE sends project + path. */
+  projectOrigin?: string | null;
+  companyId?: string | null;
+  filePath?: string | null;
+  dirPrefix?: string | null;
 }
 
 export interface LogicLineageScan {
@@ -96,34 +103,44 @@ async function vectorScan(
   supabase: SupabaseClient,
   embedding: number[],
   matchCount: number,
-  tenantId: string
+  scope: CompoundVectorScope
 ): Promise<PillarVectorRow[]> {
+  const filter: Record<string, string> = {
+    tenant_id: scope.tenantId,
+    pillar: "P6",
+    index_type: "genealogical_bug_index",
+    instance: "1.1.1",
+    ledger: "vault",
+  };
+  if (scope.projectOrigin?.trim()) {
+    filter.project_origin = scope.projectOrigin.trim();
+  }
+  if (scope.companyId?.trim()) {
+    filter.company_id = scope.companyId.trim();
+  }
+
   const { data, error } = await supabase.rpc("match_pillar_vectors", {
     query_embedding: embedding,
     match_count: matchCount,
-    filter: {
-      tenant_id: tenantId,
-      pillar: "P6",
-      index_type: "genealogical_bug_index",
-      instance: "1.1.1",
-      ledger: "vault",
-    },
+    filter,
   });
 
   if (error) throw error;
-  return filterPillarRowsByTenant((data ?? []) as PillarVectorRow[], tenantId);
+  return filterVaultRowsForRetrieval(
+    filterPillarRowsByCompoundScope((data ?? []) as PillarVectorRow[], scope)
+  );
 }
 
 async function lexicalFallbackScan(
   supabase: SupabaseClient,
   queryText: string,
   matchCount: number,
-  tenantId: string
+  scope: CompoundVectorScope
 ): Promise<PillarVectorRow[]> {
   /** Avoid TS2589 from deep PostgREST filter generics on `pillar_vectors`. */
   type FilterEq = { eq: (column: string, value: string) => FilterEq };
 
-  let query: FilterEq = fromPillarVectors(supabase, tenantId)
+  let query: FilterEq = fromPillarVectors(supabase, scope.tenantId)
     .select("content, metadata")
     .eq("metadata->>pillar", "P6")
     .eq("metadata->>index_type", "genealogical_bug_index")
@@ -131,7 +148,7 @@ async function lexicalFallbackScan(
     .eq("metadata->>ledger", "vault")
     .limit(Math.max(20, matchCount * 3)) as unknown as FilterEq;
 
-  query = applyPillarVectorsTenantFilter(query, tenantId);
+  query = applyPillarVectorsCompoundScopeFilter(query, scope);
 
   const { data, error } = await (query as unknown as Promise<{
     data: PillarVectorRow[] | null;
@@ -140,7 +157,9 @@ async function lexicalFallbackScan(
 
   if (error) throw error;
 
-  return filterPillarRowsByTenant((data ?? []) as PillarVectorRow[], tenantId)
+  return filterVaultRowsForRetrieval(
+    filterPillarRowsByCompoundScope((data ?? []) as PillarVectorRow[], scope)
+  )
     .map((row) => ({
       ...row,
       similarity: lexicalScore(queryText, row.content || ""),
@@ -158,6 +177,13 @@ export async function getLogicLineage(
   request: LogicLineageRequest
 ): Promise<LogicLineageResult> {
   const tenantId = resolveTenantIdForQuery(request.tenantId);
+  const scope: CompoundVectorScope = {
+    tenantId,
+    projectOrigin: request.projectOrigin,
+    companyId: request.companyId,
+    filePath: request.filePath,
+    dirPrefix: request.dirPrefix,
+  };
   const queryText = request.queryText?.trim() ?? "";
   const matchCount = request.matchCount ?? 5;
   if (!queryText) {
@@ -173,13 +199,13 @@ export async function getLogicLineage(
 
   if (embedding?.length && !isDevTestTenant(tenantId)) {
     try {
-      rows = await vectorScan(supabase, embedding, matchCount, tenantId);
+      rows = await vectorScan(supabase, embedding, matchCount, scope);
     } catch {
       // Fallback to lexical if pgvector RPC is not present yet.
-      rows = await lexicalFallbackScan(supabase, queryText, matchCount, tenantId);
+      rows = await lexicalFallbackScan(supabase, queryText, matchCount, scope);
     }
   } else {
-    rows = await lexicalFallbackScan(supabase, queryText, matchCount, tenantId);
+    rows = await lexicalFallbackScan(supabase, queryText, matchCount, scope);
   }
 
   const candidates = rows.map(mapRowToScan);

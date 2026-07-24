@@ -3,7 +3,10 @@
 -- Proprietary and Confidential
 -- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
 --
--- Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
 -- =============================================================================
 -- Utah S.B. 149 disclosure attestations + instance columns (H.B. 273 companion gates).
 

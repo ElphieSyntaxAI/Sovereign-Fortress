@@ -10,6 +10,42 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221141Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T220451Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
 /**
@@ -87,6 +123,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { GithubRepoPickerPanel } from "@/app/_components/workspace/GithubRepoPickerPanel";
+import { LocalSubfolderPickerPanel } from "@/app/_components/workspace/LocalSubfolderPickerPanel";
 import { InfoTip } from "@/app/_components/workspace/workspace-ui";
 import { TeamManagementModule } from "@/app/_components/workspace/TeamManagementModule";
 import { WorkspaceOnboardingPack } from "@/app/_components/workspace/WorkspaceOnboardingPack";
@@ -261,6 +299,35 @@ export function WorkspaceSetupProjectsTab({
       </p>
 
       <WorkspaceOnboardingPack />
+
+      <GithubRepoPickerPanel
+        projects={projects}
+        onMapped={loadProjects}
+        setError={setError}
+        setMessage={setMessage}
+      />
+
+      <LocalSubfolderPickerPanel
+        projects={projects}
+        onMapped={loadProjects}
+        setError={setError}
+        setMessage={setMessage}
+      />
+
+      {(message || error) && (
+        <div className="space-y-1">
+          {message ? (
+            <p className="text-sm text-emerald-300" role="status">
+              {message}
+            </p>
+          ) : null}
+          {error ? (
+            <p className="text-sm text-amber-200" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      )}
 
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start">
         <form

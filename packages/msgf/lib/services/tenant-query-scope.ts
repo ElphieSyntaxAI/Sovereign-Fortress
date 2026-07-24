@@ -8,21 +8,32 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * Tenant silo filters for `pillar_vectors` and `msgf_rules` — prevents cross-project leakage.
+ * A4: optional compound scope company_id + project_origin + subpath_hash (app-layer mandatory
+ * on service_role Pulse paths — see docs/MSGF_TENANT_ISOLATION.md).
  */
-
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { SovereignViolationError } from "@/lib/errors/sovereign-violation";
 import { normalizeTenantId } from "@/lib/services/msgf-metadata-scope";
+import { resolveSubpathHash } from "@/lib/services/vector-scope-key";
 
 export type PillarLedgerRow = {
   id: string;
   content: string;
   metadata: Record<string, unknown> | null;
+};
+
+export type CompoundVectorScope = {
+  tenantId: string;
+  companyId?: string | null;
+  projectOrigin?: string | null;
+  /** File or dir — hashed when subpathHash omitted. */
+  filePath?: string | null;
+  dirPrefix?: string | null;
+  subpathHash?: string | null;
 };
 
 type FilterableQuery = {
@@ -35,6 +46,34 @@ export function applyPillarVectorsTenantFilter<T extends FilterableQuery>(
   tenantId: string
 ): T {
   return query.eq("metadata->>tenant_id", normalizeTenantId(tenantId)) as T;
+}
+
+/**
+ * Tenant filter + optional company / project_origin / subpath_hash.
+ * Only applies extra eqs when those fields are present (backward compatible).
+ */
+export function applyPillarVectorsCompoundScopeFilter<T extends FilterableQuery>(
+  query: T,
+  scope: CompoundVectorScope
+): T {
+  let q = applyPillarVectorsTenantFilter(query, scope.tenantId);
+  const companyId = scope.companyId?.trim();
+  if (companyId) {
+    q = q.eq("metadata->>company_id", companyId) as T;
+  }
+  const projectOrigin = scope.projectOrigin?.trim();
+  if (projectOrigin) {
+    q = q.eq("metadata->>project_origin", projectOrigin.slice(0, 256)) as T;
+  }
+  const subpathHash = resolveSubpathHash({
+    filePath: scope.filePath,
+    dirPrefix: scope.dirPrefix,
+    explicitHash: scope.subpathHash,
+  });
+  if (subpathHash) {
+    q = q.eq("metadata->>subpath_hash", subpathHash) as T;
+  }
+  return q;
 }
 
 /** PostgREST filter: `msgf_rules.tenant_id` column (see migration). */
@@ -71,12 +110,63 @@ export function filterPillarRowsByTenant<T extends { metadata: Record<string, un
   });
 }
 
+/**
+ * Defense-in-depth after reads for compound scope (service_role Pulse invariant).
+ * - tenant_id always required
+ * - company_id: if filter set, row must match OR lack company_id (legacy)
+ * - project_origin / subpath_hash: if filter set, row must match exactly
+ */
+export function filterPillarRowsByCompoundScope<
+  T extends { metadata: Record<string, unknown> | null },
+>(rows: T[], scope: CompoundVectorScope): T[] {
+  const tid = normalizeTenantId(scope.tenantId);
+  const companyId = scope.companyId?.trim() || null;
+  const projectOrigin = scope.projectOrigin?.trim() || null;
+  const subpathHash = resolveSubpathHash({
+    filePath: scope.filePath,
+    dirPrefix: scope.dirPrefix,
+    explicitHash: scope.subpathHash,
+  });
+
+  return rows.filter((row) => {
+    const meta = row.metadata;
+    if (!meta || typeof meta !== "object") return false;
+    if (meta.tenant_id !== tid) return false;
+
+    if (companyId) {
+      const rowCo = typeof meta.company_id === "string" ? meta.company_id.trim() : "";
+      if (rowCo && rowCo !== companyId) return false;
+    }
+
+    if (projectOrigin) {
+      const rowPo =
+        typeof meta.project_origin === "string" ? meta.project_origin.trim() : "";
+      if (rowPo !== projectOrigin) return false;
+    }
+
+    if (subpathHash) {
+      const rowHash =
+        typeof meta.subpath_hash === "string" ? meta.subpath_hash.trim().toLowerCase() : "";
+      if (rowHash !== subpathHash) return false;
+    }
+
+    return true;
+  });
+}
+
 export function pillarRowBelongsToTenant(
   metadata: Record<string, unknown> | null | undefined,
   tenantId: string
 ): boolean {
   if (!metadata || typeof metadata !== "object") return false;
   return metadata.tenant_id === normalizeTenantId(tenantId);
+}
+
+export function pillarRowMatchesCompoundScope(
+  metadata: Record<string, unknown> | null | undefined,
+  scope: CompoundVectorScope
+): boolean {
+  return filterPillarRowsByCompoundScope([{ metadata: metadata ?? null }], scope).length === 1;
 }
 
 /** PostgREST filter: `state_beats.tenant_id` column. */

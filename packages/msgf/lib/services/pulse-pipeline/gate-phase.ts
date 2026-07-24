@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * V3.2 GATE — pledge, SHARD baseline, DEFEND (gate + CROSS-REF + preFlightCheck).
@@ -34,6 +34,13 @@ import {
 import { getBiometricProfile, calculateBiometricScore } from "@/lib/msgf-consensus";
 import { resolveConvergeConsensusRouting } from "@/lib/services/converge-consensus-routing";
 import type { ConvergeConsensusRouting } from "@/lib/services/converge-consensus-routing";
+import {
+  deriveCodeDeltaFromPulseContext,
+  routeCodeDelta,
+  type ClassifierResult,
+  type ConvergeTier,
+} from "@/lib/services/converge-tier";
+import { extractProjectOriginFromPulseBody } from "@/lib/utils/pulse-eco-context";
 
 export type GatePhaseBaseline = {
   kind: "baseline_required";
@@ -51,6 +58,10 @@ export type GatePhaseOk = {
     ReturnType<typeof resolveConvergeConsensusRouting>
   >["commercial"];
   forceGlobal: boolean;
+  /** Part B — tier classifier output (telemetry). */
+  convergeTier?: ConvergeTier;
+  convergeClassification?: ClassifierResult;
+  convergeRoutingProfile?: string;
 };
 
 export type GatePhaseResult = GatePhaseBaseline | GatePhaseOk;
@@ -58,7 +69,8 @@ export type GatePhaseResult = GatePhaseBaseline | GatePhaseOk;
 export async function runGatePhase(
   engine: PulseEngine,
   input: PulseFullPipelineInput,
-  pulseTraceId: string
+  pulseTraceId: string,
+  opts?: { forcedConvergeTier?: ConvergeTier | null }
 ): Promise<GatePhaseResult> {
   const pledge = await engine.assertPledgeAndBaseline(
     input.supabase,
@@ -145,6 +157,23 @@ export async function runGatePhase(
       headerAnthropicKey: input.byokAnthropicKey,
     });
 
+  const projectOrigin = extractProjectOriginFromPulseBody(input.rawBody) ?? null;
+
+  const delta = deriveCodeDeltaFromPulseContext({
+    activeFilePath: input.devSession?.activeFilePath ?? null,
+    pulseText: defended.pulseText,
+    projectOrigin,
+    companyId: tenantCommercial.companyId ?? null,
+  });
+
+  const routed = await routeCodeDelta({
+    payload: delta,
+    admin: input.adminSupabase,
+    forcedTier: opts?.forcedConvergeTier ?? null,
+    tenantId: input.tenantId,
+    projectOrigin,
+  });
+
   return {
     kind: "ok",
     pulseTraceId,
@@ -154,5 +183,8 @@ export async function runGatePhase(
     convergeRouting,
     tenantCommercial,
     forceGlobal,
+    convergeTier: routed.classification.tier,
+    convergeClassification: routed.classification,
+    convergeRoutingProfile: routed.routingProfile,
   };
 }

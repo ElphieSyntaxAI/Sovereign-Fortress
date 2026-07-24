@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * @msgf-license-header
@@ -116,6 +116,10 @@ import {
   resolveConvergeRoutingProfile,
   type ConvergeCachedChunk,
 } from "@/lib/services/converge-cache";
+import {
+  quarantineVaultFromTierDisagreement,
+  type TierQuarantineResult,
+} from "@/lib/services/converge-tier/tier-quarantine";
 import type { PulseLicenseContext } from "@/lib/services/pulse-license";
 import { assessLogicDrift, shouldEscalateToGlobalBrain } from "@/lib/services/logic-drift";
 import { processLocalGateway } from "@/lib/services/local-state-gateway";
@@ -273,6 +277,8 @@ export type PulseFullPipelineInput = PulseEngineInput & {
   byokAnthropicKey?: string | null;
   /** Chrome extension / IDE onboarding â€” shorter CONVERGE timeout with local degrade. */
   isIdePulse?: boolean;
+  /** Part B — admin/debug forced CONVERGE tier (x-msgf-converge-tier). */
+  forcedConvergeTier?: import("@/lib/services/converge-tier/types").ConvergeTier | null;
 };
 
 /** CONVERGE dual-model output before ARBITRATE retry / HITL decisions. */
@@ -318,6 +324,9 @@ export type PulsePipelineContext = {
   defendConstraints: string;
   globalMitigations: GlobalMitigationsPayload;
   preflight: ShadowPreflightResult;
+  /** Part B tier classifier routing profile (when enabled). */
+  convergeRoutingProfile?: string;
+  convergeTier?: import("@/lib/services/converge-tier/types").ConvergeTier;
 };
 
 export type PulseConvergeContext = PulsePipelineContext & {
@@ -342,6 +351,8 @@ export type PulseConvergeContext = PulsePipelineContext & {
   persistableDelta: string;
   momentumIncreased: boolean;
   haltStateSummary?: string;
+  /** Part B — T3 disagreement auto-quarantined Vault wins (HITL on ops). */
+  tierQuarantine?: TierQuarantineResult;
 };
 
 export type PulsePersistResult = {
@@ -623,11 +634,58 @@ export class PulseEngine {
     const momentumIncreased = retryCount > ctx.previousRetryCount;
     const effectiveMomentumRetry = Math.max(retryCount, ctx.previousRetryCount);
     const tieBreakerProtocolTriggered = retryCount > PULSE_RECURSION_MAX_RETRY;
+
+    let tierQuarantine: TierQuarantineResult | undefined;
+    if (modelsDisagree && ctx.convergeTier === "TIER_3") {
+      const lineageIds = ctx.vaultLineage.map((r) => r.id).filter(Boolean);
+      const companyId =
+        typeof ctx.vaultLineage[0]?.metadata?.company_id === "string"
+          ? String(ctx.vaultLineage[0].metadata.company_id)
+          : null;
+      const projectOrigin =
+        typeof ctx.vaultLineage[0]?.metadata?.project_origin === "string"
+          ? String(ctx.vaultLineage[0].metadata.project_origin)
+          : null;
+      tierQuarantine = await quarantineVaultFromTierDisagreement(ctx.adminSupabase, {
+        tenantId: ctx.tenantId,
+        companyId,
+        projectOrigin,
+        vectorIds: lineageIds.length ? lineageIds : undefined,
+        finalTier: "TIER_3",
+        entityId: ctx.entityId,
+      }).catch((e) => {
+        console.warn("[PulseEngine] T3 tier quarantine skipped:", e);
+        return {
+          quarantined: false,
+          vectorIds: [] as string[],
+          reason: "quarantine_error",
+        };
+      });
+
+      if (tierQuarantine.quarantined) {
+        const quarantinePath = resolveRemediationFilePath({
+          tenantId: ctx.tenantId,
+          entityId: ctx.entityId,
+        });
+        await tripRemediationCircuitBreaker({
+          admin: ctx.adminSupabase,
+          tenantId: ctx.tenantId,
+          filePath: quarantinePath,
+          bugIndex: PULSE_BUG_INDEX.hallHitlRequired,
+          reason: `T3 dual-CONVERGE disagreement quarantined ${tierQuarantine.vectorIds.length} Vault win(s)`,
+          source: "pulse_arbitrate_tier_quarantine",
+        }).catch((e) => {
+          console.warn("[PulseEngine] T3 quarantine circuit trip skipped:", e);
+        });
+      }
+    }
+
     const requiresTieBreaker =
       !allHumanConfirmed ||
       halScore < 70 ||
       (halScore < 70 && recalibrationActive) ||
-      tieBreakerProtocolTriggered;
+      tieBreakerProtocolTriggered ||
+      Boolean(tierQuarantine?.quarantined);
 
     if (retryCount > PULSE_RECURSION_MAX_RETRY) {
       let persistableDeltaEarly =
@@ -821,6 +879,7 @@ export class PulseEngine {
       persistableDelta,
       momentumIncreased,
       haltStateSummary,
+      tierQuarantine,
     };
   }
 
@@ -868,6 +927,7 @@ export class PulseEngine {
     const canPersistVault =
       c.allHumanConfirmed &&
       !lomDisagreement &&
+      !c.tierQuarantine?.quarantined &&
       (!c.requiresTieBreaker || c.humanTieBreakerResolved);
 
     let vaultNarrativeLogId: string | undefined;
@@ -904,7 +964,9 @@ export class PulseEngine {
         console.warn("[PulseEngine] remediation success reset skipped:", e);
       });
     } else {
-      const bugIndex = consensusFailed
+      const bugIndex = c.tierQuarantine?.quarantined
+        ? PULSE_BUG_INDEX.hallHitlRequired
+        : consensusFailed
         ? PULSE_BUG_INDEX.hallConsensusFailed
         : lomDisagreement
           ? PULSE_BUG_INDEX.hallLomDisagreement
@@ -913,7 +975,9 @@ export class PulseEngine {
       const haltNote = c.haltStateSummary
         ? " Halt-State Summary attached for Human Tie-Breaker."
         : "";
-      const reason = consensusFailed
+      const reason = c.tierQuarantine?.quarantined
+        ? `T3 dual-CONVERGE disagreement — Vault wins quarantined (${c.tierQuarantine.vectorIds.length}); HITL required.${haltNote}`
+        : consensusFailed
         ? `Consensus failed (gemini=${c.geminiVerdict}, claude=${c.claudeVerdict}).${haltNote}`
         : lomDisagreement
           ? `LOM model disagreement (gemini=${c.geminiVerdict}, claude=${c.claudeVerdict}, hal=${c.halScore}).${haltNote}`
@@ -927,7 +991,9 @@ export class PulseEngine {
         reason,
         bugIndex,
         lomAttempts: c.retryCount,
-        actionType: consensusFailed
+        actionType: c.tierQuarantine?.quarantined
+          ? "PULSE_HALL_HITL"
+          : consensusFailed
           ? "PULSE_HALL_CONSENSUS_FAIL"
           : lomDisagreement
             ? "PULSE_HALL_LOM_DISAGREE"
@@ -942,6 +1008,12 @@ export class PulseEngine {
             haltStateSummary: c.haltStateSummary,
           }),
           pulse_trace_id: params.pulseTraceId,
+          ...(c.tierQuarantine
+            ? {
+                tier_quarantine: c.tierQuarantine,
+                converge_tier: c.convergeTier ?? "TIER_3",
+              }
+            : {}),
         },
         hitlStrategyContext: isHitlTiebreakerBugIndex(bugIndex)
           ? {

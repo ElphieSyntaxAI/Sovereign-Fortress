@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -24,6 +24,10 @@ import { REMEDIATION_STATE } from "@/lib/services/remediation-retry-circuit";
 import { recordRemediationSuccess } from "@/lib/services/remediation-retry-circuit";
 import { persistToVault, persistToHall } from "@/lib/services/constraint-ledger";
 import { fromPillarVectors } from "@/lib/msgf-pillar-table";
+import {
+  recordArbitrateAuditSafe,
+  type ArbitrateAuditPayload,
+} from "@/lib/services/arbitrate-audit";
 
 export type HumanArbitrationAction = "APPROVE_BYPASS" | "DENY_PURGE";
 
@@ -65,6 +69,7 @@ export type HumanArbitrationResolutionResult = {
   remediation_state: string;
   message: string;
   security_clean_signal: boolean;
+  arbitrate_audit_id?: string | null;
 };
 
 function strategyToRecommendation(strategy: ModularRemediationStrategy): HumanArbitrationRecommendation {
@@ -184,10 +189,42 @@ export async function resolveHumanArbitrationAction(params: {
   action: HumanArbitrationAction;
   pillarVectorId?: string | null;
   operatorNote?: string;
+  /** Optional project_origin override (defaults to tenantId). */
+  projectOrigin?: string | null;
 }): Promise<HumanArbitrationResolutionResult> {
   const note =
     params.operatorNote?.trim() ||
     `Human arbitration ${params.action} for ${params.filePath}`;
+  const projectOrigin =
+    params.projectOrigin?.trim() || params.tenantId.trim() || "unknown";
+  const ts = new Date().toISOString();
+
+  async function appendAudit(
+    action: HumanArbitrationAction,
+    resolution: Record<string, unknown>
+  ): Promise<string | null> {
+    const payload: ArbitrateAuditPayload = {
+      schema_version: 1,
+      source: "heal_queue_human_arbitration",
+      project_origin: projectOrigin,
+      operator_id: params.entityId,
+      action,
+      incident_id: null,
+      file_path: params.filePath,
+      tenant_id: params.tenantId,
+      entity_id: params.entityId,
+      bug_index: params.bugIndex,
+      model_opinions: null,
+      inputs: {
+        pillar_vector_id: params.pillarVectorId ?? null,
+        operator_note: note,
+      },
+      resolution,
+      ts,
+    };
+    const row = await recordArbitrateAuditSafe(params.admin, payload);
+    return row?.id ?? null;
+  }
 
   if (params.action === "APPROVE_BYPASS") {
     await persistToVault({
@@ -217,12 +254,18 @@ export async function resolveHumanArbitrationAction(params: {
           scheduling_tier: null,
           metadata: {
             heal_queue_pending: false,
-            human_arbitration_cleared_at: new Date().toISOString(),
+            human_arbitration_cleared_at: ts,
             human_arbitration_action: params.action,
           },
         })
         .eq("id", params.pillarVectorId);
     }
+
+    const auditId = await appendAudit(params.action, {
+      remediation_state: "RESOLVED",
+      security_clean_signal: true,
+      ledger: "vault",
+    });
 
     return {
       ok: true,
@@ -231,6 +274,7 @@ export async function resolveHumanArbitrationAction(params: {
       remediation_state: "RESOLVED",
       message: "APPROVE & BYPASS — Vault lineage advanced; circuit breaker cleared.",
       security_clean_signal: true,
+      arbitrate_audit_id: auditId,
     };
   }
 
@@ -259,12 +303,18 @@ export async function resolveHumanArbitrationAction(params: {
           ...prior,
           heal_queue_pending: false,
           human_arbitration_action: params.action,
-          human_arbitration_denied_at: new Date().toISOString(),
+          human_arbitration_denied_at: ts,
           ledger: "hall",
         },
       })
       .eq("id", params.pillarVectorId);
   }
+
+  const auditId = await appendAudit(params.action, {
+    remediation_state: "RESOLVED",
+    security_clean_signal: false,
+    ledger: "hall",
+  });
 
   return {
     ok: true,
@@ -273,5 +323,6 @@ export async function resolveHumanArbitrationAction(params: {
     remediation_state: "RESOLVED",
     message: "DENY & PURGE — Hall committed; automated queue will not re-schedule this path.",
     security_clean_signal: false,
+    arbitrate_audit_id: auditId,
   };
 }

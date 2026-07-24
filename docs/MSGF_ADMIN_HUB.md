@@ -6,7 +6,7 @@
 | :--- | :--- | :--- |
 | Portal | `/admin/portal` | Launch Author / Education / MSGF; local stack checklist |
 | Pillar health | `/admin/dashboard` | Six-pillar operator lens, token savings, Big Brain summary |
-| **Ops console** | `/admin/ops` | **ARBITRATE incident queue** + **DocuSign compliance** |
+| **Ops console** | `/admin/ops` | **ARBITRATE** + **Sentry issues** + **DocuSign** |
 | Governance (personal) | `/dashboard` | Tenant pillar health, daily reports, security view |
 
 Sign in: `/admin/sign-in` (requires `GLOBAL_ADMIN` or `COMPANY_ADMIN` on `p4_profiles`, or `MSGF_GLOBAL_ADMIN_EMAILS`).
@@ -17,6 +17,7 @@ Replaces the need to run `apps/msgf-dashboard` for day-to-day operator work. Use
 
 - Pending incidents: `GET /api/msgf/admin/incidents?status=pending`
 - Resolve / approve: `PATCH /api/msgf/admin/incidents/:id` + `POST /api/msgf/pulse` (tie-break headers)
+- Sentry issues: `GET /api/msgf/admin/sentry?issues=1` · resolve `PUT /api/msgf/admin/sentry` — see [`MSGF_SENTRY.md`](./MSGF_SENTRY.md)
 - DocuSign roster: `GET /api/msgf/admin/docusign/envelopes`
 
 Legacy Vite dashboard (`npm run dev -w msgf-dashboard`) still works with Bearer auth for cross-origin Cloud Run proxy.

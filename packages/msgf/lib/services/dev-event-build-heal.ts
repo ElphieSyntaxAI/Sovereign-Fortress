@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * IDE build_failed → vault-first Heal Cheap (single Gemini Flash when needed).
@@ -41,6 +41,7 @@ import {
   filterPillarRowsByTenant,
   resolveTenantIdForQuery,
 } from "@/lib/services/tenant-query-scope";
+import { filterVaultRowsForRetrieval } from "@/lib/services/vault-quarantine";
 import { isCostRunawayError, runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 import {
@@ -153,7 +154,9 @@ export async function fetchVaultResolutionsForActiveFile(
       continue;
     }
 
-    for (const row of filterPillarRowsByTenant((data ?? []) as VaultLineageRow[], tid)) {
+    for (const row of filterVaultRowsForRetrieval(
+      filterPillarRowsByTenant((data ?? []) as VaultLineageRow[], tid)
+    )) {
       merged.set(row.id, row);
     }
     if (merged.size >= 12) break;

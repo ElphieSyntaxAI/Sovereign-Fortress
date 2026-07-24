@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * SWEEP ingestion — tenant-scoped `pillar_vectors` writes (metadata JSONB only).
@@ -51,6 +51,8 @@ export type IngestServiceOptions = {
   supabase: SupabaseClient;
   /** Repo tag for dashboard filters; derived from paths when omitted. */
   projectOrigin?: string;
+  /** Optional company silo stamped on ingest metadata (A4). */
+  companyId?: string | null;
 };
 
 export type SweepIngestResult = {
@@ -115,6 +117,7 @@ export function buildIngestMetadata(input: {
   filePath: string;
   bugIndex: GenealogicalBugIndex;
   governancePillar: MsgfGovernancePillar;
+  companyId?: string | null;
 }): SweepPillarVectorMetadata {
   const vaultMeta = buildVaultHallMetadata({
     ledger: "vault",
@@ -122,6 +125,9 @@ export function buildIngestMetadata(input: {
     tenantId: input.tenantId,
     entityId: input.tenantId,
     summary: `SWEEP ingest: ${input.filePath}`,
+    projectOrigin: input.projectOrigin,
+    companyId: input.companyId,
+    filePath: input.filePath,
   });
 
   const scoped = withMsgfMetadataScope(
@@ -138,6 +144,8 @@ export function buildIngestMetadata(input: {
       tenantId: input.tenantId,
       entityId: input.tenantId,
       projectOrigin: input.projectOrigin,
+      filePath: input.filePath,
+      companyId: input.companyId ?? undefined,
     }
   );
 
@@ -200,6 +208,7 @@ export class IngestService {
           filePath: file.path,
           bugIndex,
           governancePillar,
+          companyId: options.companyId,
         });
 
         const embedding = await generateEmbedding(file.content);

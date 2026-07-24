@@ -235,6 +235,24 @@
           "description": "Vibe-coding profile: buffer edits locally and POST Pulse on file save only (x-msgf-dev-session). When false, micro-batch flush every ~3s.",
           "scope": "resource"
         },
+        "msgf.asyncPreflight": {
+          "type": "boolean",
+          "default": true,
+          "description": "A5: Safe Build returns local exit immediately and syncs verify-result / dev-event in the background (async: true). Status bar shows MSGF shadow pending|green|red.",
+          "scope": "resource"
+        },
+        "msgf.skipMsgf": {
+          "type": "boolean",
+          "default": false,
+          "description": "A5 emergency bypass: skip verify-result / Pulse sync for Safe Build and Run Scripts. Still POSTs HMAC-signed skip-audit — never silent. Requires msgf.skipAuditSecret.",
+          "scope": "resource"
+        },
+        "msgf.skipAuditSecret": {
+          "type": "string",
+          "default": "",
+          "description": "Shared secret for POST /api/msgf/ops/skip-audit (must match MSGF_SKIP_AUDIT_SECRET or MSGF_OPS_CRON_SECRET on the server).",
+          "scope": "application"
+        },
         "msgf.licenseKey": {
           "type": "string",
           "default": "",

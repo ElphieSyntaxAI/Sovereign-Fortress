@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+-- =============================================================================
 -- Classroom-first Human Effort Certificate stub (pre-Canvas AGS).
 -- Allows null privacy_vault_id and ags_status = classroom_stub.
 

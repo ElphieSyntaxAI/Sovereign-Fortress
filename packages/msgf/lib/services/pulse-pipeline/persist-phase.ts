@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * V3.2 PERSIST — Vault/Hall writes and global CONVERGE response assembly.
@@ -130,6 +130,17 @@ export async function runPersistPhase(
         }
       : {}),
     defend_preflight_tier: converged.preflight.tier,
+    ...(converged.convergeTier ? { converge_tier: converged.convergeTier } : {}),
+    ...(converged.convergeRoutingProfile
+      ? { converge_routing_profile: converged.convergeRoutingProfile }
+      : {}),
+    ...(converged.tierQuarantine
+      ? {
+          tier_quarantine_applied: converged.tierQuarantine.quarantined,
+          tier_quarantine_vector_ids: converged.tierQuarantine.vectorIds,
+          tier_quarantine_reason: converged.tierQuarantine.reason,
+        }
+      : {}),
     vault_lineage_hits: converged.vaultLineage.length,
     vault_p2_aligned: converged.vaultP2Prioritized.aligned.length,
     vault_p2_contradicts_roadmap: converged.vaultP2Prioritized.contradicts.length,

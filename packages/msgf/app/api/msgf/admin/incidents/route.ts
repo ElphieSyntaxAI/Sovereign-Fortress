@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 
@@ -169,6 +169,9 @@ export async function PATCH(req: NextRequest) {
       ...(result.global_mitigation_id ? { global_mitigation_id: result.global_mitigation_id } : {}),
       ...(result.global_rules_updated != null
         ? { global_rules_updated: result.global_rules_updated }
+        : {}),
+      ...(result.arbitrate_audit_id
+        ? { arbitrate_audit_id: result.arbitrate_audit_id }
         : {}),
     });
   } catch (e) {

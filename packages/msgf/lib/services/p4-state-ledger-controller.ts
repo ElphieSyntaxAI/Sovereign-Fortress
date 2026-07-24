@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * P4 State Ledger controller — hot Redis active slice + cold `state_beats` verification.
@@ -42,7 +42,7 @@ import {
   type TheCallIngestBody,
 } from "@/lib/education/the-call-telemetry";
 import { CURRENT_LEGAL_VERSION } from "@/lib/msgf-legal";
-import { getActiveSlice, setActiveSlice } from "@/lib/msgf-hot-layer";
+import { getActiveSlice, readActiveSliceFast, setActiveSlice, isHotLayerPrimaryReadsEnabled, validateP4GateFast } from "@/lib/msgf-hot-layer";
 import type { GenealogicalBugIndex } from "@/lib/schemas/vault-hall-metadata";
 
 export type P4StateLedgerIngestInput = {
@@ -61,6 +61,9 @@ export type P4StateLedgerIngestResult = {
   verifyResults: FlowVerifyResult[];
   previousBeats: StateBeatRow[];
   hotLayerHit: boolean;
+  hotLayerReadLatencyNs?: number;
+  hotLayerPrimaryRead?: boolean;
+  gateValidationLatencyNs?: number;
   /** Suggested 1.1.1 paths for P6 cold persistence (learning breakdown vs bug). */
   suggestedBreakdowns: GenealogicalBugIndex[];
   assignmentId?: string;
@@ -155,20 +158,28 @@ export async function ingestP4StateLedgerTelemetry(
 
   const p4 = new StateLedgerP4(input.supabase, input.tenantId, domain);
 
-  const cached = await getActiveSlice(input.entityId);
+  const hotRead = await readActiveSliceFast(input.entityId);
   let previousBeats: StateBeatRow[];
   let hotLayerHit: boolean;
   let previousRetryCount: number;
+  let hotLayerPrimaryRead = false;
 
-  if (cached && cached.entityId === input.entityId) {
-    previousBeats = cached.previousBeats;
-    previousRetryCount = cached.previousRetryCount;
+  if (hotRead.hit && hotRead.payload && hotRead.payload.entityId === input.entityId) {
+    previousBeats = hotRead.payload.previousBeats;
+    previousRetryCount = hotRead.payload.previousRetryCount;
     hotLayerHit = true;
+    hotLayerPrimaryRead = isHotLayerPrimaryReadsEnabled() && hotRead.primaryRead;
   } else {
     previousBeats = await p4.fetchPreviousBeats(input.entityId);
     previousRetryCount = input.previousRetryCount ?? 0;
     hotLayerHit = false;
   }
+
+  const gateFast = await validateP4GateFast({
+    tenantId: input.tenantId,
+    entityId: input.entityId,
+    legalVersion: CURRENT_LEGAL_VERSION,
+  });
 
   const { chunks, results: verifyResults } =
     events.length > 0
@@ -179,6 +190,7 @@ export async function ingestP4StateLedgerTelemetry(
     entityId: input.entityId,
     previousBeats,
     previousRetryCount,
+    legalVersion: CURRENT_LEGAL_VERSION,
   });
 
   const focusBeatsAppended = await persistFocusBeats({
@@ -207,6 +219,9 @@ export async function ingestP4StateLedgerTelemetry(
     verifyResults,
     previousBeats,
     hotLayerHit,
+    hotLayerReadLatencyNs: hotRead.readLatencyNs,
+    hotLayerPrimaryRead,
+    gateValidationLatencyNs: gateFast.latencyNs,
     suggestedBreakdowns,
     assignmentId: parsed.assignmentId,
     subjectDomain: parsed.subjectDomain,

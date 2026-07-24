@@ -6,7 +6,8 @@
 
 **SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)
 
-**Last updated:** 2026-05-20
+**Last updated:** 2026-07-24  
+**Focus:** Production RC. Boss demo deferred — Part B CONVERGE tier + hot layer landed 2026-07-24; enable with `MSGF_CONVERGE_TIER_ENABLED=1`. See [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md).
 
 ---
 
@@ -20,6 +21,8 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 - [ ] `npm run verify:msgf-env -w msgf`
 - [ ] `npm run db:push:verify -w msgf` (when touching schema)
 - [ ] `npm run validate:deployment` (unit + production `next build`)
+- [ ] Jul 24 pitfall/integration unit suites: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
+- [ ] Migration `20260724030400_msgf_company_tier_rules.sql` applied on staging/prod
 
 **Integration (needs Supabase / Redis env):**
 
@@ -78,11 +81,14 @@ Document date + operator + tenant id in changelog when done.
 ## P1 — Production ops (no mock authority)
 
 - [ ] `MSGF_OPS_CRON_SECRET` on Cloud Run + GitHub Actions `msgf-tier-heartbeat.yml`
+- [ ] `MSGF_SKIP_AUDIT_SECRET` and/or `MSGF_ARBITRATE_AUDIT_KEY` (may reuse ops cron secret)
+- [ ] Jul 24 migrations applied on staging/prod (compound scope, webhook inbox, skip + arbitrate audit)
 - [ ] `REDIS_URL` or Upstash — `/health` SHARD green; savings counters increment
 - [ ] Supabase service role on deploy — dashboard pillar health not `mockDashboardHealthReport`
 - [ ] Eco rollups / public eco metrics: UI gated on `source === "live"` or errors surfaced
 - [ ] Demo streams (`v32_mock_stream`, fake ticker events) disabled or ops-only in production
 - [ ] `npm run verify:brain-routing -w msgf` on staging (live smoke)
+- [ ] Ops: Signed HITL audit verify + Skip-MSGF audit panels load for an admin session
 
 ---
 
@@ -131,5 +137,6 @@ MSGF can RC without these; include if your gate requires M5:
 
 | Date | Note |
 | :--- | :--- |
+| 2026-07-24 | Prod-first focus; A4–A6 / I4–I5 suites + audit secrets + migration notes. Boss demo deferred. |
 | 2026-05-20 | Initial MSGF-only RC checklist (P0–P2). |
 | 2026-05-20 | Build fixes: `ide-connector` devSession default, `PostIngestHealingConsole` null queue, `PulseRoutingKind` alias, `heal-queue-audience` RemediationTask types. |

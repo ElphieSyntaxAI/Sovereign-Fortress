@@ -22,15 +22,19 @@ const THEME = {
 
 export type StoplightAnomalyHandler = (tone: "yellow" | "red") => void;
 export type StoplightPollCompleteHandler = () => void;
+export type MsgfShadowTone = "pending" | "green" | "red";
 
 /**
  * Six-pillar MSGF stoplight indicator (polls Cloud Run health every 30s).
+ * A5: optional shadow overlay for async Safe Build verify-result.
  */
 export class StoplightStatusBar {
   readonly item: vscode.StatusBarItem;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private inFlight = false;
   private lastTone: "green" | "yellow" | "red" | "init" = "init";
+  private shadow: MsgfShadowTone | null = null;
+  private shadowDetail: string | undefined;
 
   constructor(
     private readonly onAnomaly?: StoplightAnomalyHandler,
@@ -43,6 +47,13 @@ export class StoplightStatusBar {
     this.item.tooltip = "MSGF 6-Pillar governance stoplight — loading…";
     this.applyJewelState("init");
     this.item.show();
+  }
+
+  /** A5 async preflight: pending | green | red overlay (null clears). */
+  setShadowState(state: MsgfShadowTone | null, detail?: string): void {
+    this.shadow = state;
+    this.shadowDetail = detail;
+    this.applyShadowDisplay();
   }
 
   start(): void {
@@ -61,7 +72,30 @@ export class StoplightStatusBar {
       clearInterval(this.pollTimer);
       this.pollTimer = null;
     }
+    this.shadow = null;
     this.item.dispose();
+  }
+
+  private applyShadowDisplay(): void {
+    if (!this.shadow) return;
+    const detail = this.shadowDetail ? `\n${this.shadowDetail}` : "";
+    switch (this.shadow) {
+      case "pending":
+        this.item.text = "$(sync~spin) MSGF shadow: pending";
+        this.item.tooltip = `Async verify-result in flight.${detail}`;
+        this.applyJewelState("yellow");
+        break;
+      case "green":
+        this.item.text = "$(check) MSGF shadow: green";
+        this.item.tooltip = `Async verify-result synced (pass).${detail}`;
+        this.applyJewelState("green");
+        break;
+      case "red":
+        this.item.text = "$(error) MSGF shadow: red";
+        this.item.tooltip = `Async verify-result / sync failed or build failed.${detail}`;
+        this.applyJewelState("red");
+        break;
+    }
   }
 
   private applyJewelState(
@@ -109,6 +143,7 @@ export class StoplightStatusBar {
             : "Halt / failure on one or more governance pillars.";
         this.applyJewelState("red");
         this.notifyAnomalyIfNeeded("red");
+        this.applyShadowDisplay();
         return;
       }
 
@@ -120,6 +155,7 @@ export class StoplightStatusBar {
             : "One or more governance pillars require attention.";
         this.applyJewelState("yellow");
         this.notifyAnomalyIfNeeded("yellow");
+        this.applyShadowDisplay();
         return;
       }
 
@@ -127,6 +163,7 @@ export class StoplightStatusBar {
       this.item.tooltip = "All 6 Governance Pillars Healthy";
       this.applyJewelState("green");
       this.lastTone = "green";
+      this.applyShadowDisplay();
     } finally {
       this.inFlight = false;
       this.onPollComplete?.();
@@ -140,6 +177,7 @@ export class StoplightStatusBar {
       `Cannot reach MSGF API — Pulse and pillar health are not updating.\n${message}\n\nRun MSGF: Test connection or MSGF: Open IDE token setup (browser).`;
     this.applyJewelState("init");
     this.lastTone = "init";
+    this.applyShadowDisplay();
   }
 
   private notifyAnomalyIfNeeded(tone: "yellow" | "red"): void {

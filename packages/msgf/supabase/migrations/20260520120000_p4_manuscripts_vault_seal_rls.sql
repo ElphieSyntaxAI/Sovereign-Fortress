@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+-- Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
 -- =============================================================================
 -- Vault Seal §1.2: narrative body (`body_text`, `raw_content`) is not readable via direct SELECT for
 -- `authenticated` / `service_role`; reads go through `vault_fetch_manuscript_body` (audited).

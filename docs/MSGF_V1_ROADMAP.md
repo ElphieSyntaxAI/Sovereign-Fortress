@@ -19,6 +19,11 @@
 
 **Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) · **Brain routing:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf`
 
+**Dev TODO (production-first):** [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md)  
+**RC gate:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · **Deploy:** [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md)  
+**Boss demo (parked):** [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md)  
+**Tenant isolation (A4):** [`MSGF_TENANT_ISOLATION.md`](./MSGF_TENANT_ISOLATION.md)
+
 ---
 
 ## 1. Vision statement (1.0)

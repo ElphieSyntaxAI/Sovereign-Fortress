@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
  * Company team invites, roster, bootstrap, integration status.
@@ -18,11 +18,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type { PlatformRole } from "@/lib/platform-rbac";
-import {
-  createEnvelopeForInvite,
-  docuSignIsAvailable,
-} from "@/lib/services/docusign-gateway";
 import { listActiveIdeTokens } from "@/lib/services/ide-token-service";
+import {
+  createSigningEnvelopeForInvite,
+} from "@/lib/services/signing/createSigningEnvelopeForInvite";
+import { getSigningProviderForCompany } from "@/lib/services/signing/index";
 import {
   appendVaultLog,
   createInviteBundle,
@@ -387,7 +387,8 @@ export async function applyTeamInviteBootstrap(
 
   let signingUrl: string | null = null;
   if (enforceDocusign) {
-    const env = await createEnvelopeForInvite(admin, {
+    const provider = await getSigningProviderForCompany(admin, companyId);
+    const env = await createSigningEnvelopeForInvite(admin, {
       inviteId,
       companyId,
       userId: user.id,
@@ -396,15 +397,20 @@ export async function applyTeamInviteBootstrap(
     });
     if (env) {
       signingUrl = env.signing_url;
-    } else if (!docuSignIsAvailable()) {
+    } else if (!provider.isAvailable()) {
       await admin
         .from("p4_profiles")
         .update({ account_status: "active", updated_at: new Date().toISOString() })
         .eq("user_id", user.id);
-      await appendVaultLog(admin, companyId, "docusign_skipped_unconfigured", {
+      await admin
+        .from("msgf_team_invites")
+        .update({ onboarding_status: "APPROVED" })
+        .eq("id", inviteId);
+      await appendVaultLog(admin, companyId, "signing_skipped_unconfigured", {
         invite_id: inviteId,
         user_id: user.id,
-        note: "Invite required DocuSign but no DOCUSIGN_* or MSGF_DOCUSIGN_MOCK is configured.",
+        provider: provider.id,
+        note: "Invite required signing but no provider credentials or MSGF_SIGNING_MOCK / MSGF_DOCUSIGN_MOCK is configured.",
       });
     }
   }

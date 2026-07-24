@@ -8,19 +8,19 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
  */
 /**
- * POST /api/msgf/ops/docusign-webhook — DocuSign Connect events
+ * POST /api/msgf/ops/docusign-webhook — DocuSign Connect events (idempotent I5)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
 import {
-  handleConnectWebhook,
   verifyDocuSignWebhookAuth,
   type DocuSignConnectPayload,
 } from "@/lib/services/docusign-gateway";
+import { processSigningWebhookCompletion } from "@/lib/services/signing/processSigningWebhook";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function POST(req: NextRequest) {
@@ -36,7 +36,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid JSON." }, { status: 400 });
   }
 
+  const event = payload.event?.toLowerCase() ?? "";
+  const envelopeId = payload.envelopeId ?? payload.data?.envelopeId ?? null;
+  const isCompleted =
+    event.includes("envelope-completed") ||
+    payload.data?.envelopeSummary?.status?.toLowerCase() === "completed";
+
+  if (!isCompleted) {
+    return NextResponse.json({ ok: true, message: "event ignored" });
+  }
+
   const admin = createAdminClient();
-  const result = await handleConnectWebhook(admin, payload);
-  return NextResponse.json(result, { status: result.ok ? 200 : 422 });
+  const result = await processSigningWebhookCompletion({
+    admin,
+    provider: "docusign",
+    event: event || "envelope-completed",
+    external_request_id: envelopeId,
+    invite_id: payload.inviteId ?? null,
+    rawPayload: payload as unknown as Record<string, unknown>,
+  });
+
+  return NextResponse.json(
+    {
+      ok: result.ok,
+      message: result.message,
+      invite_id: result.invite_id,
+      duplicate: result.duplicate ?? false,
+      archive: result.archive ?? null,
+    },
+    { status: result.ok ? 200 : 422 }
+  );
 }

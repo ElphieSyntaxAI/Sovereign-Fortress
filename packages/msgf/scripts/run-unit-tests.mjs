@@ -9,6 +9,42 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T221141Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c1a5d75-20260723T220451Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
  */
 /**
@@ -569,6 +605,9 @@ const UNIT_TESTS = [
   { label: "test:dev-session-profile", args: ["--test", "tests/dev-session-profile.test.ts"] },
   { label: "test:vault-active-file-shard", args: ["--test", "tests/vault-active-file-shard.test.ts"] },
   { label: "test:converge-cache", args: ["--test", "tests/converge-cache.test.ts"] },
+  { label: "test:user-projects-bulk", args: ["--test", "tests/user-projects-bulk.test.ts"] },
+  { label: "test:sentry-admin", args: ["--test", "tests/sentry-admin.test.ts"] },
+  { label: "test:i1-a1-schema-helpers", args: ["--test", "tests/i1-a1-schema-helpers.test.ts"] },
 ];
 
 function resolveTsxCli() {
