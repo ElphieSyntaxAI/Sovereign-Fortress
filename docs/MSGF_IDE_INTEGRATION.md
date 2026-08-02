@@ -52,7 +52,8 @@
 | **P2** | Dev heal cycle, two-tier heal UI, HAL friction notice |
 | **P3** | `POST verify-result`, `GET refactoring-directive`, HAL friction notice, MCP ([MSGF_IDE_MCP.md](./MSGF_IDE_MCP.md)) |
 | **P4** | `msgf_ide_*` tokens, `POST register-workspace`, `vscode://` deep link, `GET compliance/export`, BULK blocked when HITL pending |
-| **P5 (M4c)** | Command Center: prompt optimizer, Run Scripts, Safe Build; verify-result Vault/Hall; savings dashboard; allowlisted `execFile` — extension **v0.1.8** |
+| **P5 (M4c)** | Command Center: prompt optimizer, Run Scripts, Safe Build; verify-result Vault/Hall; savings dashboard; allowlisted `execFile` |
+| **P6 (M4d)** | Setup wizard, monorepo product scoping, `.msgf/dev/` integrator kit, BYOK Small Brain provider, async preflight + signed skip — extension **v0.2.3** |
 
 ---
 

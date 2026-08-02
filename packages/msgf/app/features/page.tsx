@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import Link from "next/link";
 
@@ -21,7 +21,7 @@ import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
 export const metadata = {
   title: "Features | Elphie's Gated AI",
   description:
-    "MSGF V3.2 — six-pillar ingest, IDE Command Center, 0-token prompt optimizer, Run Scripts, Safe Build, Vault/Hall verify loop, and token savings dashboard.",
+    "MSGF V3.2 — six-pillar ingest, IDE Command Center, 0-token prompts, Safe Build, Vault/Hall verify, CONVERGE tiers, quarantine HITL, deploy gate, and defensible token savings.",
 };
 
 const PILLARS = [
@@ -68,11 +68,30 @@ const IDE_FEATURES = [
   },
   {
     title: "Safe Build",
-    body: "One-click local build/test. Pass syncs to verify-result; fail triggers Heal Cheap via dev-event — not a blind incident dump.",
+    body: "One-click local build/test with async preflight. Pass syncs to verify-result; fail triggers Heal Cheap via dev-event — not a blind incident dump.",
   },
   {
     title: "Command Center sidebar",
     body: "Connection status, optimizer, Run Scripts, Safe Build, and advanced Pulse/heal ops in one Cursor/VS Code panel.",
+  },
+];
+
+const PLATFORM_FEATURES = [
+  {
+    title: "3-tier dual CONVERGE",
+    body: "Cheap model pairs on low-risk diffs; escalate T1→T2→T3 only when models disagree. Company path rules can force Apex on /auth, /payment, and more.",
+  },
+  {
+    title: "Quarantine without auto-Hall",
+    body: "Sentry crashes and T3 disagreement mark Vault wins QUARANTINED. Ops restore or demote on /admin/ops — poisoned context never silently demotes.",
+  },
+  {
+    title: "Signed HITL audits",
+    body: "Skip-MSGF and ARBITRATE decisions leave HMAC-signed, hash-chained snapshots — a compliance-ready trail of who approved what.",
+  },
+  {
+    title: "Deploy gate",
+    body: "CI checks GET /api/msgf/deploy-gate for your project_origin. Ship only when verify is green for that silo.",
   },
 ];
 
@@ -91,8 +110,9 @@ export default function FeaturesPage() {
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-400">
             Glass-box AI that maps your project to six isolated ledger slices in{" "}
             <code className="text-emerald-300/90">.msgf/</code>, routes routine work on{" "}
-            <strong className="text-cyan-300/90">Small Brain</strong>, and escalates to dual-model{" "}
-            <strong className="text-violet-300/90">CONVERGE</strong> only when logic drift demands it.
+            <strong className="text-cyan-300/90">Small Brain</strong>, escalates to dual-model{" "}
+            <strong className="text-violet-300/90">CONVERGE</strong> only when logic drift demands
+            it, and quarantines poisoned wins when Apex models still disagree.
           </p>
         </header>
 
@@ -173,8 +193,26 @@ export default function FeaturesPage() {
               Step 5 (<strong className="text-emerald-200">CONVERGE</strong>) cross-model consensus
               between <strong className="text-[#f8fafc]">Gemini</strong> and{" "}
               <strong className="text-[#f8fafc]">Claude</strong> — with Redis replay when the same
-              content hash hits again.
+              content hash hits again. Optional <strong className="text-violet-200">T1→T3</strong>{" "}
+              tiered pairs keep cheap models on docs and Apex pairs on auth/payment paths.
             </p>
+          </MarketingSection>
+
+          <MarketingSection
+            eyebrow="Platform governance"
+            title="Quarantine, audits, and ship gates"
+          >
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {PLATFORM_FEATURES.map((f) => (
+                <li
+                  key={f.title}
+                  className="rounded-xl border border-violet-500/20 bg-slate-950/60 p-4"
+                >
+                  <p className="font-semibold text-slate-100">{f.title}</p>
+                  <p className="mt-1 text-sm text-slate-400">{f.body}</p>
+                </li>
+              ))}
+            </ul>
           </MarketingSection>
 
           <MarketingSection eyebrow="Heal Cheap" title="IDE build failures without full Pulse">

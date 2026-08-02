@@ -13,16 +13,19 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-05-28 (IDE Command Center: prompt optimizer, Run Scripts, Safe Build, verify-result Vault/Hall, savings dashboard wiring, security hardening — see [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md))
+**Last updated:** 2026-08-01 (readiness re-baselined on the Jul 24 integration wave; Pulse Guard **v0.2.3**; one open RC blocker in §10.A — see [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md), [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md))
 
-**Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — use cases, personas, marketing angles.
+**Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles.
 
 **Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) · **Brain routing:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf`
 
 **Dev TODO (production-first):** [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md)  
 **RC gate:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · **Deploy:** [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md)  
 **Boss demo (parked):** [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md)  
-**Tenant isolation (A4):** [`MSGF_TENANT_ISOLATION.md`](./MSGF_TENANT_ISOLATION.md)
+**Tenant isolation (A4):** [`MSGF_TENANT_ISOLATION.md`](./MSGF_TENANT_ISOLATION.md)  
+**CONVERGE tiers (Part B):** [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md)  
+**Integrations:** [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) · [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) · [`MSGF_GOOGLE_WORKSPACE_SSO.md`](./MSGF_GOOGLE_WORKSPACE_SSO.md)  
+**IDE surface:** [`MSGF_INTEGRATOR_DEV_KIT.md`](./MSGF_INTEGRATOR_DEV_KIT.md) · [`MSGF_IDE_MCP.md`](./MSGF_IDE_MCP.md) · [`MSGF_IDE_SETUP_RUNBOOK.md`](./MSGF_IDE_SETUP_RUNBOOK.md)
 
 ---
 
@@ -45,10 +48,10 @@ Design principle: **six isolated pillars** (V3.0 lineage), **1.1.1 genealogical 
 
 | Layer | Technology | Role | 1.0 target |
 | :--- | :--- | :--- | :--- |
-| **Hot layer** | **Redis** | P4 State Ledger **active slices** — nanosecond gate validation for the current logic gate | **Partial** — `lib/msgf-hot-layer.ts` + active-slice TTL; production Redis required for ULTRA SLA |
+| **Hot layer** | **Redis** | P4 State Ledger **active slices** — gate validation + hot-primary reads (`readActiveSliceFast`, `validateP4GateFast`) | **Done (ops)** — wired; publish hard ns SLO as 1.1 |
 | **Cold layer** | **Postgres** (Supabase) | Long-term **6-pillar** archive; **pgvector** (1536-dim) for semantic retrieval and **1.1.1** lineage | **Required** — migrations + `pillar_vectors` + `p4_state_ledger` |
 
-**1.0 rule:** Cold layer must be production-ready; hot layer must be **wired for Pulse active slices** (env: Redis URL). Full “nanosecond” SLO and hot-primary reads are **1.1** polish unless infra is ready at RC.
+**1.0 rule:** Cold layer must be production-ready; hot layer must be **wired for Pulse active slices** (env: Redis URL). Hard “nanosecond” marketing SLO remains **1.1**; hot-primary reads default on (`MSGF_HOT_LAYER_PRIMARY`).
 
 ### 2.1 Six-pillar data architecture (V3.0 core, V3.2 cold mapping)
 
@@ -109,7 +112,7 @@ Maps V3.0 defensive ideas to V3.2 **DEFEND** / **CROSS-REF** steps:
 
 ### 2.6 V3.2-ULTRA master directive → 1.0 acceptance criteria
 
-| # | Step | 1.0 done when | Status (2026-05-22) |
+| # | Step | 1.0 done when | Status (2026-08-01) |
 | :---: | :--- | :--- | :--- |
 | 1 | **SWEEP** | Audit maintained; ingest writes lineage + `pre_ingestion_audit.md` | **Done** — `pre_ingestion_audit.md`, `sweepAndIngest`, `tests/ingest-workflow.test.ts` |
 | 2 | **SHARD** | Cold pgvector + hot Redis on Pulse | **Done** (ops) — migrations + Upstash on Cloud Run; nanosecond SLO → 1.1 |
@@ -183,7 +186,7 @@ flowchart TB
 | Item | Target |
 | :--- | :--- |
 | Full Pulse route refactor (modular SWEEP→PERSIST handlers) | 1.1 |
-| Hot-layer **primary read path** at nanosecond SLO (Redis-first for all gates) | 1.1 |
+| Hot-layer **nanosecond SLO claim** (reads are already hot-primary by default — see §2.0) | 1.1 |
 | Author Ecosystem Post-Ingest Healing UI (marketplace BFF popout) | Author 1.x |
 | Prancer Cloud policy packs | 1.1+ |
 | Complete lore-bot matrix (Author AUTH-25) | Author 1.x |
@@ -215,10 +218,12 @@ Aligned with `packages/msgf/.cursorrules`:
 | **M4** | Multi-tenant ops | Dashboard live data; RED→HITL; tier cron; Hall purge; heal queue + human arbitration | **Partial** — heal queue + arbitration **Done**; confirm prod `MSGF_OPS_CRON_SECRET` + live dashboard (not mocks) |
 | **M5** | Ecosystem wiring | Author + Education smoke: register → pledge → Pulse | **Partial** — `msgf/hal-author-bridge` (175w/10 overlap, lossless rhythm, `x-msgf-author-hal`); Author `chunk-pulse` + extension flush; **prod Author deploy + probe green** open |
 | **M4b** | IDE remediation UX | `msgf-pulse-guard` stoplight + shadow scan → healing console | **Done** — pillar-grouped checkboxes; Heal All / Approve Selected / Schedule presets; optimistic status |
-| **M4c** | IDE Command Center + verify loop | Prompt optimizer, Run Scripts, Safe Build, verify-result → Vault/Hall | **Done** — extension **v0.1.8**; savings counters; allowlisted `execFile`; IDE token auth on dev-event / verify-result / report-issue |
-| **M6** | 1.0 RC | §2.6 all green in staging; load test; Prancer; runbook | **Partial** — `npm run validate:deployment` (unit + `npm run build -w msgf`); Cloud deploy via `./deploy.sh` / `setup-cloud.sh` |
+| **M4c** | IDE Command Center + verify loop | Prompt optimizer, Run Scripts, Safe Build, verify-result → Vault/Hall | **Done** — extension **v0.2.3**; savings counters; allowlisted `execFile`; IDE token auth on dev-event / verify-result / report-issue |
+| **M4d** | IDE integrator surface | `.msgf/dev/` developer kit, setup wizard, monorepo product scoping, BYOK Small Brain provider, optional MCP server | **Done (code)** — [`MSGF_INTEGRATOR_DEV_KIT.md`](./MSGF_INTEGRATOR_DEV_KIT.md), [`MSGF_IDE_MCP.md`](./MSGF_IDE_MCP.md); MCP stays **optional / not promised in 1.0** |
+| **M7** | Enterprise integration wave (Jul 24) | I1–I6 (domains, signing, Sentry quarantine, Dropbox archive, webhook inbox, team readiness + deploy gate), A4–A6 (compound scope, signed skip audit, signed ARBITRATE chain), Part B CONVERGE tiers | **Code landed + migrations pushed** — flag/secret gated; staging smoke + provider credentials still open (see [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §1.3–§2) |
+| **M6** | 1.0 RC | §2.6 all green in staging; load test; Prancer; runbook | **Blocked** — `npm run validate:deployment` currently fails the production build (see §10.A item 0); Cloud deploy via `./deploy.sh` / `setup-cloud.sh` |
 
-**Suggested gate for tag `msgf-v1.0.0`:** M1, M4, M4b, M5 (staging), M6 sign-off with green `validate:deployment` + staging smoke. **M3 (Stripe)** follows immediately after test signoff — not a prerequisite for first RC tag unless product requires paid-only launch.
+**Suggested gate for tag `msgf-v1.0.0`:** M1, M4, M4b, M5 (staging), M7 (secrets + one staging smoke per enabled surface), M6 sign-off with green `validate:deployment` + staging smoke. **M3 (Stripe)** follows immediately after test signoff — not a prerequisite for first RC tag unless product requires paid-only launch.
 
 ---
 
@@ -263,10 +268,14 @@ Aligned with `packages/msgf/.cursorrules`:
 
 ## 7. Current readiness (honest snapshot)
 
-*As of 2026-05-23 — Cloud Run MSGF + Upstash SHARD deployed; payment excluded from “done” below.*
+*As of 2026-08-01 — Cloud Run MSGF + Upstash SHARD deployed; payment excluded from “done” below. Rows below marked **Code landed** mean unit-tested and merged, but **not yet smoke-tested on staging with live provider credentials**.*
 
 | Capability | Status |
 | :--- | :--- |
+| **Jul 24 integration wave (I1–I6 / A4–A6)** | **Code landed** — company domains + signing provider, Sentry→Vault quarantine, Dropbox archive worker, webhook inbox idempotency, team readiness + deploy gate, compound tenant scope, signed skip + ARBITRATE audits; migrations pushed 2026-07-24 |
+| **Part B — 3-tier CONVERGE + T3 quarantine** | **Code landed (flagged)** — `MSGF_CONVERGE_TIER_ENABLED=1`; classifier / escalation / quarantine suites green |
+| **GitHub multi-repo project picker** | **Code landed** — needs GitHub OAuth App in Supabase Auth + `CRYPTO_SECRET_KEY` (dev) / `MSGF_KMS_CRYPTO_KEY_PATH` (prod) |
+| **Production build gate** | **Failing** — `validate:deployment` type error in `LocalSubfolderPickerPanel.tsx` (`showDirectoryPicker`); blocks `deep-test:solo` and RC tag |
 | **V3.2-ULTRA §2.6** (7 steps) | **~85%** — 4 **Done**, 3 **Partial** (ARBITRATE strengthened; see §2.6 table) |
 | **Ingest (`POST /api/msgf/ingest`)** | **Done** (workflow) — SWEEP + `preFlightCheck` + strict `lib/schemas/ingest-metadata.ts`; returns `lineage_map`, `missing_pillars`, brain readiness (not a “healed” repair list — see §7.2) |
 | **Author document ingest (BFF)** | **Done** — CONVERGE + optional keywords + 1.1.1 SWEEP shards; see [`AUTHOR_DOCUMENT_INGEST_MSGF.md`](AUTHOR_DOCUMENT_INGEST_MSGF.md) |
@@ -427,7 +436,9 @@ End-to-end path for **Deckhost-class** Rails/Node workspaces without re-promptin
 | **Savings dashboard** | ✅ | `verify_result_*`, `run_script_rerun` counters + defensible ROI rollup |
 | **Extension security** | ✅ | `execFile` only; path/command allowlist; `escapeHtml` in webview |
 
-**Extension version:** `msgf-pulse-guard@0.1.8` — redeploy API + reinstall VSIX after pull.
+**Extension version:** `msgf-pulse-guard@0.2.3` — redeploy API + reinstall VSIX after pull.
+
+Shipped since 0.1.8 (M4d): `.msgf/dev/` integrator kit (**MSGF: Open / Sync developer kit**), **MSGF: Run setup wizard**, **MSGF: Configure monorepo product** (`msgf.productPath`), BYOK Small Brain provider settings (`msgf.smallBrainProvider` / `ApiKey` / `ModelName`), async preflight on by default (`msgf.asyncPreflight`), and signed emergency skip (`msgf.skipMsgf` + `msgf.skipAuditSecret`). `msgf.enabled` still defaults to **false** — opt-in per workspace so client repos are untouched until you say so.
 
 ### 7.4 Deployment & release path
 
@@ -469,6 +480,13 @@ End-to-end path for **Deckhost-class** Rails/Node workspaces without re-promptin
 | `MSGF_CREDIT_RESERVATION_*` · `MSGF_USAGE_MONITOR_WRITE` | Credit reserve + usage_monitor |
 | `MSGF_DEV_SESSION_*` · `POST /api/msgf/dev-event` | IDE vibe-coding + build_failed Heal Cheap |
 | GitHub `MSGF_APP_URL` + `MSGF_OPS_CRON_SECRET` | `.github/workflows/msgf-tier-heartbeat.yml` — tier + scheduled heals + purge |
+| `MSGF_SKIP_AUDIT_SECRET` · `MSGF_ARBITRATE_AUDIT_KEY` | A5 skip-MSGF and A6 signed HITL HMAC (may fall back to ops cron secret) |
+| `CRYPTO_SECRET_KEY` (dev) · `MSGF_KMS_CRYPTO_KEY_PATH` (prod) | GitHub `provider_token` + tenant BYOK key encryption |
+| `SENTRY_AUTH_TOKEN` + `SENTRY_ORG_SLUG` | Ops Sentry panel + crash→Vault quarantine — panel degrades to *unconfigured* without them |
+| `DOCUSIGN_*` / `DROPBOX_SIGN_*` / `DROPBOX_ACCESS_TOKEN` | Signing + archive; only when those surfaces are live (mock flags otherwise) |
+| `MSGF_CONVERGE_TIER_ENABLED` | Part B 3-tier CONVERGE + T3 quarantine (off by default) |
+
+Full variable-by-variable list with which surfaces are optional: [`packages/msgf/README.md`](../packages/msgf/README.md) and root [`.env.example`](../.env.example). Verify with `npm run verify:msgf-env -w msgf`.
 
 **DNS (production):**
 
@@ -501,7 +519,8 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | # | Work | Verify |
 | :---: | :--- | :--- |
-| 1 | **Offline unit suite** | `npm run test:unit -w msgf` |
+| **0** | **Fix production build (current blocker)** — `LocalSubfolderPickerPanel.tsx` uses `window.showDirectoryPicker` with no type declaration, so `next build` fails and takes `deep-test:solo` down with it | `npm run validate:deployment` |
+| 1 | **Offline unit suite** | `npm run test:unit -w msgf` (green as of 2026-07-28) |
 | 2 | **Solo deep-test gate** | `npm run deep-test:solo` (unit + build); `npm run deep-test:solo:live` with dev server |
 | 3 | **Solo integrator bootstrap** | `npm run bootstrap:solo -w msgf` → `npm run probe:solo -w msgf` — see [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) |
 | 4 | **HAL bridge** | `npm run test:hal-word-chunk -w msgf` |
@@ -520,6 +539,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | **M4 ops** | Prod `MSGF_OPS_CRON_SECRET` + GH `msgf-tier-heartbeat.yml`; Redis + Supabase on deploy |
 | **M5 Author** | Deploy Author BFF with `MSGF_APP_URL` + license key; `npm run probe:author-ecosystem -w msgf` on staging; retire port **3003** legacy |
 | **M5 Education** | One tenant smoke: Pulse with `tenant_education` (no full Education 1.0) |
+| **M7 integrations** | Provider credentials + one staging smoke per **enabled** surface: GitHub picker → `project_origin` row; Sentry panel loads issues; signing webhook → IDE mint unlocked; ops audit panels verify OK. Unconfigured surfaces degrade and are **not** RC blockers |
 | **M6 RC** | Runbook, load smoke, Prancer green on PR |
 
 ### C. After test signoff (commercial — your queue)
@@ -538,14 +558,17 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 ### Readiness snapshot
 
+*Re-baselined 2026-08-01. Code completeness is high; the gap to RC is now **verification and secrets**, not features.*
+
 | Bucket | ~% | Notes |
 | :--- | :---: | :--- |
-| **Engine (§2.6)** | **~85%** | SWEEP, SHARD, DEFEND, PERSIST done; CROSS-REF, CONVERGE, ARBITRATE partial |
-| **Ops / heal / IDE** | **~90%** | Heal queue + arbitration + cron largely done |
-| **Solo / BYOK integrators** | **~70%** | `bootstrap:solo` + `probe:solo` + `MSGF_SOLO_INTEGRATION.md`; prod license + staging probe open |
+| **Engine (§2.6)** | **~90%** | SWEEP, SHARD, DEFEND, PERSIST done; CROSS-REF / CONVERGE / ARBITRATE done behaviorally, thin-handler refactor → 1.1 |
+| **Ops / heal / IDE** | **~90%** | Heal queue + arbitration + cron done; Pulse Guard 0.2.3 with dev kit + wizard |
+| **Enterprise integrations (M7)** | **~70%** | Code + migrations landed; provider credentials and staging smokes open |
+| **Solo / BYOK integrators** | **~70%** | `bootstrap:solo` + `probe:solo` + dev kit; prod license + staging probe open |
 | **Ecosystem wiring** | **~55%** | Author prod deploy + probe still open |
 | **Commercial (Stripe)** | **~20%** | Deferred by product decision until post-test |
-| **Overall toward 1.0 RC** | **~75%** | RC viable without Stripe; paid launch needs M3 |
+| **Overall toward 1.0 RC** | **~80%** | Blocked on §10.A item 0 (build) → then staging smoke; RC viable without Stripe |
 
 ---
 
@@ -553,6 +576,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-01 | **Re-baseline:** §7 snapshot moved off the May 23 date; added M4d (dev kit / wizard / MCP) and M7 (Jul 24 integration wave) milestones; Pulse Guard **0.1.8 → 0.2.3**; §8 env table extended with audit, crypto, Sentry, signing, and tier flags; §10.A item 0 records the `showDirectoryPicker` build blocker; readiness **~75% → ~80%**. |
 | 2026-05-28 | **M4c IDE Command Center:** prompt optimizer, Run Scripts, Safe Build, verify-result Vault/Hall, savings dashboard counters, security hardening; [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md). |
 | 2026-05-20 | **Small Brain / Big Brain:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md); §7.6 audience + heal-queue scope + monorepo workspace presets; `test:brain-routing`, `test:heal-queue-audience`. |
 | 2026-05-23 | **Solo deep-test:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md), `bootstrap:solo`, `probe:solo`, `deep-test:solo`. **§10** + Stripe deferred post-test. **HAL portable:** `msgf/hal-author-bridge`, §7.5. |

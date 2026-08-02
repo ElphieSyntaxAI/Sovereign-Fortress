@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 /**
  * Shipped MSGF capabilities — single source for marketing + dashboard copy.
@@ -25,7 +25,7 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "01",
     title: "Connect",
-    body: "Paste workspace settings · msgf_ide_* token · Command Center goes live.",
+    body: "Map project_origin · msgf_ide_* token · Command Center health goes green.",
   },
   {
     step: "02",
@@ -35,12 +35,12 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "03",
     title: "Verify",
-    body: "Run Scripts or Safe Build · pass → Vault · repeat fail → Hall.",
+    body: "Run Scripts or Safe Build · pass → Vault · repeat fail → Hall · deploy-gate.",
   },
   {
     step: "04",
-    title: "Measure",
-    body: "Token savings dashboard rolls up IDE loop + Small Brain routing.",
+    title: "Govern",
+    body: "Small Brain by default · CONVERGE tiers on drift · quarantine + HITL when Apex disagrees.",
   },
 ] as const;
 
@@ -49,21 +49,21 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
     id: "command-center",
     title: "IDE Command Center",
     description:
-      "MSGF Pulse Guard sidebar: connection health, prompt optimizer, Run Scripts, Safe Build, and advanced heal ops in Cursor or VS Code.",
+      "MSGF Pulse Guard sidebar: connection health, prompt optimizer, Run Scripts, Safe Build (async preflight), and advanced heal ops in Cursor or VS Code.",
     accent: "emerald",
   },
   {
     id: "verify-loop",
     title: "Vault · Hall verify loop",
     description:
-      "Allowlisted execFile runs sync pass to verify-result and fail to dev-event. Learning accrues without burning Big Brain on every build.",
+      "Allowlisted execFile runs sync pass to verify-result and fail to dev-event. Learning accrues without burning Big Brain on every build — then unlock deploy-gate.",
     accent: "cyan",
   },
   {
     id: "small-brain",
     title: "Small Brain by default",
     description:
-      "Routine pulses, ingest skips, and IDE paths stay tenant-local. CONVERGE escalates only when logic drift crosses policy.",
+      "Routine pulses, ingest skips, and IDE paths stay tenant-local. Dual-model CONVERGE (optional T1→T3 pairs) escalates only when logic drift crosses policy.",
     accent: "violet",
   },
   {
@@ -72,6 +72,20 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
     description:
       "Redis counters for optimizer packs, Run Script reruns, verify→Vault, and CONVERGE cache — with a 24h ROI rollup you can show finance.",
     accent: "amber",
+  },
+  {
+    id: "quarantine-hitl",
+    title: "Quarantine + signed HITL",
+    description:
+      "Sentry crashes and T3 model disagreement quarantine Vault wins (no auto-Hall). Ops restore/demote with HMAC-signed ARBITRATE audit trails.",
+    accent: "emerald",
+  },
+  {
+    id: "tenant-isolation",
+    title: "Compound tenant isolation",
+    description:
+      "Every vector scoped by project_origin + subpath — agencies and monorepos keep client and app memory from bleeding across silos.",
+    accent: "cyan",
   },
 ];
 

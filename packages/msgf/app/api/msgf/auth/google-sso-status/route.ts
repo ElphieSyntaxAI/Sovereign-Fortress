@@ -3,8 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * GET /api/msgf/auth/google-sso-status — circuit + mock flags for AuthForm
- * POST body { event: "failure", reason? } — record OAuth failure (opens circuit)
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 

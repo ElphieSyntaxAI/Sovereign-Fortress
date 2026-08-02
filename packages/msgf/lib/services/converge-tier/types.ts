@@ -1,6 +1,14 @@
 /**
  * @msgf-license-header
- * Part B — 3-tier dual CONVERGE types.
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 export const CONVERGE_TIERS = ["TIER_1", "TIER_2", "TIER_3"] as const;
 export type ConvergeTier = (typeof CONVERGE_TIERS)[number];

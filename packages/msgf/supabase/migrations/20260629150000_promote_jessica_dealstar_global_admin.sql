@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+-- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
 -- =============================================================================
 -- DealStar partner operator: GLOBAL_ADMIN for cross-tenant token savings / ops dashboard.
 -- Also set MSGF_GLOBAL_ADMIN_EMAILS=jessica@dealstar.io on Cloud Run for belt-and-suspenders sign-in.

@@ -6,7 +6,7 @@
 | :--- | :--- | :--- |
 | Portal | `/admin/portal` | Launch Author / Education / MSGF; local stack checklist |
 | Pillar health | `/admin/dashboard` | Six-pillar operator lens, token savings, Big Brain summary |
-| **Ops console** | `/admin/ops` | **ARBITRATE** + **Sentry issues** + **DocuSign** |
+| **Ops console** | `/admin/ops` | ARBITRATE · quarantine · audits · Sentry · DocuSign / signing |
 | Governance (personal) | `/dashboard` | Tenant pillar health, daily reports, security view |
 
 Sign in: `/admin/sign-in` (requires `GLOBAL_ADMIN` or `COMPANY_ADMIN` on `p4_profiles`, or `MSGF_GLOBAL_ADMIN_EMAILS`).
@@ -15,10 +15,14 @@ Sign in: `/admin/sign-in` (requires `GLOBAL_ADMIN` or `COMPANY_ADMIN` on `p4_pro
 
 Replaces the need to run `apps/msgf-dashboard` for day-to-day operator work. Uses **Supabase session cookies** — not `SUPABASE_SERVICE_ROLE_KEY` in the browser.
 
-- Pending incidents: `GET /api/msgf/admin/incidents?status=pending`
-- Resolve / approve: `PATCH /api/msgf/admin/incidents/:id` + `POST /api/msgf/pulse` (tie-break headers)
-- Sentry issues: `GET /api/msgf/admin/sentry?issues=1` · resolve `PUT /api/msgf/admin/sentry` — see [`MSGF_SENTRY.md`](./MSGF_SENTRY.md)
-- DocuSign roster: `GET /api/msgf/admin/docusign/envelopes`
+| Panel | API / notes |
+| :--- | :--- |
+| Pending ARBITRATE incidents | `GET /api/msgf/admin/incidents?status=pending` · resolve `PATCH .../incidents/:id` |
+| Signed HITL audit (A6) | List + verify — [`MSGF_ARBITRATE_AUDIT.md`](./MSGF_ARBITRATE_AUDIT.md) |
+| Skip-MSGF audit (A5) | Extension / IDE skip trail — [`MSGF_ASYNC_PREFLIGHT.md`](./MSGF_ASYNC_PREFLIGHT.md) |
+| Vault quarantine (A2/A3 + T3) | `GET/POST /api/msgf/admin/vault-quarantine` — restore / demote (no auto-Hall) |
+| Sentry issues | `GET /api/msgf/admin/sentry?issues=1` · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) |
+| DocuSign / signing roster | Envelopes + webhook inbox — [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) |
 
 Legacy Vite dashboard (`npm run dev -w msgf-dashboard`) still works with Bearer auth for cross-origin Cloud Run proxy.
 
@@ -37,11 +41,11 @@ Operator detection on Author uses the same rules as MSGF: `MSGF_GLOBAL_ADMIN_EMA
 
 ## Project tracking rails
 
-Telemetry (pulse, ingest, daily reports) is scoped to **mapped** `project_origin` values in Workspace → Projects. IDE clients must set `msgf.tenantKey` to that slug (`org/repo`). Unmapped paths are rejected when the user has project mappings. See [`AUTHOR_MSGF_WIRING.md`](./AUTHOR_MSGF_WIRING.md#project-tracking-rails-privacy).
+Telemetry (pulse, ingest, daily reports) is scoped to **mapped** `project_origin` values in Workspace → Projects. IDE clients must set `msgf.tenantKey` to that slug (`org/repo`). Unmapped paths are rejected when the user has project mappings. Compound vector scope also uses `subpath_hash` — see [`MSGF_TENANT_ISOLATION.md`](./MSGF_TENANT_ISOLATION.md).
 
 ## Deploying admin without DocuSign keys
 
-You can ship **`/admin/portal`**, **`/admin/dashboard`**, and **`/admin/ops`** (ARBITRATE + envelope roster) with **no** `DOCUSIGN_*` or `MSGF_DOCUSIGN_MOCK` env vars. The ops console shows DocuSign mode **`unconfigured`** until you add credentials.
+You can ship **`/admin/portal`**, **`/admin/dashboard`**, and **`/admin/ops`** with **no** `DOCUSIGN_*` or `MSGF_DOCUSIGN_MOCK` env vars. The ops console shows DocuSign mode **`unconfigured`** until you add credentials.
 
 - Leave **Enforce DocuSign** off on team invites until live or mock signing is configured.
 - If an invite has enforce on but DocuSign is not configured, bootstrap **activates the member** anyway and logs `docusign_skipped_unconfigured` in the tenant vault (no hard failure).
@@ -57,4 +61,4 @@ Migration: `20260629120000_company_team_vault_docusign.sql` (`msgf_docusign_enve
 
 ## Related
 
-- [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)
+- [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md)

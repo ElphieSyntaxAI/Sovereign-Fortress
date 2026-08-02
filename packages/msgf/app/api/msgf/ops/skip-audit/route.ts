@@ -3,11 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * POST /api/msgf/ops/skip-audit — record HMAC-signed MSGF skip (A5)
- * GET  — recent skips (ops cron or admin session)
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
  *
- * Auth POST: Bearer MSGF_SKIP_AUDIT_SECRET (or MSGF_OPS_CRON_SECRET) + body.signature
- *   OR Authorization Bearer matching secret and server re-signs (client may omit signature)
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";

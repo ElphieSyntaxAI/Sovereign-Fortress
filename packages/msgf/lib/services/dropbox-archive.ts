@@ -3,8 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Dropbox archive of signed PDFs + audit.json (I4).
- * Mock: MSGF_DROPBOX_ARCHIVE_MOCK=1 → tmp/dropbox-archive/
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import { createHash } from "crypto";
 import { mkdir, writeFile } from "fs/promises";

@@ -9,7 +9,9 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | Doc | Purpose |
 | :--- | :--- |
 | [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) | **1.0 vision & release plan** (MSGF V3.2-ULTRA) |
-| [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) | **Product capabilities, use cases & marketing** |
+| [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) | **Product map, full features & sales angles** |
+| [`docs/MSGF_CONVERGE_TIER.md`](../../docs/MSGF_CONVERGE_TIER.md) | **Part B** — 3-tier CONVERGE + T3 quarantine |
+| [`docs/MSGF_ADMIN_HUB.md`](../../docs/MSGF_ADMIN_HUB.md) | **Ops console** — ARBITRATE, quarantine, audits |
 | [`docs/MSGF_LEARNING_AND_BIG_BRAIN.md`](../../docs/MSGF_LEARNING_AND_BIG_BRAIN.md) | **Learning loop** — Vault without Big Brain; `smoke:pulse-converge` |
 | [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
 | [`docs/MSGF_SOLO_INTEGRATION.md`](../../docs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |
@@ -93,7 +95,7 @@ Register **each app** as its own `msgf_user_projects` row (not only the git root
 
 The **Token savings layer** panel lists 24h Redis counters and a feature catalog with brain badges. Users see Small Brain features only; operators see Big Brain rows (global CONVERGE, arbitration, rule promotion).
 
-**IDE Command Center (extension v0.1.8+):** Prompt optimizer → `.msgf/run-scripts.json` → **Run Scripts** / **Safe Build** → `verify-result` / `dev-event` → savings counters (`verify_result_*`, `run_script_rerun`). See [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) §3.
+**IDE Command Center (extension v0.2.3):** Prompt optimizer → `.msgf/run-scripts.json` → **Run Scripts** / **Safe Build** → `verify-result` / `dev-event` → savings counters (`verify_result_*`, `run_script_rerun`). See [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) §3.
 
 **Heal queue:** Session users get Small Brain tasks only; `big_brain_escalations_pending` counts items waiting on admin. **API key** callers receive the full queue. Human arbitration UI and `POST .../human-arbitration` require an operator session on the admin dashboard.
 

@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
+-- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
 -- =============================================================================
 -- MSGF contract licensing layer (internal / B2B Brain access).
 -- Plain-text keys are minted offline via scripts/mint-license.mjs; only SHA-256 hashes are stored.

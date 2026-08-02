@@ -1,4 +1,14 @@
 -- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+-- =============================================================================
+-- =============================================================================
 -- Per-user GitHub OAuth access tokens for Setup → Projects repo picker.
 -- Tokens are stored encrypted only (CRYPTO_SECRET_KEY / KMS via CryptoService).
 -- =============================================================================

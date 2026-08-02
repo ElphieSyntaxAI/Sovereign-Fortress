@@ -1,7 +1,14 @@
 /**
  * @msgf-license-header
- * Part B3 — T3 dual-CONVERGE disagreement → Vault quarantine (no auto-Hall).
- * Ops HITL restores/demotes via /admin/ops quarantine panel (A3).
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 

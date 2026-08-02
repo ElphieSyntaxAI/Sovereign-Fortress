@@ -2,82 +2,171 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-05-28
+**Last updated:** 2026-08-01 (Pulse Guard **v0.2.3**; packaging table added §9.1; claim-safety rules §10)
+
+**Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
+**RC / deploy:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md)
 
 ---
 
 ## 1. What MSGF is
 
-**MSGF (Modular State-Gate Framework)** is a **stateful AI governance engine** for software teams. It watches how code and logic change (Pulse), ingests project structure into six isolated pillars (SWEEP), defends against bad deltas before they spread (Shadow / CROSS-REF), escalates only when drift is high (Small Brain vs Big Brain CONVERGE), and remembers what worked (Vault) vs what failed (Hall).
+**MSGF (Modular State-Gate Framework)** is a **stateful AI governance engine** for software teams. It watches how code and logic change (Pulse), ingests project structure into six isolated pillars (SWEEP), defends against bad deltas before they spread (Shadow / CROSS-REF), escalates only when drift is high (Small Brain vs Big Brain CONVERGE), quarantines poisoned wins when Apex models still disagree, and remembers what worked (Vault) vs what failed (Hall).
 
 MSGF ships as:
 
 | Mode | Who | How |
 | :--- | :--- | :--- |
-| **Standalone SaaS** | Buyers & indie devs | Sign up at Gated AI, dashboard, IDE extension |
+| **Standalone SaaS** | Buyers & indie / team leads | Sign up at Gated AI, dashboard, IDE extension |
 | **Embedded engine** | Author, Education, custom BFFs | HTTP APIs + tenant keys / licenses |
-| **BYOK / Solo** | Integrators | `msgf_live_*` license, local Redis + Supabase optional |
+| **BYOK / Solo** | Integrators | `msgf_live_*` license, Redis + Supabase |
+
+**One-line sales pitch:** *Pay for dual-model consensus only when logic drift demands it — and keep a glass-box flight recorder of every verify, quarantine, and human decision.*
 
 ---
 
-## 2. Core platform capabilities
+## 2. Product map (shipped surfaces)
 
-### 2.1 V3.2-ULTRA pipeline (cloud)
+```text
+Marketing (/ · /features · /pricing)
+        ↓
+Workspace (/workspace · /setup/projects · team · IDE tokens)
+        ↓
+Dashboard (#token-savings · heal · security)
+        ↓
+Pulse Guard IDE (Command Center · Safe Build · async preflight)
+        ↓
+Ops (/admin/ops — ARBITRATE · quarantine · audits · Sentry · signing)
+        ↓
+Deploy gate (GET /api/msgf/deploy-gate · project_origin green)
+```
+
+| Layer | Customer-facing | Operator-facing |
+| :--- | :--- | :--- |
+| **Connect** | Map projects, IDE token, GitHub picker | Portal launch matrix |
+| **Govern** | Pulse, ingest, Shadow RED short-circuit | Compound tenant isolation (`project_origin` + `subpath_hash`) |
+| **Verify** | Safe Build / Run Scripts → Vault/Hall | Skip-MSGF signed audit (A5) |
+| **Escalate** | Small Brain → CONVERGE tiers T1–T3 | ARBITRATE HITL + signed audit chain (A6) |
+| **Contain** | Quarantined wins excluded from retrieval | Vault quarantine panel (Sentry + T3) |
+| **Ship** | Deploy-gate green for `project_origin` | Heartbeat / archive / webhook workers |
+
+---
+
+## 3. Core platform capabilities
+
+### 3.1 V3.2-ULTRA pipeline (cloud)
 
 | Step | Product name | What the user gets |
 | :--- | :--- | :--- |
-| **SWEEP** | Structural ingest | Day-zero scan; files mapped to P1–P6; genealogical **1.1.1** bug index |
-| **SHARD** | Hot + cold storage | Redis active slices + Postgres/pgvector archive |
+| **SWEEP** | Structural ingest | Day-zero scan; files → P1–P6; genealogical **1.1.1** bug index |
+| **SHARD** | Hot + cold storage | Redis active slices (hot-primary reads + ns gate stamp) + Postgres/pgvector |
 | **DEFEND** | Shadow mode | Silent pre-flight; blocks P1/P6 violations before injection |
-| **CROSS-REF** | Vault / Hall check | Proposed changes compared to positive fixes and negative patterns |
-| **CONVERGE** | Dual-model consensus | Gemini + Claude on high drift (Big Brain path) |
-| **ARBITRATE** | Human tie-breaker | Operator approval when models disagree or retries exhaust |
-| **PERSIST** | Learning loop | Approved deltas → Vault; failures → Hall (30d LOW purge) |
+| **CROSS-REF** | Vault / Hall check | Proposed changes vs positive fixes and negative patterns (quarantine-aware) |
+| **CONVERGE** | Dual-model consensus | Gemini + Claude; optional **3-tier** pairs (T1 mini/Haiku → T2 → T3) with escalation |
+| **ARBITRATE** | Human tie-breaker | Operator approval; **HMAC-signed hash-chained** audit snapshots |
+| **PERSIST** | Learning loop | Approved → Vault; failures / T3 quarantine → Hall path + HITL |
 
-### 2.2 Primary APIs
+### 3.2 Primary APIs
 
 | API | Purpose |
 | :--- | :--- |
-| `POST /api/msgf/pulse` | Keystroke / logic deltas; routing to local gateway or global CONVERGE |
+| `POST /api/msgf/pulse` | Keystroke / logic deltas; local gateway or global CONVERGE; optional `x-msgf-converge-tier` |
 | `POST /api/msgf/ingest` | Multi-file SWEEP ingest into tenant silo |
 | `GET/POST /api/msgf/heal-queue` | Post-ingest remediation — BULK, INDIVIDUAL, SCHEDULED |
-| `POST /api/msgf/heal-queue/human-arbitration` | Operator APPROVE_BYPASS / DENY_PURGE |
+| `POST /api/msgf/heal-queue/human-arbitration` | Operator APPROVE_BYPASS / DENY_PURGE (+ A6 audit) |
 | `POST /api/msgf/dev-event` | IDE build failure — **Heal Cheap** (vault-first, no biometric Pulse) |
-| `POST /api/msgf/verify-result` | Safe Build / Run Scripts pass-fail audit → Vault/Hall ledger |
+| `POST /api/msgf/verify-result` | Safe Build / Run Scripts pass-fail → Vault/Hall |
+| `GET /api/msgf/deploy-gate` | CI/CD gate: verify green for `project_origin` |
 | `POST /api/msgf/prompt-optimizer` | **0-token** structured prompt (no LLM on server) |
 | `POST /api/msgf/confirm-pack` | Confirm pack used → defensible context savings |
 | `GET /api/msgf/agent-context` | Guided context pack download |
 | `GET /api/msgf/dashboard/savings-features` | 24h token savings counters + catalog |
 | `POST /api/msgf/report-issue` | Authenticated incident report (web Bug Reporter) |
+| `POST /api/msgf/p4/state-ledger` | Education / P4 telemetry + hot-layer latency fields |
 | `POST /api/msgf/ops/v32-heartbeat` | Tier batches, scheduled heals, Hall purge |
+| `GET/POST /api/msgf/workspace/tier-rules` | Company path → CONVERGE tier overrides (COMPANY_ADMIN) |
+| `GET /api/msgf/admin/vault-quarantine` | Ops quarantine queue (Sentry + T3) |
+| Signing / SSO / Sentry / archive webhooks | See [`MSGF_SIGNING.md`](./MSGF_SIGNING.md), [`MSGF_SENTRY.md`](./MSGF_SENTRY.md), [`MSGF_GOOGLE_WORKSPACE_SSO.md`](./MSGF_GOOGLE_WORKSPACE_SSO.md) |
 
-### 2.3 Small Brain vs Big Brain
+### 3.3 Small Brain vs Big Brain
 
 | Tier | Runs where | Typical triggers | User sees |
 | :--- | :--- | :--- | :--- |
 | **Small Brain** | Tenant silo | Low drift Pulse, dev-session, dev-event, cache replay, verify loop | Dashboard token savings, local heals |
-| **Big Brain** | Platform | High drift CONVERGE, global DNA promotion | Admin queue `#big-brain-issues` |
+| **Big Brain** | Platform | High drift CONVERGE, T3 disagree → quarantine + HITL, global DNA | Admin `#big-brain-issues`, `/admin/ops` |
 
 IDE **dev-event** and **dev-session** never invoke the full biometric Pulse → CONVERGE chain.
 
+### 3.4 Part B — 3-tier dual CONVERGE (flagged)
+
+| Tier | Default pair | When |
+| :--- | :--- | :--- |
+| **T1** | GPT-4o-mini + Claude Haiku | Docs, CSS, small low-risk diffs |
+| **T2** | Sonnet + GPT-4o | Feature / mid-size paths |
+| **T3** | Apex pair | Auth, security, payment, schema — or escalated disagreement |
+
+Enable: `MSGF_CONVERGE_TIER_ENABLED=1`. Docs: [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md).
+
+**T3 disagree:** matching Vault wins → `QUARANTINED` (ops HITL restore/demote); Pulse Hall + circuit — **never auto-Hall demote**.
+
+### 3.5 Hot layer (shipped)
+
+- `readActiveSliceFast` — Redis read with `readLatencyNs`
+- `validateP4GateFast` — gate validation stamp
+- `MSGF_HOT_LAYER_PRIMARY=1` (default) — skip cold Postgres beat fetch on hot hit
+- P4 responses expose `hot_layer_read_latency_ns` / `gate_validation_latency_ns`
+
+Full nanosecond SLO claim remains a **1.1** marketing bar; infra is wired for RC.
+
 ---
 
-## 3. IDE extension — MSGF Pulse Guard (`msgf-pulse-guard`)
+## 4. Integrations & enterprise glue (shipped code)
 
-**Current:** v0.1.8 · VS Code / Cursor compatible
+| ID | Capability | Buyer value |
+| :--- | :--- | :--- |
+| **I1** | Company domains + signing provider | Corporate email gates; DocuSign / Dropbox Sign |
+| **I2–I3** | Sentry → Vault quarantine + ops HITL | Crash-linked wins pulled from positive context |
+| **I4** | Dropbox archive worker | Signed artifacts archived off-platform |
+| **I5** | Webhook inbox + queue | Idempotent signing / Sentry / archive webhooks |
+| **I6** | Team readiness + deploy gate | “Ready to ship?” checklist per `project_origin` |
+| **A4** | Compound tenant isolation | Vector scope = origin + subpath — no cross-project bleed |
+| **A5** | Async Safe Build + skip-MSGF audit | IDE stays fast; signed skip trail |
+| **A6** | Signed ARBITRATE audit chain | Defensible HITL for compliance conversations |
+| **SSO** | Google Workspace circuit | Enterprise login without consumer Gmail sprawl |
 
-### 3.1 Command Center (sidebar)
+---
+
+## 5. IDE extension — MSGF Pulse Guard (`msgf-pulse-guard`)
+
+**Current:** v0.2.3 · VS Code / Cursor compatible
+
+**Opt-in by default:** `msgf.enabled` is `false` until the developer turns it on for that workspace — MSGF does not scaffold `.msgf/`, buffer Pulses, or call the API in a client repo you haven't approved. This is the answer to "what does it do to my code before I trust it?"
+
+### 5.1 Command Center (sidebar)
 
 | Feature | User action | Cloud effect |
 | :--- | :--- | :--- |
 | **Connection** | Auto health probe | Validates API + `msgf_ide_*` token |
 | **Prompt optimizer** | Describe task → Generate 0-Token Prompt | `POST prompt-optimizer`; registers verify scripts |
 | **Run Scripts** | Run latest or per-script | Allowlisted `execFile` (no shell); syncs `verify-result` / `dev-event` |
-| **Safe Build** | Run MSGF Safe Build | Local build/test → pass=`verify-result`, fail=`dev-event` |
+| **Safe Build** | Run MSGF Safe Build | Local build/test → pass=`verify-result`, fail=`dev-event`; async preflight default |
 | **Shadow scan** | Policy scan | Opens healing console when issues found |
 | **Advanced** | Flush Pulse, heal queue, context pack | Existing P1–P4 IDE flows |
+| **Setup wizard** | MSGF: Run setup wizard | Guided token + tenant key + connectivity check |
+| **Monorepo product** | MSGF: Configure monorepo product | `msgf.productPath` scopes shadow scan and `.msgf/` to one app in the repo |
+| **Developer kit** | MSGF: Open / Sync developer kit | Scaffolds `.msgf/dev/` — API cookbook, sample requests, connection scripts, VS Code tasks |
 
-### 3.2 Local artifacts (`.msgf/`)
+### 5.1a Integrator developer kit (`.msgf/dev/`) — new in 0.2.x
+
+Every activated workspace gets a **self-serve integration folder**: `api-cookbook.md`, `env.example.json`, sample request bodies, `test-connection.ps1` / `.sh`, and `smoke-integrator.mjs`. Sales value: an integrator can prove the API works from their own terminal in minutes without a support call. Docs: [`MSGF_INTEGRATOR_DEV_KIT.md`](./MSGF_INTEGRATOR_DEV_KIT.md).
+
+### 5.1b BYOK Small Brain (IDE-side)
+
+`msgf.smallBrainProvider` supports **OpenAI, Anthropic, Ollama, DeepSeek, Gemini** with the customer's own key (`msgf.smallBrainApiKey`, application-scoped, sent as `x-msgf-small-brain-api-key`). Pitch: *your key and your model for the cheap routine path; our brain only when consensus is needed.*
+
+**Accuracy note for sales:** BYOK means the customer's model account does the work — it does **not** mean the Pulse skips the MSGF API. The air-gapped story is the self-hosted Indie tier (customer's own Redis + Supabase), not BYOK.
+
+### 5.2 Local artifacts (`.msgf/`)
 
 | File | Role |
 | :--- | :--- |
@@ -85,33 +174,38 @@ IDE **dev-event** and **dev-session** never invoke the full biometric Pulse → 
 | `verify-feature.sh` / `.ps1` | Shell/PowerShell runners for CI or manual |
 | `keys/` | BYOK model keys (optional) |
 
-### 3.3 Security (1.0 hardening)
+### 5.3 Security (1.0 hardening)
 
 - **IDE bearer** (`msgf_ide_*`) required on `dev-event`, `verify-result`, `report-issue`
-- **Allowlisted verify commands** only (`npm test`, `npm run build`, `bundle exec rails test`, optional file path)
-- **No shell** for Run Scripts / Safe Build (`execFile` with fixed argv)
-- **Webview XSS** — escaped labels/commands in Run Scripts list
-- **Terminal snippets redacted** before cloud upload (tokens, secrets)
+- **Allowlisted verify commands** only
+- **No shell** for Run Scripts / Safe Build (`execFile`)
+- **Webview XSS** — escaped labels/commands
+- **Terminal snippets redacted** before cloud upload
+- **Skip-MSGF** actions leave a signed audit (A5)
 
-### 3.4 Agent handoff
+### 5.4 Agent handoff
 
 Optimizer output includes **MANDATORY AGENT EXECUTION RULES**: attach `@` files, extend existing tests, run verify command, output pass/fail table.
 
+**Optional Cursor MCP** ([`MSGF_IDE_MCP.md`](./MSGF_IDE_MCP.md)) exposes `testConnection`, `getContextPack`, `startDevHealCycle`, and `submitVerifyResult` as agent tools. Treat as a **power-user extra, not a 1.0 promise** — it needs manual `.cursor/mcp.json` wiring.
+
 ---
 
-## 4. Web surfaces
+## 6. Web surfaces
 
 | Surface | URL | Audience |
 | :--- | :--- | :--- |
 | Marketing | `/`, `/features`, `/pricing` | Prospects |
-| Workspace | `/dashboard`, `#token-savings` | Tenants |
+| Workspace | `/dashboard`, `#token-savings`, `/workspace` | Tenants |
 | IDE setup | `/workspace#ide-setup`, `/setup/projects` | Developers |
-| Admin ops | `/admin/dashboard`, `#big-brain-issues` | GLOBAL/COMPANY admins |
-| Extension download | `/extension` or docs link | IDE users |
+| Team | Workspace team + readiness | COMPANY_ADMIN |
+| Admin ops | `/admin/ops`, `/admin/dashboard` | GLOBAL/COMPANY admins |
+| Extension download | `/extension` | IDE users |
+| Status | `/status` | Ops / prospects |
 
 ---
 
-## 5. Token savings dashboard
+## 7. Token savings dashboard
 
 24h Redis counters on `/dashboard#token-savings`:
 
@@ -124,112 +218,162 @@ Optimizer output includes **MANDATORY AGENT EXECUTION RULES**: attach `@` files,
 | **Run Scripts reruns** | Re-test without regenerating prompt |
 | **0-Token prompts** | Prompt optimizer + agent-context |
 | Pulse idempotency / ingest hash / credit reserve | Efficiency modules |
+| Tier / quarantine telemetry | When Part B / T3 path fires |
 
 **Defensible ROI** block combines confirm-pack savings + verify→Vault + Run Scripts re-prompt avoidance.
 
 ---
 
-## 6. Use case scenarios
+## 8. Use case scenarios
 
-### 6.1 Solo indie developer (Rails / Next monorepo)
+### 8.1 Solo indie developer (Rails / Next monorepo)
 
 **Scenario:** Shipping a feature branch with Cursor; wants guardrails without pasting the whole repo.
 
-**Flow:** Map project at `/setup/projects` → generate 0-token prompt → agent implements → **Run Scripts** runs `bundle exec rails test` → pass syncs to savings dashboard → optional **Confirm Pack Used**.
+**Flow:** Map project at `/setup/projects` → generate 0-token prompt → agent implements → **Run Scripts** → pass syncs to savings → optional **Confirm Pack Used**.
 
 **Value:** Small Brain stays local; no Big Brain spend unless drift spikes.
 
-### 6.2 Agency / consultant on client code
+### 8.2 Agency / consultant on client code
 
-**Scenario:** Short engagement on `deck_host`-style Rails app; must not leak secrets or run arbitrary shell.
+**Scenario:** Short engagement; must not leak secrets or run arbitrary shell.
 
-**Flow:** Tenant key per client → Safe Build on CI-like command → failures trigger **dev-event** Heal Cheap (vault match) not full CONVERGE.
+**Flow:** Tenant key per client → Safe Build → failures trigger **dev-event** Heal Cheap.
 
-**Value:** Auditable verify loop; hardened command allowlist.
+**Value:** Auditable verify loop; allowlisted commands; per-client `project_origin` silos.
 
-### 6.3 Startup eng team (5–20 devs)
+### 8.3 Startup eng team (5–20 devs)
 
-**Scenario:** Shared tenant; mix of IDE and dashboard; occasional RED incidents.
+**Scenario:** Shared company; mix of IDE and dashboard; occasional RED / T3 incidents.
 
-**Flow:** Team workspace → ingest on release branch → heal-queue BULK → operator handles `#big-brain-issues` when circuit opens.
+**Flow:** Team workspace + domains → ingest → heal-queue → `/admin/ops` ARBITRATE + quarantine when Apex models disagree.
 
-**Value:** Multi-tenant silo + admin arbitration; token savings visible per tenant.
+**Value:** Compound isolation + signed HITL audits for “who approved what.”
 
-### 6.4 Platform integrator (BYOK SaaS)
+### 8.4 Platform integrator (BYOK SaaS)
 
-**Scenario:** Your product embeds MSGF via `msgf_live_*` license; your UX, MSGF brain.
+**Scenario:** Embed MSGF via `msgf_live_*`; your UX, MSGF brain.
 
-**Flow:** `bootstrap:solo` → Pulse from your BFF → ingest on repo connect → your UI calls `verify-result` after CI.
+**Flow:** `bootstrap:solo` → Pulse from BFF → `verify-result` after CI → deploy-gate in ship pipeline.
 
-**Value:** Engine without building consensus stack; documented in [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md).
+**Value:** Consensus stack without building it — [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md).
 
-### 6.5 Author Ecosystem author
+### 8.5 Security / compliance pilot
 
-**Scenario:** Manuscript + HAL rhythm; MSGF for typing governance not writing voice.
+**Scenario:** Cannot send shell secrets; need quarantine + human trail.
 
-**Flow:** Author BFF `chunk-pulse` → MSGF Pulse → token savings on `author_ecosystem` tenant.
+**Flow:** Redacted snippets; Sentry→quarantine; T3 disagree quarantines Vault wins; A6 signed ARBITRATE chain.
 
-**Value:** HAL bridge + Author-specific sauce stays in Author app.
+**Value:** Glass-box governance story for security review.
 
-### 6.6 DevOps / release manager
+### 8.6 DevOps / release manager
 
-**Scenario:** Wants proof verify ran before merge without re-prompting agents.
+**Scenario:** Proof verify ran before merge.
 
-**Flow:** Optimizer registers scripts → developers use Run Scripts → `verify-result` narrative logs + Vault on green + pack.
+**Flow:** Optimizer registers scripts → Run Scripts → `verify-result` → **deploy-gate** in CI.
 
-**Value:** Flight recorder in P4 narrative logs; Hall only on repeated failures (noise control).
+**Value:** Flight recorder + ship gate on the same `project_origin`.
 
-### 6.7 Security-conscious enterprise pilot
+### 8.7 Author Ecosystem / Education
 
-**Scenario:** Cannot send shell output with secrets to cloud.
+**Scenario:** HAL / classroom tenants call MSGF; product UX stays in those apps.
 
-**Flow:** Redacted snippets; auth on all IDE POSTs; no `report-issue` from extension for builds (uses dev-event / verify-result).
-
-**Value:** Defense in depth vs tampered `.msgf/run-scripts.json`.
-
-### 6.8 MSGF operator / founder
-
-**Scenario:** Monitor whether Small Brain is winning vs Big Brain spend.
-
-**Flow:** Admin `#token-savings` full catalog + `#big-brain-issues` queue.
-
-**Value:** Unit economics before Stripe go-live.
+**Value:** Shared brain; product sauce stays out of MSGF marketing claims.
 
 ---
 
-## 7. Marketing by audience
+## 9. Sales angle by audience
 
-| Audience | Headline angle | Proof points | CTA |
+| Audience | Headline | Proof points | CTA |
 | :--- | :--- | :--- | :--- |
-| **Indie dev** | "Stop paying to re-paste your repo into Cursor" | 0-token prompt, Run Scripts, BYOK tier | Download extension |
-| **Tech lead** | "Governance without slowing the team" | Small Brain %, verify loop, heal queue | Team tier / demo |
-| **CTO / security** | "Glass-box AI with allowlisted execution" | Shadow DEFEND, no shell exec, auth | Pilot / security brief |
-| **Integrator** | "Drop in the consensus brain via API" | Pulse, ingest, solo license, HAL bridge | `MSGF_SOLO_INTEGRATION` |
-| **Author / creator** | "Protect craft; MSGF handles logic drift" | HAL sync, gatedai dashboard link | Author + MSGF bundle |
-| **Agency** | "Per-client tenant silos + savings proof" | Token savings ROI, monorepo presets | Startup tier |
-| **AI-forward startup** | "Dual-model when it matters, cheap when it doesn't" | CONVERGE cache, dev-event Heal Cheap | Pro license $99 |
-| **Education** | "Policy-isolated tenant for classroom" | Separate tenant smoke (roadmap) | Contact / waitlist |
+| **Indie / Cursor power user** | “Stop paying to re-paste your repo” | 0-token prompt, Run Scripts, Small Brain % | Download Pulse Guard |
+| **Tech lead** | “Governance that doesn’t slow the sprint” | Verify loop, heal queue, deploy gate | Team workspace / demo |
+| **CTO / security** | “Glass-box AI with quarantine + signed HITL” | Shadow DEFEND, allowlisted exec, A5/A6 audits, T3 quarantine | Pilot / security brief |
+| **Agency** | “Per-client silos + savings you can invoice” | `project_origin` isolation, ROI rollup | Startup / agency tier |
+| **Integrator** | “Drop in the consensus brain via API” | Pulse, ingest, solo license, deploy-gate | `MSGF_SOLO_INTEGRATION` |
+| **Ops / founder** | “See whether Small Brain is winning” | Admin savings catalog, Big Brain queue, ops console | `/admin/ops` walkthrough |
+| **Enterprise IT** | “Workspace SSO + signing + domains” | Google Workspace SSO, DocuSign/Dropbox Sign, company domains | Contact / enterprise path |
+
+### 9.1 Packaging (live on `/pricing`)
+
+Source of truth for the numbers below is `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **quote from that file, not from memory.**
+
+| Tier | Price | What it actually includes | Sales note |
+| :--- | :--- | :--- | :--- |
+| **Individual Indie (BYOK)** | **$0** forever | Full local six-pillar tracking + project isolation; customer supplies Redis + Supabase env and model keys in `.msgf/keys/` | Land-and-expand. No credit card, no cloud consensus. Say “free, you run the infra” — not “free trial.” |
+| **Individual Pro (perpetual)** | **$99** one-time | Own it forever; Year 1 managed cloud consensus (**1,200 verification slices / month**); zero config on our infra; graceful fallback to 100% BYOK after Year 1 | The differentiator vs subscriptions. Be precise: the fallback is BYOK, not a shutoff. |
+| **Startup Team** | **$49** / user / mo | Multi-tenant corporate workspace scopes, global ARBITRATE consoles, company-wide P1 rulebooks, shared incident logs | Where signing, domains, SSO, and ops consoles earn their keep. |
+
+**Checkout caveat:** Stripe is **deferred (M3)** and entitlements are mocked by default. Do not promise self-serve card checkout on a call — route paid interest through a manual/contract path until `MSGF_STRIPE_WEBHOOK_LIVE` is on.
+
+### Objection handling (sales)
+
+| Objection | Answer |
+| :--- | :--- |
+| “Another AI wrapper” | Six-pillar cold archive + Vault/Hall learning + dual-model only on drift — not a chat UI. |
+| “Too expensive” | Small Brain + cache + Heal Cheap are the default; CONVERGE is the exception. Show token-savings panel. |
+| “Will it block my team?” | Shadow can short-circuit; Safe Build is local; skip path is audited (A5); HITL is ops, not every commit. |
+| “Trust / compliance?” | Signed skip + ARBITRATE audits; quarantine without auto-demote; tenant compound scope. |
+| “We already have Sentry” | MSGF links crashes to **governance memory** (Vault wins) — Sentry owns runtime; MSGF owns what the AI should remember. |
+| “We can’t send code to your models” | Two separate answers — don’t blur them. **BYOK:** the Small Brain runs on the customer’s provider and key (OpenAI / Anthropic / Ollama / DeepSeek / Gemini); we never bill or read their model account. **Self-hosted:** the Indie tier runs against the customer’s own Redis + Supabase. Note that BYOK alone still routes the Pulse through the MSGF API — only the self-hosted path keeps data off our infrastructure. |
+| “How hard is integration?” | The extension scaffolds `.msgf/dev/` with an API cookbook, sample requests, and a connection script — they can smoke-test from their own terminal before signing anything. |
+| “What if we stop paying?” | Pro is a perpetual license: after Year 1 it degrades to BYOK, it does not brick. |
 
 ### Channel ideas
 
 | Channel | Message |
 | :--- | :--- |
-| **Dev Twitter / LinkedIn** | Short clip: Generate prompt → Run Scripts → savings counter ticks |
-| **Cursor marketplace** | "MSGF Pulse Guard — 0-token prompts + safe verify" |
-| **Conference talk** | "Vault vs Hall: differential learning for AI coding assistants" |
-| **Case study (deck_host)** | Rails team: optimizer + `bundle exec rails test` loop |
-| **Comparison SEO** | "Cursor rules vs stateful governance" — six pillars, not flat rules files |
+| **Dev Twitter / LinkedIn** | Clip: Generate prompt → Safe Build → savings counter + deploy-gate green |
+| **Cursor marketplace** | “Pulse Guard — 0-token prompts + safe verify + async preflight” |
+| **Conference / podcast** | “Vault vs Hall + T3 quarantine: differential learning for AI coding” |
+| **Case study** | Rails / Next team: optimizer + allowlisted test loop + ROI panel |
+| **Comparison SEO** | “Cursor rules vs stateful governance” — pillars, not flat rules files |
 
 ---
 
-## 8. Related docs
+## 10. What is *not* required for MSGF 1.0 RC sales claims
+
+| Do not promise yet | Track |
+| :--- | :--- |
+| Stripe Checkout as the only path | Post-test (M3) — mock entitlement OK for soft launch |
+| Nanosecond hot-layer SLO as a hard SLA | 1.1 polish (infra wired) |
+| Cursor MCP as a supported install | Optional power-user path — needs manual `.cursor/mcp.json` ([`MSGF_IDE_MCP.md`](./MSGF_IDE_MCP.md)) |
+| Boss-demo layered theater silos | Parked — [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md) |
+| Author / Education product completion | Separate roadmaps |
+
+**Configured vs shipped.** Several capabilities in §4 are code-complete but only work once **that tenant's credentials are set** — Sentry (`SENTRY_AUTH_TOKEN` + org slug), DocuSign / Dropbox Sign, Dropbox archive, GitHub picker (OAuth app + key encryption), Google Workspace SSO, and Part B tiers (`MSGF_CONVERGE_TIER_ENABLED=1`). Unconfigured panels degrade to *unconfigured* rather than breaking, which is a good demo story — but demo the surface you have actually configured. Engineering status per surface: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §5 (M7) and [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md).
+
+---
+
+## 11. Related docs
 
 | Doc | Focus |
 | :--- | :--- |
 | [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) | Engineering milestones & readiness |
+| [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md) | Part B tiers + T3 quarantine |
+| [`MSGF_TENANT_ISOLATION.md`](./MSGF_TENANT_ISOLATION.md) | A4 compound scope |
+| [`MSGF_ASYNC_PREFLIGHT.md`](./MSGF_ASYNC_PREFLIGHT.md) | A5 async Safe Build |
+| [`MSGF_ARBITRATE_AUDIT.md`](./MSGF_ARBITRATE_AUDIT.md) | A6 signed HITL |
+| [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md) | Ops console map |
 | [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) | Small/Big Brain routing |
 | [`MSGF_IDE_INTEGRATION.md`](./MSGF_IDE_INTEGRATION.md) | IDE layer index |
+| [`MSGF_INTEGRATOR_DEV_KIT.md`](./MSGF_INTEGRATOR_DEV_KIT.md) | `.msgf/dev/` kit shipped with the extension |
+| [`MSGF_IDE_MCP.md`](./MSGF_IDE_MCP.md) | Optional Cursor MCP tools |
+| [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) | GitHub multi-repo picker setup |
+| [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) | Sentry ops panel + quarantine |
+| [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) | DocuSign / Dropbox Sign + archive |
 | [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) | BYOK integrators |
+| [`MSGF_BUYER_WALKTHROUGH.md`](./MSGF_BUYER_WALKTHROUGH.md) | SaaS buyer journey |
 | [`MSGF_TESTING.md`](./MSGF_TESTING.md) | Test & deploy runbooks |
-| [`MSGF_LEARNING_AND_BIG_BRAIN.md`](./MSGF_LEARNING_AND_BIG_BRAIN.md) | Why zero Big Brain is often success; how to smoke-test CONVERGE |
+| [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md) | Three products & domains |
 | [`packages/msgf/README.md`](../packages/msgf/README.md) | Env vars & npm scripts |
+
+---
+
+## Changelog
+
+| Date | Note |
+| :--- | :--- |
+| 2026-08-01 | Pulse Guard **0.1.8 → 0.2.3**: opt-in default, setup wizard, monorepo product scoping, `.msgf/dev/` integrator kit (§5.1a), BYOK Small Brain providers (§5.1b), optional MCP (§5.4). Added §9.1 packaging table sourced from `pricing-tiers.ts`, three BYOK/integration objections, and a **configured vs shipped** rule in §10. |
+| 2026-07-24 | Full refresh: product map, Part B / hot layer / quarantine / integrations, sales objections, RC exclusions. |
+| 2026-05-28 | IDE Command Center, verify loop, savings dashboard. |

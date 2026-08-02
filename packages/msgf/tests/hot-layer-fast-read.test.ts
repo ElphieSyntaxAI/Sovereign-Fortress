@@ -1,6 +1,14 @@
 /**
  * @msgf-license-header
- * Hot layer fast read tests.
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";

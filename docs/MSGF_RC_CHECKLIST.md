@@ -22,7 +22,7 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 - [ ] `npm run db:push:verify -w msgf` (when touching schema)
 - [ ] `npm run validate:deployment` (unit + production `next build`)
 - [ ] Jul 24 pitfall/integration unit suites: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
-- [ ] Migration `20260724030400_msgf_company_tier_rules.sql` applied on staging/prod
+- [x] Migration `20260724030400_msgf_company_tier_rules.sql` applied on remote (2026-07-24 `db:push`)
 
 **Integration (needs Supabase / Redis env):**
 

@@ -16,7 +16,7 @@
 - `[ ]` = not done · `[~]` = in progress · `[x]` = done  
 - **P0** blocks production RC / soft go-live · **P1** next sprint · **P2** polish  
 - Do **not** treat Stripe as required (deferred per V1 plan)  
-- Do **not** block RC on Part B 3-tier CONVERGE or boss-demo silos
+- Do **not** block RC on boss-demo silos (parked §4). Part B CONVERGE tiers are **landed** (flag-gated).
 
 ---
 
@@ -27,13 +27,14 @@ Canonical checklist: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md). This sect
 ### 1.1 Schema on the live DB
 
 - [x] I1/A1 migrations (`20260724020000`, `20260724020100`) applied locally via `npm run db:push`
-- [ ] Confirm GitHub connections migration `20260724010000` on **staging + prod**
-- [ ] Apply Jul 24 follow-ons on staging/prod: A4 compound scope, I5 webhook inbox, A5 skip audit, A6 arbitrate audit
+- [x] Confirm GitHub connections migration `20260724010000` on remote (Jul 24 push wave)
+- [x] Apply Jul 24 follow-ons on remote DB (2026-07-24 `db:push` + `verify:db-schema` green):
   - `20260724030000_pillar_vectors_compound_scope.sql`
   - `20260724030100_webhook_inbox_archive_status.sql`
   - `20260724030200_msgf_skip_audit.sql`
   - `20260724030300_msgf_arbitrate_audit.sql`
-- [ ] `npm run verify:db-schema -w msgf` against the target DB after push
+  - `20260724030400_msgf_company_tier_rules.sql`
+- [x] `npm run verify:db-schema -w msgf` against the target DB after push
 
 ### 1.2 Automated gates (clean machine + env)
 
@@ -41,7 +42,7 @@ Canonical checklist: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md). This sect
 - [ ] `npm run deep-test:solo -w msgf` (clear locked `.next` on Windows/OneDrive if needed)
 - [ ] `npm run validate:deployment` (unit + production `next build`)
 - [ ] `npm run verify:msgf-env -w msgf`
-- [x] Targeted: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`
+- [x] Targeted: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
 
 ### 1.3 Cloud Run / ops secrets (no mock authority)
 
@@ -133,11 +134,11 @@ Keep [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md) for later. **Not
 
 ## 5. Explicitly later (P2+)
 
-- [ ] Part B: 3-tier dual CONVERGE (flagged post-RC)
+- [x] Part B: 3-tier dual CONVERGE + T3 quarantine (code landed; enable with `MSGF_CONVERGE_TIER_ENABLED=1`) — [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md)
 - [ ] Native Sentry issue create from Pulse RED
 - [ ] GitHub App install (org-wide)
 - [ ] Stripe / paid entitlements (M3)
-- [ ] Nanosecond hot-layer SLO
+- [ ] Nanosecond hot-layer **SLO claim** (infra wired; marketing SLA → 1.1)
 
 ---
 
@@ -156,4 +157,5 @@ Keep [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md) for later. **Not
 | Date | Note |
 | :--- | :--- |
 | 2026-07-24 | Refocus: production RC first; boss demo parked in §4. Added Jul 24 migrations + A5/A6 secrets. |
+| 2026-07-24 | `db:push` applied remote Jul 24 migrations incl. company tier rules; Part B + hot layer marked landed. |
 | 2026-07-23 | Initial list: GitHub picker + Sentry ship tasks, integration exploration, boss demo. |

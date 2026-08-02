@@ -11,7 +11,7 @@
 - Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/syntax_education_pillars.md)
 - Implementation tracker (pillars + AUTH): [`PILLAR_PROGRESS.md`](./PILLAR_PROGRESS.md)
 
-**Last updated:** 2026-05-20
+**Last updated:** 2026-07-24
 
 ---
 
@@ -23,6 +23,8 @@
 2. **A standalone platform** deployable at **https://elphiesgatedai.elphiesyntax.com** and consumable by **other software** via APIs, webhooks, tenant configuration, and shared packages (`packages/msgf`, `packages/core`, `packages/ui`).
 
 Author and education apps **embed or call MSGF**; they do not reimplement guardrail logic in silos.
+
+**MSGF product map (capabilities + sales):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) · live `/features` on gatedai.
 
 ---
 

@@ -1,4 +1,14 @@
 -- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+-- =============================================================================
+-- =============================================================================
 -- I1: Company Workspace domains, signing provider flag, invite onboarding_status,
 --     signing envelope provider columns (DocuSign remains default).
 -- =============================================================================

@@ -1,4 +1,14 @@
 -- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+-- =============================================================================
+-- =============================================================================
 -- A1: Vault quarantine status — poisoned wins excluded from positive retrieval
 -- until HITL demote/restore (see fix-engine-pitfalls.md).
 -- =============================================================================

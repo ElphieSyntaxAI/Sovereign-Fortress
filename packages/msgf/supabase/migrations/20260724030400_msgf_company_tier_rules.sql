@@ -1,4 +1,14 @@
 -- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+-- =============================================================================
+-- =============================================================================
 -- Part B2: Company path → forced CONVERGE tier rules.
 -- =============================================================================
 

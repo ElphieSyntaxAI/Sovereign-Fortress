@@ -3,8 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Native Sentry Admin API client for MSGF ops console (list issues / resolve).
- * Env: SENTRY_AUTH_TOKEN, SENTRY_ORG_SLUG, optional SENTRY_PROJECT_SLUG / SENTRY_BASE_URL.
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 export const SENTRY_DEFAULT_BASE_URL = "https://sentry.io";
 

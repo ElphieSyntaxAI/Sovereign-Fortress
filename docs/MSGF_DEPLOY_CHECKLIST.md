@@ -19,6 +19,7 @@ Use after merging the P0–P4 roadmap work. **Code is built; production needs de
 | `20260724030100_webhook_inbox_archive_status.sql` | I5 webhook inbox + archive |
 | `20260724030200_msgf_skip_audit.sql` | A5 skip-MSGF audit |
 | `20260724030300_msgf_arbitrate_audit.sql` | A6 signed ARBITRATE audit |
+| `20260724030400_msgf_company_tier_rules.sql` | Part B company CONVERGE tier overrides |
 
 ```bash
 npm run db:push -w msgf
