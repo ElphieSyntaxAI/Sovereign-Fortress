@@ -37,6 +37,13 @@ MSGF_OPS_CRON_SECRET=...          # required: heartbeat, workers, audit fallback
 # Prefer dedicated keys in prod (fallback to ops cron is OK for soft launch):
 # MSGF_SKIP_AUDIT_SECRET=...
 # MSGF_ARBITRATE_AUDIT_KEY=...
+# Stripe (M3 — paid go-live; see MSGF_DEV_TODO.md §2b):
+# STRIPE_SECRET_KEY=...
+# STRIPE_WEBHOOK_SECRET=...
+# STRIPE_PRICE_PRO_INDIVIDUAL=price_...
+# STRIPE_PRICE_STARTUP_TEAM=price_...
+# MSGF_STRIPE_WEBHOOK_LIVE=1
+# MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0
 # Optional:
 # MSGF_IDE_TOKEN_TTL_DAYS=90
 # MSGF_HEAL_RESERVE_CHUNK=400
@@ -82,10 +89,10 @@ curl -sS "https://elphiesgatedai.elphiesyntax.com/api/msgf/ide/connectivity-chec
 
 ---
 
-## 6. Deferred (do not promise in v1)
+## 6. Deferred (do not promise in v1 soft-RC)
 
 - Disk-level auto-patch (P4 optional)
-- Stripe billing entitlements
+- Stripe Customer Portal / invoice history UI (Checkout itself is **in plan** — M3 / DEV_TODO §2b)
 - Full Cursor MCP install (see [MSGF_IDE_MCP.md](./MSGF_IDE_MCP.md))
 
 ---

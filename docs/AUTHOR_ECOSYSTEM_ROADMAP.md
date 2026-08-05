@@ -7,7 +7,7 @@
 
 **Shared engine:** MSGF (guardrails, Pulse, Vault/Hall) — **https://elphiesgatedai.elphiesyntax.com** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) and [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md).
 
-**Last updated:** 2026-07-13
+**Last updated:** 2026-08-05
 
 ---
 
@@ -61,7 +61,7 @@ ElphieSyntax is a sovereign narrative infrastructure that transitions authors fr
 | :--- | :--- | :---: |
 | **Document ingest (MSGF V3.2)** | Uploads & Google Docs → scan → authorship Q&A → review → commit (wiki, outline, world bible). | ~85% |
 | **Project switcher (nav + hub)** | Always-visible `MS:` dropdown + hub kanban; activate with `manuscriptId` / `tenantId` / `seriesId`; outline & docs remount per book; series siblings may share RAG. | **100%** |
-| **HAL v2 Certificate** | Telemetry summary + Vault Seal + Lore-Git chain (exportable proof bundle). | ~50% |
+| **HAL v2 Certificate** | Telemetry summary + Vault Seal + Lore-Git chain (exportable proof bundle). **ML-DSA-65** (FIPS 204 algorithm family) over RFC 8785-canonical JSON when `MSGF_HAL_PQC_SIGN=1`. See [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). | ~70% |
 | **MSGF Pulse bridge** | HAL chunk-pulse → Gated AI routing; token savings on `tenant_id=author_ecosystem`. | ~80% |
 | **Author RAG Model** | Sidekick for continuity and outline adherence. | ~70% |
 | **Progress Tracking** | Word count + outline percentage. | ~40% |
@@ -133,6 +133,7 @@ Target lifecycle vocabulary (product / guardrail layer). Map to `p4_manuscripts.
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-05 | HAL v2 certificate: ML-DSA-65 signed proof bundles (RFC 8785 canonicalize) when `MSGF_HAL_PQC_SIGN=1`; crypto audit linked. |
 | 2026-07-13 | **Project switcher shipped (plan 100%):** nav `MS:` dropdown + hub activate with `seriesId`; per-book outline/wiki/drafting isolation; series RAG share retained. Added §0 progress pulse (Phase 1 ~72%, overall ~45%). Lexicon: Active Project, Series RAG share. |
 | 2026-05-15 | Linked production URL (elphiesyntax.com), MSGF engine (elphiesgatedai.elphiesyntax.com), and monorepo/MSGF 1.0 companion docs. |
 | 2026-05-13 | Initial SSoT: Creative Integrity Flywheel, Sovereign Lexicon, three phases, five author tiers, four publisher key levels, MSGF state model. |

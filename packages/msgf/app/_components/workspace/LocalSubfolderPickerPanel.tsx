@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import { useMemo, useState } from "react";
@@ -20,10 +32,6 @@ import {
   joinParentAndRelativeChild,
 } from "@/lib/services/user-project-paths";
 import type { UserProjectRow } from "@/lib/services/user-projects";
-
-type DirHandle = FileSystemDirectoryHandle & {
-  values?: () => AsyncIterableIterator<FileSystemHandle>;
-};
 
 type Props = {
   projects: UserProjectRow[];
@@ -72,14 +80,17 @@ export function LocalSubfolderPickerPanel({ projects, onMapped, setError, setMes
     setPicking(true);
     setError(null);
     try {
-      const handle = (await window.showDirectoryPicker({
-        mode: "read",
-      })) as DirHandle;
+      const picker = window.showDirectoryPicker;
+      if (!picker) {
+        setError(
+          "Folder picker needs Chrome or Edge. Use the manual parent path + child folders fields below."
+        );
+        return;
+      }
+      const handle = await picker.call(window, { mode: "read" });
       setParentName(handle.name);
       const names: string[] = [];
-      // File System Access API: iterate directory entries
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for await (const entry of (handle as any).values() as AsyncIterable<FileSystemHandle>) {
+      for await (const entry of handle.values()) {
         if (entry.kind === "directory") {
           names.push(entry.name);
         }

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
  * Phase 0 — MSGF environment verification (modular path).
@@ -67,27 +67,39 @@ const REQUIRED_ENV = [
 // Stripe should not block free-tier / BYOK readiness.
 // Mirror the runtime behavior in `middleware/entitlementGuard.ts`:
 // by default we mock Stripe unless the webhook is explicitly marked live.
-const stripeWebhookLive = process.env.MSGF_STRIPE_WEBHOOK_LIVE?.trim().toLowerCase() === "true";
+const stripeLiveRaw = process.env.MSGF_STRIPE_WEBHOOK_LIVE?.trim().toLowerCase();
+const stripeWebhookLive =
+  stripeLiveRaw === "true" || stripeLiveRaw === "1" || stripeLiveRaw === "yes";
 const mockStripeActive = (() => {
   const v = process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE?.trim().toLowerCase();
   if (v === "0" || v === "false" || v === "no") return false;
   if (v === "1" || v === "true" || v === "yes") return true;
   // Default mock ON until Stripe webhook is production-ready.
-  return process.env.MSGF_STRIPE_WEBHOOK_LIVE?.trim().toLowerCase() !== "true";
+  return !stripeWebhookLive;
 })();
 
-// Only require Stripe secrets when Stripe is truly live (mock off).
-if (stripeWebhookLive && !mockStripeActive) {
+// When webhook is marked live, require full Checkout + webhook credentials + Price IDs.
+if (stripeWebhookLive) {
   REQUIRED_ENV.push(
     {
       keys: ["STRIPE_SECRET_KEY"],
       label: "Stripe secret key",
-      hint: "Dashboard → Developers → API keys (test mode for dev)",
+      hint: "Dashboard → Developers → API keys (test mode for staging)",
     },
     {
       keys: ["STRIPE_WEBHOOK_SECRET"],
       label: "Stripe webhook signing secret",
-      hint: "From `stripe listen` or Dashboard → Webhooks",
+      hint: "From `stripe listen` or Dashboard → Webhooks → Signing secret",
+    },
+    {
+      keys: ["STRIPE_PRICE_PRO_INDIVIDUAL"],
+      label: "Stripe Price ID for Pro Individual ($99 one-time)",
+      hint: "Dashboard → Products → Price ID for perpetual Pro checkout",
+    },
+    {
+      keys: ["STRIPE_PRICE_STARTUP_TEAM"],
+      label: "Stripe Price ID for Startup Team ($49/user/mo)",
+      hint: "Dashboard → Products → Price ID for Startup Team subscription",
     }
   );
 }
@@ -218,6 +230,13 @@ function main() {
   console.log("MSGF Phase 0 — verify-msgf-env");
   console.log(`MSGF package root: ${msgfRoot}`);
   console.log("");
+
+  if (stripeWebhookLive && mockStripeActive) {
+    console.warn(
+      "WARN: MSGF_STRIPE_WEBHOOK_LIVE is on but MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE is still mocking. Set MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0 for paid go-live."
+    );
+    console.log("");
+  }
 
   let failed = 0;
   failed += checkEnvGroup(

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
  * Re-exports author-ecosystem **Sovereignty** and **Marketplace** modules for Next/msgf routes
@@ -24,10 +24,13 @@ export {
   craftSessionFromStylometricSnapshot,
   exportHumanAuthorshipCertificateJson,
   exportHumanAuthorshipCertificatePdf,
+  verifyHumanAuthorshipCertificate,
   type CraftGrowthResult,
   type CraftGrowthSession,
   type HumanAuthorshipCertificate,
   type HumanAuthorshipCertificateSession,
+  type HumanAuthorshipCertificateV1,
+  type HumanAuthorshipCertificateV2,
   type P4HalLedgerCertificateRow,
   type RevisionCooldownLockRecord,
 } from "../../../../apps/author-ecosystem/server/src/lib/AuthorSovereigntyService";

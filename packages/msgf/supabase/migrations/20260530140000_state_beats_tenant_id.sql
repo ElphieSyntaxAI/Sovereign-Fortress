@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+-- Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
 -- =============================================================================
 -- Tenant silo on state_beats (entity remains in author_id = human actor UUID).
 ALTER TABLE public.state_beats

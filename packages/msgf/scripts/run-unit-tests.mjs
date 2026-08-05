@@ -9,6 +9,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 /**
@@ -620,6 +632,9 @@ const UNIT_TESTS = [
   { label: "test:user-projects-bulk", args: ["--test", "tests/user-projects-bulk.test.ts"] },
   { label: "test:sentry-admin", args: ["--test", "tests/sentry-admin.test.ts"] },
   { label: "test:i1-a1-schema-helpers", args: ["--test", "tests/i1-a1-schema-helpers.test.ts"] },
+  { label: "test:stripe-entitlements", args: ["--test", "tests/stripe-entitlements.test.ts"] },
+  { label: "test:hybrid-crypto", args: ["--test", "tests/hybrid-crypto-envelope.test.ts"] },
+  { label: "test:hal-pqc", args: ["--test", "tests/hal-pqc-certificate.test.ts"] },
 ];
 
 function resolveTsxCli() {

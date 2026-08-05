@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 export const CURRENT_LEGAL_VERSION = "2026.05.05-UTAH-SAFE";
 

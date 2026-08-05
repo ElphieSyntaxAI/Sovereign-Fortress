@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 import { Buffer } from "node:buffer";
 
@@ -21,7 +21,9 @@ import {
   MarketplaceOrchestrator,
   calculateCraftGrowth,
   exportHumanAuthorshipCertificatePdf,
+  verifyHumanAuthorshipCertificate,
   type CraftGrowthSession,
+  type HumanAuthorshipCertificate,
   type LibrarianLanguage,
   type MarketplaceInteractionType,
   type P4ManuscriptRow,
@@ -135,6 +137,15 @@ export async function POST(req: Request) {
           });
         }
         return NextResponse.json({ certificate: cert });
+      }
+
+      if (action === "verify_authorship_certificate") {
+        const cert = o["certificate"];
+        if (!cert || typeof cert !== "object") {
+          return NextResponse.json({ error: "certificate object is required" }, { status: 400 });
+        }
+        const result = verifyHumanAuthorshipCertificate(cert as HumanAuthorshipCertificate);
+        return NextResponse.json(result);
       }
 
       if (action === "fetch_hal_ledger_certificate_rows") {

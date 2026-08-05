@@ -24,7 +24,7 @@
 **Boss demo (parked):** [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md)  
 **Tenant isolation (A4):** [`MSGF_TENANT_ISOLATION.md`](./MSGF_TENANT_ISOLATION.md)  
 **CONVERGE tiers (Part B):** [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md)  
-**Integrations:** [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) · [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) · [`MSGF_GOOGLE_WORKSPACE_SSO.md`](./MSGF_GOOGLE_WORKSPACE_SSO.md)  
+**Integrations:** [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) · [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) · [`MSGF_GOOGLE_WORKSPACE_SSO.md`](./MSGF_GOOGLE_WORKSPACE_SSO.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md)  
 **IDE surface:** [`MSGF_INTEGRATOR_DEV_KIT.md`](./MSGF_INTEGRATOR_DEV_KIT.md) · [`MSGF_IDE_MCP.md`](./MSGF_IDE_MCP.md) · [`MSGF_IDE_SETUP_RUNBOOK.md`](./MSGF_IDE_SETUP_RUNBOOK.md)
 
 ---
@@ -177,7 +177,7 @@ flowchart TB
 | **Ops cron** | `POST /api/msgf/ops/v32-heartbeat` — strict `MSGF_OPS_CRON_SECRET`; tier batches; **`6h`/`nightly`** scheduled heals via `RemediationEngine` LOM consensus (Vault persist); Hall cold + Redis purge |
 | **Human arbitration** | Circuit breaker `PENDING_HUMAN_ARBITRATION`; `GET` heal-queue packages + `POST /api/msgf/heal-queue/human-arbitration` (APPROVE_BYPASS / DENY_PURGE); web + IDE drawer |
 | **Public shell** | `packages/msgf/apps/web` — marketing, pricing, Stripe Checkout return URLs |
-| **Billing** | Stripe Checkout + webhook → `p4_profiles` / P3 tier + update credits — **deferred until after test signoff** (see §10) |
+| **Billing** | Stripe Checkout + webhook → `p4_profiles` / P3 tier + update credits — **in plan for paid go-live (M3 / §10.C)** |
 | **Security** | `security:prancer-pillars` on PR; service account + secrets documented |
 | **Author integration** | Author BFF documented path to Pulse/ingest; shared cookie domain option |
 
@@ -214,7 +214,7 @@ Aligned with `packages/msgf/.cursorrules`:
 | **M0** | Platform truth | This doc + [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md); root `.env.example` MSGF block; `npm run verify:msgf-env -w msgf`; Phase 0 smoke in [`packages/msgf/README.md`](../packages/msgf/README.md) | **Done** |
 | **M1** | Engine hardening (V3.2) | SHARD hot/cold wiring; split Pulse into SWEEP→PERSIST handlers; Zod metadata; ARBITRATE/recursion in CI | **Partial** — SHARD/DEFEND/ingest + `pulse-pipeline/` done; strict Pulse metadata enums + full route thin-handler pass → 1.1 |
 | **M2** | Standalone surface | Public marketing, pricing, workspace, admin portal on gatedai | **Partial** — lives in `packages/msgf` Next app; `packages/msgf/apps/web` package still **not started** |
-| **M3** | Commercial gates | Checkout API, webhook → tier/credits, entitlement middleware | **Deferred (post-test)** — skeleton routes + mock entitlements ON; **do not block** RC on live Stripe |
+| **M3** | Commercial gates | Checkout API, webhook → tier/credits, entitlement middleware | **In plan (P0-M3)** — skeleton routes live; finish Startup Team + subscription lifecycle, then turn off mock — see [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b |
 | **M4** | Multi-tenant ops | Dashboard live data; RED→HITL; tier cron; Hall purge; heal queue + human arbitration | **Partial** — heal queue + arbitration **Done**; confirm prod `MSGF_OPS_CRON_SECRET` + live dashboard (not mocks) |
 | **M5** | Ecosystem wiring | Author + Education smoke: register → pledge → Pulse | **Partial** — `msgf/hal-author-bridge` (175w/10 overlap, lossless rhythm, `x-msgf-author-hal`); Author `chunk-pulse` + extension flush; **prod Author deploy + probe green** open |
 | **M4b** | IDE remediation UX | `msgf-pulse-guard` stoplight + shadow scan → healing console | **Done** — pillar-grouped checkboxes; Heal All / Approve Selected / Schedule presets; optimistic status |
@@ -223,7 +223,7 @@ Aligned with `packages/msgf/.cursorrules`:
 | **M7** | Enterprise integration wave (Jul 24) | I1–I6 (domains, signing, Sentry quarantine, Dropbox archive, webhook inbox, team readiness + deploy gate), A4–A6 (compound scope, signed skip audit, signed ARBITRATE chain), Part B CONVERGE tiers | **Code landed + migrations pushed** — flag/secret gated; staging smoke + provider credentials still open (see [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §1.3–§2) |
 | **M6** | 1.0 RC | §2.6 all green in staging; load test; Prancer; runbook | **Blocked** — `npm run validate:deployment` currently fails the production build (see §10.A item 0); Cloud deploy via `./deploy.sh` / `setup-cloud.sh` |
 
-**Suggested gate for tag `msgf-v1.0.0`:** M1, M4, M4b, M5 (staging), M7 (secrets + one staging smoke per enabled surface), M6 sign-off with green `validate:deployment` + staging smoke. **M3 (Stripe)** follows immediately after test signoff — not a prerequisite for first RC tag unless product requires paid-only launch.
+**Suggested gate for tag `msgf-v1.0.0`:** M1, M4, M4b, M5 (staging), M7 (secrets + one staging smoke per enabled surface), M6 sign-off with green `validate:deployment` + staging smoke. **M3 (Stripe)** is **in plan for paid go-live** — technical soft-RC can tag with mock entitlements still ON; do **not** claim self-serve checkout until §10.C / DEV_TODO §2b is green.
 
 ---
 
@@ -293,7 +293,7 @@ Aligned with `packages/msgf/.cursorrules`:
 | CONVERGE — dual-model consensus | **Done (behavior)** — `pulse-pipeline/` + `PulseEngine.converge()`; prove on env with `npm run smoke:pulse-converge -w msgf` |
 | ARBITRATE — HITL / retry > 3 | **Done (behavior)** — `runArbitratePhase` + heal-queue arbitration; **refactor** (thin route) → 1.1 |
 | PERSIST — Vault writes + Hall purge | **Done** (ops) — writes OK; `v32-heartbeat` + GH Actions when secrets configured |
-| Stripe billing | **Deferred (post-test)** — mock entitlements default ON; finish webhook → `p4_profiles` after test signoff |
+| Stripe billing | **In plan (M3)** — Checkout + Pro perpetual webhook **Done**; Startup Team profile write + subscription lifecycle + mock-off flip **open** — [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b |
 | Public gatedai site | **Partial** — Next app: landing, pricing, workspace, `/status`, extension download |
 | HAL portable API (`msgf/hal-author-bridge`) | **Done** — universal keystrokes + 175w/10 overlap packets + trusted `x-msgf-author-hal` header |
 | Author ↔ Pulse integration | **Partial** — chunked sync + lossless rhythm; **prod** BFF env + `probe:author-ecosystem` on staging URLs still open |
@@ -470,7 +470,8 @@ Shipped since 0.1.8 (M4d): `.msgf/dev/` integrator kit (**MSGF: Open / Sync deve
 | :--- | :--- |
 | `NEXT_PUBLIC_SUPABASE_URL`, keys | Auth + data plane |
 | `GOOGLE_APPLICATION_CREDENTIALS` / `service-account.json` | Vertex / Pulse |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, Price IDs | Billing |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, Price IDs | Billing — `STRIPE_PRICE_PRO_INDIVIDUAL`, `STRIPE_PRICE_STARTUP_TEAM` (M3) |
+| `MSGF_STRIPE_WEBHOOK_LIVE` · `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE` | Live webhook truth vs mock entitlements (flip together at paid go-live) |
 | `MSGF_AUTH_COOKIE_DOMAIN` | Cross-subdomain session with Author |
 | `MSGF_BILLING_SOFT_CAP_USD`, `MSGF_CREDIT_GUARD_DISABLED` | Ops caps |
 | `MSGF_ENABLE_LOM_TEST` | Staging LOM harness |
@@ -511,15 +512,15 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 ## 10. What’s left & recommended next steps
 
-**MSGF-only RC tracker (no Stripe):** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) — P0 automated + staging smoke, P1 engine/ops, P2 sign-off.
+**MSGF RC tracker:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) — P0 automated + staging smoke, P1 engine/ops, **P0-M3 Stripe**, P2 sign-off.
 
-*Stripe integration intentionally **after** testing signoff — keep `MSGF_CREDIT_GUARD_DISABLED` / mock entitlements until then.*
+*Keep mock entitlements ON until webhook writes are proven in staging; then flip `MSGF_STRIPE_WEBHOOK_LIVE=1` and `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0`.*
 
 ### A. Finish now (testing gate — blocks RC)
 
 | # | Work | Verify |
 | :---: | :--- | :--- |
-| **0** | **Fix production build (current blocker)** — `LocalSubfolderPickerPanel.tsx` uses `window.showDirectoryPicker` with no type declaration, so `next build` fails and takes `deep-test:solo` down with it | `npm run validate:deployment` |
+| **0** | **Production build** — `showDirectoryPicker` typing fixed (`types/file-system-access.d.ts`, 2026-08-02). Confirm clean `npm run validate:deployment` after Windows webpack flake | `npm run validate:deployment` |
 | 1 | **Offline unit suite** | `npm run test:unit -w msgf` (green as of 2026-07-28) |
 | 2 | **Solo deep-test gate** | `npm run deep-test:solo` (unit + build); `npm run deep-test:solo:live` with dev server |
 | 3 | **Solo integrator bootstrap** | `npm run bootstrap:solo -w msgf` → `npm run probe:solo -w msgf` — see [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) |
@@ -529,7 +530,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | 7 | **Env + schema** | `npm run verify:msgf-env -w msgf` · `npm run db:push:verify -w msgf` |
 | 8 | **Manual staging smoke** | Pledge → Pulse (license or cookie) → ingest → heal-queue → `v32-heartbeat` dry-run |
 
-### B. Finish before `msgf-v1.0.0` tag (engine + ops — Stripe excluded)
+### B. Finish before `msgf-v1.0.0` tag (engine + ops)
 
 | Area | Open items |
 | :--- | :--- |
@@ -542,23 +543,30 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | **M7 integrations** | Provider credentials + one staging smoke per **enabled** surface: GitHub picker → `project_origin` row; Sentry panel loads issues; signing webhook → IDE mint unlocked; ops audit panels verify OK. Unconfigured surfaces degrade and are **not** RC blockers |
 | **M6 RC** | Runbook, load smoke, Prancer green on PR |
 
-### C. After test signoff (commercial — your queue)
+### C. Stripe / paid go-live (M3 — in plan)
 
-| Area | Work |
-| :--- | :--- |
-| **M3 Stripe** | Live keys, Checkout, webhook → `p4_profiles`, tier/credits, turn off mock entitlements in staging then prod |
-| **M2 polish** | Optional split `packages/msgf/apps/web` or keep routes in main Next app |
+Canonical checklist: [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b.
+
+| # | Work | Verify |
+| :---: | :--- | :--- |
+| 1 | Stripe Products + Prices (`STRIPE_PRICE_PRO_INDIVIDUAL`, `STRIPE_PRICE_STARTUP_TEAM`) | Dashboard prices match `/pricing` |
+| 2 | Webhook endpoint + secret on staging (test mode) | `checkout.session.completed` received |
+| 3 | Finish Startup Team entitlement write + subscription status sync | Profile `stripe_subscription_status` / tier after checkout |
+| 4 | Payment-failed → past_due blocks monthly Pulse when live | Fail invoice in test mode |
+| 5 | Staging smoke: Pro $99 + Startup Team with test cards | Success URL + Pulse passes with mock off |
+| 6 | Prod flip: live keys, `MSGF_STRIPE_WEBHOOK_LIVE=1`, mock off | Paid claim OK on sales calls |
 
 ### D. Post–1.0 (explicitly later)
 
-- Hot-layer primary read / nanosecond SLO (1.1)
+- Hot-layer nanosecond SLO claim (1.1)
 - Author healing popout in marketplace BFF (Author 1.x)
 - Education Google/Office add-ons
 - Prancer Cloud policy packs
+- Stripe Customer Portal / invoice history UI
 
 ### Readiness snapshot
 
-*Re-baselined 2026-08-01. Code completeness is high; the gap to RC is now **verification and secrets**, not features.*
+*Re-baselined 2026-08-02. Code completeness is high; the gap to RC is **verification, secrets, and finishing Stripe M3**.*
 
 | Bucket | ~% | Notes |
 | :--- | :---: | :--- |
@@ -567,8 +575,8 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | **Enterprise integrations (M7)** | **~70%** | Code + migrations landed; provider credentials and staging smokes open |
 | **Solo / BYOK integrators** | **~70%** | `bootstrap:solo` + `probe:solo` + dev kit; prod license + staging probe open |
 | **Ecosystem wiring** | **~55%** | Author prod deploy + probe still open |
-| **Commercial (Stripe)** | **~20%** | Deferred by product decision until post-test |
-| **Overall toward 1.0 RC** | **~80%** | Blocked on §10.A item 0 (build) → then staging smoke; RC viable without Stripe |
+| **Commercial (Stripe)** | **~40%** | Checkout + Pro perpetual webhook done; Startup Team + lifecycle + mock-off open (**in plan**) |
+| **Overall toward 1.0 RC** | **~80%** | Blocked on §10.A item 0 (build) → staging smoke; paid go-live needs §10.C |
 
 ---
 
@@ -576,6 +584,8 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-05 | **PQC:** App-layer hybrid KEM envelope `0x03` (X25519 + ML-KEM-768) + HAL v2 ML-DSA-65 certs; audit [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). Platform TLS PQ remains infra checklist. |
+| 2026-08-02 | **Stripe (M3) back in plan:** §4.1 billing + M3 milestone + §10.C Stripe checklist; commercial readiness ~40%; soft-RC may still tag with mock ON, paid claims require §10.C. |
 | 2026-08-01 | **Re-baseline:** §7 snapshot moved off the May 23 date; added M4d (dev kit / wizard / MCP) and M7 (Jul 24 integration wave) milestones; Pulse Guard **0.1.8 → 0.2.3**; §8 env table extended with audit, crypto, Sentry, signing, and tier flags; §10.A item 0 records the `showDirectoryPicker` build blocker; readiness **~75% → ~80%**. |
 | 2026-05-28 | **M4c IDE Command Center:** prompt optimizer, Run Scripts, Safe Build, verify-result Vault/Hall, savings dashboard counters, security hardening; [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md). |
 | 2026-05-20 | **Small Brain / Big Brain:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md); §7.6 audience + heal-queue scope + monorepo workspace presets; `test:brain-routing`, `test:heal-queue-audience`. |

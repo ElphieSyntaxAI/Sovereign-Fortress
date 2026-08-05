@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+-- Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
 -- =============================================================================
 -- Forensic calibration profiles (author plaintext vs school ciphertext for FERPA-oriented handling).
 CREATE TABLE IF NOT EXISTS public.p4_forensic_profiles (

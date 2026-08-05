@@ -8,11 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { withSentryConfig } from "@sentry/nextjs";
 import dotenv from "dotenv";
 import type { NextConfig } from "next";
 
@@ -41,20 +42,53 @@ const nextConfig: NextConfig = {
     // Bind-mounting the whole monorepo on Docker Desktop (esp. Windows/OneDrive) makes the
     // default watcher scan author-ecosystem + node_modules churn — high CPU in `next dev`.
     if (dev) {
-      const ignored = [
-        "**/node_modules/**",
-        "**/.git/**",
-        path.join(monorepoRoot, "apps/author-ecosystem/client/**"),
-        path.join(monorepoRoot, "apps/author-ecosystem/server/tests/**"),
-      ];
-      const prev = config.watchOptions?.ignored;
       config.watchOptions = {
         ...config.watchOptions,
-        ignored: prev ? (Array.isArray(prev) ? [...prev, ...ignored] : [prev, ...ignored]) : ignored,
+        ignored: [
+          "**/node_modules/**",
+          "**/.git/**",
+          "**/apps/author-ecosystem/client/**",
+          "**/apps/author-ecosystem/server/tests/**",
+        ],
       };
     }
     return config;
   },
 };
 
-export default nextConfig;
+/** Drop empty `watchOptions.ignored` entries (webpack schema) after Sentry wraps webpack. */
+function withSanitizedWatchOptions(config: NextConfig): NextConfig {
+  const prior = config.webpack;
+  return {
+    ...config,
+    webpack(webpackConfig, options) {
+      const resolved =
+        typeof prior === "function" ? prior(webpackConfig, options) : webpackConfig;
+      const ignored = resolved.watchOptions?.ignored;
+      if (ignored == null) return resolved;
+      const list = (Array.isArray(ignored) ? ignored : [ignored]).filter((entry) =>
+        typeof entry === "string" ? entry.trim().length > 0 : entry != null
+      );
+      resolved.watchOptions = {
+        ...resolved.watchOptions,
+        ...(list.length > 0 ? { ignored: list } : {}),
+      };
+      if (list.length === 0 && resolved.watchOptions) {
+        delete resolved.watchOptions.ignored;
+      }
+      return resolved;
+    },
+  };
+}
+
+export default withSanitizedWatchOptions(
+  withSentryConfig(nextConfig, {
+    org: process.env.SENTRY_ORG?.trim() || process.env.SENTRY_ORG_SLUG?.trim() || undefined,
+    project:
+      process.env.SENTRY_PROJECT?.trim() || process.env.SENTRY_PROJECT_SLUG?.trim() || undefined,
+    authToken: process.env.SENTRY_AUTH_TOKEN?.trim() || undefined,
+    widenClientFileUpload: true,
+    tunnelRoute: "/monitoring",
+    silent: !process.env.CI,
+  })
+);

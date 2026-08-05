@@ -8,14 +8,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
  * M3 — commercial entitlement gate for MSGF Brain (`POST /api/msgf/pulse`).
  *
  * Reads `p4_profiles.tier_id`, `current_credits`, `stripe_subscription_status`, and
- * `billing_license_type`. Stripe subscription verification is mocked until webhooks
- * populate `stripe_subscription_status` (see `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE`).
+ * `billing_license_type`.
+ *
+ * Mock vs live:
+ * - `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=1` → monthly users pass without DB `active`.
+ * - `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0` → enforce real `stripe_subscription_status`
+ *   (and lifetime credits). Prefer flipping with `MSGF_STRIPE_WEBHOOK_LIVE=1`.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -48,12 +52,13 @@ function entitlementDisabled(): boolean {
 }
 
 /** When true, monthly users pass without `stripe_subscription_status = active` in DB. */
-function mockStripeSubscriptionActive(): boolean {
+export function mockStripeSubscriptionActive(): boolean {
   const v = process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE?.trim().toLowerCase();
   if (v === "0" || v === "false" || v === "no") return false;
   if (v === "1" || v === "true" || v === "yes") return true;
-  // Default mock ON until Stripe webhook is production-ready.
-  return process.env.MSGF_STRIPE_WEBHOOK_LIVE?.trim().toLowerCase() !== "true";
+  // Default mock ON until Stripe webhook is explicitly marked live.
+  const live = process.env.MSGF_STRIPE_WEBHOOK_LIVE?.trim().toLowerCase();
+  return live !== "true" && live !== "1" && live !== "yes";
 }
 
 export function isPulseEntitlementPath(pathname: string): boolean {
@@ -138,6 +143,8 @@ async function fetchProfileEntitlements(
 
 function isStripeSubscriptionActive(status: string | null, mock: boolean): boolean {
   if (status?.trim().toLowerCase() === "active") return true;
+  // Mock ON: treat missing/unknown as active for soft launch.
+  // Mock OFF: only explicit `active` passes — past_due / canceled / null block Pulse.
   return mock;
 }
 

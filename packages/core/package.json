@@ -63,13 +63,25 @@
       "types": "./src/lib/platform-hub-content.ts",
       "import": "./src/lib/platform-hub-content.ts",
       "default": "./src/lib/platform-hub-content.ts"
+    },
+    "./lib/crypto": {
+      "types": "./src/lib/crypto/index.ts",
+      "import": "./src/lib/crypto/index.ts",
+      "default": "./src/lib/crypto/index.ts"
     }
   },
+  "scripts": {
+    "test:crypto": "node --import tsx --test src/lib/crypto/*.test.ts"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1"
+    "@noble/curves": "^2.2.0",
+    "@noble/post-quantum": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.1",
+    "canonicalize": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "tsx": "^4.23.7",
     "typescript": "^5.7.0"
   }
 }

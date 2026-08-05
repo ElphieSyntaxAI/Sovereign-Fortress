@@ -8,17 +8,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
  * Tenant BYOK / provider API keys: AES-256-GCM envelope locally (CRYPTO_SECRET_KEY),
- * or Google Cloud KMS–wrapped DEK when NODE_ENV === "production".
+ * Google Cloud KMS–wrapped DEK when NODE_ENV === "production",
+ * or hybrid X25519+ML-KEM-768 envelope (0x03) when MSGF_HYBRID_KEM_ENABLED=1.
  */
 import crypto from "crypto";
+
+import {
+  ML_KEM_768_PUBLIC_KEY_LENGTH,
+  ML_KEM_768_SECRET_KEY_LENGTH,
+  X25519_PUBLIC_KEY_LENGTH,
+  packHybridEnvelope0x03,
+  unpackHybridEnvelope0x03,
+  type HybridRecipientPublicKeys,
+  type HybridRecipientSecretKeys,
+} from "@elphie-syntax/core/lib/crypto";
 
 const FORMAT_LOCAL = 0x01;
 /** KMS wraps a random DEK; payload ciphertext uses AES-GCM with that DEK (fresh IV + tag per encrypt). */
 const FORMAT_KMS = 0x02;
+/** Hybrid KEM (X25519 + ML-KEM-768) + AES-256-GCM — see docs/MSGF_PQC_CRYPTO_AUDIT.md */
+const FORMAT_HYBRID = 0x03;
 
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
@@ -29,7 +42,7 @@ function assertProductionKmsConfigured(): string {
   const name = process.env.MSGF_KMS_CRYPTO_KEY_PATH?.trim();
   if (!name) {
     throw new Error(
-      'Production credential encryption requires MSGF_KMS_CRYPTO_KEY_PATH (full KMS CryptoKey resource name).'
+      "Production credential encryption requires MSGF_KMS_CRYPTO_KEY_PATH (full KMS CryptoKey resource name)."
     );
   }
   return name;
@@ -99,15 +112,13 @@ function aesGcmDecrypt(dek: Buffer, iv: Buffer, tag: Buffer, ciphertext: Buffer)
 }
 
 function packLocalEnvelope(iv: Buffer, tag: Buffer, ciphertext: Buffer): string {
-  return Buffer.concat([
-    Buffer.from([FORMAT_LOCAL]),
-    iv,
-    tag,
-    ciphertext,
-  ]).toString("hex");
+  return Buffer.concat([Buffer.from([FORMAT_LOCAL]), iv, tag, ciphertext]).toString("hex");
 }
 
-function unpackAesPayload(buf: Buffer, offset: number): { iv: Buffer; tag: Buffer; ciphertext: Buffer; nextOffset: number } {
+function unpackAesPayload(
+  buf: Buffer,
+  offset: number
+): { iv: Buffer; tag: Buffer; ciphertext: Buffer; nextOffset: number } {
   if (buf.length < offset + IV_LENGTH + TAG_LENGTH) {
     throw new Error("Credential blob truncated (expected iv + tag + ciphertext).");
   }
@@ -127,6 +138,37 @@ function decryptLocalEnvelope(buf: Buffer): string {
   return aesGcmDecrypt(dek, iv, tag, ciphertext);
 }
 
+function hybridEnabled(): boolean {
+  const v = process.env.MSGF_HYBRID_KEM_ENABLED?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+function decodeHexEnv(name: string, expectedLen: number): Buffer {
+  const raw = process.env[name]?.trim();
+  if (!raw) {
+    throw new Error(`${name} is required when MSGF_HYBRID_KEM_ENABLED is set (hex, ${expectedLen} bytes).`);
+  }
+  const buf = Buffer.from(raw, "hex");
+  if (buf.length !== expectedLen) {
+    throw new Error(`${name} must be ${expectedLen} bytes hex (got ${buf.length}).`);
+  }
+  return buf;
+}
+
+function loadHybridRecipientPublicKeys(): HybridRecipientPublicKeys {
+  return {
+    x25519PublicKey: decodeHexEnv("MSGF_HYBRID_X25519_PUBLIC_KEY", X25519_PUBLIC_KEY_LENGTH),
+    mlKem768PublicKey: decodeHexEnv("MSGF_HYBRID_MLKEM_PUBLIC_KEY", ML_KEM_768_PUBLIC_KEY_LENGTH),
+  };
+}
+
+function loadHybridRecipientSecretKeys(): HybridRecipientSecretKeys {
+  return {
+    x25519SecretKey: decodeHexEnv("MSGF_HYBRID_X25519_SECRET_KEY", X25519_PUBLIC_KEY_LENGTH),
+    mlKem768SecretKey: decodeHexEnv("MSGF_HYBRID_MLKEM_SECRET_KEY", ML_KEM_768_SECRET_KEY_LENGTH),
+  };
+}
+
 /**
  * Encrypt a tenant-provided API key. Unique IV and auth tag per call.
  * @returns Lowercase hex string (versioned envelope).
@@ -135,6 +177,11 @@ export async function encryptKey(plainTextKey: string): Promise<string> {
   const plain = plainTextKey ?? "";
   if (plain.length === 0) {
     throw new Error("encryptKey: empty key");
+  }
+
+  if (hybridEnabled()) {
+    const packed = packHybridEnvelope0x03(plain, loadHybridRecipientPublicKeys());
+    return packed.toString("hex");
   }
 
   if (process.env.NODE_ENV === "production") {
@@ -204,6 +251,10 @@ export async function decryptKey(encryptedHex: string): Promise<string> {
     }
     const { iv, tag, ciphertext } = unpackAesPayload(aesBuf, 0);
     return aesGcmDecrypt(dek, iv, tag, ciphertext);
+  }
+
+  if (version === FORMAT_HYBRID) {
+    return unpackHybridEnvelope0x03(buf, loadHybridRecipientSecretKeys());
   }
 
   throw new Error(`decryptKey: unknown envelope version ${version}`);

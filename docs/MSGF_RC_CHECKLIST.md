@@ -1,13 +1,13 @@
 # MSGF 1.0 RC — Completion checklist (MSGF only)
 
-**Scope:** `packages/msgf` + `msgf-pulse-guard` + ops deploy. **Out of scope:** Stripe (M3), Author 1.0 product, Education MVP.
+**Scope:** `packages/msgf` + `msgf-pulse-guard` + ops deploy + **Stripe M3 for paid go-live**. **Out of scope:** Author 1.0 product, Education MVP, boss-demo theater.
 
-**Gate for tag `msgf-v1.0.0`:** All **P0** and **P1** checked; **P2** documented or deferred with owner.
+**Gate for tag `msgf-v1.0.0`:** All **P0** and **P1** checked; **P0-M3** required before paid self-serve claims; **P2** documented or deferred with owner.
 
-**SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)
+**SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-07-24  
-**Focus:** Production RC. Boss demo deferred — Part B CONVERGE tier + hot layer landed 2026-07-24; enable with `MSGF_CONVERGE_TIER_ENABLED=1`. See [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md).
+**Last updated:** 2026-08-02  
+**Focus:** Production RC + Stripe paid path + Sentry SDK. Boss demo deferred — Part B CONVERGE tier + hot layer landed 2026-07-24; enable with `MSGF_CONVERGE_TIER_ENABLED=1`. See [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md).
 
 ---
 
@@ -15,14 +15,18 @@
 
 Run from monorepo root. All must pass on a clean machine with env filled.
 
-- [ ] `npm run test:unit -w msgf`
+- [x] `npm run test:unit -w msgf` (includes Jul 24 suites; 2026-07-24 green)
+- [x] `npm run test:stripe-entitlements -w msgf` (2026-08-02)
 - [ ] `npm run test:savings -w msgf`
+- [x] **Build blocker:** `showDirectoryPicker` typing fixed via `types/file-system-access.d.ts` (2026-08-02). Re-run `validate:deployment` / full `next build` after Windows webpack flake (`3221226505`).
 - [ ] `npm run deep-test:solo -w msgf`
 - [ ] `npm run verify:msgf-env -w msgf`
-- [ ] `npm run db:push:verify -w msgf` (when touching schema)
+- [x] `npm run db:push` applied `20260802010000_p4_profiles_stripe_subscription.sql` (2026-08-02)
+- [ ] `npm run db:push:verify -w msgf` — include new `20260802010000_p4_profiles_stripe_subscription.sql`
 - [ ] `npm run validate:deployment` (unit + production `next build`)
-- [ ] Jul 24 pitfall/integration unit suites: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
+- [x] Jul 24 pitfall/integration unit suites: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
 - [x] Migration `20260724030400_msgf_company_tier_rules.sql` applied on remote (2026-07-24 `db:push`)
+- [x] Migration `20260802010000_p4_profiles_stripe_subscription.sql` applied on remote (2026-08-02)
 
 **Integration (needs Supabase / Redis env):**
 
@@ -53,6 +57,7 @@ Document date + operator + tenant id in changelog when done.
 - [ ] `/admin/dashboard#token-savings` + `#big-brain-issues` load live data
 - [ ] `POST /api/msgf/ops/v32-heartbeat` with `{"dry_run":true}` — 200 + expected summary
 - [ ] `/setup/projects` — monorepo preset creates row with correct `project_origin`
+- [ ] Sentry SDK: `GET /api/sentry-test` → issue in project `msgf` → delete route
 
 ---
 
@@ -90,6 +95,15 @@ Document date + operator + tenant id in changelog when done.
 - [ ] `npm run verify:brain-routing -w msgf` on staging (live smoke)
 - [ ] Ops: Signed HITL audit verify + Skip-MSGF audit panels load for an admin session
 
+### Sentry (SDK + ops)
+
+- [x] `@sentry/nextjs` wired in `packages/msgf` (errors + tracing; tunnel `/monitoring`)
+- [x] Local env: DSN, `SENTRY_ORG_SLUG=elphie-syntax-llc`, `SENTRY_PROJECT_SLUG=msgf`, auth token, `SENTRY_BASE_URL=https://us.sentry.io`
+- [ ] Rotate auth token; ensure scopes cover ops panel read (+ Resolve if needed)
+- [ ] Cloud Run: `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` + auth token + org/project
+- [ ] Ops panel Load issues smoke
+- [ ] Delete `app/api/sentry-test` after first verified event
+
 ---
 
 ## P1 — MSGF product surface (gatedai)
@@ -98,6 +112,25 @@ Document date + operator + tenant id in changelog when done.
 - [ ] Token savings panel (user) + admin catalog + pulse routing mix — live Redis counters
 - [ ] Credit guard / reservation: 402 path tested with reservation enabled
 - [ ] Solo integrator: license mint + `probe:solo` against production/staging gatedai URL
+
+---
+
+## P0-M3 — Stripe / paid entitlements (blocks paid claims)
+
+Full detail: [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b.
+
+**Code (2026-08-02):** Startup Team checkout activation · subscription updated/deleted · `invoice.payment_failed` → `past_due` · entitlement mock/live · env verifier Price IDs when live · `test:stripe-entitlements`.
+
+- [x] Stripe test Price IDs mapped: Pro perpetual `price_1TzvlH45Z9uJcKXAiX8a5IF` → `STRIPE_PRICE_PRO_INDIVIDUAL`; Startup monthly `price_1TzwGGH45Z9uJcKXaWckdzAt` → `STRIPE_PRICE_STARTUP_TEAM` (Solo Pro + yearly kept in Stripe, not in app yet)
+- [x] `STRIPE_SECRET_KEY` (test) + Price IDs in local `.env.local`
+- [~] Local `stripe listen` → `localhost:3000/api/webhooks/stripe` (CLI `whsec_` in `.env.local`); staging Dashboard webhook still open
+- [x] Startup Team checkout writes seats / `stripe_subscription_status=active` (code)
+- [x] Subscription updated/deleted + payment_failed update profile status (code)
+- [x] Apply `20260802010000_p4_profiles_stripe_subscription.sql` on remote (2026-08-02)
+- [ ] Staging/local smoke (test cards): Pro $99 → perpetual; Startup Team → Pulse with mock off
+- [ ] **Live / paid claims** blocked until Stripe **identity verification** completes
+- [ ] Prod flip (post-identity): live keys + `MSGF_STRIPE_WEBHOOK_LIVE=1` + `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0`
+- [ ] Indie $0 BYOK path still works without Stripe
 
 ---
 
@@ -111,11 +144,12 @@ Document date + operator + tenant id in changelog when done.
 
 ---
 
-## Explicitly not required for MSGF RC
+## Explicitly not required for MSGF technical soft-RC
 
 | Item | Track |
 | :--- | :--- |
-| Stripe Checkout / webhook | Post-test (M3) |
+| Stripe live keys / mock-off | **Required for paid go-live (P0-M3)** — soft-RC + test-mode checkout OK; live blocked on Stripe identity |
+| Sentry Session Replay / Logging / Profiling | P2 — first-error baseline is errors + tracing only |
 | `packages/msgf/apps/web` split | Optional M2 polish |
 | Author BFF healing popout | Author 1.x |
 | Education LTI / sandbox MVP | [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) |
@@ -137,6 +171,8 @@ MSGF can RC without these; include if your gate requires M5:
 
 | Date | Note |
 | :--- | :--- |
+| 2026-08-02 | Marked Stripe entitlement **code** + Sentry SDK local wiring done; added build blocker, Stripe migration, Sentry Cloud Run / verify smokes; P0-M3 still blocked on Prices + staging smoke + mock-off. |
+| 2026-08-02 | Stripe M3 added as **P0-M3** (paid go-live gate); no longer “out of scope.” |
 | 2026-07-24 | Prod-first focus; A4–A6 / I4–I5 suites + audit secrets + migration notes. Boss demo deferred. |
 | 2026-05-20 | Initial MSGF-only RC checklist (P0–P2). |
 | 2026-05-20 | Build fixes: `ide-connector` devSession default, `PostIngestHealingConsole` null queue, `PulseRoutingKind` alias, `heal-queue-audience` RemediationTask types. |

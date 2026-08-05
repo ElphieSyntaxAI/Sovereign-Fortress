@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
  * Stripe Checkout session initialization for MSGF pricing tiers.
@@ -90,6 +90,14 @@ export async function createStripeCheckoutSession(params: {
     };
   }
 
+  const entityId = params.entityId?.trim() || "";
+  const sharedMetadata: Record<string, string> = {
+    msgf_plan: params.planId,
+    msgf_tier: plan.tierMetadata,
+    msgf_seat_quantity: String(quantity),
+    ...(entityId ? { msgf_entity_id: entityId } : {}),
+  };
+
   const session = await stripe.checkout.sessions.create({
     mode: plan.mode,
     line_items: [{ price: priceId, quantity }],
@@ -97,21 +105,12 @@ export async function createStripeCheckoutSession(params: {
     cancel_url: `${origin}/pricing?checkout=cancelled&plan=${params.planId}`,
     customer_email: params.customerEmail?.trim() || undefined,
     allow_promotion_codes: true,
-    client_reference_id: params.entityId?.trim() || undefined,
-    metadata: {
-      msgf_plan: params.planId,
-      msgf_tier: plan.tierMetadata,
-      ...(params.entityId?.trim()
-        ? { msgf_entity_id: params.entityId.trim() }
-        : {}),
-    },
+    client_reference_id: entityId || undefined,
+    metadata: sharedMetadata,
     ...(plan.mode === "subscription"
       ? {
           subscription_data: {
-            metadata: {
-              msgf_plan: params.planId,
-              msgf_tier: plan.tierMetadata,
-            },
+            metadata: sharedMetadata,
           },
         }
       : {}),

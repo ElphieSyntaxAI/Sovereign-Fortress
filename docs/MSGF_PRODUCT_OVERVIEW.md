@@ -2,7 +2,7 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-08-01 (Pulse Guard **v0.2.3**; packaging table added §9.1; claim-safety rules §10)
+**Last updated:** 2026-08-02 (Pulse Guard **v0.2.3**; packaging table §9.1; **Stripe M3 in plan**; claim-safety rules §10)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
 **RC / deploy:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md)
@@ -304,7 +304,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | **Individual Pro (perpetual)** | **$99** one-time | Own it forever; Year 1 managed cloud consensus (**1,200 verification slices / month**); zero config on our infra; graceful fallback to 100% BYOK after Year 1 | The differentiator vs subscriptions. Be precise: the fallback is BYOK, not a shutoff. |
 | **Startup Team** | **$49** / user / mo | Multi-tenant corporate workspace scopes, global ARBITRATE consoles, company-wide P1 rulebooks, shared incident logs | Where signing, domains, SSO, and ops consoles earn their keep. |
 
-**Checkout caveat:** Stripe is **deferred (M3)** and entitlements are mocked by default. Do not promise self-serve card checkout on a call — route paid interest through a manual/contract path until `MSGF_STRIPE_WEBHOOK_LIVE` is on.
+**Checkout status:** Stripe is **in plan (M3)**. Skeleton Checkout + Pro perpetual webhook exist; Startup Team entitlement + subscription lifecycle + mock-off flip are still open ([`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b). Until that checklist is green, route paid interest carefully — do not promise self-serve card success on a call.
 
 ### Objection handling (sales)
 
@@ -313,7 +313,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | “Another AI wrapper” | Six-pillar cold archive + Vault/Hall learning + dual-model only on drift — not a chat UI. |
 | “Too expensive” | Small Brain + cache + Heal Cheap are the default; CONVERGE is the exception. Show token-savings panel. |
 | “Will it block my team?” | Shadow can short-circuit; Safe Build is local; skip path is audited (A5); HITL is ops, not every commit. |
-| “Trust / compliance?” | Signed skip + ARBITRATE audits; quarantine without auto-demote; tenant compound scope. |
+| “Trust / compliance?” | Signed skip + ARBITRATE audits; quarantine without auto-demote; tenant compound scope. Author Chain of Origin exports can use **ML-DSA-65** signatures (algorithm per FIPS 204) — not a claim that HTTPS itself is post-quantum; see [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). |
 | “We already have Sentry” | MSGF links crashes to **governance memory** (Vault wins) — Sentry owns runtime; MSGF owns what the AI should remember. |
 | “We can’t send code to your models” | Two separate answers — don’t blur them. **BYOK:** the Small Brain runs on the customer’s provider and key (OpenAI / Anthropic / Ollama / DeepSeek / Gemini); we never bill or read their model account. **Self-hosted:** the Indie tier runs against the customer’s own Redis + Supabase. Note that BYOK alone still routes the Pulse through the MSGF API — only the self-hosted path keeps data off our infrastructure. |
 | “How hard is integration?” | The extension scaffolds `.msgf/dev/` with an API cookbook, sample requests, and a connection script — they can smoke-test from their own terminal before signing anything. |
@@ -335,7 +335,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Do not promise yet | Track |
 | :--- | :--- |
-| Stripe Checkout as the only path | Post-test (M3) — mock entitlement OK for soft launch |
+| Self-serve Stripe Checkout as production-ready | **In plan (M3 / P0-M3)** — finish DEV_TODO §2b before claiming it |
 | Nanosecond hot-layer SLO as a hard SLA | 1.1 polish (infra wired) |
 | Cursor MCP as a supported install | Optional power-user path — needs manual `.cursor/mcp.json` ([`MSGF_IDE_MCP.md`](./MSGF_IDE_MCP.md)) |
 | Boss-demo layered theater silos | Parked — [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md) |
@@ -374,6 +374,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Date | Note |
 | :--- | :--- |
+| 2026-08-02 | Stripe M3 moved **into plan** (not deferred): §9.1 checkout status + §10 claim-safety updated; pointer to DEV_TODO §2b. |
 | 2026-08-01 | Pulse Guard **0.1.8 → 0.2.3**: opt-in default, setup wizard, monorepo product scoping, `.msgf/dev/` integrator kit (§5.1a), BYOK Small Brain providers (§5.1b), optional MCP (§5.4). Added §9.1 packaging table sourced from `pricing-tiers.ts`, three BYOK/integration objections, and a **configured vs shipped** rule in §10. |
 | 2026-07-24 | Full refresh: product map, Part B / hot layer / quarantine / integrations, sales objections, RC exclusions. |
 | 2026-05-28 | IDE Command Center, verify loop, savings dashboard. |

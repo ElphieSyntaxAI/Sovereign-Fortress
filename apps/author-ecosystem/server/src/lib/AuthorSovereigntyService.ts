@@ -8,6 +8,12 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
+import {
+  ML_DSA_65_ALGORITHM,
+  signCanonicalJsonMlDsa65,
+  verifyCanonicalJsonMlDsa65,
+} from "@elphie-syntax/core/lib/crypto";
+
 import { P4_HAL_LEDGER } from "./database/canonicalIdentifiers.js";
 import type { LinguisticSessionProfile } from "./forensics/linguistics.js";
 import { LibrarianChat, type LibrarianAskResult, type LibrarianLanguage } from "./narrative/LibrarianChat.js";
@@ -142,7 +148,7 @@ export type HumanAuthorshipCertificateSession = {
   isImeSession: boolean | null;
 };
 
-export type HumanAuthorshipCertificate = {
+export type HumanAuthorshipCertificateV1 = {
   schema: "human_authorship_certificate.v1";
   issuedAt: string;
   tenantId: string;
@@ -151,6 +157,80 @@ export type HumanAuthorshipCertificate = {
   contentSha256: string;
   sessions: HumanAuthorshipCertificateSession[];
 };
+
+export type HalV2SignedPayload = {
+  tenantId: string;
+  issuedAt: string;
+  sessions: Array<{
+    ledgerId: string;
+    sessionId: string;
+    createdAt: string;
+    latencyProof: HalLatencyProof;
+  }>;
+  vaultSealSha256: string | null;
+  loreGit: { status: "unavailable" } | { status: "present"; tip: string; fingerprints?: string[] };
+};
+
+export type HumanAuthorshipCertificateV2 = {
+  schema: "human_authorship_certificate.v2";
+  issuedAt: string;
+  tenantId: string;
+  sessionCount: number;
+  contentSha256: string;
+  payloadSha256: string;
+  payload: HalV2SignedPayload;
+  payloadCanonical: string;
+  signatureAlgorithm: "ML-DSA-65";
+  publicKeyId: string;
+  /** Base64 ML-DSA-65 public key. */
+  publicKey: string;
+  /** Base64 ML-DSA-65 signature over UTF-8 payloadCanonical. */
+  signature: string;
+  signedAt: string;
+  sessions: HumanAuthorshipCertificateSession[];
+};
+
+export type HumanAuthorshipCertificate = HumanAuthorshipCertificateV1 | HumanAuthorshipCertificateV2;
+
+export type BuildHumanAuthorshipCertificateOptions = {
+  pqcSign?: boolean;
+  vaultSealSha256?: string | null;
+  loreGit?: HalV2SignedPayload["loreGit"];
+  mlDsaSecretKeyHex?: string;
+  mlDsaPublicKeyHex?: string;
+  publicKeyId?: string;
+};
+
+function pqcSignEnabled(opts?: BuildHumanAuthorshipCertificateOptions): boolean {
+  if (opts?.pqcSign === true) return true;
+  if (opts?.pqcSign === false) return false;
+  const v = process.env.MSGF_HAL_PQC_SIGN?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+function loadMlDsaIssuerKeys(opts?: BuildHumanAuthorshipCertificateOptions): {
+  secretKey: Uint8Array;
+  publicKey: Uint8Array;
+  publicKeyId: string;
+} {
+  const skHex = opts?.mlDsaSecretKeyHex?.trim() || process.env.MSGF_HAL_MLDSA_SECRET_KEY?.trim();
+  const pkHex = opts?.mlDsaPublicKeyHex?.trim() || process.env.MSGF_HAL_MLDSA_PUBLIC_KEY?.trim();
+  if (!skHex || !pkHex) {
+    throw new Error(
+      "HAL v2 PQC sign requires MSGF_HAL_MLDSA_SECRET_KEY and MSGF_HAL_MLDSA_PUBLIC_KEY (hex), or pass keys in options."
+    );
+  }
+  const secretKey = Buffer.from(skHex, "hex");
+  const publicKey = Buffer.from(pkHex, "hex");
+  if (secretKey.length !== 4032 || publicKey.length !== 1952) {
+    throw new Error("HAL ML-DSA-65 keys must be 4032-byte secret and 1952-byte public (hex-decoded).");
+  }
+  const publicKeyId =
+    opts?.publicKeyId?.trim() ||
+    process.env.MSGF_HAL_MLDSA_PUBLIC_KEY_ID?.trim() ||
+    createHash("sha256").update(publicKey).digest("hex");
+  return { secretKey, publicKey, publicKeyId };
+}
 
 export type P4HalLedgerCertificateRow = {
   id: string;
@@ -232,30 +312,88 @@ function sessionFromLedgerRow(row: P4HalLedgerCertificateRow): HumanAuthorshipCe
 
 /**
  * Build a portable certificate object from HAL ledger rows (ms latency proof per session).
+ * Emits v2 (ML-DSA-65) when `MSGF_HAL_PQC_SIGN=1` or `opts.pqcSign`.
  */
 export function buildHumanAuthorshipCertificate(
   tenantId: string,
-  rows: P4HalLedgerCertificateRow[]
+  rows: P4HalLedgerCertificateRow[],
+  opts?: BuildHumanAuthorshipCertificateOptions
 ): HumanAuthorshipCertificate {
   const sessions = rows.map(sessionFromLedgerRow);
-  const canonical = JSON.stringify({
+  const issuedAt = new Date().toISOString();
+
+  if (!pqcSignEnabled(opts)) {
+    const canonical = JSON.stringify({
+      tenantId,
+      sessions: sessions.map((s) => ({
+        ledgerId: s.ledgerId,
+        sessionId: s.sessionId,
+        createdAt: s.createdAt,
+        latencyProof: s.latencyProof,
+      })),
+    });
+    const contentSha256 = sha256HexUtf8(canonical);
+    return {
+      schema: "human_authorship_certificate.v1",
+      issuedAt,
+      tenantId,
+      sessionCount: sessions.length,
+      contentSha256,
+      sessions,
+    };
+  }
+
+  const keys = loadMlDsaIssuerKeys(opts);
+  const payload: HalV2SignedPayload = {
     tenantId,
+    issuedAt,
     sessions: sessions.map((s) => ({
       ledgerId: s.ledgerId,
       sessionId: s.sessionId,
       createdAt: s.createdAt,
       latencyProof: s.latencyProof,
     })),
-  });
-  const contentSha256 = sha256HexUtf8(canonical);
+    vaultSealSha256: opts?.vaultSealSha256 ?? null,
+    loreGit: opts?.loreGit ?? { status: "unavailable" },
+  };
+  const { payloadCanonical, payloadSha256, signature } = signCanonicalJsonMlDsa65(
+    keys.secretKey,
+    payload
+  );
   return {
-    schema: "human_authorship_certificate.v1",
-    issuedAt: new Date().toISOString(),
+    schema: "human_authorship_certificate.v2",
+    issuedAt,
     tenantId,
     sessionCount: sessions.length,
-    contentSha256,
+    contentSha256: payloadSha256,
+    payloadSha256,
+    payload,
+    payloadCanonical,
+    signatureAlgorithm: ML_DSA_65_ALGORITHM,
+    publicKeyId: keys.publicKeyId,
+    publicKey: Buffer.from(keys.publicKey).toString("base64"),
+    signature: Buffer.from(signature).toString("base64"),
+    signedAt: issuedAt,
     sessions,
   };
+}
+
+/** Verify a v2 certificate; v1 returns `{ ok: false, reason: "v1_unsigned" }`. */
+export function verifyHumanAuthorshipCertificate(cert: HumanAuthorshipCertificate): {
+  ok: boolean;
+  reason?: string;
+} {
+  if (cert.schema !== "human_authorship_certificate.v2") {
+    return { ok: false, reason: "v1_unsigned" };
+  }
+  try {
+    const publicKey = Buffer.from(cert.publicKey, "base64");
+    const signature = Buffer.from(cert.signature, "base64");
+    const ok = verifyCanonicalJsonMlDsa65(publicKey, cert.payload, signature);
+    return ok ? { ok: true } : { ok: false, reason: "signature_mismatch" };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : "verify_error" };
+  }
 }
 
 export function exportHumanAuthorshipCertificateJson(cert: HumanAuthorshipCertificate): string {
@@ -290,6 +428,9 @@ export async function exportHumanAuthorshipCertificatePdf(
   line(`Tenant: ${cert.tenantId}`);
   line(`Sessions: ${cert.sessionCount}`);
   line(`Content SHA-256: ${cert.contentSha256}`);
+  if (cert.schema === "human_authorship_certificate.v2") {
+    line(`Signature: ${cert.signatureAlgorithm} key=${cert.publicKeyId.slice(0, 16)}…`);
+  }
   y -= 8;
   line("Millisecond latency proof (per ledger row):", 11, bold);
 
@@ -402,10 +543,10 @@ export class AuthorSovereigntyService {
 
   async buildCertificateForTenant(
     tenantId: string,
-    options?: { limit?: number }
+    options?: { limit?: number } & BuildHumanAuthorshipCertificateOptions
   ): Promise<HumanAuthorshipCertificate> {
     const rows = await this.fetchHalLedgerForCertificate(tenantId, options);
-    return buildHumanAuthorshipCertificate(tenantId, rows);
+    return buildHumanAuthorshipCertificate(tenantId, rows, options);
   }
 
   /**

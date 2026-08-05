@@ -8,16 +8,26 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
- * Next.js server bootstrap — installs SIGTERM/SIGINT graceful shutdown on Node runtime only.
+ * Next.js server bootstrap — Sentry SDK registration + graceful shutdown.
  * @see https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
+ * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/
  */
+import * as Sentry from "@sentry/nextjs";
+
 export async function register() {
-  if (process.env.NEXT_RUNTIME !== "nodejs") {
-    return;
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("./sentry.server.config");
+    const { installShutdownHandlers } = await import("@/lib/runtime/shutdown-coordinator");
+    installShutdownHandlers();
   }
-  const { installShutdownHandlers } = await import("@/lib/runtime/shutdown-coordinator");
-  installShutdownHandlers();
+
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("./sentry.edge.config");
+  }
 }
+
+/** Captures unhandled server-side request errors (@sentry/nextjs ≥ 8.28.0). */
+export const onRequestError = Sentry.captureRequestError;

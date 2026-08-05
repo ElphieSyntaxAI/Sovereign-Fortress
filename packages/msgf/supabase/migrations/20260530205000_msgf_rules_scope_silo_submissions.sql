@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
+-- Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
 -- =============================================================================
 -- msgf_rules: GLOBAL vs LOCAL scope + disambiguation key for upserts.
 -- Submissions: company admins propose elevating a local mitigation to platform-global rules.

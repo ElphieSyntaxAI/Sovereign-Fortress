@@ -1,12 +1,29 @@
-# MSGF — Native Sentry (admin ops)
+# MSGF — Native Sentry (SDK + admin ops)
 
-**Purpose:** Show Sentry runtime issues inside MSGF **Ops console** (`/admin/ops`) next to ARBITRATE and DocuSign. Complements Pulse Guard / verify (dev governance) with production error monitoring your boss already uses.
+**Purpose:** (1) Instrument the gatedai Next.js app with `@sentry/nextjs` (errors + tracing). (2) Show Sentry runtime issues inside MSGF **Ops console** (`/admin/ops`) next to ARBITRATE and DocuSign.
 
-**API:** `GET/PUT /api/msgf/admin/sentry` (operators only — `GLOBAL_ADMIN` / `COMPANY_ADMIN`)
+**API (ops panel):** `GET/PUT /api/msgf/admin/sentry` (operators only — `GLOBAL_ADMIN` / `COMPANY_ADMIN`)
 
 ---
 
-## Env (MSGF host)
+## Env — SDK (required for error capture)
+
+| Variable | Required | Purpose |
+| :--- | :---: | :--- |
+| `NEXT_PUBLIC_SENTRY_DSN` | Yes (client) | Browser DSN |
+| `SENTRY_DSN` | Yes (server/edge) | Server/edge DSN (may match public) |
+| `SENTRY_AUTH_TOKEN` | Build | Source map upload via `withSentryConfig` |
+| `SENTRY_ORG` / `SENTRY_ORG_SLUG` | Build | Org slug for source maps |
+| `SENTRY_PROJECT` / `SENTRY_PROJECT_SLUG` | Build | Project slug for source maps |
+| `SENTRY_ENVIRONMENT` | No | e.g. `production` / `staging` |
+
+Config files: `instrumentation-client.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, `instrumentation.ts`, `app/global-error.tsx`. Tunnel: `/monitoring` (excluded from middleware).
+
+**Verify:** with DSN set, `GET /api/sentry-test` then check Sentry Issues — **delete that route after confirmation**.
+
+---
+
+## Env — Ops panel / quarantine
 
 | Variable | Required | Purpose |
 | :--- | :---: | :--- |
