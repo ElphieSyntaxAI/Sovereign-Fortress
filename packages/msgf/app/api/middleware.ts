@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { applyIndividualTenantPromotion } from "@/lib/middleware/individual-tenant-promotion";
+import { stripServerOnlyPulseHeaders } from "@/lib/gateway/header-sanitizer";
 import { MSGF_TENANT_ID_HEADER } from "@/lib/msgf-http-headers";
 import { MSGF_WRITE_TARGET_HEADER } from "@/lib/msgf-tenant-governance";
 import {
@@ -37,6 +38,7 @@ export type MsgfApiMiddlewareResult = {
 
 /**
  * Enforces:
+ * - **Strip spoofable Pulse trust headers** before promotion
  * - **Independent developers** — `tenant-indiv-{userId}` + `company_admin` inside personal sandbox only
  * - **PRODUCTION_AUTHOR** — Origin / Referer / Host must match `MSGF_PRODUCTION_AUTHOR_ALLOWED_ORIGINS`
  * - **DEV_TEST / personal sandbox** — mutating methods set `x-msgf-write-target: sandbox`
@@ -52,7 +54,11 @@ export async function applyMsgfApiTenantMiddleware(
     return { response: null, request };
   }
 
-  const promotion = await applyIndividualTenantPromotion(request);
+  // Never trust client-supplied Pulse promotion markers.
+  const strippedHeaders = stripServerOnlyPulseHeaders(request.headers);
+  const strippedRequest = new NextRequest(request, { headers: strippedHeaders });
+
+  const promotion = await applyIndividualTenantPromotion(strippedRequest);
   if (promotion.response) {
     return { response: promotion.response, request };
   }

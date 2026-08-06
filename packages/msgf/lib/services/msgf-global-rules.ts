@@ -20,7 +20,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { MitigationAction } from "@/lib/schemas/mitigation-action";
 import type { GenealogicalBugIndex } from "@/lib/schemas/vault-hall-metadata";
-import type { ShadowPreflightResult } from "@/lib/msgf-shadow";
+import type { DefendPreflightResult as ShadowPreflightResult } from "@/lib/defend-preflight";
 import {
   assertGlobalWriteAllowed,
   GLOBAL_PROMOTION_STATUS_GLOBAL_SUCCESS,

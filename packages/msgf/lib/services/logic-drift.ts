@@ -16,7 +16,7 @@
  */
 
 import type { PrioritizedVaultLineage } from "@/lib/services/p2-flow-roadmap";
-import type { ShadowPreflightResult } from "@/lib/msgf-shadow";
+import type { DefendPreflightResult as ShadowPreflightResult } from "@/lib/defend-preflight";
 
 /** Default escalation threshold when no sensitivity header is sent. */
 export const LOGIC_DRIFT_ESCALATION_THRESHOLD = 0.3;

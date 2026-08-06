@@ -20,7 +20,7 @@ import {
   isRedisConfigured,
 } from "@/lib/redis";
 import type { PulseHotSession } from "@/lib/services/pulse-hot-session";
-import type { ShadowPreflightResult } from "@/lib/msgf-shadow";
+import type { DefendPreflightResult as ShadowPreflightResult } from "@/lib/defend-preflight";
 
 export const V32_ULTRA_STEPS = [
   "SWEEP",

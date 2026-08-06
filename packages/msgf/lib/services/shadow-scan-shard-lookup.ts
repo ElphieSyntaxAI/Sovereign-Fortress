@@ -11,8 +11,11 @@
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
- * Read-only SWEEP shard index for active files (P5 shadow ingest cache in pillar_vectors).
+ * Read-only SWEEP shard index for active files (P5 Passive IDE Scan cache in pillar_vectors).
  * No local AST parsing — lightweight line/export hints only.
+ *
+ * Naming: historical `ShadowScan*` symbols; product term is **Passive IDE Scan**
+ * (not Shadow Proxy). Artifacts may still live under `.msgf/shadow-scan/`.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -33,6 +36,9 @@ export type ShadowScanFileShard = {
   governance_pillar: string | null;
   ingested_at: string | null;
 };
+
+/** Alias — prefer for new code (docs/glossary: Passive IDE Scan). */
+export type PassiveIdeScanFileShard = ShadowScanFileShard;
 
 export type ShadowScanShardLookupResult = {
   files: ShadowScanFileShard[];

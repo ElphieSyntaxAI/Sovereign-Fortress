@@ -18,6 +18,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies, headers } from "next/headers";
 
+import {
+  DashboardTenantAccessError,
+  validateDashboardTenantAccess,
+} from "@/lib/auth/dashboard-guard";
 import { buildSecurityIdeContext } from "@/lib/services/security-dev-settings";
 import { buildSecuritySnapshot } from "@/lib/services/security-snapshot";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -48,6 +52,21 @@ export async function GET(req: NextRequest) {
     }
 
     const admin = createAdminClient();
+
+    if (tenantIdParam) {
+      try {
+        await validateDashboardTenantAccess(admin, { user: session.user }, tenantIdParam);
+      } catch (e) {
+        if (e instanceof DashboardTenantAccessError) {
+          return NextResponse.json(
+            { ok: false, error: e.message },
+            { status: e.status }
+          );
+        }
+        throw e;
+      }
+    }
+
     const ideContext = await buildSecurityIdeContext(
       admin,
       session,

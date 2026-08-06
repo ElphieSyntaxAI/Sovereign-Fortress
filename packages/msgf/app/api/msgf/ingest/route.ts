@@ -54,7 +54,7 @@ import {
 import { recordSavingsFeatureCount } from "@/lib/services/savings-features-stats";
 import { isCostRunawayError, runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
-import { preFlightCheck } from "@/lib/msgf-shadow";
+import { runDefendPreflight as preFlightCheck } from "@/lib/defend-preflight";
 import { verifyIdeToken } from "@/lib/services/ide-token-service";
 import { MSGF_TENANT_KEY_HEADER } from "@/lib/msgf-http-headers";
 import {

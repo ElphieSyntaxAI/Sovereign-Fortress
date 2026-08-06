@@ -237,8 +237,8 @@ export async function runDocumentCompilerShadowPreflight(
   }
 
   try {
-    const { preFlightCheck } = await import("@/lib/msgf-shadow");
-    const result = await preFlightCheck(supabase, { text: previewText }, { tenantId });
+    const { runDefendPreflight } = await import("@/lib/defend-preflight");
+    const result = await runDefendPreflight(supabase, { text: previewText }, { tenantId });
     return {
       enabled: true,
       tier: result.tier,

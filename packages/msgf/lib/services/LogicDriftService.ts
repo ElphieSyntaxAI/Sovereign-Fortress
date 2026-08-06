@@ -16,7 +16,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { preFlightCheck } from "@/lib/msgf-shadow";
+import { runDefendPreflight as preFlightCheck } from "@/lib/defend-preflight";
 import type { DiagnosticSnapshot } from "@/lib/schemas/diagnostic-snapshot";
 import {
   assessLogicDrift,

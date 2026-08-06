@@ -18,6 +18,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
+import {
+  DashboardTenantAccessError,
+  validateDashboardTenantAccess,
+} from "@/lib/auth/dashboard-guard";
 import { getSavingsFeaturesSummary24h } from "@/lib/services/savings-features-stats";
 import { computeDefensibleSavingsBreakdown } from "@/lib/utils/savings-calculator";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -41,6 +45,18 @@ export async function GET(req: NextRequest) {
     }
 
     const admin = createAdminClient();
+    try {
+      await validateDashboardTenantAccess(admin, { user }, tenantId);
+    } catch (e) {
+      if (e instanceof DashboardTenantAccessError) {
+        return NextResponse.json(
+          { ok: false, error: e.message },
+          { status: e.status }
+        );
+      }
+      throw e;
+    }
+
     const [summary, defensible_breakdown] = await Promise.all([
       getSavingsFeaturesSummary24h(tenantId, "user"),
       computeDefensibleSavingsBreakdown(admin, tenantId),
