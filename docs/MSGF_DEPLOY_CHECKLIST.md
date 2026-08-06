@@ -2,6 +2,8 @@
 
 Use after merging the P0–P4 roadmap work. **Code is built; production needs deploy + migrations.**
 
+**Last updated:** 2026-08-06
+
 ---
 
 ## 1. Supabase migrations (apply in order)
@@ -20,6 +22,12 @@ Use after merging the P0–P4 roadmap work. **Code is built; production needs de
 | `20260724030200_msgf_skip_audit.sql` | A5 skip-MSGF audit |
 | `20260724030300_msgf_arbitrate_audit.sql` | A6 signed ARBITRATE audit |
 | `20260724030400_msgf_company_tier_rules.sql` | Part B company CONVERGE tier overrides |
+| `20260805010000_tri_consensus_config.sql` | TRI tenant consensus + xAI provider CHECK |
+| `20260806010000_provider_usage_proven_savings.sql` | Metered usage + proven avoidance events |
+| `20260806020000_period_savings_reports.sql` | Weekly/monthly period reports |
+| `20260806030000_shadow_evaluation_logs.sql` | Shadow Proxy eval ledger |
+| `20260806030100_period_reports_shadow_usd.sql` | Shadow projected USD on period reports |
+| `20260806200000_launch_governance_writers.sql` | Proven/usage gateway audit columns |
 
 ```bash
 npm run db:push -w msgf
@@ -44,6 +52,10 @@ MSGF_OPS_CRON_SECRET=...          # required: heartbeat, workers, audit fallback
 # STRIPE_PRICE_STARTUP_TEAM=price_...
 # MSGF_STRIPE_WEBHOOK_LIVE=1
 # MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0
+# Gateway / Active Governance (optional):
+# MSGF_ACTIVE_AGGRESSIVENESS=shard-and-route
+# MSGF_ACTIVE_PASSTHROUGH_FALLBACK=1
+# Never set ALLOW_DEMO_TENANT=true in production
 # Optional:
 # MSGF_IDE_TOKEN_TTL_DAYS=90
 # MSGF_HEAL_RESERVE_CHUNK=400
@@ -56,6 +68,7 @@ Redeploy **msgf** service after env update.
 ## 3. Local smoke (pre-deploy)
 
 ```bash
+npm run test:unit -w msgf
 npm run smoke:all -w msgf
 ```
 
@@ -70,8 +83,9 @@ npm run smoke:all -w msgf
 | 3 | **Mint long-lived IDE token** (optional) → Open in VS Code / Cursor |
 | 4 | Cursor → **Developer: Reload Window** |
 | 5 | **MSGF: Test connection** → all green |
-| 6 | Shadow scan → **Heal All…** → choose self-fix or cloud |
+| 6 | Passive IDE Scan → **Heal All…** → choose self-fix or cloud |
 | 7 | Workspace FAB (bug) → submit test issue → check `occurrence_count` |
+| 8 | Reports → Shadow Proxy / period PDF (after pointing an SDK at `/api/v1`) |
 
 ---
 
@@ -87,6 +101,17 @@ curl -sS "https://elphiesgatedai.elphiesyntax.com/api/msgf/ide/connectivity-chec
   -H "x-msgf-entity-id: test-entity"
 ```
 
+Shadow Proxy (replace `MSGF_KEY` + OpenAI key):
+
+```bash
+curl -sS "https://elphiesgatedai.elphiesyntax.com/api/v1/chat/completions" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "x-msgf-key: $MSGF_KEY" \
+  -H "x-msgf-mode: shadow" \
+  -H "content-type: application/json" \
+  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"ping"}]}'
+```
+
 ---
 
 ## 6. Deferred (do not promise in v1 soft-RC)
@@ -94,11 +119,14 @@ curl -sS "https://elphiesgatedai.elphiesyntax.com/api/msgf/ide/connectivity-chec
 - Disk-level auto-patch (P4 optional)
 - Stripe Customer Portal / invoice history UI (Checkout itself is **in plan** — M3 / DEV_TODO §2b)
 - Full Cursor MCP install (see [MSGF_IDE_MCP.md](./MSGF_IDE_MCP.md))
+- Embedding semantic similarity cache / dual-TRI chat wire on Active gateway (hash cache + state-gate shipped)
 
 ---
 
 ## Canonical docs
 
+- [MSGF_SHADOW_PROXY.md](./MSGF_SHADOW_PROXY.md)
+- [MSGF_PRODUCT_OVERVIEW.md](./MSGF_PRODUCT_OVERVIEW.md)
 - [MSGF_IDE_SETUP_RUNBOOK.md](./MSGF_IDE_SETUP_RUNBOOK.md)
 - [MSGF_IDE_INTEGRATION.md](./MSGF_IDE_INTEGRATION.md)
 - [MSGF_AGENT_EXECUTION_MATRIX.md](./MSGF_AGENT_EXECUTION_MATRIX.md)

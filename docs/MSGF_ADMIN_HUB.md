@@ -7,7 +7,7 @@
 | Portal | `/admin/portal` | Launch Author / Education / MSGF; local stack checklist |
 | Pillar health | `/admin/dashboard` | Six-pillar operator lens, token savings, Big Brain summary |
 | **Ops console** | `/admin/ops` | ARBITRATE · quarantine · audits · Sentry · DocuSign / signing |
-| Governance (personal) | `/dashboard` | Tenant pillar health, daily reports, security view |
+| Governance (personal) | `/dashboard` | Tenant pillar health, daily reports / period PDF, Shadow Proxy panel, security view |
 
 Sign in: `/admin/sign-in` (requires `GLOBAL_ADMIN` or `COMPANY_ADMIN` on `p4_profiles`, or `MSGF_GLOBAL_ADMIN_EMAILS`).
 

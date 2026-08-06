@@ -2,13 +2,13 @@
 
 **Audience:** Jessica / MSGF engineering  
 **Status:** Living checklist for **MSGF 1.0 production readiness** (gatedai + Pulse Guard + ops).  
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 
-**Priority now:** Staging smoke + Cloud Run secrets + green `validate:deployment` → technical soft-RC; then Stripe test Checkout smoke → paid go-live after identity.
+**Priority now:** `db:push` usage/shadow/governance migrations → staging smoke + Cloud Run secrets + green `validate:deployment` → technical soft-RC; then Stripe test Checkout smoke → paid go-live after identity.
 
 **Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~84%** · **paid self-serve ~68%**.
 
-**Related:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md)
+**Related:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md) · [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md)
 
 ---
 
@@ -33,14 +33,21 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [ ] Apply shadow evaluation logs migration `20260806030000_shadow_evaluation_logs.sql` (+ `…30100` shadow USD column)
 - [ ] Apply launch governance writers migration `20260806200000_launch_governance_writers.sql` (proven/usage audit columns)
 - [ ] `npm run db:push:verify -w msgf` after TRI + usage + shadow + governance migrations
-- [x] Gateway auth hardening (`authenticateGatewayKey` — never trust `x-msgf-tenant-id`)
+
+### 1.1b Launch hardening (code Done 2026-08-06)
+
+- [x] Gateway auth hardening (`authenticateGatewayKey` — never trust `x-msgf-tenant-id`; `msgf_live_*` / `msgf_test_*` / `msgf_ide_*`)
 - [x] Upstream header allowlist + Pulse trust-header strip
 - [x] Dashboard tenant IDOR guard on shadow/period/savings/security routes
-- [x] Active Governance Orchestrator (`x-msgf-mode: active` — cache + state-gate + sharded upstream)
+- [x] Active Governance Orchestrator (`x-msgf-mode: active` — PromptIR + cache + state-gate + sharded upstream)
+- [x] DEFEND / Passive IDE Scan disambiguation (aliases + docs; Shadow Proxy name reserved)
+- [x] Durable proven/usage PG writers (Redis hot path + best-effort insert)
+- [x] `npm run test:unit -w msgf` green including `test:shadow-proxy` (2026-08-06)
+- [x] Product overview + marketing cards + Shadow Proxy doc refreshed (2026-08-06)
 
 ### 1.2 Automated gates
 
-- [x] `npm run test:unit -w msgf` (historical green; re-run after TRI)
+- [x] `npm run test:unit -w msgf` (re-green 2026-08-06 after launch hardening)
 - [x] `npm run test:stripe-entitlements -w msgf`
 - [x] `npm run test:tri-consensus -w msgf` (majority vote + presets + notify threshold)
 - [x] `npm run test:hybrid-crypto -w msgf` / `test:hal-pqc` (PQC)
@@ -53,12 +60,14 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 
 | Env | Purpose | Status |
 | :--- | :--- | :--- |
-| `REDIS_URL` / Upstash | Hot layer | Confirm on staging/prod |
+| `REDIS_URL` / Upstash | Hot layer + gateway completion cache | Confirm on staging/prod |
 | `MSGF_OPS_CRON_SECRET` | Heartbeat / audits | **Open** on Cloud Run |
 | Sentry DSN + auth token + org/project | SDK + ops panel | Local **[~]**; Cloud Run **open** |
 | Stripe test keys + Price IDs + webhook secret | Paid path | Local **[~]**; Cloud Run **open** |
 | `XAI_API_KEY` + `MSGF_TRI_CONSENSUS_ENABLED=1` | Big Brain TRI | Optional until TRI live |
 | `MSGF_HYBRID_KEM_ENABLED=1` | Quantum-ready envelopes | Optional; document when on |
+| `MSGF_ACTIVE_AGGRESSIVENESS` | Active gateway default (`shard-and-route`) | Optional |
+| `ALLOW_DEMO_TENANT` | Non-prod gateway demo tenant only | Never on prod |
 
 - [ ] Secrets on staging + prod Cloud Run
 - [ ] GH Actions `msgf-tier-heartbeat.yml` wired
@@ -74,11 +83,15 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [ ] SDK: `GET /api/sentry-test` → delete route after
 - [ ] CONVERGE preset UI `/dashboard#token-savings` saves balanced_dual
 - [ ] `probe:solo` against staging gatedai URL
+- [ ] Shadow Proxy: OpenAI client → `/api/v1/chat/completions` with `x-msgf-key` → shadow-eval panel shows projected row
+- [ ] Active mode: same request with `x-msgf-mode: active` → `x-msgf-routing` header present; spoofed `x-msgf-tenant-id` ignored
+- [ ] Period reports PDF downloads for caller’s tenant only (403 on foreign tenant_id)
 
 ### 1.5 Product surfaces
 
 - [ ] Landing / features / pricing / workspace / `/status` / extension download on staging
 - [x] Marketing copy updated (TRI, Sentry, DocuSign/Dropbox Sign, quantum-ready) — 2026-08-05
+- [x] Marketing + product overview updated for Shadow Proxy / Active Governance / proven vs projected — 2026-08-06
 - [ ] Pulse Guard: `msgf.enabled` + tenantKey + token on a real workspace
 
 ---
@@ -110,6 +123,12 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [ ] Decide prod default for `MSGF_HYBRID_KEM_ENABLED` (off until ops ready)
 - [ ] Platform PQ-TLS checklist on Cloud Run LB ([`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md) §6)
 
+### Provider gateway
+
+- [x] Shadow Proxy + Active Orchestrator + auth/header hardening (code)
+- [ ] Staging smoke items in §1.4
+- [ ] Document Cloud Run CORS / timeout for long SSE if needed
+
 ---
 
 ## 2b. Stripe / paid entitlements (P0-M3)
@@ -131,6 +150,7 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [ ] Deploy-gate CI script documented
 - [ ] Ops strip: shared `project_origin` filter
 - [ ] Pulse Guard: quick-switch `tenantKey`
+- [ ] Post-proxy onboarding funnel: Shadow projected → enable Active → proven dashboard
 
 ---
 
@@ -145,6 +165,9 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK
 - [x] Part B CONVERGE tiers (flagged)
 - [x] TRI Big Brain + tenant presets (flagged)
 - [x] Hybrid PQC envelopes (flagged)
+- [x] Shadow Proxy + Active Governance (launch cut — hash cache / state-gate; embedding semantic + dual chat wire deferred)
+- [ ] Embedding semantic similarity cache on `/api/v1`
+- [ ] Dual/TRI chat completion synthesis on Active escalate
 - [ ] Sentry issue create from Pulse RED
 - [ ] Session Replay / Logging / Profiling
 - [ ] GitHub App (org-wide)
@@ -160,7 +183,9 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK
 2. **MSGF owns governance memory**; Sentry owns runtime.  
 3. **Unconfigured is OK** — panels degrade.  
 4. **RC > demo.**  
-5. **Do not claim “HTTPS is post-quantum”** without platform PQ-TLS — claim **app-layer hybrid KEM** for vault secrets / HAL v2.
+5. **Do not claim “HTTPS is post-quantum”** without platform PQ-TLS — claim **app-layer hybrid KEM** for vault secrets / HAL v2.  
+6. **Shadow projected ≠ proven eco** — never merge in public eco or sales slides.  
+7. **Gateway tenant always from license/IDE DB** — never from client `x-msgf-tenant-id`.
 
 ---
 
@@ -168,6 +193,7 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK
 
 | Date | Note |
 | :--- | :--- |
+| 2026-08-06 | Launch hardening Done (auth, sanitizer, IDOR, Active orchestrator, docs/marketing); unit suite re-green; remaining = migrations `db:push` + staging gateway smoke. |
 | 2026-08-05 | Rebaseline: TRI + PQC code Done; soft-RC ~84% / paid ~68%; remaining = validate + staging + secrets + Stripe smoke/identity. |
 | 2026-08-02 | Stripe entitlement code + Sentry SDK local; build typing fixed. |
 | 2026-07-24 | Production RC focus; Jul 24 migrations; Part B landed. |

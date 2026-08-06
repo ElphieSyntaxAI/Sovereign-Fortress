@@ -18,6 +18,7 @@
 | Codebase brain ingest | `POST /api/msgf/ingest` |
 | Post-ingest remediation | `GET/POST /api/msgf/heal-queue` |
 | Human arbitration | `POST /api/msgf/heal-queue/human-arbitration` |
+| OpenAI/Anthropic gateway | `POST /api/v1/chat/completions` · `POST /api/v1/messages` — [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md) |
 | Global mitigations (DEFEND) | `msgf_rules` / `global_mitigations` (DB) |
 | Scheduled ops | `POST /api/msgf/ops/v32-heartbeat` |
 | TypeScript client | `msgf/connector/MsgfBridge` · `msgf/ide-connector` |

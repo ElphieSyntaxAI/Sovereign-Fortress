@@ -13,7 +13,7 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-08-05 (TRI consensus + PQC hybrid envelopes + Stripe entitlement code + Sentry SDK; gap to launch = staging smoke, Cloud Run secrets, Stripe identity)
+**Last updated:** 2026-08-06 (Shadow Proxy + Active Governance + launch hardening; TRI/PQC/Stripe/Sentry code landed; gap = migrations `db:push`, staging smoke, Cloud Run secrets, Stripe identity)
 
 **Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles, **launch readiness %**.
 
@@ -64,7 +64,7 @@ Data and logic are segmented to reduce noise, isolate context, and optimize toke
 | **P3 — Entity Profiles** | Roles, tiers, multi-tenant safety | Supabase auth, `p4_profiles`, `msgf_legacy_tiers`, Stripe entitlements (1.0) |
 | **P4 — State Ledger** | Flight recorder; **hot active slices** (Redis) + cold beats | `p4_state_ledger`, `state_beats`, `lib/msgf-hot-layer.ts`, `p4_hal_ledger` |
 | **P5 — Local Variables** | Site/module sharded context | Per-tenant UI config, `tenant-manifest.json`, dashboard shells |
-| **P6 — Constraint Ledger** | **Vault** (positive) vs **Hall** (negative) | `msgf-shadow.ts`, `msgf-index.ts`, `pillar_vectors`, Hall purge (30d LOW) |
+| **P6 — Constraint Ledger** | **Vault** (positive) vs **Hall** (negative) | `defend-preflight.ts` / `msgf-shadow.ts`, `msgf-index.ts`, `pillar_vectors`, Hall purge (30d LOW) |
 
 Pillar charters for AI/dev: `packages/msgf/.msgf/P1_HAL.md` … `P6_RAG.md` (authoring domain; **see [`MSGF_PILLAR_MAPPING_SSOT.md`](./MSGF_PILLAR_MAPPING_SSOT.md)** for filename ↔ V3.0 pillar crosswalk); engineering rules: `packages/msgf/.cursorrules`.
 
@@ -257,7 +257,8 @@ Aligned with `packages/msgf/.cursorrules`:
 | Stripe (skeleton) | `packages/msgf/app/api/webhooks/stripe/route.ts`, `src/lib/stripe.ts` |
 | Pre-ingestion audit (SWEEP) | `packages/msgf/pre_ingestion_audit.md` |
 | Hot layer (P4 slices) | `packages/msgf/lib/msgf-hot-layer.ts` |
-| Shadow / CROSS-REF | `packages/msgf/lib/msgf-shadow.ts`, `lib/msgf-index.ts` |
+| Shadow / CROSS-REF | `packages/msgf/lib/defend-preflight.ts` (aliases `msgf-shadow.ts`), `lib/msgf-index.ts` |
+| Provider gateway | `lib/gateway/*`, `lib/shadow-eval/*`, `docs/MSGF_SHADOW_PROXY.md` |
 | Tier batch + Hall purge | `packages/msgf/scripts/msgf-tier-processor.js` |
 | V3.2 PDF (repo copy) | `docs/references/MSGF_v3_2_masterdoc.pdf` |
 | Admin dashboard | `apps/msgf-dashboard/` |
@@ -270,7 +271,7 @@ Aligned with `packages/msgf/.cursorrules`:
 
 ## 7. Current readiness (honest snapshot)
 
-*As of 2026-08-05 — Code completeness is high. Remaining gap is **staging smoke, Cloud Run secrets, Stripe identity for live paid claims**, and green `validate:deployment` on a clean machine.*
+*As of 2026-08-06 — Code completeness is high (includes Shadow Proxy + Active Governance + launch security). Remaining gap is **`db:push` for usage/shadow/governance migrations, staging smoke, Cloud Run secrets, Stripe identity for live paid claims**, and green `validate:deployment` on a clean machine.*
 
 | Capability | Status |
 | :--- | :--- |
@@ -278,12 +279,13 @@ Aligned with `packages/msgf/.cursorrules`:
 | **Part B — 3-tier CONVERGE + T3 quarantine** | **Code landed (flagged)** — `MSGF_CONVERGE_TIER_ENABLED=1` |
 | **M8 — TRI consensus + tenant presets** | **Code landed (flagged)** — `MSGF_TRI_CONSENSUS_ENABLED`; migration `20260805010000_*`; `test:tri-consensus` |
 | **M8 — Hybrid PQC envelopes** | **Code landed (flagged)** — `MSGF_HYBRID_KEM_ENABLED=1`; HAL v2 ML-DSA; platform PQ-TLS still infra |
+| **Shadow Proxy + Active Governance** | **Code landed** — `/api/v1`; license-bound auth; PromptIR + cache + state-gate; migrations must `db:push` |
 | **GitHub multi-repo project picker** | **Code landed** — needs OAuth App + crypto key on deploy |
 | **Production build gate** | **Typing fixed** (2026-08-02) — re-confirm `validate:deployment` / full `next build` (Windows webpack flake once) |
 | **V3.2-ULTRA §2.6** (7 steps) | **~92%** — behavior Done; thin-handler polish → 1.1 |
 | **Sentry SDK + ops panel** | **Code + local env** — Cloud Run DSN/token + panel smoke open |
 | **Stripe billing (M3)** | **Code Done (test)** — Pro + Startup + lifecycle; staging smoke + identity for live open |
-| **Marketing / features copy** | **Updated 2026-08-05** — TRI/Grok, Sentry, DocuSign/Dropbox Sign, quantum-ready |
+| **Marketing / features copy** | **Updated 2026-08-06** — Shadow Proxy / Active, proven vs projected, TRI/Grok, Sentry, e-sign, PQC |
 | **Public gatedai site** | **Partial** — routes exist; staging URL smoke open |
 | HAL portable API | **Done** |
 | Author ↔ Pulse | **Partial** — prod probe open |
@@ -553,7 +555,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | **Ecosystem (Author/Edu)** | **~55%** | Not blocking MSGF-only soft-RC |
 | **Commercial (Stripe)** | **~55%** | Code + test Prices done; smoke + identity open |
 | **Verification / staging** | **~40%** | Largest remaining gap |
-| **Marketing / docs** | **~95%** | Features + overview updated 2026-08-05 |
+| **Marketing / docs** | **~98%** | Overview + features + Shadow Proxy refreshed 2026-08-06 |
 | **Technical soft-RC** | **~84%** | Tag-ready after validate + staging smoke (mock OK) |
 | **Paid self-serve launch** | **~68%** | Soft-RC + Stripe smoke + identity + mock-off |
 

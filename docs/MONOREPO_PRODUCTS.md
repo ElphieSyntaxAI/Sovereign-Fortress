@@ -11,7 +11,7 @@
 - Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/syntax_education_pillars.md)
 - Implementation tracker (pillars + AUTH): [`PILLAR_PROGRESS.md`](./PILLAR_PROGRESS.md)
 
-**Last updated:** 2026-07-24
+**Last updated:** 2026-08-06
 
 ---
 
@@ -20,11 +20,11 @@
 **MSGF** (Modular State-Gate Framework) is:
 
 1. **The brain and engine** for narrative-sovereignty products in this monorepo (HAL gates, Vault/Hall lineage, Pulse consensus, tiered reporting, credit guard).
-2. **A standalone platform** deployable at **https://elphiesgatedai.elphiesyntax.com** and consumable by **other software** via APIs, webhooks, tenant configuration, and shared packages (`packages/msgf`, `packages/core`, `packages/ui`).
+2. **A standalone platform** deployable at **https://elphiesgatedai.elphiesyntax.com** and consumable by **other software** via APIs, OpenAI/Anthropic-compatible `/api/v1` gateway, webhooks, tenant configuration, and shared packages (`packages/msgf`, `packages/core`, `packages/ui`).
 
 Author and education apps **embed or call MSGF**; they do not reimplement guardrail logic in silos.
 
-**MSGF product map (capabilities + sales):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) · live `/features` on gatedai.
+**MSGF product map (capabilities + sales):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) · gateway: [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md) · live `/features` on gatedai.
 
 ---
 
@@ -33,7 +33,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | Product | Production URL | Repo home (today) | Role |
 | :--- | :--- | :--- | :--- |
 | **Author Ecosystem** | **https://elphiesyntax.com** | `apps/author-ecosystem/` (BFF, Vite client, Chrome extension) | Sovereign author workflow: HAL, Vault Pact, manuscripts, revision gates, RAG librarian, publisher-facing proofs. |
-| **MSGF (Gated AI)** | **https://elphiesgatedai.elphiesyntax.com** | `packages/msgf/` (Next.js), `apps/msgf-dashboard/`, future `packages/msgf/apps/web/` | Guardrail engine + SaaS: Pulse, ingest, shadow mode, consensus, billing/credits, ops dashboard, public marketing/checkout shell. |
+| **MSGF (Gated AI)** | **https://elphiesgatedai.elphiesyntax.com** | `packages/msgf/` (Next.js), `apps/msgf-dashboard/`, future `packages/msgf/apps/web/` | Guardrail engine + SaaS: Pulse, ingest, DEFEND preflight, Shadow Proxy / Active Governance (`/api/v1`), consensus, billing/credits, ops dashboard, public marketing/checkout shell. |
 | **Syntax Education** | **https://syntaxeducates.elphiesyntax.com** | `apps/syntax-educates/` | Education platform; tenant-scoped paths in `packages/msgf/config/tenant-manifest.json` (`tenant_education`). Spec: [`docs/syntax-education/`](./syntax-education/). |
 
 **Local dev defaults (typical):**
@@ -82,7 +82,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | Layer | Location | Consumers |
 | :--- | :--- | :--- |
 | MSGF runtime (API + middleware) | `packages/msgf/` | All three apps + external integrators |
-| Core guardrail libraries | `packages/core/`, `packages/msgf/lib/` | Pulse, shadow, consensus, P4 |
+| Core guardrail libraries | `packages/core/`, `packages/msgf/lib/` | Pulse, DEFEND preflight, Shadow Proxy gateway, consensus, P4 |
 | UI primitives | `packages/ui/` | Author client, msgf-dashboard, future MSGF web |
 | Supabase schema | `packages/msgf/supabase/migrations/` | Shared Postgres for P4/MSGF tables |
 | Tenant silo policy | `packages/msgf/config/tenant-manifest.json` | CI / `enforce-silo` tooling |

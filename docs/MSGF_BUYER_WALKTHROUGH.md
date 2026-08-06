@@ -51,7 +51,8 @@ Stripe (real “purchase” path): set `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO_IN
    - Success URL: `/pricing?checkout=success` — webhook stamps `INDIVIDUAL_PERPETUAL` on your profile.  
 6. **Pulse** — From dashboard / workspace / extension after baseline typing (see Phase 0 in [`packages/msgf/README.md`](../packages/msgf/README.md) Steps D–E).  
    - Session Pulse uses **`p4_profiles`** (no `msgf_live_` key in the browser).  
-7. **Heal queue** — Dashboard drawer; API uses your profile tenant (`tenant_gated` by default), not `integration_sandbox`.
+7. **Reports** — `/dashboard/daily-reports`: metered vs proven; Shadow Proxy panel if you pointed an SDK at `/api/v1`.  
+8. **Heal queue** — Dashboard drawer; API uses your profile tenant (`tenant_gated` by default), not `integration_sandbox`.
 
 ---
 
@@ -103,6 +104,7 @@ Sign up → try Pulse before checkout (should **429** entitlement) → complete 
 | Onboarding | Row in `p4_profiles`; pledge in `state_beats`; pillars under `tenant_gated` |
 | Checkout | Stripe session success; webhook log `STRIPE_PAYMENT_SUCCESS` |
 | Pulse | `POST /api/msgf/pulse` **200** with session cookie, no license header |
+| Reports | Period history loads; foreign `tenant_id` → 403 |
 | Not integrator | No `MSGF_CONTRACT_LICENSE_KEY` in server env during test |
 
 ---
@@ -111,4 +113,5 @@ Sign up → try Pulse before checkout (should **429** entitlement) → complete 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-06 | Reports / Shadow Proxy awareness; tenant IDOR note. |
 | 2026-05-23 | Initial buyer SSoT; session Pulse via `p4_profiles`; dashboard gatedai onboarding sync. |

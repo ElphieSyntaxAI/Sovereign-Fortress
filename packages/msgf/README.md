@@ -15,6 +15,7 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | [`docs/MSGF_LEARNING_AND_BIG_BRAIN.md`](../../docs/MSGF_LEARNING_AND_BIG_BRAIN.md) | **Learning loop** — Vault without Big Brain; `smoke:pulse-converge` |
 | [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
 | [`docs/MSGF_SOLO_INTEGRATION.md`](../../docs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |
+| [`docs/MSGF_SHADOW_PROXY.md`](../../docs/MSGF_SHADOW_PROXY.md) | **Shadow Proxy + Active Governance** — `/api/v1` OpenAI/Anthropic gateway |
 | [`docs/MSGF_BUYER_WALKTHROUGH.md`](../../docs/MSGF_BUYER_WALKTHROUGH.md) | **Buyer / SaaS** — new user sign-up, pricing, session Pulse (not integrator license) |
 | [`docs/MONOREPO_PRODUCTS.md`](../../docs/MONOREPO_PRODUCTS.md) | Three web apps & domains |
 | [`docs/MSGF_BRAIN_ROUTING.md`](../../docs/MSGF_BRAIN_ROUTING.md) | **Small Brain / Big Brain** — audience routing, heal queue, monorepo workspaces |
@@ -45,6 +46,10 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | `MSGF_PULSE_IDEMPOTENCY_ENABLED` | Redis dedupe for duplicate Pulse bodies (default on when `REDIS_URL` set) |
 | `MSGF_USAGE_MONITOR_WRITE` | Write estimated tokens to `usage_monitor` (aligns with credit guard; default on) |
 | `MSGF_ECO_PROVEN_ONLY` | Default **on** — public eco ignores estimated routing; proven avoidance / pack deltas only |
+| `MSGF_ACTIVE_AGGRESSIVENESS` | Active gateway: `cache-only` · `shard-and-route` (default) · `full-consensus` |
+| `MSGF_ACTIVE_PASSTHROUGH_FALLBACK` | Default on — Active orchestrator errors fall back to pass-through |
+| `ALLOW_DEMO_TENANT` / `MSGF_SHADOW_ALLOW_DEMO_TENANT` | Non-prod only — demo gateway tenant when key missing |
+| `POST /api/v1/chat/completions` · `POST /api/v1/messages` | Shadow Proxy / Active Governance (see [`MSGF_SHADOW_PROXY.md`](../../docs/MSGF_SHADOW_PROXY.md)) |
 | `MSGF_CREDIT_RESERVATION_ENABLED` / `MSGF_CREDIT_RESERVATION_PROD_DEFAULT` | Reserve credits before Pulse/ingest; prod defaults on unless disabled |
 | `MSGF_PULSE_LOCAL_RESERVE_CHUNK` / `MSGF_INGEST_LIGHT_RESERVE_CHUNK` | Smaller reserves for Author HAL / hash-skipped ingest |
 | `MSGF_INGEST_HASH_SKIP` / `MSGF_INGEST_SKIP_AUDIT_ON_HASH_HIT` | Skip SWEEP/audit when file content hash unchanged |
@@ -95,6 +100,10 @@ Register **each app** as its own `msgf_user_projects` row (not only the git root
 | GLOBAL / COMPANY admin | `/admin/dashboard#token-savings` · `#big-brain-issues` | `GET /api/msgf/admin/dashboard/savings-features?tenant_id=` (full catalog) |
 
 The **Token savings layer** panel lists 24h Redis counters and a feature catalog with brain badges. Users see Small Brain features only; operators see Big Brain rows (global CONVERGE, arbitration, rule promotion).
+
+**Reports** (`/dashboard/daily-reports`): weekly/monthly metered consumption vs proven savings + PDF; **Shadow Proxy** projected $ is labeled separately (not proven eco).
+
+**Provider gateway:** Point OpenAI/Anthropic SDKs at `/api/v1` with `x-msgf-key` (`msgf_live_*` / `msgf_ide_*`). Default `x-msgf-mode: shadow` (zero-latency projected eval). `active` runs cache + state-gate + sharded upstream. Tenant is never taken from client `x-msgf-tenant-id`.
 
 **IDE Command Center (extension v0.2.3):** Prompt optimizer → `.msgf/run-scripts.json` → **Run Scripts** / **Safe Build** → `verify-result` / `dev-event` → savings counters (`verify_result_*`, `run_script_rerun`). See [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) §3.
 

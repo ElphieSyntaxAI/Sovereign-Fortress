@@ -6,8 +6,8 @@
 
 **SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-08-05  
-**Focus:** Staging smoke + Cloud Run secrets + Stripe test Checkout. Code for TRI/PQC/Stripe/Sentry is largely landed.  
+**Last updated:** 2026-08-06  
+**Focus:** Migrations `db:push` + staging smoke + Cloud Run secrets + Stripe test Checkout. Code for TRI/PQC/Stripe/Sentry/Shadow Proxy/Active Governance is largely landed.  
 **Readiness:** Technical soft-RC **~84%** · Paid self-serve **~68%** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
@@ -16,7 +16,7 @@
 
 Run from monorepo root. All must pass on a clean machine with env filled.
 
-- [x] `npm run test:unit -w msgf` (includes Jul 24 suites; 2026-07-24 green)
+- [x] `npm run test:unit -w msgf` (includes Jul 24 suites; re-green 2026-08-06 with shadow-proxy / launch hardening)
 - [x] `npm run test:stripe-entitlements -w msgf` (2026-08-02)
 - [x] `npm run test:tri-consensus -w msgf` (2026-08-05)
 - [x] `npm run test:hybrid-crypto -w msgf` / `test:hal-pqc` (2026-08-05)
@@ -26,11 +26,14 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 - [ ] `npm run verify:msgf-env -w msgf`
 - [x] `npm run db:push` applied `20260802010000_p4_profiles_stripe_subscription.sql` (2026-08-02)
 - [ ] `npm run db:push` / verify for `20260805010000_tri_consensus_config.sql` (TRI + xAI provider)
+- [ ] `npm run db:push` for `20260806010000`–`20260806030100` (usage / period / shadow eval)
+- [ ] `npm run db:push` for `20260806200000_launch_governance_writers.sql` (proven/usage audit columns)
 - [ ] `npm run db:push:verify -w msgf`
 - [ ] `npm run validate:deployment` (unit + production `next build`)
 - [x] Jul 24 pitfall/integration unit suites: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
 - [x] Migration `20260724030400_msgf_company_tier_rules.sql` applied on remote (2026-07-24 `db:push`)
 - [x] Migration `20260802010000_p4_profiles_stripe_subscription.sql` applied on remote (2026-08-02)
+- [x] Launch hardening code: gateway auth, header allowlist, dashboard IDOR, Active Orchestrator (2026-08-06)
 
 **Integration (needs Supabase / Redis env):**
 
@@ -59,6 +62,10 @@ Document date + operator + tenant id in changelog when done.
 - [ ] `GET /api/msgf/heal-queue` — user session: `audience_scope: user`, no arbitration packages
 - [ ] Admin session: full queue + `POST .../human-arbitration` on circuit-open row (if present)
 - [ ] `/admin/dashboard#token-savings` + `#big-brain-issues` load live data
+- [ ] Reports: period history + Shadow Proxy panel; PDF download for own tenant
+- [ ] `POST /api/v1/chat/completions` shadow mode with valid `x-msgf-key` → projected eval row
+- [ ] Active mode returns `x-msgf-routing`; spoofed `x-msgf-tenant-id` does not change attribution
+- [ ] Foreign `tenant_id` on period-reports / shadow-eval → 403
 - [ ] `POST /api/msgf/ops/v32-heartbeat` with `{"dry_run":true}` — 200 + expected summary
 - [ ] `/setup/projects` — monorepo preset creates row with correct `project_origin`
 - [ ] Sentry SDK: `GET /api/sentry-test` → issue in project `msgf` → delete route
@@ -71,7 +78,7 @@ Document date + operator + tenant id in changelog when done.
 
 - [ ] Pulse route uses thin-handler / pipeline path with Vault/Hall `preFlightCheck` on live requests
 - [ ] Invalid `bug_index` / pillar metadata rejected before consensus (Zod + DB trigger aligned)
-- [ ] Staging RED path: shadow block or CROSS-REF short-circuit observable in response metadata
+- [ ] Staging RED path: DEFEND preflight block or CROSS-REF short-circuit observable in response metadata
 
 ### CONVERGE
 

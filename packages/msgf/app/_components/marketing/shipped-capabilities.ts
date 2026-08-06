@@ -41,7 +41,7 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "04",
     title: "Govern",
-    body: "Small Brain dual presets · TRI Big Brain on high drift · Sentry quarantine · signed HITL.",
+    body: "Small Brain dual presets · TRI Big Brain on high drift · Shadow→Active gateway · Sentry quarantine · signed HITL.",
   },
 ] as const;
 
@@ -72,8 +72,15 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
     id: "savings",
     title: "Defensible token savings",
     description:
-      "Redis counters for optimizer packs, Run Script reruns, verify→Vault, and CONVERGE cache — with a 24h ROI rollup you can show finance.",
+      "Metered provider usage, proven avoidance (not estimates), weekly/monthly Reports + PDF, and Shadow Proxy projected $ kept separate from public eco.",
     accent: "amber",
+  },
+  {
+    id: "shadow-proxy",
+    title: "Shadow Proxy → Active Governance",
+    description:
+      "Point OpenAI or Anthropic SDKs at /api/v1. Shadow mode proves projected bill savings with zero added latency; Active mode applies cache, state-gating, and sharded prompts — license-bound auth, never spoofable tenant headers.",
+    accent: "violet",
   },
   {
     id: "sentry-quarantine",
@@ -143,4 +150,5 @@ export const DASHBOARD_QUICK_LINKS = [
   { label: "Features & IDE", href: "/features" },
   { label: "CONVERGE presets", href: "#token-savings" },
   { label: "Token savings", href: "#token-savings" },
+  { label: "Reports", href: "/dashboard/daily-reports" },
 ] as const;
