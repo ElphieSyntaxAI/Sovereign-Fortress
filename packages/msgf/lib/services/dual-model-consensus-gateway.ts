@@ -26,12 +26,15 @@ import {
   listTenantProviderCredentialPresence,
 } from "@/lib/services/tenant-provider-credentials";
 import { runSovereignAuditorDualMaster } from "@/lib/services/sovereign-auditor";
+import { runTenantXaiValidation, platformXaiApiKey } from "@/lib/services/consensus/xai-validation";
 import {
   executeAiWave,
   isCostRunawayError,
   runWithLlmTimeout,
   runWithLlmTimeoutSimple,
 } from "@/lib/services/cost-runaway-guard";
+
+export { runTenantXaiValidation, platformXaiApiKey };
 
 export const DUAL_MODEL_GATEWAY_AGREEMENT_THRESHOLD = 0.8;
 

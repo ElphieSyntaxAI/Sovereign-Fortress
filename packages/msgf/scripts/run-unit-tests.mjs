@@ -635,6 +635,7 @@ const UNIT_TESTS = [
   { label: "test:stripe-entitlements", args: ["--test", "tests/stripe-entitlements.test.ts"] },
   { label: "test:hybrid-crypto", args: ["--test", "tests/hybrid-crypto-envelope.test.ts"] },
   { label: "test:hal-pqc", args: ["--test", "tests/hal-pqc-certificate.test.ts"] },
+  { label: "test:tri-consensus", args: ["--test", "tests/tri-consensus.test.ts"] },
 ];
 
 function resolveTsxCli() {

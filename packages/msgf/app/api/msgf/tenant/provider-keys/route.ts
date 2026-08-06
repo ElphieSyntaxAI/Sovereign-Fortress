@@ -13,9 +13,9 @@
 /**
  * Tenant BYOK: persist Gemini / Anthropic API keys encrypted via CryptoService.
  *
- * - POST — body `{ "provider": "gemini" | "anthropic", "api_key": "<secret>" }` (plaintext only in transit).
- * - GET — `{ gemini_configured, anthropic_configured }` (no secrets).
- * - DELETE — query `?provider=gemini|anthropic` revokes stored credential.
+ * - POST — body `{ "provider": "gemini" | "anthropic" | "xai", "api_key": "<secret>" }` (plaintext only in transit).
+ * - GET — `{ gemini_configured, anthropic_configured, xai_configured }` (no secrets).
+ * - DELETE — query `?provider=gemini|anthropic|xai` revokes stored credential.
  */
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
       tenant_id: tenantId,
       gemini_configured: presence.gemini,
       anthropic_configured: presence.anthropic,
+      xai_configured: presence.xai,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unexpected error.";
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
     const apiKey = typeof o.api_key === "string" ? o.api_key : "";
 
     if (!provider) {
-      return json({ error: 'provider must be "gemini" or "anthropic".' }, { status: 400 });
+      return json({ error: 'provider must be "gemini", "anthropic", or "xai".' }, { status: 400 });
     }
     if (!apiKey.trim()) {
       return json({ error: "api_key is required." }, { status: 400 });
@@ -137,7 +138,7 @@ export async function DELETE(req: NextRequest) {
 
     const provider = parseTenantProvider(req.nextUrl.searchParams.get("provider"));
     if (!provider) {
-      return json({ error: 'Query provider must be "gemini" or "anthropic".' }, { status: 400 });
+      return json({ error: 'Query provider must be "gemini", "anthropic", or "xai".' }, { status: 400 });
     }
 
     const headerTenant = req.headers.get(MSGF_TENANT_ID_HEADER)?.trim() || "";

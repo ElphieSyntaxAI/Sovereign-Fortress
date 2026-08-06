@@ -94,6 +94,7 @@ export async function runConsensusPhase(
       ? {
           geminiKey: convergeRouting.byok.gemini!,
           anthropicKey: convergeRouting.byok.anthropic!,
+          xaiKey: convergeRouting.byok.xai ?? undefined,
         }
       : undefined;
 
@@ -103,6 +104,7 @@ export async function runConsensusPhase(
       ? {
           geminiKey: convergeRouting.byok.gemini!,
           anthropicKey: convergeRouting.byok.anthropic!,
+          xaiKey: convergeRouting.byok.xai ?? undefined,
         }
       : undefined;
 
@@ -125,6 +127,9 @@ export async function runConsensusPhase(
       : ("individual_byok" as const),
     byokGeminiKey: convergeByok?.geminiKey,
     byokAnthropicKey: convergeByok?.anthropicKey,
+    byokXaiKey: convergeByok?.xaiKey ?? input.byokXaiKey ?? undefined,
+    logicDriftScore: logicDrift.score,
+    humanNotifyThreshold: input.humanNotifyThreshold,
   };
 
   const timeoutMs = resolvePulseConvergeTimeoutMs({

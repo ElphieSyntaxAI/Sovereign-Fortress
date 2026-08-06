@@ -39,9 +39,20 @@ export const CONVERGE_CACHE_AGREEMENT_THRESHOLD = DUAL_MODEL_GATEWAY_AGREEMENT_T
 export type ConvergeCachedChunk = {
   gemini: { verdict: string; reason: string };
   claude: { verdict: string; reason: string };
+  grok?: { verdict: string; reason: string };
   agreement: boolean;
   decision: string;
   halScore: number;
+  vote_tally?: {
+    HUMAN: number;
+    NON_HUMAN: number;
+    INCONCLUSIVE: number;
+    total: number;
+    majorityLabel: string | null;
+    no_majority: boolean;
+  };
+  consensus_mode?: string;
+  consensus_providers?: string[];
 };
 
 export type ConvergeCacheEntry = {

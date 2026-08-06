@@ -37,6 +37,12 @@ export const MSGF_BYOK_GEMINI_HEADER = "x-msgf-byok-gemini";
 /** IDE `.msgf/keys/claude.key` — tenant Anthropic BYOK for dual-model consensus. */
 export const MSGF_BYOK_CLAUDE_HEADER = "x-msgf-byok-claude";
 
+/** IDE `.msgf/keys/xai.key` — tenant xAI/Grok BYOK for TRI / bias-mitigated dual. */
+export const MSGF_BYOK_XAI_HEADER = "x-msgf-byok-xai";
+
+/** Original logic-drift threshold for human notify (default 0.45). */
+export const MSGF_HUMAN_NOTIFY_THRESHOLD_HEADER = "x-msgf-human-notify-threshold";
+
 /** CONVERGE allowance state echoed to IDE (e.g. `soft_cap_exceeded`). */
 export const MSGF_ALLOWANCE_STATE_HEADER = "x-msgf-allowance-state";
 

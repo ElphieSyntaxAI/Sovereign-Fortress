@@ -155,6 +155,7 @@ export async function runGatePhase(
       license: input.license,
       headerGeminiKey: input.byokGeminiKey,
       headerAnthropicKey: input.byokAnthropicKey,
+      headerXaiKey: input.byokXaiKey,
     });
 
   const projectOrigin = extractProjectOriginFromPulseBody(input.rawBody) ?? null;

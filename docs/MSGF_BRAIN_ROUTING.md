@@ -33,6 +33,20 @@ Policy catalog (every feature has `tier` + `audience`): [`packages/msgf/lib/serv
 - Logic drift exceeds `x-msgf-brain-sensitivity` (default **0.3**), or
 - P2 roadmap contradiction is detected.
 
+**Big Brain CONVERGE (flagged TRI):** When `MSGF_TRI_CONSENSUS_ENABLED=1`, platform CONVERGE uses **Claude + Gemini + Grok** with **MAJORITY** (2-of-3). Model disagreement alone no longer forces HITL when a majority exists.
+
+**Human notify** (admin HITL / `PENDING_HUMAN_ARBITRATION`) opens when:
+
+- Original logic drift ≥ `human_notify_threshold` (default **0.45**; header `x-msgf-human-notify-threshold` or `MSGF_HUMAN_NOTIFY_THRESHOLD`), **or**
+- No majority / all inconclusive after Big Brain, **or**
+- Security `NON_HUMAN` majority / T3 quarantine / remediation circuit (unchanged).
+
+Escalate-to-Big remains at drift **0.3**; notify humans only at the higher threshold (or hard security fails).
+
+**Small Brain presets:** Tenant default is `balanced_dual` (Claude + Gemini, UNANIMOUS). Dashboard `/dashboard#token-savings` → CONVERGE model preset. Dual split soft-escalates to Big Brain TRI when enabled — does not open HITL on dual alone. Prompt optimize / Safe Build stay **SOLO_FAST**.
+
+Config SSoT: [`msgf-consensus-config.ts`](../packages/msgf/lib/services/consensus/msgf-consensus-config.ts) · API `GET/PUT /api/msgf/tenant/consensus-config`.
+
 **Never** on these IDE paths (Small Brain only):
 
 - **`POST /api/msgf/dev-event`** — vault-first Heal Cheap; no biometric Pulse → CONVERGE chain (`dev_event` logic delta, `globalize: false` by default).
@@ -154,6 +168,14 @@ Redis counters + model estimates (not Stripe billing truth). Summary builder: [`
 | Admin savings API | `packages/msgf/app/api/msgf/admin/dashboard/savings-features/route.ts` |
 | Verify-result savings | `packages/msgf/lib/services/verify-result-savings.ts` |
 | Big Brain UI | `packages/msgf/app/_components/dashboard/BigBrainIssuesPanel.tsx` |
+| Consensus config SSoT | `packages/msgf/lib/services/consensus/msgf-consensus-config.ts` |
+| Majority vote | `packages/msgf/lib/services/consensus/majority-vote.ts` |
+| xAI / Grok adapter | `packages/msgf/lib/services/consensus/xai-validation.ts` |
+| Tenant consensus API | `packages/msgf/app/api/msgf/tenant/consensus-config/route.ts` |
+
+### P2 Grok opinion spots (not wired in v1)
+
+Optional third-opinion / alt-framing passes (same xAI adapter): HITL strategy generator, Admin Hall / quarantine narrative, company global-rules absorb / law-book drafts. Keep Grok out of prompt-optimizer hot path, T1 converge-tier, and education HAL-lite.
 
 ---
 
@@ -161,5 +183,6 @@ Redis counters + model estimates (not Stripe billing truth). Summary builder: [`
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-05 | Big Brain TRI majority + human_notify_threshold (0.45); tenant Small Brain consensus presets; xAI/Grok third vote. |
 | 2026-05-28 | Verify-result loop + Run Scripts in savings catalog; counter keys; [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md). |
 | 2026-05-20 | Initial SSoT: audience mapping, heal-queue scope, monorepo workspaces, APIs/UI/tests. |

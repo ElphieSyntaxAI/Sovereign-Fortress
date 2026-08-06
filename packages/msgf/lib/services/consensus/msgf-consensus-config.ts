@@ -1,0 +1,208 @@
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ */
+/**
+ * MSGF consensus config — Big Brain TRI defaults + Small Brain tenant presets.
+ */
+
+export type MsgfConsensusProvider = "anthropic" | "google" | "xai";
+export type MsgfConsensusMode = "DUAL" | "TRI" | "SOLO_FAST";
+export type MsgfConsensusStrictness = "UNANIMOUS" | "MAJORITY";
+
+export type MSGFConsensusConfig = {
+  mode: MsgfConsensusMode;
+  providers: MsgfConsensusProvider[];
+  strictness: MsgfConsensusStrictness;
+  profileId?: string;
+};
+
+export type MsgfConsensusProfileId =
+  | "platform_tri_tribunal"
+  | "balanced_dual"
+  | "bias_mitigated_dual"
+  | "gemini_grok_dual"
+  | "tri_tribunal"
+  | "custom_byok"
+  | "solo_fast";
+
+export const BIG_BRAIN_DEFAULT: MSGFConsensusConfig = {
+  mode: "TRI",
+  providers: ["anthropic", "google", "xai"],
+  strictness: "MAJORITY",
+  profileId: "platform_tri_tribunal",
+};
+
+export const SMALL_BRAIN_DEFAULT: MSGFConsensusConfig = {
+  mode: "DUAL",
+  providers: ["anthropic", "google"],
+  strictness: "UNANIMOUS",
+  profileId: "balanced_dual",
+};
+
+export const CONSENSUS_PRESET_CATALOG: Record<
+  Exclude<MsgfConsensusProfileId, "custom_byok" | "platform_tri_tribunal">,
+  MSGFConsensusConfig
+> = {
+  balanced_dual: {
+    mode: "DUAL",
+    providers: ["anthropic", "google"],
+    strictness: "UNANIMOUS",
+    profileId: "balanced_dual",
+  },
+  bias_mitigated_dual: {
+    mode: "DUAL",
+    providers: ["anthropic", "xai"],
+    strictness: "UNANIMOUS",
+    profileId: "bias_mitigated_dual",
+  },
+  gemini_grok_dual: {
+    mode: "DUAL",
+    providers: ["google", "xai"],
+    strictness: "UNANIMOUS",
+    profileId: "gemini_grok_dual",
+  },
+  tri_tribunal: {
+    mode: "TRI",
+    providers: ["anthropic", "google", "xai"],
+    strictness: "MAJORITY",
+    profileId: "tri_tribunal",
+  },
+  solo_fast: {
+    mode: "SOLO_FAST",
+    providers: ["anthropic"],
+    strictness: "UNANIMOUS",
+    profileId: "solo_fast",
+  },
+};
+
+export const TENANT_PRESET_IDS = [
+  "balanced_dual",
+  "bias_mitigated_dual",
+  "gemini_grok_dual",
+  "tri_tribunal",
+  "custom_byok",
+] as const;
+
+export type TenantConsensusPresetId = (typeof TENANT_PRESET_IDS)[number];
+
+export function isTriConsensusEnabled(): boolean {
+  const v = process.env.MSGF_TRI_CONSENSUS_ENABLED?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+export function isTenantTriConsensusEnabled(): boolean {
+  const v = process.env.MSGF_TENANT_TRI_CONSENSUS_ENABLED?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+/** Default human-notify threshold (original logic drift). Escalate-to-Big stays at 0.3. */
+export const DEFAULT_HUMAN_NOTIFY_THRESHOLD = 0.45;
+
+export function resolveHumanNotifyThreshold(headerValue?: string | null): number {
+  const raw = headerValue?.trim() || process.env.MSGF_HUMAN_NOTIFY_THRESHOLD?.trim();
+  if (!raw) return DEFAULT_HUMAN_NOTIFY_THRESHOLD;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return DEFAULT_HUMAN_NOTIFY_THRESHOLD;
+  return Math.min(0.95, Math.max(0.3, n));
+}
+
+export function parseMsgfConsensusProvider(value: unknown): MsgfConsensusProvider | null {
+  const p = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (p === "anthropic" || p === "google" || p === "xai") return p;
+  if (p === "gemini") return "google";
+  return null;
+}
+
+export function validateConsensusConfig(
+  config: MSGFConsensusConfig
+): { ok: true; config: MSGFConsensusConfig } | { ok: false; error: string } {
+  const providers = [...new Set(config.providers)];
+  if (providers.length !== config.providers.length) {
+    return { ok: false, error: "providers must be unique" };
+  }
+  for (const p of providers) {
+    if (p !== "anthropic" && p !== "google" && p !== "xai") {
+      return { ok: false, error: `invalid provider: ${p}` };
+    }
+  }
+  if (config.mode === "SOLO_FAST" && providers.length !== 1) {
+    return { ok: false, error: "SOLO_FAST requires exactly 1 provider" };
+  }
+  if (config.mode === "DUAL" && providers.length !== 2) {
+    return { ok: false, error: "DUAL requires exactly 2 providers" };
+  }
+  if (config.mode === "TRI" && providers.length !== 3) {
+    return { ok: false, error: "TRI requires exactly 3 providers" };
+  }
+  if (config.strictness !== "UNANIMOUS" && config.strictness !== "MAJORITY") {
+    return { ok: false, error: "invalid strictness" };
+  }
+  return {
+    ok: true,
+    config: { ...config, providers },
+  };
+}
+
+export function resolveBigBrainConsensusConfig(): MSGFConsensusConfig {
+  const raw = process.env.MSGF_BIG_BRAIN_CONSENSUS_JSON?.trim();
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as MSGFConsensusConfig;
+      const v = validateConsensusConfig(parsed);
+      if (v.ok) return v.config;
+    } catch {
+      /* fall through */
+    }
+  }
+  if (!isTriConsensusEnabled()) {
+    return {
+      mode: "DUAL",
+      providers: ["anthropic", "google"],
+      strictness: "UNANIMOUS",
+      profileId: "balanced_dual",
+    };
+  }
+  return { ...BIG_BRAIN_DEFAULT };
+}
+
+export function configFromTenantPreset(
+  profileId: TenantConsensusPresetId,
+  customProviders?: MsgfConsensusProvider[]
+): MSGFConsensusConfig | { error: string } {
+  if (profileId === "custom_byok") {
+    const providers = [...new Set(customProviders ?? [])];
+    const mode: MsgfConsensusMode =
+      providers.length === 3 ? "TRI" : providers.length === 1 ? "SOLO_FAST" : "DUAL";
+    const strictness: MsgfConsensusStrictness = mode === "TRI" ? "MAJORITY" : "UNANIMOUS";
+    const v = validateConsensusConfig({
+      mode,
+      providers,
+      strictness,
+      profileId: "custom_byok",
+    });
+    return v.ok ? v.config : { error: v.error };
+  }
+  if (profileId === "tri_tribunal" && !isTenantTriConsensusEnabled()) {
+    return { error: "tri_tribunal requires MSGF_TENANT_TRI_CONSENSUS_ENABLED=1" };
+  }
+  const preset = CONSENSUS_PRESET_CATALOG[profileId as keyof typeof CONSENSUS_PRESET_CATALOG];
+  if (!preset) return { error: `unknown profile: ${profileId}` };
+  return { ...preset };
+}
+
+/** Map consensus provider → tenant credential provider key. */
+export function consensusProviderToCredentialKey(
+  p: MsgfConsensusProvider
+): "gemini" | "anthropic" | "xai" {
+  if (p === "google") return "gemini";
+  return p;
+}

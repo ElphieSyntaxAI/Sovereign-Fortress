@@ -14,11 +14,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { encryptKey, decryptKey } from "@/lib/crypto/CryptoService";
 
-export type TenantProviderKeyProvider = "gemini" | "anthropic";
+export type TenantProviderKeyProvider = "gemini" | "anthropic" | "xai";
 
 export function parseTenantProvider(value: unknown): TenantProviderKeyProvider | null {
   const p = typeof value === "string" ? value.trim().toLowerCase() : "";
-  if (p === "gemini" || p === "anthropic") return p;
+  if (p === "gemini" || p === "anthropic" || p === "xai") return p;
   return null;
 }
 
@@ -112,7 +112,7 @@ export async function decryptTenantProviderCredential(params: {
 export async function listTenantProviderCredentialPresence(params: {
   admin: SupabaseClient;
   tenantId: string;
-}): Promise<{ gemini: boolean; anthropic: boolean }> {
+}): Promise<{ gemini: boolean; anthropic: boolean; xai: boolean }> {
   const tid = params.tenantId.trim();
   const { data, error } = await params.admin
     .from("msgf_tenant_provider_credentials")
@@ -128,5 +128,6 @@ export async function listTenantProviderCredentialPresence(params: {
   return {
     gemini: set.has("gemini"),
     anthropic: set.has("anthropic"),
+    xai: set.has("xai"),
   };
 }

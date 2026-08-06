@@ -112,10 +112,11 @@ export type SovereignAuditorResult = {
   sovereignAgreementScore: number;
   masterGeminiOutput: string;
   masterAnthropicOutput: string;
+  masterXaiOutput?: string;
 };
 
 /**
- * Runs Master Gemini + Master Claude **simultaneously** (Promise.all) and scores consensus between outputs.
+ * Runs Master Gemini + Master Claude (+ optional Grok when TRI enabled) and scores consensus.
  */
 export async function runSovereignAuditorDualMaster(params: {
   pulseText: string;
@@ -134,19 +135,33 @@ export async function runSovereignAuditorDualMaster(params: {
 
   const prompt = buildSovereignPrompt(params);
 
-  const [masterGeminiOutput, masterAnthropicOutput] = await Promise.all([
+  const { isTriConsensusEnabled } = await import("@/lib/services/consensus/msgf-consensus-config");
+  const { platformXaiApiKey, runTenantXaiValidation } = await import(
+    "@/lib/services/consensus/xai-validation"
+  );
+  const xaiKey = isTriConsensusEnabled() ? platformXaiApiKey() : null;
+
+  const [masterGeminiOutput, masterAnthropicOutput, masterXaiOutput] = await Promise.all([
     runMasterPublisherModel(geminiPath, prompt),
     runMasterPublisherModel(claudePath, prompt),
+    xaiKey
+      ? runTenantXaiValidation(xaiKey, prompt).catch(() => "")
+      : Promise.resolve(""),
   ]);
 
-  const sovereignAgreementScore = computeConsensusAgreementScore(
+  let sovereignAgreementScore = computeConsensusAgreementScore(
     masterGeminiOutput,
     masterAnthropicOutput
   );
+  if (masterXaiOutput) {
+    const withGrok = computeConsensusAgreementScore(masterGeminiOutput, masterXaiOutput);
+    sovereignAgreementScore = (sovereignAgreementScore + withGrok) / 2;
+  }
 
   return {
     sovereignAgreementScore,
     masterGeminiOutput,
     masterAnthropicOutput,
+    ...(masterXaiOutput ? { masterXaiOutput } : {}),
   };
 }

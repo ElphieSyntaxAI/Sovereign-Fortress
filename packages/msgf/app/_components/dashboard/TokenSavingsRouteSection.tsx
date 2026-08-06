@@ -147,6 +147,7 @@
 import { useEffect, useState } from "react";
 
 import { TokenSavingsFeaturesPanel } from "@/app/_components/dashboard/TokenSavingsFeaturesPanel";
+import { ConsensusPresetPanel } from "@/app/_components/dashboard/ConsensusPresetPanel";
 
 export function TokenSavingsRouteSection({
   tenantId,
@@ -171,6 +172,7 @@ export function TokenSavingsRouteSection({
   return (
     <div className="scroll-mt-24">
       <TokenSavingsFeaturesPanel tenantId={tenantId} operatorView={operatorView} />
+      <ConsensusPresetPanel tenantId={tenantId} />
     </div>
   );
 }

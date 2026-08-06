@@ -394,8 +394,9 @@ export function BigBrainIssuesPanel({ tenantId }: Props) {
       </p>
       <h2 className="mt-1 text-lg font-semibold text-slate-50">Global issues (admin)</h2>
       <p className="mt-2 text-sm text-slate-400">
-        Dual-model CONVERGE, human arbitration, and global DNA promotions are reviewed here — not on
-        tenant dashboards. Tenants keep Small Brain heals and workspace-scoped Vault logic.
+        Big Brain CONVERGE uses TRI majority (Claude + Gemini + Grok) when enabled — vote tallies land
+        on Pulse metadata (`vote_tally`, `consensus_mode`). Human arbitration and global DNA promotions
+        stay here; tenants keep Small Brain heals and workspace-scoped Vault logic.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">

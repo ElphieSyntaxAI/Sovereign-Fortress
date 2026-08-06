@@ -25,6 +25,11 @@ import {
   decryptTenantProviderCredential,
   listTenantProviderCredentialPresence,
 } from "@/lib/services/tenant-provider-credentials";
+import {
+  consensusProviderToCredentialKey,
+  type MSGFConsensusConfig,
+} from "@/lib/services/consensus/msgf-consensus-config";
+import { getTenantConsensusConfig } from "@/lib/services/tenant-consensus-config";
 import type { PulseLicenseContext } from "@/lib/services/pulse-license";
 import {
   evaluateManagedCloudWindow,
@@ -52,10 +57,12 @@ export type TenantCommercialSegment =
 export type ResolvedByokKeys = {
   gemini: string | null;
   anthropic: string | null;
+  xai: string | null;
   bothPresent: boolean;
   sources: {
     gemini: "header" | "tenant_vault" | "none";
     anthropic: "header" | "tenant_vault" | "none";
+    xai: "header" | "tenant_vault" | "none";
   };
 };
 
@@ -225,19 +232,23 @@ export async function resolveEffectiveByokKeys(params: {
   tenantId: string;
   headerGeminiKey?: string | null;
   headerAnthropicKey?: string | null;
+  headerXaiKey?: string | null;
 }): Promise<ResolvedByokKeys> {
   const headerGemini = params.headerGeminiKey?.trim() || null;
   const headerAnthropic = params.headerAnthropicKey?.trim() || null;
+  const headerXai = params.headerXaiKey?.trim() || null;
 
   let gemini = headerGemini && headerGemini.length >= 8 ? headerGemini : null;
   let anthropic = headerAnthropic && headerAnthropic.length >= 8 ? headerAnthropic : null;
+  let xai = headerXai && headerXai.length >= 8 ? headerXai : null;
 
   const sources: ResolvedByokKeys["sources"] = {
     gemini: gemini ? "header" : "none",
     anthropic: anthropic ? "header" : "none",
+    xai: xai ? "header" : "none",
   };
 
-  if (!gemini || !anthropic) {
+  if (!gemini || !anthropic || !xai) {
     const presence = await listTenantProviderCredentialPresence({
       admin: params.adminSupabase,
       tenantId: params.tenantId,
@@ -262,16 +273,42 @@ export async function resolveEffectiveByokKeys(params: {
         })) || null;
       if (anthropic) sources.anthropic = "tenant_vault";
     }
+
+    if (!xai && presence.xai) {
+      xai =
+        (await decryptTenantProviderCredential({
+          admin: params.adminSupabase,
+          tenantId: params.tenantId,
+          provider: "xai",
+        })) || null;
+      if (xai) sources.xai = "tenant_vault";
+    }
   }
 
+  /** Legacy: Claude + Gemini both present (default balanced_dual). */
   const bothPresent = Boolean(gemini?.trim() && anthropic?.trim());
 
   return {
     gemini: gemini?.trim() || null,
     anthropic: anthropic?.trim() || null,
+    xai: xai?.trim() || null,
     bothPresent,
     sources,
   };
+}
+
+/** True when every provider in the tenant Small Brain preset has a usable key. */
+export function byokSatisfiesConsensusConfig(
+  byok: ResolvedByokKeys,
+  config: MSGFConsensusConfig
+): boolean {
+  const keyFor = (p: MSGFConsensusConfig["providers"][number]): string | null => {
+    const cred = consensusProviderToCredentialKey(p);
+    if (cred === "gemini") return byok.gemini;
+    if (cred === "anthropic") return byok.anthropic;
+    return byok.xai;
+  };
+  return config.providers.every((p) => Boolean(keyFor(p)?.trim()));
 }
 
 function resolveIndividualFreeRouting(
@@ -414,9 +451,11 @@ export async function resolveConvergeConsensusRouting(params: {
   license: PulseLicenseContext;
   headerGeminiKey?: string | null;
   headerAnthropicKey?: string | null;
+  headerXaiKey?: string | null;
 }): Promise<{
   commercial: PulseTenantCommercialContext;
   routing: ConvergeConsensusRouting;
+  tenantConsensus: MSGFConsensusConfig;
 }> {
   const profileCtx = await loadPulseTenantCommercialContext({
     adminSupabase: params.adminSupabase,
@@ -436,12 +475,19 @@ export async function resolveConvergeConsensusRouting(params: {
     licenseType: perpetualProfile.licenseType,
   });
 
-  const byok = await resolveEffectiveByokKeys({
-    adminSupabase: params.adminSupabase,
-    tenantId: params.tenantId,
-    headerGeminiKey: params.headerGeminiKey,
-    headerAnthropicKey: params.headerAnthropicKey,
-  });
+  const [byok, tenantConsensus] = await Promise.all([
+    resolveEffectiveByokKeys({
+      adminSupabase: params.adminSupabase,
+      tenantId: params.tenantId,
+      headerGeminiKey: params.headerGeminiKey,
+      headerAnthropicKey: params.headerAnthropicKey,
+      headerXaiKey: params.headerXaiKey,
+    }),
+    getTenantConsensusConfig({
+      admin: params.adminSupabase,
+      tenantId: params.tenantId,
+    }),
+  ]);
 
   const commercial: PulseTenantCommercialContext = {
     ...profileCtx,
@@ -450,15 +496,23 @@ export async function resolveConvergeConsensusRouting(params: {
     licensePurchaseDate: perpetualProfile.licensePurchaseDate?.toISOString() ?? null,
   };
 
+  const presetKeysOk = byokSatisfiesConsensusConfig(byok, tenantConsensus);
+  const byokForRouting: ResolvedByokKeys = {
+    ...byok,
+    // Prefer preset-aware presence so bias_mitigated / gemini_grok pairs unlock local gateway.
+    bothPresent: byok.bothPresent || presetKeysOk,
+  };
+
   if (segment === "corporate_paid") {
     return {
       commercial,
       routing: {
         segment: "corporate_paid",
         action: "run_corporate_system_converge",
-        byok,
-        enterpriseVaultConfigured: byok.bothPresent,
+        byok: byokForRouting,
+        enterpriseVaultConfigured: byokForRouting.bothPresent,
       },
+      tenantConsensus,
     };
   }
 
@@ -466,15 +520,16 @@ export async function resolveConvergeConsensusRouting(params: {
     const managedWindow = evaluateManagedCloudWindow(perpetualProfile.licensePurchaseDate);
 
     if (managedWindow.managedCloudExpired) {
-      if (byok.bothPresent) {
+      if (byokForRouting.bothPresent) {
         return {
           commercial,
           routing: {
             segment: "individual_free",
             action: "run_byok_converge",
-            byok: byok as ResolvedByokKeys & { bothPresent: true },
+            byok: byokForRouting as ResolvedByokKeys & { bothPresent: true },
             managedCloudExpired: true,
           },
+          tenantConsensus,
         };
       }
 
@@ -483,9 +538,10 @@ export async function resolveConvergeConsensusRouting(params: {
         routing: {
           segment: "individual_perpetual",
           action: "managed_cloud_expired_bypass",
-          byok,
+          byok: byokForRouting,
           managedWindow,
         },
+        tenantConsensus,
       };
     }
 
@@ -496,13 +552,19 @@ export async function resolveConvergeConsensusRouting(params: {
 
     return {
       commercial,
-      routing: resolvePerpetualManagedYearRouting(byok, monthlyUsage, managedWindow),
+      routing: resolvePerpetualManagedYearRouting(
+        byokForRouting,
+        monthlyUsage,
+        managedWindow
+      ),
+      tenantConsensus,
     };
   }
 
   return {
     commercial,
-    routing: resolveIndividualFreeRouting(byok),
+    routing: resolveIndividualFreeRouting(byokForRouting),
+    tenantConsensus,
   };
 }
 

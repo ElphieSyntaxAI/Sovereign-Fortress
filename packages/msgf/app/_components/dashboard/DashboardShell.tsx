@@ -632,6 +632,7 @@ import { ProjectGovernanceAccordion } from "@/app/_components/dashboard/ProjectG
 import { SecurityViewSection } from "@/app/_components/dashboard/SecurityViewSection";
 import { TokenSavingsRouteSection } from "@/app/_components/dashboard/TokenSavingsRouteSection";
 import { TokenSavingsFeaturesPanel } from "@/app/_components/dashboard/TokenSavingsFeaturesPanel";
+import { ConsensusPresetPanel } from "@/app/_components/dashboard/ConsensusPresetPanel";
 import {
   overallLabel,
   PillarCard,
@@ -1490,10 +1491,13 @@ export function DashboardShell({
             operatorView={embeddedInAdminPortal}
           />
         ) : (
-          <TokenSavingsFeaturesPanel
-            tenantId={healQueueTenantId}
-            operatorView={embeddedInAdminPortal}
-          />
+          <>
+            <TokenSavingsFeaturesPanel
+              tenantId={healQueueTenantId}
+              operatorView={embeddedInAdminPortal}
+            />
+            <ConsensusPresetPanel tenantId={healQueueTenantId} />
+          </>
         )}
 
         {embeddedInAdminPortal ? (

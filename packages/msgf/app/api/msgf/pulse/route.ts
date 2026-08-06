@@ -12,6 +12,7 @@
  */
 import { parseForcedConvergeTierHeader } from "@/lib/services/converge-tier/router";
 
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
@@ -52,7 +53,9 @@ import {
   MSGF_TENANT_KEY_HEADER,
   MSGF_ALLOWANCE_STATE_HEADER,
   MSGF_AUTHOR_HAL_HEADER,
+  MSGF_HUMAN_NOTIFY_THRESHOLD_HEADER,
 } from "@/lib/msgf-http-headers";
+import { resolveHumanNotifyThreshold } from "@/lib/services/consensus/msgf-consensus-config";
 import { parseAuthorHalTelemetryHeader } from "@/lib/hal-author-telemetry";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
 import { extractPulseByokFromRequest } from "@/lib/services/pulse-byok-from-request";
@@ -122,10 +125,12 @@ async function runPulsePipelineWithHotLayer(params: {
   logicDriftEscalationThreshold: number | undefined;
   byokGeminiKey: string | null;
   byokAnthropicKey: string | null;
+  byokXaiKey: string | null;
   isIdePulse?: boolean;
   authorHalTelemetry?: ReturnType<typeof parseAuthorHalTelemetryHeader>;
   devSession?: ReturnType<typeof parseDevSessionFromHeaders>;
   forcedConvergeTier?: ReturnType<typeof parseForcedConvergeTierHeader>;
+  humanNotifyThreshold?: number;
 }) {
   return pulseEngine.runFullPipeline({
     supabase: params.supabase,
@@ -143,6 +148,8 @@ async function runPulsePipelineWithHotLayer(params: {
     hotSession: params.hotSession,
     byokGeminiKey: params.byokGeminiKey,
     byokAnthropicKey: params.byokAnthropicKey,
+    byokXaiKey: params.byokXaiKey,
+    humanNotifyThreshold: params.humanNotifyThreshold,
     isIdePulse: params.isIdePulse,
     devSession: params.devSession,
     forcedConvergeTier: params.forcedConvergeTier ?? null,
@@ -406,6 +413,10 @@ export async function POST(req: NextRequest) {
           logicDriftEscalationThreshold,
           byokGeminiKey: byok.gemini,
           byokAnthropicKey: byok.anthropic,
+          byokXaiKey: byok.xai,
+          humanNotifyThreshold: resolveHumanNotifyThreshold(
+            req.headers.get(MSGF_HUMAN_NOTIFY_THRESHOLD_HEADER)
+          ),
           isIdePulse: idePulse,
           devSession: idePulse || devSession.devSession ? devSession : undefined,
           forcedConvergeTier: parseForcedConvergeTierHeader(

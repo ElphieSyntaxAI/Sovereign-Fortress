@@ -128,8 +128,16 @@ import {
   runTenantAnthropicValidation,
   runTenantDualModelConsensusGateway,
   runTenantGeminiValidation,
+  runTenantXaiValidation,
+  platformXaiApiKey,
   type DualModelGatewaySnapshot,
 } from "@/lib/services/dual-model-consensus-gateway";
+import {
+  resolveBigBrainConsensusConfig,
+  resolveHumanNotifyThreshold,
+  isTriConsensusEnabled,
+} from "@/lib/services/consensus/msgf-consensus-config";
+import { decideConsensusVote, shouldNotifyHuman } from "@/lib/services/consensus/majority-vote";
 import {
   buildConvergePublicResponseFields,
   isConvergeEscalationBypassOrDegraded,
@@ -222,9 +230,20 @@ type ConsensusVote = "HUMAN" | "NON_HUMAN" | "INCONCLUSIVE";
 type ChunkConsensus = {
   gemini: { verdict: ConsensusVote; reason: string };
   claude: { verdict: ConsensusVote; reason: string };
+  grok?: { verdict: ConsensusVote; reason: string };
   agreement: boolean;
-  decision: "HUMAN_CONFIRMED" | "HITL_TIEBREAKER_REQUIRED";
+  decision: "HUMAN_CONFIRMED" | "HITL_TIEBREAKER_REQUIRED" | "NON_HUMAN" | "INCONCLUSIVE";
   halScore: number;
+  vote_tally?: {
+    HUMAN: number;
+    NON_HUMAN: number;
+    INCONCLUSIVE: number;
+    total: number;
+    majorityLabel: string | null;
+    no_majority: boolean;
+  };
+  consensus_mode?: string;
+  consensus_providers?: string[];
 };
 
 const KeystrokeEventSchema = z.object({
@@ -275,6 +294,9 @@ export type PulseFullPipelineInput = PulseEngineInput & {
   /** IDE `.msgf/keys` BYOK for dual-model local gateway. */
   byokGeminiKey?: string | null;
   byokAnthropicKey?: string | null;
+  byokXaiKey?: string | null;
+  /** Original logic-drift score threshold for human notify (default 0.45). */
+  humanNotifyThreshold?: number;
   /** Chrome extension / IDE onboarding â€” shorter CONVERGE timeout with local degrade. */
   isIdePulse?: boolean;
   /** Part B — admin/debug forced CONVERGE tier (x-msgf-converge-tier). */
@@ -477,7 +499,10 @@ export class PulseEngine {
       geminiModelId: string;
       byokGeminiKey?: string;
       byokAnthropicKey?: string;
+      byokXaiKey?: string;
       convergeRoutingProfile?: string;
+      logicDriftScore?: number;
+      humanNotifyThreshold?: number;
     }
   ): Promise<PulseConsensusCoreResult> {
     const p4 = new StateLedgerP4(ctx.supabase, ctx.tenantId);
@@ -507,9 +532,13 @@ export class PulseEngine {
     const toCached = (c: ChunkConsensus): ConvergeCachedChunk => ({
       gemini: { verdict: c.gemini.verdict, reason: c.gemini.reason },
       claude: { verdict: c.claude.verdict, reason: c.claude.reason },
+      grok: c.grok ? { verdict: c.grok.verdict, reason: c.grok.reason } : undefined,
       agreement: c.agreement,
       decision: c.decision,
       halScore: c.halScore,
+      vote_tally: c.vote_tally,
+      consensus_mode: c.consensus_mode,
+      consensus_providers: c.consensus_providers,
     });
 
     const fromCached = (c: ConvergeCachedChunk): ChunkConsensus => ({
@@ -521,9 +550,15 @@ export class PulseEngine {
         verdict: c.claude.verdict as ConsensusVote,
         reason: c.claude.reason,
       },
+      grok: c.grok
+        ? { verdict: c.grok.verdict as ConsensusVote, reason: c.grok.reason }
+        : undefined,
       agreement: c.agreement,
       decision: c.decision as ChunkConsensus["decision"],
       halScore: c.halScore,
+      vote_tally: c.vote_tally,
+      consensus_mode: c.consensus_mode,
+      consensus_providers: c.consensus_providers,
     });
 
     const cacheResult = await getOrSetConvergeCache({
@@ -542,6 +577,7 @@ export class PulseEngine {
               defendConstraints: ctx.defendConstraints,
               byokGeminiKey: useByokConverge ? ctx.byokGeminiKey : undefined,
               byokAnthropicKey: useByokConverge ? ctx.byokAnthropicKey : undefined,
+              byokXaiKey: ctx.byokXaiKey,
             })
           )
         );
@@ -613,6 +649,8 @@ export class PulseEngine {
       legalVersion: string;
       geminiModelId: string;
       license: PulseLicenseContext;
+      logicDriftScore?: number;
+      humanNotifyThreshold?: number;
     },
     core: PulseConsensusCoreResult
   ): Promise<PulseConvergeContext> {
@@ -681,11 +719,30 @@ export class PulseEngine {
     }
 
     const requiresTieBreaker =
-      !allHumanConfirmed ||
-      halScore < 70 ||
-      (halScore < 70 && recalibrationActive) ||
-      tieBreakerProtocolTriggered ||
-      Boolean(tierQuarantine?.quarantined);
+      isTriConsensusEnabled() || consensus.some((c) => c.vote_tally)
+        ? shouldNotifyHuman({
+            logicDriftScore: ctx.logicDriftScore ?? 0,
+            humanNotifyThreshold: resolveHumanNotifyThreshold(
+              ctx.humanNotifyThreshold != null ? String(ctx.humanNotifyThreshold) : null
+            ),
+            voteOk: consensus.every((c) => c.decision !== "HITL_TIEBREAKER_REQUIRED"),
+            majorityLabel:
+              (consensus[0]?.vote_tally?.majorityLabel as
+                | "HUMAN"
+                | "NON_HUMAN"
+                | "INCONCLUSIVE"
+                | null) ?? (allHumanConfirmed ? "HUMAN" : null),
+            securityNonHuman: geminiVerdict === "NON_HUMAN" || claudeVerdict === "NON_HUMAN",
+            tierQuarantined: Boolean(tierQuarantine?.quarantined),
+            tieBreakerProtocolTriggered,
+            halScore,
+            allHumanConfirmed,
+          })
+        : !allHumanConfirmed ||
+          halScore < 70 ||
+          (halScore < 70 && recalibrationActive) ||
+          tieBreakerProtocolTriggered ||
+          Boolean(tierQuarantine?.quarantined);
 
     if (retryCount > PULSE_RECURSION_MAX_RETRY) {
       let persistableDeltaEarly =
@@ -828,6 +885,10 @@ export class PulseEngine {
         consensus_summary: {
           gemini: geminiVerdict,
           claude: claudeVerdict,
+          grok: consensus[0]?.grok?.verdict ?? null,
+          vote_tally: consensus[0]?.vote_tally ?? null,
+          consensus_mode: consensus[0]?.consensus_mode ?? "DUAL",
+          consensus_providers: consensus[0]?.consensus_providers ?? ["anthropic", "google"],
           all_human_confirmed: allHumanConfirmed,
           models_disagree: modelsDisagree,
         },
@@ -899,6 +960,9 @@ export class PulseEngine {
         | "individual_byok";
       byokGeminiKey?: string;
       byokAnthropicKey?: string;
+      byokXaiKey?: string;
+      logicDriftScore?: number;
+      humanNotifyThreshold?: number;
     }
   ): Promise<PulseConvergeContext> {
     const core = await this.runConsensusCore({
@@ -1991,40 +2055,82 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
       defendConstraints?: string;
       byokGeminiKey?: string;
       byokAnthropicKey?: string;
+      byokXaiKey?: string;
     }
   ): Promise<ChunkConsensus> {
     const prompt = this.buildPrompt(chunk, beatsContext, momentumRetryCount, p2Context);
 
     const geminiKey = p2Context?.byokGeminiKey?.trim();
     const anthropicKey = p2Context?.byokAnthropicKey?.trim();
+    const xaiKey = p2Context?.byokXaiKey?.trim() || platformXaiApiKey() || undefined;
+    const bigCfg = resolveBigBrainConsensusConfig();
+    const useTri =
+      isTriConsensusEnabled() &&
+      bigCfg.mode === "TRI" &&
+      Boolean(xaiKey || bigCfg.providers.includes("xai"));
 
-    const [gemini, claude] =
-      geminiKey && anthropicKey
-        ? await Promise.all([
-            runTenantGeminiValidation(geminiKey, prompt).then((text) => this.parseVote(text)),
-            runTenantAnthropicValidation(anthropicKey, prompt).then((text) =>
-              this.parseVote(text)
-            ),
-          ])
-        : await (async () => {
-            const projectId = getGcpProjectId();
-            const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${geminiModelId}`;
-            const claudePath = `projects/${projectId}/locations/${CLAUDE_VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
-            return Promise.all([
-              this.runPublisherModel(geminiPath, prompt),
-              this.runPublisherModel(claudePath, prompt),
-            ]);
-          })();
+    let gemini: { verdict: ConsensusVote; reason: string };
+    let claude: { verdict: ConsensusVote; reason: string };
+    let grok: { verdict: ConsensusVote; reason: string } | undefined;
 
-    const agreement = gemini.verdict === claude.verdict;
-    const bothHuman = agreement && gemini.verdict === "HUMAN";
+    if (geminiKey && anthropicKey) {
+      const tasks: Promise<{ verdict: ConsensusVote; reason: string }>[] = [
+        runTenantGeminiValidation(geminiKey, prompt).then((text) => this.parseVote(text)),
+        runTenantAnthropicValidation(anthropicKey, prompt).then((text) => this.parseVote(text)),
+      ];
+      if (useTri && xaiKey) {
+        tasks.push(runTenantXaiValidation(xaiKey, prompt).then((text) => this.parseVote(text)));
+      }
+      const results = await Promise.all(tasks);
+      gemini = results[0]!;
+      claude = results[1]!;
+      grok = results[2];
+    } else {
+      const projectId = getGcpProjectId();
+      const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${geminiModelId}`;
+      const claudePath = `projects/${projectId}/locations/${CLAUDE_VERTEX_LOCATION}/publishers/anthropic/models/${CLAUDE_MODEL_ID}`;
+      const platformVotes = await Promise.all([
+        this.runPublisherModel(geminiPath, prompt),
+        this.runPublisherModel(claudePath, prompt),
+        useTri && xaiKey
+          ? runTenantXaiValidation(xaiKey, prompt).then((text) => this.parseVote(text))
+          : Promise.resolve(undefined as { verdict: ConsensusVote; reason: string } | undefined),
+      ]);
+      gemini = platformVotes[0]!;
+      claude = platformVotes[1]!;
+      grok = platformVotes[2];
+    }
+
+    const votes: ConsensusVote[] = [gemini.verdict, claude.verdict];
+    if (grok) votes.push(grok.verdict);
+
+    const strictness = useTri && grok ? bigCfg.strictness : "UNANIMOUS";
+    const decided = decideConsensusVote(votes, strictness);
+    const bothHumanLegacy = gemini.verdict === claude.verdict && gemini.verdict === "HUMAN";
+
+    const decision = decided.ok
+      ? decided.decision === "HUMAN_CONFIRMED"
+        ? "HUMAN_CONFIRMED"
+        : decided.decision
+      : "HITL_TIEBREAKER_REQUIRED";
+
+    const agreement =
+      decided.ok && decided.decision === "HUMAN_CONFIRMED"
+        ? true
+        : useTri && grok
+          ? !decided.tally.no_majority
+          : bothHumanLegacy;
 
     return {
       gemini,
       claude,
+      grok,
       agreement,
-      decision: bothHuman ? "HUMAN_CONFIRMED" : "HITL_TIEBREAKER_REQUIRED",
-      halScore: bothHuman ? 100 : 0,
+      decision: decision as ChunkConsensus["decision"],
+      halScore: decision === "HUMAN_CONFIRMED" ? 100 : 0,
+      vote_tally: decided.tally,
+      consensus_mode: useTri && grok ? "TRI" : "DUAL",
+      consensus_providers: useTri && grok ? ["anthropic", "google", "xai"] : ["anthropic", "google"],
     };
   }
 

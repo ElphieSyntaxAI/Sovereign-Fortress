@@ -62,7 +62,7 @@ Deploy gate (GET /api/msgf/deploy-gate · project_origin green)
 | **SHARD** | Hot + cold storage | Redis active slices (hot-primary reads + ns gate stamp) + Postgres/pgvector |
 | **DEFEND** | Shadow mode | Silent pre-flight; blocks P1/P6 violations before injection |
 | **CROSS-REF** | Vault / Hall check | Proposed changes vs positive fixes and negative patterns (quarantine-aware) |
-| **CONVERGE** | Dual-model consensus | Gemini + Claude; optional **3-tier** pairs (T1 mini/Haiku → T2 → T3) with escalation |
+| **CONVERGE** | Dual / TRI consensus | Tenant dual presets; Big Brain **TRI majority** (Claude+Gemini+Grok) when enabled; optional **3-tier** cost ladder (T1→T3) |
 | **ARBITRATE** | Human tie-breaker | Operator approval; **HMAC-signed hash-chained** audit snapshots |
 | **PERSIST** | Learning loop | Approved → Vault; failures / T3 quarantine → Hall path + HITL |
 
@@ -92,10 +92,12 @@ Deploy gate (GET /api/msgf/deploy-gate · project_origin green)
 
 | Tier | Runs where | Typical triggers | User sees |
 | :--- | :--- | :--- | :--- |
-| **Small Brain** | Tenant silo | Low drift Pulse, dev-session, dev-event, cache replay, verify loop | Dashboard token savings, local heals |
-| **Big Brain** | Platform | High drift CONVERGE, T3 disagree → quarantine + HITL, global DNA | Admin `#big-brain-issues`, `/admin/ops` |
+| **Small Brain** | Tenant silo | Low drift Pulse, dual presets (default Claude+Gemini UNANIMOUS), SOLO_FAST prompt optimize, cache replay, verify loop | Dashboard `#token-savings` preset picker |
+| **Big Brain** | Platform | High drift CONVERGE — **TRI majority** (Claude+Gemini+Grok) when `MSGF_TRI_CONSENSUS_ENABLED=1`; human notify if drift ≥ **0.45** or no majority / NON_HUMAN / T3 quarantine | Admin `#big-brain-issues`, `/admin/ops` |
 
 IDE **dev-event** and **dev-session** never invoke the full biometric Pulse → CONVERGE chain.
+
+Tenant presets: `balanced_dual` · `bias_mitigated_dual` (Claude+Grok) · `gemini_grok_dual` · `tri_tribunal` (premium) · `custom_byok`. API: `GET/PUT /api/msgf/tenant/consensus-config`.
 
 ### 3.4 Part B — 3-tier dual CONVERGE (flagged)
 

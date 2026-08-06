@@ -123,7 +123,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     audience: "admin",
     requires_admin_for_global: true,
     description:
-      "Dual-model Gemini + Claude when logic drift exceeds threshold; Vault persist may queue for admin if globalize.",
+      "TRI majority (Claude+Gemini+Grok) when MSGF_TRI_CONSENSUS_ENABLED=1; otherwise dual Gemini+Claude. Human notify at high original drift (≥0.45) or no majority / NON_HUMAN.",
   },
   {
     id: "converge_result_cache",
@@ -132,7 +132,7 @@ export const BRAIN_FEATURE_CATALOG: readonly BrainFeatureDescriptor[] = [
     audience: "user",
     requires_admin_for_global: false,
     description:
-      "Tenant Redis replay of a prior Big Brain verdict — avoids re-invoking dual-model orchestration.",
+      "Tenant Redis replay of a prior Big Brain verdict — avoids re-invoking dual/TRI orchestration.",
   },
   {
     id: "dev_event_heal_cheap",
