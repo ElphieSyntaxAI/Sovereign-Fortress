@@ -20,7 +20,7 @@ import { PricingMatrix } from "@/app/_components/pricing/PricingMatrix";
 export const metadata = {
   title: "Pricing | Elphie's Gated AI",
   description:
-    "Clear pricing with zero subscription fatigue — BYOK free, $99 perpetual Pro, Startup team per seat.",
+    "Clear pricing — BYOK free (Claude/Gemini/Grok), $99 perpetual Pro with managed TRI consensus, Startup team with Sentry + DocuSign/Dropbox Sign ops.",
 };
 
 export default function PricingPage() {
@@ -36,8 +36,9 @@ export default function PricingPage() {
             <span className="block text-gradient-jewel">Zero subscription fatigue.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-400">
-            Indie builders stay free with BYOK. Pro is a one-time perpetual license with a full
-            year of managed cloud consensus. Teams scale per seat with corporate controls.
+            Indie builders stay free with BYOK (Claude / Gemini / Grok). Pro is a one-time perpetual
+            license with a full year of managed cloud consensus. Teams scale per seat with ARBITRATE,
+            Sentry quarantine, and DocuSign / Dropbox Sign controls.
           </p>
         </header>
 

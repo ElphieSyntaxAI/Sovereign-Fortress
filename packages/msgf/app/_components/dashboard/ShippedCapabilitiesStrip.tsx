@@ -26,17 +26,21 @@ export function ShippedCapabilitiesStrip() {
             Shipped in V3.2
           </p>
           <h2 className="text-lg font-semibold text-slate-50 sm:text-xl">
-            IDE verify loop + token savings — live on your tenant
+            IDE verify · TRI/Grok · Sentry · e-sign — live on your tenant
           </h2>
           <p className="text-sm leading-relaxed text-slate-400">
             Connect{" "}
             <strong className="font-medium text-slate-200">MSGF Pulse Guard</strong>, run Safe Build
-            or Run Scripts, and scroll to{" "}
+            or Run Scripts, pick CONVERGE presets under{" "}
             <a href="#token-savings" className="text-amber-300/90 underline-offset-2 hover:underline">
               token savings
-            </a>{" "}
-            for defensible ROI. Vault and Hall update from verify even when Big Brain CONVERGE is
-            idle.
+            </a>
+            , and open{" "}
+            <Link href="/admin/ops" className="text-violet-300/90 underline-offset-2 hover:underline">
+              /admin/ops
+            </Link>{" "}
+            for Sentry quarantine and DocuSign / Dropbox Sign when configured. Vault and Hall update
+            from verify even when Big Brain CONVERGE is idle.
           </p>
         </div>
         <nav

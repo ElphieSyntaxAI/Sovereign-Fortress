@@ -2,10 +2,19 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-08-02 (Pulse Guard **v0.2.3**; packaging table §9.1; **Stripe M3 in plan**; claim-safety rules §10)
+**Last updated:** 2026-08-05 (marketing + TRI/Grok/Sentry/e-sign/PQC; launch readiness below)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
-**RC / deploy:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md)
+**RC / deploy:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md)
+
+### Launch readiness (2026-08-05)
+
+| Gate | ~% | What “100%” means |
+| :--- | :---: | :--- |
+| **Technical soft-RC** (`msgf-v1.0.0` with mock entitlements OK) | **~84%** | Green `validate:deployment` + staging smoke + Cloud Run secrets |
+| **Paid self-serve launch** | **~68%** | Soft-RC + Stripe Checkout smoke + identity + live keys + mock off |
+
+Largest remaining gap: **verification and secrets**, not feature code. Full bucket table: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
 
@@ -21,7 +30,7 @@ MSGF ships as:
 | **Embedded engine** | Author, Education, custom BFFs | HTTP APIs + tenant keys / licenses |
 | **BYOK / Solo** | Integrators | `msgf_live_*` license, Redis + Supabase |
 
-**One-line sales pitch:** *Pay for dual-model consensus only when logic drift demands it — and keep a glass-box flight recorder of every verify, quarantine, and human decision.*
+**One-line sales pitch:** *Pay for TRI-majority consensus only when logic drift demands it — keep glass-box lineage, Sentry-linked quarantine, and quantum-ready vault envelopes for long-lived secrets.*
 
 ---
 
@@ -48,6 +57,7 @@ Deploy gate (GET /api/msgf/deploy-gate · project_origin green)
 | **Verify** | Safe Build / Run Scripts → Vault/Hall | Skip-MSGF signed audit (A5) |
 | **Escalate** | Small Brain → CONVERGE tiers T1–T3 | ARBITRATE HITL + signed audit chain (A6) |
 | **Contain** | Quarantined wins excluded from retrieval | Vault quarantine panel (Sentry + T3) |
+| **Secure** | Hybrid PQ envelopes for vault secrets | CryptoService `0x03` + HAL v2 ML-DSA when enabled |
 | **Ship** | Deploy-gate green for `project_origin` | Heartbeat / archive / webhook workers |
 
 ---
@@ -184,6 +194,7 @@ Every activated workspace gets a **self-serve integration folder**: `api-cookboo
 - **Webview XSS** — escaped labels/commands
 - **Terminal snippets redacted** before cloud upload
 - **Skip-MSGF** actions leave a signed audit (A5)
+- **Quantum-ready (app layer):** hybrid KEM envelopes `0x03` (X25519 + ML-KEM-768) and optional HAL v2 ML-DSA-65 when `MSGF_HYBRID_KEM_ENABLED=1` — see [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). Do **not** claim platform HTTPS is post-quantum until LB PQ-TLS is enabled.
 
 ### 5.4 Agent handoff
 

@@ -2,226 +2,157 @@
 
 **Audience:** Jessica / MSGF engineering  
 **Status:** Living checklist for **MSGF 1.0 production readiness** (gatedai + Pulse Guard + ops).  
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-05
 
-**Priority now:** Ship a production-ready MSGF product (RC gate) **including Stripe paid checkout (M3)**.  
-**Deferred:** Boss demo narrative / Andrew repo mapping theater — see §4 (parked).
+**Priority now:** Staging smoke + Cloud Run secrets + green `validate:deployment` → technical soft-RC; then Stripe test Checkout smoke → paid go-live after identity.
 
-**Related:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) · [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md)
+**Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~84%** · **paid self-serve ~68%**.
+
+**Related:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md)
 
 ---
 
 ## 0. How to use this list
 
 - `[ ]` = not done · `[~]` = in progress · `[x]` = done  
-- **P0** blocks technical RC (gates, secrets, smoke) · **P0-M3** blocks **paid** go-live (Stripe) · **P1** product glue · **P2** polish  
-- **Stripe is in plan** — webhook entitlement **code landed**; finish Dashboard prices + staging smoke before promising self-serve checkout  
-- Do **not** block RC on boss-demo silos (parked §4). Part B CONVERGE tiers are **landed** (flag-gated).
+- **P0** blocks technical soft-RC · **P0-M3** blocks **paid** go-live · **P1** product glue · **P2** polish  
+- Do **not** block soft-RC on boss-demo (§4) or Education/Author full product RC.
 
 ---
 
 ## 1. Production gate (P0) — do these first
 
-Canonical checklist: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md). This section is the day-to-day execution order.
+Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 
 ### 1.1 Schema on the live DB
 
-- [x] I1/A1 migrations (`20260724020000`, `20260724020100`) applied locally via `npm run db:push`
-- [x] Confirm GitHub connections migration `20260724010000` on remote (Jul 24 push wave)
-- [x] Apply Jul 24 follow-ons on remote DB (2026-07-24 `db:push` + `verify:db-schema` green):
-  - `20260724030000_pillar_vectors_compound_scope.sql`
-  - `20260724030100_webhook_inbox_archive_status.sql`
-  - `20260724030200_msgf_skip_audit.sql`
-  - `20260724030300_msgf_arbitrate_audit.sql`
-  - `20260724030400_msgf_company_tier_rules.sql`
-- [x] `npm run verify:db-schema -w msgf` against the target DB after push
-- [x] Apply Stripe entitlement migration `20260802010000_p4_profiles_stripe_subscription.sql` (`stripe_subscription_id` / `stripe_customer_id` on profiles; `seat_limit` on companies) via `npm run db:push -w msgf` (2026-08-02)
+- [x] Jul 24 wave + Stripe entitlement migration applied (2026-07-24 / 2026-08-02)
+- [ ] Apply TRI consensus migration `20260805010000_tri_consensus_config.sql` (`msgf_tenant_consensus_config` + xAI provider CHECK)
+- [ ] `npm run db:push:verify -w msgf` after TRI migration
 
-### 1.2 Automated gates (clean machine + env)
+### 1.2 Automated gates
 
-- [x] `npm run test:unit -w msgf` (2026-07-24 — green after A4 metadata schema fix)
-- [x] `npm run test:stripe-entitlements -w msgf` (2026-08-02 — Startup Team + status sync + mock/live entitlement)
-- [x] Fix production build blocker: `LocalSubfolderPickerPanel.tsx` / `window.showDirectoryPicker` — added `types/file-system-access.d.ts` (2026-08-02). Full `next build` still flaked once on Windows exit `3221226505` during webpack; no TypeScript picker error.
-- [ ] `npm run deep-test:solo -w msgf` (clear locked `.next` on Windows/OneDrive if needed)
-- [ ] `npm run validate:deployment` (unit + production `next build`)
+- [x] `npm run test:unit -w msgf` (historical green; re-run after TRI)
+- [x] `npm run test:stripe-entitlements -w msgf`
+- [x] `npm run test:tri-consensus -w msgf` (majority vote + presets + notify threshold)
+- [x] `npm run test:hybrid-crypto -w msgf` / `test:hal-pqc` (PQC)
+- [x] Build typing: `showDirectoryPicker` via `types/file-system-access.d.ts`
+- [ ] `npm run validate:deployment` (unit + production `next build`) — confirm after Windows flake
+- [ ] `npm run deep-test:solo -w msgf`
 - [ ] `npm run verify:msgf-env -w msgf`
-- [x] Targeted: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
 
-### 1.3 Cloud Run / ops secrets (no mock authority)
+### 1.3 Cloud Run / ops secrets
 
-| Env | Purpose |
-| :--- | :--- |
-| `REDIS_URL` / Upstash | Hot layer + job queue |
-| `MSGF_OPS_CRON_SECRET` | Heartbeat, archive worker, audit fallbacks |
-| `MSGF_SKIP_AUDIT_SECRET` | A5 skip-MSGF HMAC (or reuse ops cron) |
-| `MSGF_ARBITRATE_AUDIT_KEY` | A6 HITL audit HMAC (or reuse ops cron) |
-| `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | `@sentry/nextjs` SDK (errors + tracing) |
-| `SENTRY_AUTH_TOKEN` + `SENTRY_ORG_SLUG` + `SENTRY_PROJECT_SLUG` | Source maps + ops Sentry panel |
-| DocuSign / Dropbox Sign / Dropbox archive | Only if those surfaces are live |
+| Env | Purpose | Status |
+| :--- | :--- | :--- |
+| `REDIS_URL` / Upstash | Hot layer | Confirm on staging/prod |
+| `MSGF_OPS_CRON_SECRET` | Heartbeat / audits | **Open** on Cloud Run |
+| Sentry DSN + auth token + org/project | SDK + ops panel | Local **[~]**; Cloud Run **open** |
+| Stripe test keys + Price IDs + webhook secret | Paid path | Local **[~]**; Cloud Run **open** |
+| `XAI_API_KEY` + `MSGF_TRI_CONSENSUS_ENABLED=1` | Big Brain TRI | Optional until TRI live |
+| `MSGF_HYBRID_KEM_ENABLED=1` | Quantum-ready envelopes | Optional; document when on |
 
-- [~] Local `.env.local` (msgf): Sentry DSN + org `elphie-syntax-llc` + project `msgf` + auth token + `SENTRY_BASE_URL=https://us.sentry.io` — **not yet on Cloud Run**
-- [~] Local: `STRIPE_WEBHOOK_SECRET` set — **not yet on Cloud Run**; Price IDs / live flip still open
-- [ ] Secrets present on staging + prod Cloud Run (ops cron, Redis, Sentry DSN + token, Stripe)
-- [ ] GitHub Actions `msgf-tier-heartbeat.yml` uses `MSGF_OPS_CRON_SECRET` + `MSGF_APP_URL`
-- [ ] `/admin/ops` loads **live** data (not mock pillar health)
-- [ ] `POST /api/msgf/ops/v32-heartbeat` with `{"dry_run":true}` → 200
+- [ ] Secrets on staging + prod Cloud Run
+- [ ] GH Actions `msgf-tier-heartbeat.yml` wired
+- [ ] `/admin/ops` live data (not mock pillar health)
+- [ ] `v32-heartbeat` dry-run → 200
 
 ### 1.4 Staging smoke (one real tenant)
 
-- [ ] Sign pledge → Pulse baseline
-- [ ] Ingest → lineage / heal-queue
-- [ ] Admin ARBITRATE resolve → row appears in **Signed HITL audit** + verify OK
-- [ ] Safe Build / verify-result → deploy-gate green for that `project_origin`
-- [ ] Sentry panel Load issues (token may need `event:read` — current token returned 403 on org API)
-- [ ] SDK verify: `GET /api/sentry-test` → issue in Sentry project `msgf` → **delete route after**
-- [ ] `npm run probe:solo -w msgf` against staging or production gatedai URL
+- [ ] Pledge → Pulse → ingest → heal-queue
+- [ ] Admin ARBITRATE → signed HITL audit verify
+- [ ] Safe Build / verify-result → deploy-gate green
+- [ ] Sentry panel Load issues (token scopes)
+- [ ] SDK: `GET /api/sentry-test` → delete route after
+- [ ] CONVERGE preset UI `/dashboard#token-savings` saves balanced_dual
+- [ ] `probe:solo` against staging gatedai URL
 
-### 1.5 Product surfaces that must work
+### 1.5 Product surfaces
 
-- [ ] Landing, pricing, workspace, `/status`, extension download on staging/prod
-- [ ] `/setup/projects` — GitHub and/or local mappings create correct `project_origin`
-- [ ] Workspace team readiness (I6) + signing webhooks idempotent (I5) when configured
-- [ ] Pulse Guard: `msgf.enabled` + tenantKey + token; async preflight default on
-
----
-
-## 2. Ship what’s already built (integrations — still P0 for prod)
-
-### GitHub repo picker
-
-- [ ] GitHub OAuth App + Supabase Auth provider (`read:user` + `repo`) — [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md)
-- [ ] `CRYPTO_SECRET_KEY` (dev) / KMS (prod) for provider token encrypt
-- [ ] Redirect allowlist: `/auth/callback`, `/setup/projects`
-- [ ] Smoke: Connect GitHub → multi-select → `/setup/projects` rows
-
-### Native Sentry (SDK + admin ops)
-
-See [`MSGF_SENTRY.md`](./MSGF_SENTRY.md).
-
-- [x] `@sentry/nextjs` installed + wired (`instrumentation-client.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, `instrumentation.ts`, `global-error.tsx`, `withSentryConfig`, `/monitoring` tunnel)
-- [x] Local DSN + `SENTRY_ORG=elphie-syntax-llc` + `SENTRY_PROJECT=msgf` + auth token in `packages/msgf/.env.local`
-- [ ] **Rotate** auth token (pasted in chat) and confirm scopes: CI/source maps **and** `event:read` / `project:read` / `org:read` for ops panel
-- [ ] Smoke: `GET /api/sentry-test` → Issues dashboard (then delete route)
-- [ ] Smoke: `/admin/ops` → Sentry → Load / Open / Resolve
-- [ ] Quarantine HITL path: Sentry match → quarantine → demote/restore (A2/A3)
-- [ ] DSN + auth token + org/project on staging/prod Cloud Run
-
-### Solo / admin
-
-- [ ] Clear locked `packages/msgf/.next` on Windows/OneDrive when builds flake
-- [ ] Global admin emails / operator role correct for ops console
+- [ ] Landing / features / pricing / workspace / `/status` / extension download on staging
+- [x] Marketing copy updated (TRI, Sentry, DocuSign/Dropbox Sign, quantum-ready) — 2026-08-05
+- [ ] Pulse Guard: `msgf.enabled` + tenantKey + token on a real workspace
 
 ---
 
-## 2b. Stripe / paid entitlements (P0-M3 — after technical P0, before paid claims)
+## 2. Integrations already built (finish smokes)
 
-**Code landed (2026-08-02):** Checkout metadata seats · `lib/services/stripe-entitlements.ts` · webhook handlers for Startup Team + subscription lifecycle + `invoice.payment_failed` → `past_due` · mock/live entitlement guard · `verify:msgf-env` requires Price IDs when `MSGF_STRIPE_WEBHOOK_LIVE=1` · migration `20260802010000_*` · `test:stripe-entitlements`.
+### Sentry
 
-### Stripe Dashboard / env
+- [x] `@sentry/nextjs` wired
+- [ ] Rotate auth token; Cloud Run DSN; panel smoke; quarantine demote/restore
 
-| Env | Purpose |
-| :--- | :--- |
-| `STRIPE_SECRET_KEY` | API (test first, then live) |
-| `STRIPE_WEBHOOK_SECRET` | `POST /api/webhooks/stripe` signature |
-| `STRIPE_PRICE_PRO_INDIVIDUAL` | $99 one-time Price ID (`mode: payment`) — test: `price_1TzvlH45Z9uJcKXAiX8a5IF` |
-| `STRIPE_PRICE_STARTUP_TEAM` | $49/user/mo Price ID (`mode: subscription`) — test: `price_1TzwGGH45Z9uJcKXaWckdzAt` |
-| `MSGF_STRIPE_WEBHOOK_LIVE=1` | Marks webhook as production-truth for entitlements |
-| `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0` | Turn **off** mock once webhook writes `stripe_subscription_status` |
+### GitHub picker
 
-**Catalog note (2026-08-02 export):** Also created but **not wired** in `/pricing` yet — Startup Team yearly (`price_1TzwJ0H45Z9uJcKXMo5Fd83g`), Solo Pro monthly/yearly (`price_1TzvvnH45Z9uJcKXVQHBmqWi` / `price_1TzvxaH45Z9uJcKXo0eu9DnH`). Keep in Stripe; wire only if we expand tiers.
+- [ ] OAuth App + `CRYPTO_SECRET_KEY` / KMS; Connect → `/setup/projects` smoke
 
-- [x] Stripe Products created — **test Price IDs** for Pro perpetual + Startup Team monthly mapped into local env
-- [x] `STRIPE_SECRET_KEY` (`sk_test_…`) in local `.env.local` — **rotate** (pasted in chat)
-- [~] Local webhook: `stripe listen --forward-to localhost:3000/api/webhooks/stripe` running; CLI `whsec_` written to `.env.local` (Dashboard endpoint still needed for staging/Cloud Run)
-- [x] `STRIPE_WEBHOOK_SECRET` local — set to **stripe listen** secret for local smoke (rotate chat-pasted Dashboard secret; Cloud Run needs Dashboard endpoint secret)
-- [ ] Secrets on staging Cloud Run in **test mode** (`sk_test_…`, test Price IDs, test webhook secret)
-- [ ] **Live mode blocked on Stripe identity verification** — do not put `sk_live_…` / live Price IDs / `MSGF_STRIPE_WEBHOOK_LIVE=1` on prod until identity clears
-- [ ] After identity: live keys + `npm run verify:msgf-env -w msgf` with `MSGF_STRIPE_WEBHOOK_LIVE=1`
+### Signing (DocuSign / Dropbox Sign)
 
-### Webhook events
+- [ ] Provider secrets when live; invite → webhook → IDE mint unlocked
 
-| Event | Expected profile effect | Status |
-| :--- | :--- | :--- |
-| `checkout.session.completed` + `pro_individual` | `activateIndividualPerpetualLicense` → lifetime + purchase date | **Done** |
-| `checkout.session.completed` + `startup_team` | Company seats + monthly `active` + starter credits + admin role | **Done** (code) |
-| `customer.subscription.updated` / `deleted` | Sync `stripe_subscription_status` (active / past_due / canceled) | **Done** (code) |
-| `invoice.payment_failed` | Mark profile `past_due` (blocks Pulse when mock off) | **Done** (code) |
-| `invoice.paid` (optional) | Confirm renewal / top-up credits policy | **TODO** (decide product rule) |
+### TRI / Grok
 
-- [x] Implement Startup Team entitlement write on checkout complete
-- [x] Subscription lifecycle → `p4_profiles.stripe_subscription_status`
-- [x] Payment-failed path updates status (not only narrative log)
-- [x] Unit coverage: `test:stripe-entitlements`
-- [x] Apply migration `20260802010000_*` on remote DB (2026-08-02)
-- [ ] Local/staging E2E with test cards (below) — `stripe listen` ready; start `npm run dev -w msgf` then `/pricing`
+- [x] Config SSoT + Pulse majority + tenant API/UI + unit tests
+- [ ] `db:push` TRI migration; enable flags on staging with `XAI_API_KEY`
+- [ ] Soft-escalate + bias_mitigated preset smoke (Claude+Grok BYOK)
 
-### Staging smoke (test mode)
+### PQC
 
-- [ ] Sign in → `/pricing` → Pro $99 Checkout (test card) → success URL → profile shows perpetual / managed cloud year
-- [ ] Sign in → Startup Team Checkout → subscription active → Pulse entitlement passes with mock **off**
-- [ ] Cancel / fail invoice (test) → monthly Pulse blocked when live entitlements on
-- [ ] Confirm Indie ($0) still works without Stripe (BYOK path unchanged)
+- [x] Hybrid KEM `0x03` + ML-DSA HAL v2 + audit doc
+- [ ] Decide prod default for `MSGF_HYBRID_KEM_ENABLED` (off until ops ready)
+- [ ] Platform PQ-TLS checklist on Cloud Run LB ([`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md) §6)
 
-### Go-live flip (prod) — after Stripe identity
+---
 
-- [ ] Stripe identity / business verification complete (unblocks live keys)
-- [ ] Live keys + live Price IDs + live webhook secret on Cloud Run
-- [ ] Set `MSGF_STRIPE_WEBHOOK_LIVE=1` and `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0` on prod
-- [ ] One real $0.00 / test-to-live dry run with refund if needed — or Stripe test→live checklist signed off
-- [ ] Sales copy: self-serve checkout is live (update [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) §9.1 caveat)
+## 2b. Stripe / paid entitlements (P0-M3)
+
+**Code Done (2026-08-02):** Startup Team + subscription lifecycle + `past_due` + test Price IDs + migration.
+
+- [x] Test Price IDs mapped; entitlement writers; unit tests
+- [~] Local `stripe listen` webhook secret
+- [ ] Staging Checkout smoke (Pro + Startup) with test cards
+- [ ] Stripe **identity verification** (blocks live keys)
+- [ ] Prod flip: live keys + `MSGF_STRIPE_WEBHOOK_LIVE=1` + mock off
+- [ ] Indie $0 BYOK still works without Stripe
 
 ---
 
 ## 3. Product glue (P1 — after P0 green)
 
-Goal: one narrative — **map → monitor → verify → ship**.
-
-```text
-Setup Projects (GitHub / local)
-        ↓  project_origin silos
-   Dashboard + Pulse Guard (Small Brain)
-        ↓  Safe Build / verify-result
-Ops: Heal + Sentry + signed audits
-        ↓  green verify
-Deploy gate → external deploy (Starport etc.)
-```
-
-- [ ] Projects hub: last Pulse / last verify / Sentry count per mapping
-- [ ] Document + ship verify-gate script for deploy CI (`GET /api/msgf/deploy-gate`)
-- [ ] Ops strip: shared `project_origin` filter across Heal | Sentry | audits
-- [ ] IDE onboarding: one token; change only `tenantKey` per repo
-- [ ] Pulse Guard: quick-switch `tenantKey` when multiple mappings
+- [ ] Projects hub: last Pulse / verify / Sentry count per mapping
+- [ ] Deploy-gate CI script documented
+- [ ] Ops strip: shared `project_origin` filter
+- [ ] Pulse Guard: quick-switch `tenantKey`
 
 ---
 
-## 4. Parked — boss demo (do not prioritize)
+## 4. Parked — boss demo
 
-Keep [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md) for later. **Not** on the production-ready critical path.
-
-- [ ] Layered demo silos (Starmap / Devlish / Starport)
-- [ ] Break → Safe Build fail → Hall → fix → Vault green (live for boss)
-- [ ] One-slide narrative for external stack pairing
+Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md).
 
 ---
 
 ## 5. Explicitly later (P2+)
 
-- [x] Part B: 3-tier dual CONVERGE + T3 quarantine (code landed; enable with `MSGF_CONVERGE_TIER_ENABLED=1`) — [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md)
-- [ ] Native Sentry issue create from Pulse RED
-- [ ] Session Replay / Logging / Profiling on `@sentry/nextjs` (first-error baseline = errors + tracing only)
-- [ ] GitHub App install (org-wide)
-- [ ] Nanosecond hot-layer **SLO claim** (infra wired; marketing SLA → 1.1)
-- [ ] Stripe Customer Portal / self-serve cancel + invoice history UI (beyond Checkout)
+- [x] Part B CONVERGE tiers (flagged)
+- [x] TRI Big Brain + tenant presets (flagged)
+- [x] Hybrid PQC envelopes (flagged)
+- [ ] Sentry issue create from Pulse RED
+- [ ] Session Replay / Logging / Profiling
+- [ ] GitHub App (org-wide)
+- [ ] Nanosecond hot-layer **SLO claim**
+- [ ] Stripe Customer Portal UI
+- [ ] Platform PQ-TLS (GCP LB)
 
 ---
 
 ## 6. Integration principles
 
-1. **`project_origin` is the join key** across GitHub, local, Sentry, deploy gate, audits.  
-2. **MSGF owns governance memory**; Sentry owns runtime; deploy tools own ship.  
-3. **UI cross-links**, does not reimplement.  
-4. **Unconfigured is OK** — panels degrade; never block admin login.  
-5. **RC > demo** — production secrets, migrations, and automated gates before theater.
+1. **`project_origin` is the join key.**  
+2. **MSGF owns governance memory**; Sentry owns runtime.  
+3. **Unconfigured is OK** — panels degrade.  
+4. **RC > demo.**  
+5. **Do not claim “HTTPS is post-quantum”** without platform PQ-TLS — claim **app-layer hybrid KEM** for vault secrets / HAL v2.
 
 ---
 
@@ -229,8 +160,6 @@ Keep [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md) for later. **Not
 
 | Date | Note |
 | :--- | :--- |
-| 2026-08-02 | Stripe webhook entitlement **code done** (§2b); Sentry Next.js SDK wired + local DSN/org/project/token; build blocker + Cloud Run secrets + smokes still open. |
-| 2026-08-02 | **Stripe (M3) back in plan** as §2b P0-M3 (after technical P0, before paid claims). Removed from §5 later. |
-| 2026-07-24 | Refocus: production RC first; boss demo parked in §4. Added Jul 24 migrations + A5/A6 secrets. |
-| 2026-07-24 | `db:push` applied remote Jul 24 migrations incl. company tier rules; Part B + hot layer marked landed. |
-| 2026-07-23 | Initial list: GitHub picker + Sentry ship tasks, integration exploration, boss demo. |
+| 2026-08-05 | Rebaseline: TRI + PQC code Done; soft-RC ~84% / paid ~68%; remaining = validate + staging + secrets + Stripe smoke/identity. |
+| 2026-08-02 | Stripe entitlement code + Sentry SDK local; build typing fixed. |
+| 2026-07-24 | Production RC focus; Jul 24 migrations; Part B landed. |

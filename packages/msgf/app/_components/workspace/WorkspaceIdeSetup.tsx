@@ -1032,9 +1032,10 @@ export function WorkspaceIdeSetup({
           (e.g. <code className="text-violet-200">REDIS_URL</code> and{" "}
           <code className="text-violet-200">NEXT_PUBLIC_SUPABASE_URL</code> /
           <code className="text-violet-200">SUPABASE_SERVICE_ROLE_KEY</code>), plus your model keys for
-          dual-model consensus under{" "}
-          <code className="text-violet-200">.msgf/keys/gemini.key</code> and{" "}
-          <code className="text-violet-200">.msgf/keys/claude.key</code>.
+          dual or TRI consensus under{" "}
+          <code className="text-violet-200">.msgf/keys/gemini.key</code>,{" "}
+          <code className="text-violet-200">.msgf/keys/claude.key</code>, and optional{" "}
+          <code className="text-violet-200">.msgf/keys/xai.key</code>.
           Or use a managed Pro license —{" "}
           <Link href="/pricing" className="text-violet-300 hover:underline">
             compare tiers

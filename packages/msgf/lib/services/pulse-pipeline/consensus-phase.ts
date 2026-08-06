@@ -92,8 +92,8 @@ export async function runConsensusPhase(
   const byokConverge =
     convergeRouting.action === "run_byok_converge"
       ? {
-          geminiKey: convergeRouting.byok.gemini!,
-          anthropicKey: convergeRouting.byok.anthropic!,
+          geminiKey: convergeRouting.byok.gemini ?? undefined,
+          anthropicKey: convergeRouting.byok.anthropic ?? undefined,
           xaiKey: convergeRouting.byok.xai ?? undefined,
         }
       : undefined;
@@ -102,8 +102,8 @@ export async function runConsensusPhase(
     convergeRouting.action === "run_corporate_system_converge" &&
     convergeRouting.enterpriseVaultConfigured
       ? {
-          geminiKey: convergeRouting.byok.gemini!,
-          anthropicKey: convergeRouting.byok.anthropic!,
+          geminiKey: convergeRouting.byok.gemini ?? undefined,
+          anthropicKey: convergeRouting.byok.anthropic ?? undefined,
           xaiKey: convergeRouting.byok.xai ?? undefined,
         }
       : undefined;

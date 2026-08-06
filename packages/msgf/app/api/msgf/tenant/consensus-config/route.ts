@@ -36,6 +36,10 @@ import {
   upsertTenantConsensusConfig,
 } from "@/lib/services/tenant-consensus-config";
 import { listTenantProviderCredentialPresence } from "@/lib/services/tenant-provider-credentials";
+import {
+  TenantSettingsAuthError,
+  assertUserMayManageTenantSettings,
+} from "@/lib/services/tenant-settings-auth";
 
 function json(data: unknown, init?: ResponseInit) {
   return NextResponse.json(data, init);
@@ -57,6 +61,8 @@ export async function GET(req: NextRequest) {
       user.user_metadata as Record<string, unknown>
     );
     const admin = createAdminClient();
+    await assertUserMayManageTenantSettings({ admin, user, tenantId, write: false });
+
     const [config, presence] = await Promise.all([
       getTenantConsensusConfig({ admin, tenantId }),
       listTenantProviderCredentialPresence({ admin, tenantId }),
@@ -70,7 +76,7 @@ export async function GET(req: NextRequest) {
         ...(id === "custom_byok"
           ? { mode: "DUAL_OR_TRI", providers: [] as string[], strictness: "varies" }
           : CONSENSUS_PRESET_CATALOG[id as keyof typeof CONSENSUS_PRESET_CATALOG]),
-        tri_requires_entitlement: id === "tri_tribunal" || id === "custom_byok",
+        tri_requires_entitlement: id === "tri_tribunal",
       })),
       tri_entitlement_enabled: isTenantTriConsensusEnabled(),
       keys: {
@@ -80,6 +86,9 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e) {
+    if (e instanceof TenantSettingsAuthError) {
+      return json({ error: e.message }, { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : "Unexpected error.";
     console.error("[consensus-config GET]", e);
     return json({ error: msg }, { status: 500 });
@@ -101,6 +110,9 @@ export async function PUT(req: NextRequest) {
       headerTenant,
       user.user_metadata as Record<string, unknown>
     );
+
+    const admin = createAdminClient();
+    await assertUserMayManageTenantSettings({ admin, user, tenantId, write: true });
 
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
     const profileIdRaw = typeof body?.["profileId"] === "string" ? body["profileId"].trim() : "";
@@ -141,7 +153,6 @@ export async function PUT(req: NextRequest) {
       customProviders = unique;
     }
 
-    const admin = createAdminClient();
     const config = await upsertTenantConsensusConfig({
       admin,
       tenantId,
@@ -151,6 +162,9 @@ export async function PUT(req: NextRequest) {
 
     return json({ tenant_id: tenantId, config });
   } catch (e) {
+    if (e instanceof TenantSettingsAuthError) {
+      return json({ error: e.message }, { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : "Unexpected error.";
     console.error("[consensus-config PUT]", e);
     return json({ error: msg }, { status: 400 });

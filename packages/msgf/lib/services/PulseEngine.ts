@@ -732,7 +732,10 @@ export class PulseEngine {
                 | "NON_HUMAN"
                 | "INCONCLUSIVE"
                 | null) ?? (allHumanConfirmed ? "HUMAN" : null),
-            securityNonHuman: geminiVerdict === "NON_HUMAN" || claudeVerdict === "NON_HUMAN",
+            securityNonHuman:
+              geminiVerdict === "NON_HUMAN" ||
+              claudeVerdict === "NON_HUMAN" ||
+              consensus.some((c) => c.grok?.verdict === "NON_HUMAN"),
             tierQuarantined: Boolean(tierQuarantine?.quarantined),
             tieBreakerProtocolTriggered,
             halScore,
@@ -2074,17 +2077,51 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
     let grok: { verdict: ConsensusVote; reason: string } | undefined;
 
     if (geminiKey && anthropicKey) {
-      const tasks: Promise<{ verdict: ConsensusVote; reason: string }>[] = [
+      const tasks: Promise<{ verdict: ConsensusVote; reason: string } | undefined>[] = [
         runTenantGeminiValidation(geminiKey, prompt).then((text) => this.parseVote(text)),
         runTenantAnthropicValidation(anthropicKey, prompt).then((text) => this.parseVote(text)),
       ];
       if (useTri && xaiKey) {
-        tasks.push(runTenantXaiValidation(xaiKey, prompt).then((text) => this.parseVote(text)));
+        tasks.push(
+          runTenantXaiValidation(xaiKey, prompt)
+            .then((text) => this.parseVote(text))
+            .catch((e) => {
+              console.warn("[PulseEngine] xAI/Grok vote skipped:", e instanceof Error ? e.message : e);
+              return undefined;
+            })
+        );
       }
       const results = await Promise.all(tasks);
       gemini = results[0]!;
       claude = results[1]!;
       grok = results[2];
+    } else if (
+      (geminiKey && xaiKey && !anthropicKey) ||
+      (anthropicKey && xaiKey && !geminiKey)
+    ) {
+      // Tenant bias-mitigated / gemini+grok dual — do not fall through to platform Vertex.
+      const aKey = geminiKey || anthropicKey!;
+      const aProvider = geminiKey ? "google" : "anthropic";
+      const [first, second] = await Promise.all([
+        aProvider === "google"
+          ? runTenantGeminiValidation(aKey, prompt).then((text) => this.parseVote(text))
+          : runTenantAnthropicValidation(aKey, prompt).then((text) => this.parseVote(text)),
+        runTenantXaiValidation(xaiKey!, prompt)
+          .then((text) => this.parseVote(text))
+          .catch((e) => {
+            console.warn("[PulseEngine] xAI dual vote failed:", e instanceof Error ? e.message : e);
+            return { verdict: "INCONCLUSIVE" as ConsensusVote, reason: "xai_unavailable" };
+          }),
+      ]);
+      if (aProvider === "google") {
+        gemini = first;
+        claude = { verdict: "INCONCLUSIVE", reason: "anthropic_not_in_preset" };
+        grok = second;
+      } else {
+        gemini = { verdict: "INCONCLUSIVE", reason: "google_not_in_preset" };
+        claude = first;
+        grok = second;
+      }
     } else {
       const projectId = getGcpProjectId();
       const geminiPath = `projects/${projectId}/locations/${VERTEX_LOCATION}/publishers/google/models/${geminiModelId}`;
@@ -2093,7 +2130,12 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
         this.runPublisherModel(geminiPath, prompt),
         this.runPublisherModel(claudePath, prompt),
         useTri && xaiKey
-          ? runTenantXaiValidation(xaiKey, prompt).then((text) => this.parseVote(text))
+          ? runTenantXaiValidation(xaiKey, prompt)
+              .then((text) => this.parseVote(text))
+              .catch((e) => {
+                console.warn("[PulseEngine] platform xAI vote skipped:", e instanceof Error ? e.message : e);
+                return undefined;
+              })
           : Promise.resolve(undefined as { verdict: ConsensusVote; reason: string } | undefined),
       ]);
       gemini = platformVotes[0]!;
@@ -2101,10 +2143,21 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
       grok = platformVotes[2];
     }
 
-    const votes: ConsensusVote[] = [gemini.verdict, claude.verdict];
+    const votes: ConsensusVote[] = [];
+    if (gemini.reason !== "google_not_in_preset") votes.push(gemini.verdict);
+    if (claude.reason !== "anthropic_not_in_preset") votes.push(claude.verdict);
     if (grok) votes.push(grok.verdict);
+    if (votes.length < 2) {
+      // Degenerate — treat as inconclusive HITL
+      votes.push(gemini.verdict, claude.verdict);
+    }
 
-    const strictness = useTri && grok ? bigCfg.strictness : "UNANIMOUS";
+    const strictness =
+      useTri && grok && votes.length >= 3
+        ? bigCfg.strictness
+        : votes.length >= 3
+          ? "MAJORITY"
+          : "UNANIMOUS";
     const decided = decideConsensusVote(votes, strictness);
     const bothHumanLegacy = gemini.verdict === claude.verdict && gemini.verdict === "HUMAN";
 
@@ -2121,6 +2174,11 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
           ? !decided.tally.no_majority
           : bothHumanLegacy;
 
+    const providersUsed: string[] = [];
+    if (gemini.reason !== "google_not_in_preset") providersUsed.push("google");
+    if (claude.reason !== "anthropic_not_in_preset") providersUsed.push("anthropic");
+    if (grok) providersUsed.push("xai");
+
     return {
       gemini,
       claude,
@@ -2129,8 +2187,8 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
       decision: decision as ChunkConsensus["decision"],
       halScore: decision === "HUMAN_CONFIRMED" ? 100 : 0,
       vote_tally: decided.tally,
-      consensus_mode: useTri && grok ? "TRI" : "DUAL",
-      consensus_providers: useTri && grok ? ["anthropic", "google", "xai"] : ["anthropic", "google"],
+      consensus_mode: providersUsed.length >= 3 ? "TRI" : "DUAL",
+      consensus_providers: providersUsed,
     };
   }
 

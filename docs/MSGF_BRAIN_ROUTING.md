@@ -43,7 +43,7 @@ Policy catalog (every feature has `tier` + `audience`): [`packages/msgf/lib/serv
 
 Escalate-to-Big remains at drift **0.3**; notify humans only at the higher threshold (or hard security fails).
 
-**Small Brain presets:** Tenant default is `balanced_dual` (Claude + Gemini, UNANIMOUS). Dashboard `/dashboard#token-savings` → CONVERGE model preset. Dual split soft-escalates to Big Brain TRI when enabled — does not open HITL on dual alone. Prompt optimize / Safe Build stay **SOLO_FAST**.
+**Small Brain presets:** Tenant default is `balanced_dual` (Claude + Gemini, UNANIMOUS). Dashboard `/dashboard#token-savings` → CONVERGE model preset. Dual split Soft-escalates to the **sovereign auditor** (platform masters; TRI-augmented with Grok when `MSGF_TRI_CONSENSUS_ENABLED=1`) — does not open HITL on dual alone. Prompt optimize / Safe Build stay **SOLO_FAST**.
 
 Config SSoT: [`msgf-consensus-config.ts`](../packages/msgf/lib/services/consensus/msgf-consensus-config.ts) · API `GET/PUT /api/msgf/tenant/consensus-config`.
 

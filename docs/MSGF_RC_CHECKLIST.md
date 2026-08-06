@@ -6,8 +6,9 @@
 
 **SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-08-02  
-**Focus:** Production RC + Stripe paid path + Sentry SDK. Boss demo deferred — Part B CONVERGE tier + hot layer landed 2026-07-24; enable with `MSGF_CONVERGE_TIER_ENABLED=1`. See [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md).
+**Last updated:** 2026-08-05  
+**Focus:** Staging smoke + Cloud Run secrets + Stripe test Checkout. Code for TRI/PQC/Stripe/Sentry is largely landed.  
+**Readiness:** Technical soft-RC **~84%** · Paid self-serve **~68%** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
 
@@ -17,12 +18,15 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 
 - [x] `npm run test:unit -w msgf` (includes Jul 24 suites; 2026-07-24 green)
 - [x] `npm run test:stripe-entitlements -w msgf` (2026-08-02)
+- [x] `npm run test:tri-consensus -w msgf` (2026-08-05)
+- [x] `npm run test:hybrid-crypto -w msgf` / `test:hal-pqc` (2026-08-05)
 - [ ] `npm run test:savings -w msgf`
-- [x] **Build blocker:** `showDirectoryPicker` typing fixed via `types/file-system-access.d.ts` (2026-08-02). Re-run `validate:deployment` / full `next build` after Windows webpack flake (`3221226505`).
+- [x] **Build typing:** `showDirectoryPicker` fixed via `types/file-system-access.d.ts` (2026-08-02). Re-confirm full `next build` / `validate:deployment`.
 - [ ] `npm run deep-test:solo -w msgf`
 - [ ] `npm run verify:msgf-env -w msgf`
 - [x] `npm run db:push` applied `20260802010000_p4_profiles_stripe_subscription.sql` (2026-08-02)
-- [ ] `npm run db:push:verify -w msgf` — include new `20260802010000_p4_profiles_stripe_subscription.sql`
+- [ ] `npm run db:push` / verify for `20260805010000_tri_consensus_config.sql` (TRI + xAI provider)
+- [ ] `npm run db:push:verify -w msgf`
 - [ ] `npm run validate:deployment` (unit + production `next build`)
 - [x] Jul 24 pitfall/integration unit suites: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
 - [x] Migration `20260724030400_msgf_company_tier_rules.sql` applied on remote (2026-07-24 `db:push`)
@@ -171,6 +175,7 @@ MSGF can RC without these; include if your gate requires M5:
 
 | Date | Note |
 | :--- | :--- |
+| 2026-08-05 | TRI + PQC unit gates noted; TRI migration still to push; readiness soft-RC ~84% / paid ~68%. |
 | 2026-08-02 | Marked Stripe entitlement **code** + Sentry SDK local wiring done; added build blocker, Stripe migration, Sentry Cloud Run / verify smokes; P0-M3 still blocked on Prices + staging smoke + mock-off. |
 | 2026-08-02 | Stripe M3 added as **P0-M3** (paid go-live gate); no longer “out of scope.” |
 | 2026-07-24 | Prod-first focus; A4–A6 / I4–I5 suites + audit secrets + migration notes. Boss demo deferred. |

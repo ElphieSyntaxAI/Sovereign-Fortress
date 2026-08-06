@@ -206,3 +206,22 @@ export function consensusProviderToCredentialKey(
   if (p === "google") return "gemini";
   return p;
 }
+
+/** True when every provider in the Small Brain preset has a usable key. */
+export function byokSatisfiesConsensusConfig(
+  byok: {
+    gemini: string | null;
+    anthropic: string | null;
+    xai: string | null;
+  },
+  config: MSGFConsensusConfig
+): boolean {
+  const keyFor = (p: MsgfConsensusProvider): string | null => {
+    const cred = consensusProviderToCredentialKey(p);
+    if (cred === "gemini") return byok.gemini;
+    if (cred === "anthropic") return byok.anthropic;
+    return byok.xai;
+  };
+  return config.providers.every((p) => Boolean(keyFor(p)?.trim()));
+}
+

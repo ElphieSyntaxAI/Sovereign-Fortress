@@ -16,6 +16,7 @@ import { describe, test } from "node:test";
 import {
   BIG_BRAIN_DEFAULT,
   SMALL_BRAIN_DEFAULT,
+  byokSatisfiesConsensusConfig,
   configFromTenantPreset,
   resolveHumanNotifyThreshold,
   validateConsensusConfig,
@@ -175,6 +176,34 @@ describe("shouldNotifyHuman", () => {
         humanNotifyThreshold: 0.45,
       }),
       true
+    );
+  });
+});
+
+describe("byokSatisfiesConsensusConfig", () => {
+  test("bias_mitigated needs anthropic+xai only", () => {
+    const byok = {
+      gemini: null,
+      anthropic: "sk-ant-test",
+      xai: "xai-test",
+    };
+    assert.equal(
+      byokSatisfiesConsensusConfig(byok, {
+        mode: "DUAL",
+        providers: ["anthropic", "xai"],
+        strictness: "UNANIMOUS",
+        profileId: "bias_mitigated_dual",
+      }),
+      true
+    );
+    assert.equal(
+      byokSatisfiesConsensusConfig(byok, {
+        mode: "DUAL",
+        providers: ["anthropic", "google"],
+        strictness: "UNANIMOUS",
+        profileId: "balanced_dual",
+      }),
+      false
     );
   });
 });

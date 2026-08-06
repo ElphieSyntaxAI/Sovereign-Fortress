@@ -81,7 +81,15 @@ export function ConsensusPresetPanel({ tenantId }: Props) {
         if (data.keys.anthropic_configured) providers.push("anthropic");
         if (data.keys.gemini_configured) providers.push("google");
         if (data.keys.xai_configured) providers.push("xai");
-        body.providers = providers;
+        if (providers.length < 2) {
+          setError("Custom BYOK needs at least two provider keys configured.");
+          return;
+        }
+        // Without tenant TRI entitlement, cap custom at dual.
+        body.providers =
+          providers.length === 3 && !data.tri_entitlement_enabled
+            ? providers.slice(0, 2)
+            : providers;
       }
       const res = await fetch("/api/msgf/tenant/consensus-config", {
         method: "PUT",
@@ -102,75 +110,91 @@ export function ConsensusPresetPanel({ tenantId }: Props) {
 
   if (error && !data) {
     return (
-      <section className="msgf-consensus-preset" style={{ marginTop: "1.5rem" }}>
-        <h3 style={{ fontSize: "1.05rem", marginBottom: "0.35rem" }}>CONVERGE model preset</h3>
-        <p style={{ color: "var(--msgf-muted, #666)", fontSize: "0.9rem" }}>{error}</p>
+      <section
+        className="glass-panel mt-6 scroll-mt-24 rounded-2xl border border-emerald-500/20 p-5"
+        id="converge-preset"
+      >
+        <h3 className="text-sm font-semibold text-slate-100">CONVERGE model preset</h3>
+        <p className="mt-2 text-sm text-slate-400">{error}</p>
       </section>
     );
   }
 
   if (!data) {
     return (
-      <section className="msgf-consensus-preset" style={{ marginTop: "1.5rem" }}>
-        <p style={{ fontSize: "0.9rem" }}>Loading consensus presets…</p>
+      <section className="mt-6 rounded-2xl border border-slate-700/50 p-5" id="converge-preset">
+        <p className="text-sm text-slate-400">Loading consensus presets…</p>
       </section>
     );
   }
 
   const current = data.config.profileId ?? "balanced_dual";
+  const keyCount =
+    Number(data.keys.anthropic_configured) +
+    Number(data.keys.gemini_configured) +
+    Number(data.keys.xai_configured);
 
   return (
-    <section className="msgf-consensus-preset" style={{ marginTop: "1.5rem" }}>
-      <h3 style={{ fontSize: "1.05rem", marginBottom: "0.35rem" }}>CONVERGE model preset</h3>
-      <p style={{ color: "var(--msgf-muted, #666)", fontSize: "0.85rem", maxWidth: "40rem" }}>
-        Small Brain verification pairs. Prompt optimize stays SOLO_FAST. Big Brain uses TRI (Claude +
-        Gemini + Grok) when platform drift is high — humans notify only above the high-drift threshold.
+    <section
+      className="glass-panel mt-6 scroll-mt-24 rounded-2xl border border-emerald-500/20 p-5"
+      id="converge-preset"
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
+        Small Brain verification
       </p>
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", margin: "0.75rem 0", fontSize: "0.85rem" }}>
+      <h3 className="mt-1 text-lg font-semibold text-slate-50">CONVERGE model preset</h3>
+      <p className="mt-2 max-w-xl text-sm text-slate-400">
+        Tenant verification pairs. Prompt optimize stays SOLO_FAST. Big Brain uses TRI majority
+        (Claude + Gemini + Grok) when drift is high — humans notify only above the high-drift
+        threshold.
+      </p>
+      <div
+        className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400"
+        aria-label="Provider key presence"
+      >
         <span>Anthropic: {data.keys.anthropic_configured ? "key set" : "missing"}</span>
         <span>Google: {data.keys.gemini_configured ? "key set" : "missing"}</span>
         <span>xAI: {data.keys.xai_configured ? "key set" : "missing"}</span>
       </div>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.5rem" }}>
-        {(["balanced_dual", "bias_mitigated_dual", "gemini_grok_dual", "tri_tribunal", "custom_byok"] as const).map(
-          (id) => {
-            const locked =
-              id === "tri_tribunal" && !data.tri_entitlement_enabled;
-            return (
-              <li key={id}>
-                <button
-                  type="button"
-                  disabled={saving || locked}
-                  onClick={() => void selectPreset(id)}
-                  style={{
-                    textAlign: "left",
-                    width: "100%",
-                    maxWidth: "28rem",
-                    padding: "0.55rem 0.75rem",
-                    border:
-                      current === id
-                        ? "2px solid var(--msgf-accent, #1a5f4a)"
-                        : "1px solid var(--msgf-border, #ccc)",
-                    background: "transparent",
-                    cursor: locked ? "not-allowed" : "pointer",
-                    opacity: locked ? 0.5 : 1,
-                  }}
-                >
-                  {PRESET_LABELS[id]}
-                  {locked ? " — enable tenant TRI entitlement" : ""}
-                  {current === id ? " ✓" : ""}
-                </button>
-              </li>
-            );
-          }
-        )}
+      <ul role="radiogroup" aria-label="CONVERGE presets" className="mt-4 grid gap-2">
+        {(
+          [
+            "balanced_dual",
+            "bias_mitigated_dual",
+            "gemini_grok_dual",
+            "tri_tribunal",
+            "custom_byok",
+          ] as const
+        ).map((id) => {
+          const locked = id === "tri_tribunal" && !data.tri_entitlement_enabled;
+          const customBlocked = id === "custom_byok" && keyCount < 2;
+          const disabled = saving || locked || customBlocked;
+          const selected = current === id;
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                disabled={disabled}
+                onClick={() => void selectPreset(id)}
+                className={`w-full max-w-md rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                  selected
+                    ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-50"
+                    : "border-slate-600/60 bg-slate-950/40 text-slate-200 hover:border-emerald-500/40"
+                } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+              >
+                {PRESET_LABELS[id]}
+                {locked ? " — enable tenant TRI entitlement" : ""}
+                {customBlocked ? " — configure ≥2 provider keys" : ""}
+                {selected ? " ✓" : ""}
+              </button>
+            </li>
+          );
+        })}
       </ul>
-      {message ? (
-        <p style={{ fontSize: "0.85rem", color: "var(--msgf-accent, #1a5f4a)" }}>{message}</p>
-      ) : null}
-      {error ? (
-        <p style={{ fontSize: "0.85rem", color: "crimson" }}>{error}</p>
-      ) : null}
+      {message ? <p className="mt-3 text-sm text-emerald-300/90">{message}</p> : null}
+      {error ? <p className="mt-2 text-sm text-rose-300">{error}</p> : null}
     </section>
   );
 }

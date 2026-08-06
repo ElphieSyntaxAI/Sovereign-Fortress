@@ -81,8 +81,11 @@ function QuickstartSteps() {
             <Link href="/dashboard" className="text-emerald-400 underline-offset-4 hover:underline">
               governance dashboard
             </Link>
-            . Optional BYOK keys live in <code className="text-violet-200">.msgf/keys/</code> if you
-            bring your own models.
+            . Optional BYOK keys live in <code className="text-violet-200">.msgf/keys/</code>{" "}
+            (<code className="text-violet-200">gemini.key</code>,{" "}
+            <code className="text-violet-200">claude.key</code>, optional{" "}
+            <code className="text-violet-200">xai.key</code> for Grok). Pick CONVERGE presets on the
+            dashboard under token savings.
           </p>
           <p className="mt-4">
             <Link

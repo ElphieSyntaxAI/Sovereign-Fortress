@@ -218,6 +218,9 @@ export async function maybeRunLocalDualModelGateway(
       convergeRouting.action === "run_byok_converge"
         ? convergeRouting.byok.anthropic
         : convergeRouting.byok.anthropic ?? input.byokAnthropicKey,
+    byokXaiKey:
+      convergeRouting.byok.xai ?? input.byokXaiKey ?? undefined,
+    consensusConfig: gate.tenantConsensus ?? undefined,
     skipTenantCredentialAssert:
       convergeRouting.segment === "corporate_paid" ||
       convergeRouting.action === "run_perpetual_platform_converge",

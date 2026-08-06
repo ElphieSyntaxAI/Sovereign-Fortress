@@ -38,8 +38,7 @@ export async function runTenantXaiValidation(apiKey: string, prompt: string): Pr
       }),
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`xAI validation failed (${res.status}): ${body.slice(0, 200)}`);
+      throw new Error(`xAI validation failed (${res.status})`);
     }
     const json = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;

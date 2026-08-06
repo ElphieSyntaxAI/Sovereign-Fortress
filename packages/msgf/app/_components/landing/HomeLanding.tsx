@@ -14,6 +14,7 @@ import Link from "next/link";
 
 import { FeatureGrid } from "@/app/_components/marketing/FeatureGrid";
 import {
+  ENTERPRISE_FEATURE_CARDS,
   SHIPPED_FEATURE_CARDS,
 } from "@/app/_components/marketing/shipped-capabilities";
 import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
@@ -31,7 +32,7 @@ const PILLARS = [
   {
     id: "P2",
     title: "Flow & Consensus",
-    body: "Ordered gates: ingest, verify, dual-model arbitrate, persist — no step-skipping.",
+    body: "Ordered gates: ingest, verify, dual or TRI-majority arbitrate, persist — no step-skipping.",
     accent: "purple" as const,
   },
   {
@@ -90,10 +91,12 @@ export function HomeLanding() {
               <span className="text-slate-300">from IDE to cloud.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-center text-base leading-relaxed text-slate-400 sm:text-lg">
-              Six pillars, dual-model CONVERGE when drift demands it, and a native{" "}
+              Six pillars, Grok-aware model presets, TRI majority CONVERGE when drift demands it,
+              Sentry→Vault quarantine, DocuSign / Dropbox Sign team gates, and{" "}
+              <strong className="font-medium text-slate-200">quantum-ready</strong> hybrid envelopes
+              for vault secrets — plus a native{" "}
               <strong className="font-medium text-slate-200">Command Center</strong> that optimizes
-              prompts locally, runs allowlisted verify scripts, and feeds a defensible token savings
-              dashboard.
+              prompts locally and feeds a defensible token savings dashboard.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <Link
@@ -154,8 +157,8 @@ export function HomeLanding() {
                 Visible gates. Vault &amp; Hall lineage. HITL when it matters.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                MSGF exposes pillar checks, verify-result beats, and savings counters — so
-                compliance and engineering share the same truth.
+                MSGF exposes pillar checks, verify-result beats, Sentry quarantine, signed HITL, and
+                savings counters — so compliance and engineering share the same truth.
               </p>
             </article>
           </div>
@@ -173,6 +176,12 @@ export function HomeLanding() {
           </div>
           <div className="mt-10">
             <FeatureGrid items={SHIPPED_FEATURE_CARDS} />
+          </div>
+          <p className="mx-auto mt-12 max-w-xl text-center text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/85">
+            Platform &amp; enterprise
+          </p>
+          <div className="mt-6">
+            <FeatureGrid items={ENTERPRISE_FEATURE_CARDS} />
           </div>
         </section>
 

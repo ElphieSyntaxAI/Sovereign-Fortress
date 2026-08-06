@@ -26,11 +26,13 @@ import {
   listTenantProviderCredentialPresence,
 } from "@/lib/services/tenant-provider-credentials";
 import {
-  consensusProviderToCredentialKey,
+  byokSatisfiesConsensusConfig,
   type MSGFConsensusConfig,
 } from "@/lib/services/consensus/msgf-consensus-config";
 import { getTenantConsensusConfig } from "@/lib/services/tenant-consensus-config";
 import type { PulseLicenseContext } from "@/lib/services/pulse-license";
+
+export { byokSatisfiesConsensusConfig };
 import {
   evaluateManagedCloudWindow,
   isIndividualPerpetualLicenseType,
@@ -295,20 +297,6 @@ export async function resolveEffectiveByokKeys(params: {
     bothPresent,
     sources,
   };
-}
-
-/** True when every provider in the tenant Small Brain preset has a usable key. */
-export function byokSatisfiesConsensusConfig(
-  byok: ResolvedByokKeys,
-  config: MSGFConsensusConfig
-): boolean {
-  const keyFor = (p: MSGFConsensusConfig["providers"][number]): string | null => {
-    const cred = consensusProviderToCredentialKey(p);
-    if (cred === "gemini") return byok.gemini;
-    if (cred === "anthropic") return byok.anthropic;
-    return byok.xai;
-  };
-  return config.providers.every((p) => Boolean(keyFor(p)?.trim()));
 }
 
 function resolveIndividualFreeRouting(

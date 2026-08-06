@@ -30,6 +30,10 @@ import {
   parseTenantProvider,
   upsertTenantProviderCredential,
 } from "@/lib/services/tenant-provider-credentials";
+import {
+  TenantSettingsAuthError,
+  assertUserMayManageTenantSettings,
+} from "@/lib/services/tenant-settings-auth";
 
 function json(data: unknown, init?: ResponseInit) {
   return NextResponse.json(data, init);
@@ -55,6 +59,7 @@ export async function GET(req: NextRequest) {
     );
 
     const admin = createAdminClient();
+    await assertUserMayManageTenantSettings({ admin, user, tenantId, write: false });
     const presence = await listTenantProviderCredentialPresence({ admin, tenantId });
 
     return json({
@@ -64,6 +69,9 @@ export async function GET(req: NextRequest) {
       xai_configured: presence.xai,
     });
   } catch (e) {
+    if (e instanceof TenantSettingsAuthError) {
+      return json({ error: e.message }, { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : "Unexpected error.";
     console.error("[provider-keys GET]", e);
     return json({ error: msg }, { status: 500 });
@@ -108,6 +116,7 @@ export async function POST(req: NextRequest) {
     );
 
     const admin = createAdminClient();
+    await assertUserMayManageTenantSettings({ admin, user, tenantId, write: true });
     await upsertTenantProviderCredential({
       admin,
       tenantId,
@@ -117,6 +126,9 @@ export async function POST(req: NextRequest) {
 
     return json({ ok: true, tenant_id: tenantId, provider });
   } catch (e) {
+    if (e instanceof TenantSettingsAuthError) {
+      return json({ error: e.message }, { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : "Unexpected error.";
     console.error("[provider-keys POST]", e);
     return json({ error: msg }, { status: 500 });
@@ -148,10 +160,14 @@ export async function DELETE(req: NextRequest) {
     );
 
     const admin = createAdminClient();
+    await assertUserMayManageTenantSettings({ admin, user, tenantId, write: true });
     await deleteTenantProviderCredential({ admin, tenantId, provider });
 
     return json({ ok: true, tenant_id: tenantId, provider });
   } catch (e) {
+    if (e instanceof TenantSettingsAuthError) {
+      return json({ error: e.message }, { status: e.status });
+    }
     const msg = e instanceof Error ? e.message : "Unexpected error.";
     console.error("[provider-keys DELETE]", e);
     return json({ error: msg }, { status: 500 });

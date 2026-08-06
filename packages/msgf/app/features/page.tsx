@@ -15,13 +15,16 @@ import Link from "next/link";
 import { FeatureGrid } from "@/app/_components/marketing/FeatureGrid";
 import { MarketingPillarList, MarketingSection } from "@/app/_components/marketing/MarketingSection";
 import { MarketingShell } from "@/app/_components/marketing/MarketingShell";
-import { SHIPPED_FEATURE_CARDS } from "@/app/_components/marketing/shipped-capabilities";
+import {
+  ENTERPRISE_FEATURE_CARDS,
+  SHIPPED_FEATURE_CARDS,
+} from "@/app/_components/marketing/shipped-capabilities";
 import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
 
 export const metadata = {
   title: "Features | Elphie's Gated AI",
   description:
-    "MSGF V3.2 — six-pillar ingest, IDE Command Center, 0-token prompts, Safe Build, Vault/Hall verify, CONVERGE tiers, quarantine HITL, deploy gate, and defensible token savings.",
+    "MSGF V3.2 — IDE Command Center, TRI/Grok consensus presets, Sentry→Vault quarantine, DocuSign/Dropbox Sign, Workspace SSO, deploy gate, and defensible token savings.",
 };
 
 const PILLARS = [
@@ -60,7 +63,7 @@ const PILLARS = [
 const IDE_FEATURES = [
   {
     title: "0-Token Prompt Optimizer",
-    body: "Describe your task once. MSGF builds a sharded, @-attachment-ready prompt with mandatory agent verify rules — no server-side LLM burn.",
+    body: "Describe your task once. MSGF builds a sharded, @-attachment-ready prompt with mandatory agent verify rules — SOLO_FAST, no server-side LLM burn.",
   },
   {
     title: "Run Scripts",
@@ -73,25 +76,6 @@ const IDE_FEATURES = [
   {
     title: "Command Center sidebar",
     body: "Connection status, optimizer, Run Scripts, Safe Build, and advanced Pulse/heal ops in one Cursor/VS Code panel.",
-  },
-];
-
-const PLATFORM_FEATURES = [
-  {
-    title: "3-tier dual CONVERGE",
-    body: "Cheap model pairs on low-risk diffs; escalate T1→T2→T3 only when models disagree. Company path rules can force Apex on /auth, /payment, and more.",
-  },
-  {
-    title: "Quarantine without auto-Hall",
-    body: "Sentry crashes and T3 disagreement mark Vault wins QUARANTINED. Ops restore or demote on /admin/ops — poisoned context never silently demotes.",
-  },
-  {
-    title: "Signed HITL audits",
-    body: "Skip-MSGF and ARBITRATE decisions leave HMAC-signed, hash-chained snapshots — a compliance-ready trail of who approved what.",
-  },
-  {
-    title: "Deploy gate",
-    body: "CI checks GET /api/msgf/deploy-gate for your project_origin. Ship only when verify is green for that silo.",
   },
 ];
 
@@ -108,11 +92,12 @@ export default function FeaturesPage() {
             <span className="block text-slate-200">&amp; zero re-prompt verify</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-400">
-            Glass-box AI that maps your project to six isolated ledger slices in{" "}
-            <code className="text-emerald-300/90">.msgf/</code>, routes routine work on{" "}
-            <strong className="text-cyan-300/90">Small Brain</strong>, escalates to dual-model{" "}
-            <strong className="text-violet-300/90">CONVERGE</strong> only when logic drift demands
-            it, and quarantines poisoned wins when Apex models still disagree.
+            Glass-box AI with six pillars, IDE verify loops,{" "}
+            <strong className="text-cyan-300/90">Grok-aware model presets</strong>,{" "}
+            <strong className="text-violet-300/90">Sentry→Vault quarantine</strong>,{" "}
+            <strong className="text-emerald-200">DocuSign / Dropbox Sign</strong>, and{" "}
+            <strong className="text-amber-200">quantum-ready</strong> hybrid vault envelopes —
+            configure integrations when you go live; panels degrade cleanly until then.
           </p>
         </header>
 
@@ -122,6 +107,13 @@ export default function FeaturesPage() {
 
         <div className="mb-12">
           <FeatureGrid items={SHIPPED_FEATURE_CARDS} />
+        </div>
+
+        <div className="mb-12">
+          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/85">
+            Platform &amp; enterprise
+          </p>
+          <FeatureGrid items={ENTERPRISE_FEATURE_CARDS} />
         </div>
 
         <div className="space-y-8">
@@ -149,7 +141,7 @@ export default function FeaturesPage() {
               <Link href="/dashboard#token-savings" className="text-cyan-300 hover:underline">
                 token savings
               </Link>{" "}
-              dashboard.
+              dashboard — including CONVERGE model presets (Claude / Gemini / Grok pairs).
             </p>
             <ul className="grid gap-3 sm:grid-cols-2">
               {IDE_FEATURES.map((f) => (
@@ -175,6 +167,46 @@ export default function FeaturesPage() {
             </p>
           </MarketingSection>
 
+          <MarketingSection eyebrow="Consensus" title="Small Brain presets · Big Brain TRI">
+            <p>
+              Tenant verification defaults to <strong className="text-slate-100">Claude + Gemini</strong>{" "}
+              (unanimous). Compliance and vendor-mandate paths can switch to{" "}
+              <strong className="text-slate-100">Claude + Grok</strong> or{" "}
+              <strong className="text-slate-100">Gemini + Grok</strong>. When logic drift is high,
+              platform Big Brain runs <strong className="text-violet-200">TRI majority</strong> —
+              Claude + Gemini + Grok — and only opens human notify on high original drift, no
+              majority, or security NON_HUMAN. Prompt optimize stays SOLO_FAST.
+            </p>
+          </MarketingSection>
+
+          <MarketingSection
+            eyebrow="Security"
+            title="Quantum-ready vault crypto"
+          >
+            <p>
+              Long-lived secrets can use <strong className="text-slate-100">hybrid KEM envelopes</strong>{" "}
+              (X25519 + ML-KEM-768) and authorship proofs can use{" "}
+              <strong className="text-slate-100">ML-DSA-65</strong> certificates when enabled — so
+              vault material stays ready for a post-quantum world. Transport still relies on platform
+              TLS; we do not over-claim “HTTPS is PQ” until your load balancer negotiates PQ KEMs.
+            </p>
+          </MarketingSection>
+
+          <MarketingSection
+            eyebrow="Integrations"
+            title="Sentry, e-sign, and Workspace SSO"
+          >
+            <p>
+              <strong className="text-slate-100">Sentry</strong> issues match Vault wins and
+              quarantine poisoned context on <code className="text-violet-300/90">/admin/ops</code>.
+              Team invites run through <strong className="text-slate-100">DocuSign</strong> or{" "}
+              <strong className="text-slate-100">Dropbox Sign</strong> (company-selectable).{" "}
+              <strong className="text-slate-100">Google Workspace SSO</strong> and company domains
+              gate corporate seats. Unconfigured panels show as unconfigured — they do not break the
+              rest of the product.
+            </p>
+          </MarketingSection>
+
           <MarketingSection eyebrow="Token savings" title="Defensible ROI on your dashboard">
             <p>
               After you map a project and run the IDE loop, your{" "}
@@ -185,34 +217,6 @@ export default function FeaturesPage() {
               optimizer packs, ingest hash skips, and pulse routing mix. A 24h rollup separates MSGF
               cloud tokens from context savings you can defend to finance.
             </p>
-          </MarketingSection>
-
-          <MarketingSection eyebrow="Step 5 CONVERGE" title="Multi-File Batch-Fixing Protocol">
-            <p>
-              Stop playing whack-a-mole with errors. MSGF executes a project-wide sweep, leveraging
-              Step 5 (<strong className="text-emerald-200">CONVERGE</strong>) cross-model consensus
-              between <strong className="text-[#f8fafc]">Gemini</strong> and{" "}
-              <strong className="text-[#f8fafc]">Claude</strong> — with Redis replay when the same
-              content hash hits again. Optional <strong className="text-violet-200">T1→T3</strong>{" "}
-              tiered pairs keep cheap models on docs and Apex pairs on auth/payment paths.
-            </p>
-          </MarketingSection>
-
-          <MarketingSection
-            eyebrow="Platform governance"
-            title="Quarantine, audits, and ship gates"
-          >
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {PLATFORM_FEATURES.map((f) => (
-                <li
-                  key={f.title}
-                  className="rounded-xl border border-violet-500/20 bg-slate-950/60 p-4"
-                >
-                  <p className="font-semibold text-slate-100">{f.title}</p>
-                  <p className="mt-1 text-sm text-slate-400">{f.body}</p>
-                </li>
-              ))}
-            </ul>
           </MarketingSection>
 
           <MarketingSection eyebrow="Heal Cheap" title="IDE build failures without full Pulse">

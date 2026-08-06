@@ -17,7 +17,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Elphie's Gated AI | MSGF",
   description:
-    "Modular State-Gate Framework — glass-box sovereign AI with six pillars, dual-model consensus, and auditable lineage.",
+    "Modular State-Gate Framework — glass-box AI with TRI/Grok consensus, Sentry quarantine, DocuSign/Dropbox Sign, and quantum-ready hybrid vault crypto.",
   /**
    * Tab favicon comes from `app/icon.png` automatically (Next 15 app-router
    * convention). Adding an `apple-touch-icon` so iOS Add to Home Screen picks
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Elphie's Gated AI | MSGF",
     description:
-      "Glass-box sovereign AI — six pillars, dual-model consensus, auditable lineage.",
+      "Glass-box sovereign AI — TRI CONVERGE, Sentry→Vault, e-sign, quantum-ready envelopes.",
     images: [{ url: "/brand/elphie-syntax-logo.png" }],
   },
 };

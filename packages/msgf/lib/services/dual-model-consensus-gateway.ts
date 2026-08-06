@@ -11,9 +11,8 @@
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
- * Dual-Model Consensus Gateway — tenant BYOK validators run in parallel (Promise.all),
- * scored via {@link computeConsensusAgreementScore}; below-threshold paths escalate to
- * {@link runSovereignAuditorDualMaster}.
+ * Tenant local CONVERGE gateway — preset-aware dual (or TRI) BYOK validators.
+ * Split agreement Soft-escalates to sovereign auditor (TRI-augmented when flag on).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -24,9 +23,17 @@ import { computeConsensusAgreementScore } from "@/lib/services/consensus-output-
 import {
   decryptTenantProviderCredential,
   listTenantProviderCredentialPresence,
+  type TenantProviderKeyProvider,
 } from "@/lib/services/tenant-provider-credentials";
 import { runSovereignAuditorDualMaster } from "@/lib/services/sovereign-auditor";
 import { runTenantXaiValidation, platformXaiApiKey } from "@/lib/services/consensus/xai-validation";
+import {
+  SMALL_BRAIN_DEFAULT,
+  consensusProviderToCredentialKey,
+  type MSGFConsensusConfig,
+  type MsgfConsensusProvider,
+} from "@/lib/services/consensus/msgf-consensus-config";
+import { getTenantConsensusConfig } from "@/lib/services/tenant-consensus-config";
 import {
   executeAiWave,
   isCostRunawayError,
@@ -49,6 +56,8 @@ export type DualModelGatewaySnapshot = {
   tenant_agreement_score: number;
   sovereign_escalated: boolean;
   sovereign_agreement_score: number | null;
+  consensus_providers?: MsgfConsensusProvider[];
+  consensus_mode?: string;
 };
 
 export async function runTenantGeminiValidation(apiKey: string, prompt: string): Promise<string> {
@@ -122,22 +131,78 @@ Reply with strict JSON only:
 Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
 }
 
+type ResolvedValidatorKeys = {
+  google: string | null;
+  anthropic: string | null;
+  xai: string | null;
+};
+
+async function resolveValidatorKey(
+  admin: SupabaseClient,
+  tenantId: string,
+  provider: MsgfConsensusProvider,
+  byok: ResolvedValidatorKeys
+): Promise<string | null> {
+  const cred = consensusProviderToCredentialKey(provider);
+  const fromByok =
+    cred === "gemini" ? byok.google : cred === "anthropic" ? byok.anthropic : byok.xai;
+  if (fromByok?.trim()) return fromByok.trim();
+  return (
+    (await decryptTenantProviderCredential({
+      admin,
+      tenantId,
+      provider: cred as TenantProviderKeyProvider,
+    })) || null
+  );
+}
+
 /**
- * Ensures tenant has **both** Gemini and Anthropic encrypted credentials configured.
+ * Ensures tenant has credentials for every provider in the Small Brain preset.
  */
 export async function assertTenantDualValidationModelsConfigured(
   admin: SupabaseClient,
-  tenantId: string
+  tenantId: string,
+  config: MSGFConsensusConfig = SMALL_BRAIN_DEFAULT
 ): Promise<void> {
   const presence = await listTenantProviderCredentialPresence({ admin, tenantId });
-  if (!presence.gemini || !presence.anthropic) {
+  const missing: string[] = [];
+  for (const p of config.providers) {
+    const cred = consensusProviderToCredentialKey(p);
+    if (!presence[cred]) missing.push(p);
+  }
+  if (missing.length) {
     throw new PulseHttpError(400, {
       error: ERR_TWO_MODELS,
       code: "DUAL_MODEL_CONFIG_REQUIRED",
+      missing_providers: missing,
       gemini_configured: presence.gemini,
       anthropic_configured: presence.anthropic,
+      xai_configured: presence.xai,
     });
   }
+}
+
+async function runProviderValidation(
+  provider: MsgfConsensusProvider,
+  apiKey: string,
+  prompt: string
+): Promise<string> {
+  if (provider === "google") return runTenantGeminiValidation(apiKey, prompt);
+  if (provider === "anthropic") return runTenantAnthropicValidation(apiKey, prompt);
+  return runTenantXaiValidation(apiKey, prompt);
+}
+
+function pairwiseAgreement(outputs: string[]): number {
+  if (outputs.length < 2) return outputs.length === 1 ? 1 : 0;
+  let sum = 0;
+  let n = 0;
+  for (let i = 0; i < outputs.length; i++) {
+    for (let j = i + 1; j < outputs.length; j++) {
+      sum += computeConsensusAgreementScore(outputs[i]!, outputs[j]!);
+      n += 1;
+    }
+  }
+  return n ? sum / n : 0;
 }
 
 export async function runTenantDualModelConsensusGateway(params: {
@@ -150,66 +215,89 @@ export async function runTenantDualModelConsensusGateway(params: {
   vaultCrossRefContext: string;
   defendConstraints?: string;
   geminiModelId: string;
-  /** IDE workspace BYOK overrides (`.msgf/keys/*.key`). */
   byokGeminiKey?: string | null;
   byokAnthropicKey?: string | null;
-  /** Corporate system path: do not require tenant vault when headers already carry BYOK. */
+  byokXaiKey?: string | null;
+  /** Tenant Small Brain preset; loaded from DB when omitted. */
+  consensusConfig?: MSGFConsensusConfig | null;
   skipTenantCredentialAssert?: boolean;
 }): Promise<DualModelGatewaySnapshot> {
-  const geminiKey =
-    params.byokGeminiKey?.trim() ||
-    (await decryptTenantProviderCredential({
+  const consensusConfig =
+    params.consensusConfig ??
+    (await getTenantConsensusConfig({
       admin: params.adminSupabase,
       tenantId: params.tenantId,
-      provider: "gemini",
     }));
-  const anthropicKey =
-    params.byokAnthropicKey?.trim() ||
-    (await decryptTenantProviderCredential({
-      admin: params.adminSupabase,
-      tenantId: params.tenantId,
-      provider: "anthropic",
-    }));
+
+  const byok: ResolvedValidatorKeys = {
+    google: params.byokGeminiKey?.trim() || null,
+    anthropic: params.byokAnthropicKey?.trim() || null,
+    xai: params.byokXaiKey?.trim() || null,
+  };
+
+  const headerCoversPreset = consensusConfig.providers.every((p) => {
+    const cred = consensusProviderToCredentialKey(p);
+    if (cred === "gemini") return Boolean(byok.google);
+    if (cred === "anthropic") return Boolean(byok.anthropic);
+    return Boolean(byok.xai);
+  });
 
   const skipVaultAssert =
-    params.skipTenantCredentialAssert === true ||
-    Boolean(params.byokGeminiKey?.trim() && params.byokAnthropicKey?.trim());
+    params.skipTenantCredentialAssert === true || headerCoversPreset;
 
   if (!skipVaultAssert) {
-    await assertTenantDualValidationModelsConfigured(params.adminSupabase, params.tenantId);
+    await assertTenantDualValidationModelsConfigured(
+      params.adminSupabase,
+      params.tenantId,
+      consensusConfig
+    );
   }
 
-  if (!geminiKey?.trim() || !anthropicKey?.trim()) {
-    throw new PulseHttpError(400, {
-      error: ERR_TWO_MODELS,
-      code: "DUAL_MODEL_DECRYPT_FAILED",
-    });
+  const keys: string[] = [];
+  for (const p of consensusConfig.providers) {
+    const k = await resolveValidatorKey(params.adminSupabase, params.tenantId, p, byok);
+    if (!k?.trim()) {
+      throw new PulseHttpError(400, {
+        error: ERR_TWO_MODELS,
+        code: "DUAL_MODEL_DECRYPT_FAILED",
+        missing_provider: p,
+      });
+    }
+    keys.push(k);
   }
 
   const prompt = buildTenantDualValidationPrompt(params);
 
-  const [tenantGeminiOutput, tenantAnthropicOutput] = await executeAiWave(
-    "dual_model.tenant_validators",
-    () =>
-      Promise.all([
-        runTenantGeminiValidation(geminiKey, prompt),
-        runTenantAnthropicValidation(anthropicKey, prompt),
-      ])
+  const outputs = await executeAiWave("dual_model.tenant_validators", () =>
+    Promise.all(
+      consensusConfig.providers.map((p, i) =>
+        runProviderValidation(p, keys[i]!, prompt)
+      )
+    )
   );
 
-  const tenantAgreementScore = computeConsensusAgreementScore(
-    tenantGeminiOutput,
-    tenantAnthropicOutput
-  );
+  const tenantAgreementScore = pairwiseAgreement(outputs);
+  // Prefer google/anthropic labels for sovereign auditor inputs when present.
+  const googleIdx = consensusConfig.providers.indexOf("google");
+  const anthropicIdx = consensusConfig.providers.indexOf("anthropic");
+  const tenantGeminiOutput =
+    googleIdx >= 0 ? outputs[googleIdx]! : outputs[0] ?? "";
+  const tenantAnthropicOutput =
+    anthropicIdx >= 0
+      ? outputs[anthropicIdx]!
+      : outputs[1] ?? outputs[0] ?? "";
 
   if (tenantAgreementScore >= DUAL_MODEL_GATEWAY_AGREEMENT_THRESHOLD) {
     return {
       tenant_agreement_score: tenantAgreementScore,
       sovereign_escalated: false,
       sovereign_agreement_score: null,
+      consensus_providers: consensusConfig.providers,
+      consensus_mode: consensusConfig.mode,
     };
   }
 
+  // Soft escalate: dual/preset split → sovereign auditor (TRI-augmented when flag on).
   try {
     const sovereign = await executeAiWave("dual_model.sovereign_auditor", () =>
       runSovereignAuditorDualMaster({
@@ -229,6 +317,8 @@ export async function runTenantDualModelConsensusGateway(params: {
       tenant_agreement_score: tenantAgreementScore,
       sovereign_escalated: true,
       sovereign_agreement_score: sovereign.sovereignAgreementScore,
+      consensus_providers: consensusConfig.providers,
+      consensus_mode: consensusConfig.mode,
     };
   } catch (e) {
     if (isCostRunawayError(e)) {
@@ -239,6 +329,8 @@ export async function runTenantDualModelConsensusGateway(params: {
       tenant_agreement_score: tenantAgreementScore,
       sovereign_escalated: true,
       sovereign_agreement_score: null,
+      consensus_providers: consensusConfig.providers,
+      consensus_mode: consensusConfig.mode,
     };
   }
 }

@@ -12,6 +12,7 @@
  */
 /**
  * Shipped MSGF capabilities — single source for marketing + dashboard copy.
+ * Keep in sync with docs/MSGF_PRODUCT_OVERVIEW.md §2–§4.
  */
 
 export type ShippedFeature = {
@@ -30,7 +31,7 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "02",
     title: "Optimize",
-    body: "0-token prompt with @-attachments and mandatory verify rules — local only.",
+    body: "0-token prompt with @-attachments and mandatory verify rules — local SOLO_FAST only.",
   },
   {
     step: "03",
@@ -40,10 +41,11 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "04",
     title: "Govern",
-    body: "Small Brain by default · CONVERGE tiers on drift · quarantine + HITL when Apex disagrees.",
+    body: "Small Brain dual presets · TRI Big Brain on high drift · Sentry quarantine · signed HITL.",
   },
 ] as const;
 
+/** Primary grid on / and /features — core developer loop. */
 export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
   {
     id: "command-center",
@@ -60,10 +62,10 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
     accent: "cyan",
   },
   {
-    id: "small-brain",
-    title: "Small Brain by default",
+    id: "model-presets",
+    title: "Model presets + Grok",
     description:
-      "Routine pulses, ingest skips, and IDE paths stay tenant-local. Dual-model CONVERGE (optional T1→T3 pairs) escalates only when logic drift crosses policy.",
+      "Pick your Small Brain pair: Claude+Gemini (default), Claude+Grok, or Gemini+Grok. Big Brain uses TRI majority (Claude + Gemini + Grok) when drift is high — humans notify only above the high-drift threshold.",
     accent: "violet",
   },
   {
@@ -74,10 +76,42 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
     accent: "amber",
   },
   {
-    id: "quarantine-hitl",
-    title: "Quarantine + signed HITL",
+    id: "sentry-quarantine",
+    title: "Sentry → Vault quarantine",
     description:
-      "Sentry crashes and T3 model disagreement quarantine Vault wins (no auto-Hall). Ops restore/demote with HMAC-signed ARBITRATE audit trails.",
+      "Sentry crashes match Vault wins and mark them QUARANTINED (no silent auto-Hall). Ops restore or demote on /admin/ops — runtime monitoring links to governance memory.",
+    accent: "emerald",
+  },
+  {
+    id: "esign-sso",
+    title: "E-sign + Workspace SSO",
+    description:
+      "Team invites via DocuSign or Dropbox Sign, company domains, and Google Workspace SSO. Signing webhooks and ops panels ship ready — configure keys when you go live.",
+    accent: "cyan",
+  },
+];
+
+/** Extra enterprise / platform cards (features page + product detail). */
+export const ENTERPRISE_FEATURE_CARDS: ShippedFeature[] = [
+  {
+    id: "tri-converge",
+    title: "TRI majority CONVERGE",
+    description:
+      "Optional T1→T3 cost ladder for risk paths. Platform Big Brain: Claude + Gemini + Grok majority when enabled. Model splits alone no longer force HITL when majority agrees.",
+    accent: "violet",
+  },
+  {
+    id: "signed-hitl",
+    title: "Signed HITL audits",
+    description:
+      "Skip-MSGF and ARBITRATE decisions leave HMAC-signed, hash-chained snapshots — a compliance-ready trail of who approved what on /admin/ops.",
+    accent: "amber",
+  },
+  {
+    id: "deploy-gate",
+    title: "Deploy gate",
+    description:
+      "CI checks GET /api/msgf/deploy-gate for your project_origin. Ship only when verify is green for that silo.",
     accent: "emerald",
   },
   {
@@ -87,11 +121,26 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
       "Every vector scoped by project_origin + subpath — agencies and monorepos keep client and app memory from bleeding across silos.",
     accent: "cyan",
   },
+  {
+    id: "hybrid-crypto",
+    title: "Quantum-ready security",
+    description:
+      "Optional hybrid post-quantum envelopes (X25519 + ML-KEM-768) for vault secrets and ML-DSA-65 authorship certificates — future-ready crypto without waiting on platform PQ-TLS.",
+    accent: "violet",
+  },
+  {
+    id: "ops-tower",
+    title: "Admin ops control tower",
+    description:
+      "ARBITRATE queue, Vault quarantine, Sentry issues, DocuSign envelopes, strategy matrix, and remediation circuit — one /admin/ops surface for operators.",
+    accent: "amber",
+  },
 ];
 
 export const DASHBOARD_QUICK_LINKS = [
   { label: "Workspace & extension", href: "/workspace" },
-  { label: "Map a project", href: "/workspace?tab=setup" },
+  { label: "Map a project", href: "/setup/projects" },
   { label: "Features & IDE", href: "/features" },
+  { label: "CONVERGE presets", href: "#token-savings" },
   { label: "Token savings", href: "#token-savings" },
 ] as const;

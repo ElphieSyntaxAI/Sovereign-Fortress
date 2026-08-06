@@ -60,11 +60,11 @@ const PRODUCTS: ProductCard[] = [
     title: "MSGF — Gated AI",
     tagline: "Stateful, self-defending AI orchestration",
     summary:
-      "MSGF V3.2: six-pillar glass box, IDE Command Center (optimizer, Run Scripts, Safe Build), verify→Vault/Hall, and a defensible token savings dashboard.",
+      "MSGF V3.2: six-pillar glass box, IDE Command Center, Grok-aware TRI consensus, Sentry→Vault quarantine, DocuSign/Dropbox Sign, and quantum-ready hybrid vault crypto.",
     bullets: [
-      "0-token prompt optimizer + allowlisted Run Scripts / Safe Build",
-      "Pass → verify-result · fail → dev-event (Heal Cheap, not blind incidents)",
-      "Small Brain default · CONVERGE only when logic drift escalates",
+      "0-token prompt optimizer + Run Scripts / Safe Build + deploy-gate",
+      "Model presets + Big Brain TRI · quantum-ready hybrid KEM envelopes",
+      "Sentry quarantine · e-sign invites · Workspace SSO on /admin/ops",
     ],
     detailHref: "/products/msgf",
     liveUrl: MSGF_APP_URL,

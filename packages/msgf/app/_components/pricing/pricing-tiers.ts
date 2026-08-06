@@ -23,7 +23,7 @@ export const PRICING_TIERS: PricingTierConfig[] = [
     bullets: [
       "Fully open local 6-Pillar tracking metrics",
       "Complete local project data isolation",
-      "Runs with your local infra: provide Redis + Supabase env (e.g. REDIS_URL, NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) and your model keys in .msgf/keys/ for dual-model consensus",
+      "BYOK for Claude, Gemini, and optional Grok (.msgf/keys/) — dual or TRI consensus when you wire keys",
     ],
     cta: {
       kind: "extension_download",
@@ -39,7 +39,7 @@ export const PRICING_TIERS: PricingTierConfig[] = [
     bullets: [
       "Own the software forever",
       "Includes 1 Year of Managed Cloud Consensus Core (1,200 verification slices / month)",
-      "Zero configuration — runs on our optimized cloud infrastructure keys",
+      "Zero configuration — Claude / Gemini / Grok TRI path on our cloud when enabled",
       "Falls back gracefully to 100% BYOK mode after Year 1 if you skip cloud maintenance renewal",
     ],
     featured: true,
@@ -58,8 +58,8 @@ export const PRICING_TIERS: PricingTierConfig[] = [
       "Multi-tenant corporate workspace with ARBITRATE consoles and shared incident logs.",
     bullets: [
       "Multi-tenant corporate workspace organization scopes",
-      "Global ARBITRATE administrative command consoles",
-      "Custom company-wide P1 rulebooks and shared team incident review logs",
+      "Global ARBITRATE + Sentry quarantine + DocuSign / Dropbox Sign ops panels",
+      "Custom company-wide P1 rulebooks, Workspace SSO, and shared incident review logs",
     ],
     cta: {
       kind: "stripe_checkout",

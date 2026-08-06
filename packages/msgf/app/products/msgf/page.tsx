@@ -21,7 +21,7 @@ import { ProductDetailShell } from "@/app/_components/products/ProductDetailShel
 export const metadata: Metadata = {
   title: "MSGF — Gated AI · Elphie Syntax",
   description:
-    "MSGF V3.2-ULTRA: stateful, self-defending AI orchestration with six isolated pillars, hot/cold storage, dual-model consensus, and mandatory human tie-breaker on RED disagreement.",
+    "MSGF V3.2: six pillars, IDE Command Center, Grok-aware TRI consensus, Sentry→Vault quarantine, DocuSign/Dropbox Sign, Workspace SSO, and defensible token savings.",
 };
 
 export default function Page() {
@@ -35,16 +35,16 @@ export default function Page() {
       tone="emerald"
       eyebrow="Brain · Engine"
       title="MSGF — Gated AI"
-      tagline="Stateful, self-defending AI orchestration. Six isolated pillars, 1.1.1 genealogical lineage, Redis hot + Postgres cold, dual-model consensus, and human tie-breaker on RED disagreement."
+      tagline="Stateful, self-defending AI orchestration. Six pillars, IDE verify, Grok-aware TRI CONVERGE, Sentry quarantine, DocuSign / Dropbox Sign, and quantum-ready hybrid vault crypto."
       vision="MSGF 1.0 delivers a stateful, self-defending AI orchestration layer that any application can adopt. For Elphie Syntax products it is the brain behind the Author Ecosystem and Syntax Education. For the market, MSGF at elphiesgatedai.elphiesyntax.com is a standalone gated-AI product — subscribe, send keystroke or logic deltas through Pulse, ingest knowledge into pillars, and receive tiered audits without running your own consensus stack."
       liveUrl={liveUrl}
       liveLabel="Open MSGF console"
       roadmapDocPath="docs/MSGF_V1_ROADMAP.md"
       metrics={[
         { label: "Master directive", value: "V3.2-ULTRA", hint: "SWEEP → PERSIST (7 steps)" },
-        { label: "Pillars", value: "6", hint: "P1 Static · P6 Constraint" },
-        { label: "Storage", value: "Hot + Cold", hint: "Redis · Postgres (pgvector 1536)" },
-        { label: "Tiers", value: "RED / YEL / GRN", hint: "Immediate · 6h · 24h" },
+        { label: "Consensus", value: "TRI + Grok", hint: "Claude · Gemini · Grok" },
+        { label: "Ops glue", value: "Sentry · Sign", hint: "Quarantine · e-sign invites" },
+        { label: "Crypto", value: "Hybrid PQ", hint: "ML-KEM + ML-DSA when enabled" },
       ]}
       phases={[
         {
@@ -57,21 +57,39 @@ export default function Page() {
           ],
         },
         {
-          label: "DEFEND + CROSS-REF — shadow preflight",
-          status: "Wired",
+          label: "IDE Command Center — Pulse Guard",
+          status: "Shipped",
           highlights: [
-            "msgf-shadow preFlightCheck against Vault + Hall before consensus",
-            "1.1.1 genealogical lineage on every Fix Delta",
-            "LOM disagreement test gating the Pulse path",
+            "0-token prompt optimizer (SOLO_FAST) + Run Scripts + Safe Build",
+            "verify-result → Vault; repeated fail → Hall; deploy-gate for CI",
+            "Token savings dashboard + CONVERGE model preset picker",
           ],
         },
         {
-          label: "CONVERGE + ARBITRATE — dual-model consensus",
+          label: "CONVERGE + ARBITRATE — TRI majority",
           status: "Active",
           highlights: [
-            "Claude / Gemini consensus on RED critical deltas",
-            "Human tie-breaker mandatory on disagreement or retry > 3",
-            "ERR_RECURSION_LIMIT surfaced into the operations dashboard",
+            "Small Brain dual presets: Claude+Gemini, Claude+Grok, Gemini+Grok",
+            "Big Brain TRI majority (Claude + Gemini + Grok) on high drift",
+            "Human notify on high original drift (≥0.45), no majority, or NON_HUMAN",
+          ],
+        },
+        {
+          label: "Integrations — Sentry · e-sign · SSO",
+          status: "Shipped (configure to go live)",
+          highlights: [
+            "Sentry issues → Vault quarantine on /admin/ops (no silent auto-Hall)",
+            "DocuSign or Dropbox Sign for team invites + webhook queue",
+            "Google Workspace SSO, company domains, signed ARBITRATE audits",
+          ],
+        },
+        {
+          label: "Security — quantum-ready envelopes",
+          status: "Shipped (flagged)",
+          highlights: [
+            "Hybrid KEM (X25519 + ML-KEM-768) vault envelopes when MSGF_HYBRID_KEM_ENABLED=1",
+            "HAL v2 ML-DSA-65 authorship certificates",
+            "Platform PQ-TLS remains an infra checklist — complementary, not replaced",
           ],
         },
         {
@@ -80,20 +98,20 @@ export default function Page() {
           highlights: [
             "Approved deltas persisted to Vault; redundant hot state trimmed",
             "Hall LOW-tier entries auto-purged after 30 days for fast vector search",
-            "Stripe entitlements + multi-tenant API for 1.0 standalone GA",
+            "Stripe entitlements for paid go-live after identity + smoke",
           ],
         },
       ]}
       pillarRows={[
         { pillar: "P1", capability: "Static Ledger · immutable laws", notes: "msgf-legal, security migrations" },
-        { pillar: "P2", capability: "Flow Sequence · build / dependency", notes: "Pulse orchestration" },
-        { pillar: "P3", capability: "Entity Profiles · roles + tenants", notes: "Supabase auth, Stripe entitlements" },
+        { pillar: "P2", capability: "Flow Sequence · build / dependency", notes: "Pulse + TRI CONVERGE" },
+        { pillar: "P3", capability: "Entity Profiles · roles + tenants", notes: "SSO, Stripe, signing invites" },
         { pillar: "P4", capability: "State Ledger · hot + cold beats", notes: "Redis active slice, p4_state_ledger" },
-        { pillar: "P5", capability: "Local Variables · per-tenant config", notes: "tenant-manifest.json, UI shells" },
-        { pillar: "P6", capability: "Constraint Ledger · Vault vs Hall", notes: "pgvector 1.1.1, 30d LOW purge" },
+        { pillar: "P5", capability: "Local Variables · per-tenant config", notes: "consensus presets, BYOK keys" },
+        { pillar: "P6", capability: "Constraint Ledger · Vault vs Hall", notes: "Sentry quarantine, hybrid PQ envelopes" },
       ]}
       footnotes={[
-        "Source: docs/MSGF_V1_ROADMAP.md · companion: docs/MONOREPO_PRODUCTS.md",
+        "Source: docs/MSGF_V1_ROADMAP.md · MSGF_SENTRY.md · MSGF_SIGNING.md · MSGF_PQC_CRYPTO_AUDIT.md",
         "Primary spec: docs/references/MSGF_v3_2_masterdoc.pdf (V3.2-ULTRA)",
       ]}
     />

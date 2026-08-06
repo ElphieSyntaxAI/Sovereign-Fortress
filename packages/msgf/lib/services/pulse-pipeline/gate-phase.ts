@@ -34,6 +34,7 @@ import {
 import { getBiometricProfile, calculateBiometricScore } from "@/lib/msgf-consensus";
 import { resolveConvergeConsensusRouting } from "@/lib/services/converge-consensus-routing";
 import type { ConvergeConsensusRouting } from "@/lib/services/converge-consensus-routing";
+import type { MSGFConsensusConfig } from "@/lib/services/consensus/msgf-consensus-config";
 import {
   deriveCodeDeltaFromPulseContext,
   routeCodeDelta,
@@ -54,6 +55,7 @@ export type GatePhaseOk = {
   defended: PulsePipelineContext;
   logicDrift: ReturnType<typeof assessLogicDrift>;
   convergeRouting: ConvergeConsensusRouting;
+  tenantConsensus: MSGFConsensusConfig;
   tenantCommercial: Awaited<
     ReturnType<typeof resolveConvergeConsensusRouting>
   >["commercial"];
@@ -147,7 +149,7 @@ export async function runGatePhase(
   const forceGlobal =
     defended.humanTieBreakerResolved || Boolean(defended.approvedDelta?.trim());
 
-  const { commercial: tenantCommercial, routing: convergeRouting } =
+  const { commercial: tenantCommercial, routing: convergeRouting, tenantConsensus } =
     await resolveConvergeConsensusRouting({
       adminSupabase: input.adminSupabase,
       tenantId: input.tenantId,
@@ -182,6 +184,7 @@ export async function runGatePhase(
     defended,
     logicDrift,
     convergeRouting,
+    tenantConsensus,
     tenantCommercial,
     forceGlobal,
     convergeTier: routed.classification.tier,
