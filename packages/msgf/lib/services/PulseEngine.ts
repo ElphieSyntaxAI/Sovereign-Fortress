@@ -73,7 +73,10 @@ import {
   HOT_LAYER_ACTIVE_SLICE_TTL_SECONDS,
 } from "@/lib/msgf-hot-layer";
 import { msgfRedisKey } from "@/lib/redis";
-import { preFlightCheck, type ShadowPreflightResult } from "@/lib/msgf-shadow";
+import {
+  runDefendPreflight as preFlightCheck,
+  type DefendPreflightResult as ShadowPreflightResult,
+} from "@/lib/defend-preflight";
 import { pillarGateMeta } from "@/lib/msgf-pillar-meta";
 import {
   PULSE_BUG_INDEX,
@@ -572,6 +575,7 @@ export class PulseEngine {
         const freshConsensus = await Promise.all(
           chunkForConsensus.map((c) =>
             this.runConsensusForChunk(c, ctx.beatsContext, ctx.geminiModelId, momentumRetryForPrompt, {
+              tenantId: ctx.tenantId,
               p2FlowDirective: ctx.p2FlowDirective,
               vaultCrossRefContext: ctx.vaultCrossRefContext,
               defendConstraints: ctx.defendConstraints,
@@ -2053,6 +2057,7 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
     geminiModelId: string,
     momentumRetryCount: number,
     p2Context?: {
+      tenantId?: string;
       p2FlowDirective: string;
       vaultCrossRefContext: string;
       defendConstraints?: string;
@@ -2062,6 +2067,12 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
     }
   ): Promise<ChunkConsensus> {
     const prompt = this.buildPrompt(chunk, beatsContext, momentumRetryCount, p2Context);
+    const meter = p2Context?.tenantId?.trim()
+      ? {
+          tenantId: p2Context.tenantId.trim(),
+          purpose: "global_converge" as const,
+        }
+      : undefined;
 
     const geminiKey = p2Context?.byokGeminiKey?.trim();
     const anthropicKey = p2Context?.byokAnthropicKey?.trim();
@@ -2078,12 +2089,12 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
 
     if (geminiKey && anthropicKey) {
       const tasks: Promise<{ verdict: ConsensusVote; reason: string } | undefined>[] = [
-        runTenantGeminiValidation(geminiKey, prompt).then((text) => this.parseVote(text)),
-        runTenantAnthropicValidation(anthropicKey, prompt).then((text) => this.parseVote(text)),
+        runTenantGeminiValidation(geminiKey, prompt, meter).then((text) => this.parseVote(text)),
+        runTenantAnthropicValidation(anthropicKey, prompt, meter).then((text) => this.parseVote(text)),
       ];
       if (useTri && xaiKey) {
         tasks.push(
-          runTenantXaiValidation(xaiKey, prompt)
+          runTenantXaiValidation(xaiKey, prompt, meter)
             .then((text) => this.parseVote(text))
             .catch((e) => {
               console.warn("[PulseEngine] xAI/Grok vote skipped:", e instanceof Error ? e.message : e);
@@ -2104,9 +2115,9 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
       const aProvider = geminiKey ? "google" : "anthropic";
       const [first, second] = await Promise.all([
         aProvider === "google"
-          ? runTenantGeminiValidation(aKey, prompt).then((text) => this.parseVote(text))
-          : runTenantAnthropicValidation(aKey, prompt).then((text) => this.parseVote(text)),
-        runTenantXaiValidation(xaiKey!, prompt)
+          ? runTenantGeminiValidation(aKey, prompt, meter).then((text) => this.parseVote(text))
+          : runTenantAnthropicValidation(aKey, prompt, meter).then((text) => this.parseVote(text)),
+        runTenantXaiValidation(xaiKey!, prompt, meter)
           .then((text) => this.parseVote(text))
           .catch((e) => {
             console.warn("[PulseEngine] xAI dual vote failed:", e instanceof Error ? e.message : e);
@@ -2130,7 +2141,7 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
         this.runPublisherModel(geminiPath, prompt),
         this.runPublisherModel(claudePath, prompt),
         useTri && xaiKey
-          ? runTenantXaiValidation(xaiKey, prompt)
+          ? runTenantXaiValidation(xaiKey, prompt, meter)
               .then((text) => this.parseVote(text))
               .catch((e) => {
                 console.warn("[PulseEngine] platform xAI vote skipped:", e instanceof Error ? e.message : e);

@@ -44,10 +44,11 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | `MSGF_INGEST_API_KEY` | Ingest route tenant key (when key-gated) |
 | `MSGF_PULSE_IDEMPOTENCY_ENABLED` | Redis dedupe for duplicate Pulse bodies (default on when `REDIS_URL` set) |
 | `MSGF_USAGE_MONITOR_WRITE` | Write estimated tokens to `usage_monitor` (aligns with credit guard; default on) |
+| `MSGF_ECO_PROVEN_ONLY` | Default **on** — public eco ignores estimated routing; proven avoidance / pack deltas only |
 | `MSGF_CREDIT_RESERVATION_ENABLED` / `MSGF_CREDIT_RESERVATION_PROD_DEFAULT` | Reserve credits before Pulse/ingest; prod defaults on unless disabled |
 | `MSGF_PULSE_LOCAL_RESERVE_CHUNK` / `MSGF_INGEST_LIGHT_RESERVE_CHUNK` | Smaller reserves for Author HAL / hash-skipped ingest |
 | `MSGF_INGEST_HASH_SKIP` / `MSGF_INGEST_SKIP_AUDIT_ON_HASH_HIT` | Skip SWEEP/audit when file content hash unchanged |
-| `MSGF_NAIVE_DUAL_CONVERGE_TOKENS` / `MSGF_LOCAL_GATEWAY_BASE_TOKENS` | Token savings estimates (Pulse API + dashboard routing panel) |
+| `MSGF_NAIVE_DUAL_CONVERGE_TOKENS` / `MSGF_LOCAL_GATEWAY_BASE_TOKENS` | Ops-only routing estimates (not public eco when proven-only) |
 | `MSGF_CONVERGE_MAX_CONTEXT_TOKENS` | Cap vault + beats + P2 + DEFEND blocks before global CONVERGE (default 2400) |
 | `MSGF_DEV_SESSION_DEFAULT` / `MSGF_DEV_SESSION_DRIFT_RELAX` | IDE vibe-coding: relaxed logic drift, save-primary flush |
 | `x-msgf-dev-session`, `x-msgf-build-active`, `x-msgf-active-file`, `x-msgf-flush-reason` | IDE Pulse headers (see `IdeConnector`) |

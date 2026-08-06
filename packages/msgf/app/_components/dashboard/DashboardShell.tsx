@@ -803,21 +803,21 @@ function DailyReportsLinkCard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/90">
-            Daily reports
+            Reports archive
           </p>
           <h2 className="mt-1 text-xl font-semibold text-slate-50">
-            Year → month → day archive
+            Weekly · monthly · daily
           </h2>
           <p className="mt-2 max-w-xl text-sm text-slate-400">
-            Browse reverse-chronological governance snapshots with per-day pillar status, token
-            savings, and exportable JSON/PDF summaries.
+            Metered MSGF consumption vs proven savings (3 weekly + monthly history table), plus
+            per-repo daily governance archives.
           </p>
         </div>
         <Link
           href="/dashboard/daily-reports"
           className="shrink-0 rounded-full bg-gradient-to-r from-violet-600 to-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:from-violet-500 hover:to-emerald-500"
         >
-          Open daily reports →
+          Open reports →
         </Link>
       </div>
     </section>

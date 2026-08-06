@@ -10,6 +10,18 @@
  *
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
+/**
+ * Converts proven avoided LLM tokens into environmental proxies.
+ *
+ * Coefficients are published model factors (not utility invoices). Public /
+ * marketing surfaces must only pass tokens that are `proven_avoidance` or
+ * `pack_delta` evidence — see `proven-savings.ts` and `MSGF_ECO_PROVEN_ONLY`.
+ *
+ * Default intensity assumptions (conservative order-of-magnitude for text LLMs):
+ * - 0.4 kWh per 1M tokens
+ * - 0.85 lbs CO₂e per kWh
+ * - 2.0 gallons freshwater per kWh (cooling proxy)
+ */
 export type EcoMetrics = {
   tokens_saved: number;
   grid_compute_prevented_kwh: number;
@@ -21,6 +33,9 @@ export const ECO_TOKENS_PER_MILLION = 1_000_000;
 export const ECO_KWH_PER_MILLION_TOKENS = 0.4;
 export const ECO_CO2E_LBS_PER_KWH = 0.85;
 export const ECO_WATER_GALLONS_PER_KWH = 2.0;
+
+export const ECO_METHODOLOGY_SHORT =
+  "Eco impact uses published kWh/CO₂e/water coefficients applied only to proven avoided tokens (metered provider baselines or audited pack deltas). Not a utility bill.";
 
 function cleanFloat(value: number): number {
   return Number.parseFloat(value.toFixed(4));
@@ -50,3 +65,4 @@ export function calculateEcoSavings(tokensSaved: number): EcoMetrics {
     freshwater_conserved_gallons: cleanFloat(freshwaterConservedGallons),
   };
 }
+

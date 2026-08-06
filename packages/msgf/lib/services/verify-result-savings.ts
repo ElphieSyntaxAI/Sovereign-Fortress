@@ -20,6 +20,7 @@ import {
   recordSavingsFeatureCount,
   recordSavingsFeatureTokensSaved,
 } from "@/lib/services/savings-features-stats";
+import { recordPackDeltaProvenSavings } from "@/lib/services/proven-savings";
 import type { VerifyResultLedgerOutcome } from "@/lib/services/verify-result-ledger";
 
 function estimatePackContextTokensSaved(
@@ -52,21 +53,28 @@ export async function recordVerifyResultSavingsEffects(params: {
     if (packId) {
       void recordSavingsFeatureCount(tenantKey, "run_script_rerun");
       if (pack) {
-        void recordSavingsFeatureTokensSaved(
-          tenantKey,
-          "run_script_rerun",
-          estimateRunScriptRerunTokensSaved(pack.shardedCharCount)
-        );
+        const rerunSaved = estimateRunScriptRerunTokensSaved(pack.shardedCharCount);
+        void recordSavingsFeatureTokensSaved(tenantKey, "run_script_rerun", rerunSaved);
+        void recordPackDeltaProvenSavings({
+          tenantId: tenantKey,
+          reason: "run_script_rerun",
+          tokensSaved: rerunSaved,
+        });
       }
     }
 
     if (ledger.vault_persisted && pack) {
       void recordSavingsFeatureCount(tenantKey, "verify_result_vault");
-      void recordSavingsFeatureTokensSaved(
-        tenantKey,
-        "verify_result_vault",
-        estimatePackContextTokensSaved(pack.naiveCharCount, pack.shardedCharCount)
+      const vaultSaved = estimatePackContextTokensSaved(
+        pack.naiveCharCount,
+        pack.shardedCharCount
       );
+      void recordSavingsFeatureTokensSaved(tenantKey, "verify_result_vault", vaultSaved);
+      void recordPackDeltaProvenSavings({
+        tenantId: tenantKey,
+        reason: "verify_vault_pack",
+        tokensSaved: vaultSaved,
+      });
     }
 
     return;

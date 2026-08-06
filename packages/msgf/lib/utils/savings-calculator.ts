@@ -26,6 +26,8 @@ import {
   MSGF_LOCAL_GATEWAY_BASE_TOKENS,
   MSGF_NAIVE_DUAL_CONVERGE_TOKENS,
 } from "@/lib/services/token-usage-estimate";
+import { getTenantMeteredUsageSummary24h } from "@/lib/services/provider-usage-meter";
+import { getProvenSavingsSummary24h } from "@/lib/services/proven-savings";
 
 export type DefensibleSavingsBreakdown = {
   tenant_id: string;
@@ -39,6 +41,13 @@ export type DefensibleSavingsBreakdown = {
   run_script_rerun_tokens_saved: number;
   pulse_routing_tokens_saved_estimate: number;
   combined_msgf_impact_tokens: number;
+  metered_provider_tokens: number;
+  metered_provider_calls: number;
+  proven_tokens_saved: number;
+  estimated_tokens_saved_ops_only: number;
+  rolling_converge_baseline_tokens: number | null;
+  eco_claim_allowed: boolean;
+  eco_disclaimer: string;
   footnote: string;
 };
 
@@ -80,12 +89,14 @@ export async function computeDefensibleSavingsBreakdown(
   tenantId: string
 ): Promise<DefensibleSavingsBreakdown> {
   const tid = sanitizeTenantScope(tenantId);
-  const [usageMonitorTotal, savingsSummary, guidedSessions, contextSavingsRedis] =
+  const [usageMonitorTotal, savingsSummary, guidedSessions, contextSavingsRedis, metered, proven] =
     await Promise.all([
       sumUsageMonitorForTenantIdeUsers(admin, tid),
       getSavingsFeaturesSummary24h(tid, "user"),
       readGuidedSessions24h(tid),
       readContextSavingsTokens24h(tid),
+      getTenantMeteredUsageSummary24h(tid),
+      getProvenSavingsSummary24h(tid),
     ]);
 
   const pulseMix = savingsSummary.pulse_routing;
@@ -97,7 +108,11 @@ export async function computeDefensibleSavingsBreakdown(
     pulseMix.converge_degraded * Math.floor(MSGF_LOCAL_GATEWAY_BASE_TOKENS * 1.5);
 
   const devEventCloud = counters.dev_events > 0 ? counters.dev_event_tokens_saved : 0;
-  const msgf_cloud_tokens = usageMonitorTotal + pulseCloudEstimate + devEventCloud;
+  // Prefer metered provider tokens when available; fall back to estimate mix for ops.
+  const msgf_cloud_tokens =
+    metered.total_tokens > 0
+      ? metered.total_tokens + usageMonitorTotal
+      : usageMonitorTotal + pulseCloudEstimate + devEventCloud;
 
   const context_savings_tokens =
     contextSavingsRedis +
@@ -112,7 +127,9 @@ export async function computeDefensibleSavingsBreakdown(
     window_hours: 24,
     msgf_cloud_tokens,
     msgf_cloud_formula:
-      "usage_monitor (IDE users on tenant) + pulse global/local routing estimate + dev-event cloud heal",
+      metered.total_tokens > 0
+        ? "metered provider response.usage (24h) + usage_monitor IDE cumulative"
+        : "usage_monitor (IDE users on tenant) + pulse global/local routing estimate + dev-event cloud heal",
     context_savings_tokens,
     context_savings_formula:
       "confirm-pack verified savings + verify→Vault pack delta + Run Scripts re-prompt avoidance (24h Redis)",
@@ -121,7 +138,14 @@ export async function computeDefensibleSavingsBreakdown(
     run_script_rerun_tokens_saved: counters.run_script_rerun_tokens_saved,
     pulse_routing_tokens_saved_estimate: pulseMix.estimated_tokens_saved_vs_naive,
     combined_msgf_impact_tokens,
+    metered_provider_tokens: metered.total_tokens,
+    metered_provider_calls: metered.call_count,
+    proven_tokens_saved: proven.proven_tokens_saved,
+    estimated_tokens_saved_ops_only: proven.estimated_tokens_saved,
+    rolling_converge_baseline_tokens: metered.rolling_converge_baseline_tokens,
+    eco_claim_allowed: proven.eco_claim_allowed,
+    eco_disclaimer: proven.disclaimer,
     footnote:
-      "External IDE LLM prompt consumption is handled out-of-band by your native Cursor/Anthropic subscription. MSGF metrics reflect governance routing and verified context-pack savings only.",
+      "Public eco impact uses proven avoided tokens only. Estimated routing models are ops-only. External IDE LLM subscription spend is out-of-band.",
   };
 }

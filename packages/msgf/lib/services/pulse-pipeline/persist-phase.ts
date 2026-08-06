@@ -27,9 +27,8 @@ import {
   buildPulseRemediationSummaryGlobal,
   stripPublicBeat,
 } from "@/lib/services/pulse-public-response";
-import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
-import { extractProjectOriginFromPulseBody } from "@/lib/utils/pulse-eco-context";
 import { recordPulseRoutingOutcome } from "@/lib/services/pulse-routing-stats";
+import { recordEstimatedSavingsTokens } from "@/lib/services/proven-savings";
 import type { GatePhaseOk } from "@/lib/services/pulse-pipeline/gate-phase";
 
 function estimateP5ContextShardingTokensSaved(ctx: PulseConvergeContext): number {
@@ -60,15 +59,10 @@ export async function runPersistPhase(
     rawBody: input.rawBody,
   });
 
+  // P5 sharding estimate stays on ops dashboards only — do not inflate public eco.
   const p5TokensSaved = estimateP5ContextShardingTokensSaved(converged);
   if (p5TokensSaved > 0) {
-    const projectOrigin = extractProjectOriginFromPulseBody(input.rawBody);
-    if (projectOrigin) {
-      void ecoAggregatorClient.sendGlobalTelemetryPayload(input.tenantId, p5TokensSaved, {
-        userId: input.entityId,
-        projectOrigin,
-      });
-    }
+    void recordEstimatedSavingsTokens(input.tenantId, p5TokensSaved);
   }
 
   void recordPulseRoutingOutcome(input.tenantId, "global_converge", p5TokensSaved);

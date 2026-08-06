@@ -18,7 +18,6 @@
 import { createHash } from "node:crypto";
 
 import { msgfRedisKey, redisGet, redisSet } from "@/lib/redis";
-import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
 import {
   recordSavingsFeatureCount,
   recordSavingsFeatureTokensSaved,
@@ -29,6 +28,11 @@ import {
 } from "@/lib/services/consensus-output-comparison";
 import { DUAL_MODEL_GATEWAY_AGREEMENT_THRESHOLD } from "@/lib/services/dual-model-consensus-gateway";
 import { MSGF_NAIVE_DUAL_CONVERGE_TOKENS } from "@/lib/services/token-usage-estimate";
+import { getRollingConvergeBaselineTokens } from "@/lib/services/provider-usage-meter";
+import {
+  recordEstimatedSavingsTokens,
+  recordProvenAvoidance,
+} from "@/lib/services/proven-savings";
 
 /** P4 hot-layer semantics — fresh CONVERGE replay window for debug / test loops. */
 export const CONVERGE_CACHE_TTL_SECONDS =
@@ -206,13 +210,31 @@ export function recordConvergeCacheEcoHit(params: {
 }): void {
   const tid = params.tenantId.trim();
   if (!tid) return;
-  const tokensSaved = params.tokensSaved ?? estimateCoreConvergeTokenBaseline(1);
   const projectOrigin = params.projectOrigin?.trim();
   if (!projectOrigin) return;
-  void ecoAggregatorClient.sendGlobalTelemetryPayload(tid, tokensSaved, {
-    userId: params.entityId?.trim(),
-    projectOrigin,
-  });
+
+  void (async () => {
+    const baseline = await getRollingConvergeBaselineTokens(tid, 2);
+    if (baseline && baseline.tokens > 0 && baseline.sample_count >= 2) {
+      await recordProvenAvoidance(
+        {
+          tenant_id: tid,
+          reason: "converge_cache_hit",
+          tokens_avoided: baseline.tokens,
+          baseline_tokens: baseline.tokens,
+          local_tokens: 0,
+          evidence: "proven_avoidance",
+          baseline_source: "rolling_metered_median",
+          sample_count: baseline.sample_count,
+        },
+        { userId: params.entityId?.trim(), projectOrigin }
+      );
+      return;
+    }
+    // No metered baseline yet — keep estimate on ops counters only.
+    const estimated = params.tokensSaved ?? estimateCoreConvergeTokenBaseline(1);
+    void recordEstimatedSavingsTokens(tid, estimated);
+  })();
 }
 
 /**

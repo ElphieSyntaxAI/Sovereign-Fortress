@@ -14,8 +14,11 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { DailyReportsAccordion } from "@/app/_components/dashboard/DailyReportsAccordion";
+import { PeriodSavingsReportsPanel } from "@/app/_components/dashboard/PeriodSavingsReportsPanel";
+import { ShadowProxySavingsPanel } from "@/app/_components/dashboard/ShadowProxySavingsPanel";
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
 import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
 export default async function DailyReportsPage() {
@@ -33,6 +36,15 @@ export default async function DailyReportsPage() {
   }
 
   const access = await resolveDashboardAccessForUser(user);
+  const admin = createAdminClient();
+  const { data: buyerProfile } = await admin
+    .from("p4_profiles")
+    .select("tenant_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const tenantId =
+    (typeof buyerProfile?.tenant_id === "string" && buyerProfile.tenant_id.trim()) ||
+    user.id;
 
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
@@ -47,16 +59,22 @@ export default async function DailyReportsPage() {
             Governance archive
           </p>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            <span className="text-gradient-jewel">Daily Reports</span>
+            <span className="text-gradient-jewel">Reports</span>
           </h1>
           <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-            Per-repository archives of pillar health, token savings, and incidents — isolated by
-            mapped project so separate workspaces (for example DealStar) never blend into one
-            timeline. Expand any day for the six-pillar grid.
+            Daily pillar archives per repository, plus weekly and monthly MSGF consumption vs
+            proven savings — logged so you can review the table over time.
           </p>
         </header>
 
-        <DailyReportsAccordion />
+        <ShadowProxySavingsPanel tenantId={tenantId} />
+
+        <PeriodSavingsReportsPanel tenantId={tenantId} />
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-100">Daily governance archives</h2>
+          <DailyReportsAccordion />
+        </section>
       </main>
     </div>
   );

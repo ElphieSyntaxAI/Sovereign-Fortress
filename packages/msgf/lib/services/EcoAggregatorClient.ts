@@ -23,6 +23,13 @@ import { z } from "zod";
 
 import { calculateEcoSavings, type EcoMetrics } from "@/lib/utils/ecoCalculator";
 
+/** Default ON — public eco claims require proven evidence. */
+export function isEcoProvenOnlyEnabled(): boolean {
+  const v = process.env.MSGF_ECO_PROVEN_ONLY?.trim().toLowerCase();
+  if (v === "0" || v === "false" || v === "no") return false;
+  return true;
+}
+
 export type GlobalEcoTelemetryPayload = {
   tenant_id: string;
   tokens_saved: number;
@@ -30,6 +37,7 @@ export type GlobalEcoTelemetryPayload = {
   co2e_offset_lbs: number;
   freshwater_conserved_gallons: number;
   observed_at: string;
+  evidence?: "proven_avoidance" | "pack_delta" | "estimated_model";
 };
 
 export type GlobalEcoRollupRow = {
@@ -80,6 +88,8 @@ export type MasterEcoPayloadBody = z.infer<typeof MasterEcoPayloadBodySchema>;
 export type EcoTelemetryContext = {
   userId?: string;
   projectOrigin?: string;
+  evidence?: "proven_avoidance" | "pack_delta" | "estimated_model";
+  reason?: string;
 };
 
 type MutableRollup = Omit<GlobalEcoRollupRow, "contribution_pct">;
@@ -230,14 +240,51 @@ function isUuidString(value: string): boolean {
 }
 
 export class EcoAggregatorClient {
+  /**
+   * Legacy entry — blocked by default when MSGF_ECO_PROVEN_ONLY=1 unless
+   * context.evidence is proven_avoidance or pack_delta.
+   */
   async sendGlobalTelemetryPayload(
     tenantId: string,
     tokensSaved: number,
     context?: EcoTelemetryContext
   ): Promise<void> {
+    const evidence = context?.evidence ?? "estimated_model";
+    if (
+      isEcoProvenOnlyEnabled() &&
+      evidence !== "proven_avoidance" &&
+      evidence !== "pack_delta"
+    ) {
+      console.warn(
+        "[EcoAggregatorClient] Skipped estimated eco telemetry (MSGF_ECO_PROVEN_ONLY). Use sendProvenEcoTelemetry.",
+        { reason: context?.reason ?? null, tokensSaved }
+      );
+      return;
+    }
+    await this.dispatchEcoPayload(tenantId, tokensSaved, context, evidence);
+  }
+
+  /** Only path that should grow public Sustainable Compute totals. */
+  async sendProvenEcoTelemetry(
+    tenantId: string,
+    tokensSaved: number,
+    context?: EcoTelemetryContext & {
+      evidence: "proven_avoidance" | "pack_delta";
+    }
+  ): Promise<void> {
+    const evidence = context?.evidence ?? "proven_avoidance";
+    await this.dispatchEcoPayload(tenantId, tokensSaved, context, evidence);
+  }
+
+  private async dispatchEcoPayload(
+    tenantId: string,
+    tokensSaved: number,
+    context: EcoTelemetryContext | undefined,
+    evidence: "proven_avoidance" | "pack_delta" | "estimated_model"
+  ): Promise<void> {
     let payload: GlobalEcoTelemetryPayload;
     try {
-      payload = buildPayload(tenantId, tokensSaved);
+      payload = { ...buildPayload(tenantId, tokensSaved), evidence };
     } catch (error) {
       console.warn("[EcoAggregatorClient] Invalid eco telemetry payload skipped.", {
         message: error instanceof Error ? error.message : "Unknown eco payload error",

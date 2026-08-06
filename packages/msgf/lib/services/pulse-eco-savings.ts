@@ -11,16 +11,21 @@
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
- * Record estimated token savings from MSGF Pulse routing into eco rollups.
+ * Record Pulse routing savings — estimate for ops dashboards; proven eco only
+ * when a metered CONVERGE baseline exists.
  */
 
-import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
 import { extractProjectOriginFromPulseBody } from "@/lib/utils/pulse-eco-context";
 import {
   compareTokenUsage,
   estimateMsgfRoutedTokens,
   estimateNaiveUngatedTokens,
 } from "@/lib/services/token-usage-estimate";
+import {
+  computeProvenPulseAvoidance,
+  recordEstimatedSavingsTokens,
+  recordProvenAvoidance,
+} from "@/lib/services/proven-savings";
 
 export type PulseEcoSavingsInput = {
   tenantId: string;
@@ -65,7 +70,7 @@ export function estimatePulseRoutingTokenSavings(params: {
 }
 
 /**
- * Fire-and-forget eco rollup for local_gateway / bypass (and optional global delta).
+ * Fire-and-forget: ops estimate always; eco rollup only when proveable.
  */
 export function recordPulseEcoSavings(input: PulseEcoSavingsInput): void {
   const contentChars = input.pulseText?.length ?? 0;
@@ -76,13 +81,23 @@ export function recordPulseEcoSavings(input: PulseEcoSavingsInput): void {
     authorHalTrusted: input.authorHalTrusted,
   });
 
-  if (tokens_saved <= 0) return;
+  if (tokens_saved > 0) {
+    void recordEstimatedSavingsTokens(input.tenantId, tokens_saved);
+  }
 
   const projectOrigin =
     extractProjectOriginFromPulseBody(input.rawBody) ?? input.tenantId.trim();
 
-  void ecoAggregatorClient.sendGlobalTelemetryPayload(input.tenantId, tokens_saved, {
-    userId: input.entityId,
-    projectOrigin,
-  });
+  void (async () => {
+    const proven = await computeProvenPulseAvoidance({
+      tenantId: input.tenantId,
+      routing: input.routing,
+      contentChars,
+    });
+    if (!proven) return;
+    await recordProvenAvoidance(proven, {
+      userId: input.entityId,
+      projectOrigin,
+    });
+  })();
 }

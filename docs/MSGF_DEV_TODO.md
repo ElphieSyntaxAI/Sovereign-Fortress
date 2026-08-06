@@ -28,7 +28,15 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 
 - [x] Jul 24 wave + Stripe entitlement migration applied (2026-07-24 / 2026-08-02)
 - [ ] Apply TRI consensus migration `20260805010000_tri_consensus_config.sql` (`msgf_tenant_consensus_config` + xAI provider CHECK)
-- [ ] `npm run db:push:verify -w msgf` after TRI migration
+- [ ] Apply provider usage / proven savings migration `20260806010000_provider_usage_proven_savings.sql`
+- [ ] Apply period savings reports migration `20260806020000_period_savings_reports.sql`
+- [ ] Apply shadow evaluation logs migration `20260806030000_shadow_evaluation_logs.sql` (+ `…30100` shadow USD column)
+- [ ] Apply launch governance writers migration `20260806200000_launch_governance_writers.sql` (proven/usage audit columns)
+- [ ] `npm run db:push:verify -w msgf` after TRI + usage + shadow + governance migrations
+- [x] Gateway auth hardening (`authenticateGatewayKey` — never trust `x-msgf-tenant-id`)
+- [x] Upstream header allowlist + Pulse trust-header strip
+- [x] Dashboard tenant IDOR guard on shadow/period/savings/security routes
+- [x] Active Governance Orchestrator (`x-msgf-mode: active` — cache + state-gate + sharded upstream)
 
 ### 1.2 Automated gates
 

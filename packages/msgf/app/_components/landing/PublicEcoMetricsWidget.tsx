@@ -638,14 +638,17 @@ import {
   CO2_LBS_PER_TREE_SEEDLING_10_YEARS,
   type EcoEquivalencyStatements,
 } from "@/lib/utils/ecoEquivalencies";
-import { formatDisplayDateTime, formatDisplayNumber } from "@/lib/utils/formatLocale";
+import { formatDisplayDateTime } from "@/lib/utils/formatLocale";
 
 type PublicEcoMetricsPayload = {
   ok: true;
-  source: "live" | "mock";
+  source: "live" | "empty" | "mock";
   generated_at: string;
   metrics: EcoMetrics;
   equivalencies: EcoEquivalencyStatements;
+  claimable?: boolean;
+  methodology?: string;
+  disclaimer?: string;
 };
 
 type StatCardProps = {
@@ -655,25 +658,32 @@ type StatCardProps = {
   tone: "water" | "carbon" | "energy";
 };
 
-const FALLBACK_METRICS = calculateEcoSavings(5_230_000);
+const EMPTY_METRICS = calculateEcoSavings(0);
 const FALLBACK_PAYLOAD: PublicEcoMetricsPayload = {
   ok: true,
-  source: "mock",
+  source: "empty",
   generated_at: new Date(0).toISOString(),
-  metrics: FALLBACK_METRICS,
-  equivalencies: buildEcoEquivalencyStatements(FALLBACK_METRICS),
+  metrics: EMPTY_METRICS,
+  equivalencies: buildEcoEquivalencyStatements(EMPTY_METRICS),
+  claimable: false,
+  methodology:
+    "Eco impact uses published coefficients applied only to proven avoided tokens.",
+  disclaimer:
+    "No claimable public totals until proven avoidance events are recorded.",
 };
 
 function formatMetric(value: number, unit: string): string {
   return `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit}`;
 }
 
-function formatBillions(value: number): string {
-  const billions = value / 1_000_000_000;
-  const maximumFractionDigits = billions >= 1 ? 2 : 3;
-  return billions.toLocaleString(undefined, {
-    maximumFractionDigits,
-  });
+function formatTokenCount(value: number): string {
+  if (value >= 1_000_000_000) {
+    return `${(value / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 })}B`;
+  }
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 })}M`;
+  }
+  return value.toLocaleString();
 }
 
 function formatStatementNumber(value: number, maximumFractionDigits = 1): string {
@@ -738,6 +748,7 @@ export function PublicEcoMetricsWidget() {
   const data = payload ?? FALLBACK_PAYLOAD;
   const generatedAt = useMemo(() => new Date(data.generated_at), [data.generated_at]);
   const treeEquivalent = data.metrics.co2e_offset_lbs / CO2_LBS_PER_TREE_SEEDLING_10_YEARS;
+  const claimable = data.claimable === true && data.metrics.tokens_saved > 0;
 
   return (
     <section className="rounded-3xl border border-emerald-500/20 bg-slate-950/70 p-6 shadow-2xl shadow-emerald-950/20 backdrop-blur-xl sm:p-8">
@@ -750,22 +761,39 @@ export function PublicEcoMetricsWidget() {
             AI that doesn&apos;t cost the Earth
           </h2>
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            Pillar 5 Context Sharding reduces redundant prompt overhead before it reaches the grid. These public
-            network totals convert token diversion into water, carbon, and energy impact.
+            We only publish environmental impact from{" "}
+            <strong className="text-emerald-200">proven avoided provider tokens</strong> — metered
+            CONVERGE baselines when Small Brain skips cloud calls, or audited pack deltas from
+            verify / Run Scripts. Estimates never inflate this board.
           </p>
           <p className="mt-5 max-w-xl rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm font-medium leading-relaxed text-emerald-50">
-            Our managed frameworks have successfully sharded{" "}
-            {formatBillions(data.metrics.tokens_saved)} Billion tokens locally. By stopping
-            computational waste at the source, Elphie Syntax has prevented{" "}
-            {formatStatementNumber(data.metrics.grid_compute_prevented_kwh, 2)} kWh of server
-            grid power—the equivalent of planting {formatStatementNumber(treeEquivalent, 1)}{" "}
-            trees and conserving{" "}
-            {formatStatementNumber(data.metrics.freshwater_conserved_gallons, 2)} gallons of
-            freshwater cooling.
+            {claimable ? (
+              <>
+                Proven network diversion: {formatTokenCount(data.metrics.tokens_saved)} tokens.
+                Modeled impact: {formatStatementNumber(data.metrics.grid_compute_prevented_kwh, 2)}{" "}
+                kWh grid power avoided (~{formatStatementNumber(treeEquivalent, 1)} tree-seedling
+                CO₂e proxy) and{" "}
+                {formatStatementNumber(data.metrics.freshwater_conserved_gallons, 2)} gallons
+                freshwater cooling proxy.
+              </>
+            ) : (
+              <>
+                Live proven totals are building as tenants establish metered CONVERGE baselines.
+                Until then we show zeros here — not illustrative placeholders — so marketing stays
+                auditable.
+              </>
+            )}
+          </p>
+          <p className="mt-3 max-w-xl text-[11px] leading-relaxed text-slate-500">
+            {data.methodology ?? data.disclaimer}
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-400">
             <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-emerald-100">
-              {loading ? "Loading live metrics" : `${data.source} metrics`}
+              {loading
+                ? "Loading live metrics"
+                : claimable
+                  ? "live · proven only"
+                  : "empty · awaiting proven events"}
             </span>
             <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-violet-100">
               Updated {formatDisplayDateTime(generatedAt)}

@@ -24,7 +24,7 @@
 **Boss demo (parked):** [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md)  
 **Tenant isolation (A4):** [`MSGF_TENANT_ISOLATION.md`](./MSGF_TENANT_ISOLATION.md)  
 **CONVERGE tiers (Part B):** [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md) · **TRI brains:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)  
-**Integrations:** [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) · [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) · [`MSGF_GOOGLE_WORKSPACE_SSO.md`](./MSGF_GOOGLE_WORKSPACE_SSO.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md)  
+**Integrations:** [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) · [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) · [`MSGF_GOOGLE_WORKSPACE_SSO.md`](./MSGF_GOOGLE_WORKSPACE_SSO.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md)
 **IDE surface:** [`MSGF_INTEGRATOR_DEV_KIT.md`](./MSGF_INTEGRATOR_DEV_KIT.md) · [`MSGF_IDE_MCP.md`](./MSGF_IDE_MCP.md) · [`MSGF_IDE_SETUP_RUNBOOK.md`](./MSGF_IDE_SETUP_RUNBOOK.md)
 
 ---
@@ -563,6 +563,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-06 | **Launch hardening:** gateway license auth (no tenant spoof), header allowlist, dashboard IDOR guard, Active Governance Orchestrator (`PromptIR` + cache + state-gate), durable proven/usage PG writers. See [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md). |
 | 2026-08-05 | **M8 TRI + PQC:** milestones, §7 snapshot, readiness **soft-RC ~84% / paid ~68%**; build typing no longer listed as failing. |
 | 2026-08-05 | **PQC:** App-layer hybrid KEM envelope `0x03` (X25519 + ML-KEM-768) + HAL v2 ML-DSA-65 certs; audit [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). Platform TLS PQ remains infra checklist. |
 | 2026-08-02 | **Stripe (M3) back in plan:** §4.1 billing + M3 milestone + §10.C Stripe checklist; commercial readiness ~40%; soft-RC may still tag with mock ON, paid claims require §10.C. |

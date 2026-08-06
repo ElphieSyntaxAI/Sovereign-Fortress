@@ -29,7 +29,7 @@ export type UserProjectEcoRow = {
 
 export type MyEcoUsageResponse = {
   ok: true;
-  source: "live" | "mock";
+  source: "live" | "mock" | "empty";
   generated_at: string;
   global: {
     metrics: EcoMetrics;

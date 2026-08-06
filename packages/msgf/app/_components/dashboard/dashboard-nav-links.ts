@@ -24,7 +24,7 @@ export const DASHBOARD_PRIMARY_LINKS = (
   { label: "Home", href: "/", matchPath: "/" },
   { label: "Dashboard", href: "/dashboard", matchPath: "/dashboard" },
   {
-    label: "Daily Reports",
+    label: "Reports",
     href: "/dashboard/daily-reports",
     matchPath: "/dashboard/daily-reports",
   },

@@ -40,6 +40,12 @@ import {
   runWithLlmTimeout,
   runWithLlmTimeoutSimple,
 } from "@/lib/services/cost-runaway-guard";
+import {
+  parseAnthropicUsage,
+  parseGeminiUsage,
+  recordMeteredProviderUsage,
+  type ProviderMeterContext,
+} from "@/lib/services/provider-usage-meter";
 
 export { runTenantXaiValidation, platformXaiApiKey };
 
@@ -60,7 +66,11 @@ export type DualModelGatewaySnapshot = {
   consensus_mode?: string;
 };
 
-export async function runTenantGeminiValidation(apiKey: string, prompt: string): Promise<string> {
+export async function runTenantGeminiValidation(
+  apiKey: string,
+  prompt: string,
+  meter?: ProviderMeterContext
+): Promise<string> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai");
   const modelId =
     process.env.MSGF_TENANT_VALIDATION_GEMINI_MODEL?.trim() || "gemini-2.0-flash";
@@ -77,12 +87,20 @@ export async function runTenantGeminiValidation(apiKey: string, prompt: string):
   const text =
     parts?.map((p) => ("text" in p && typeof p.text === "string" ? p.text : "")).join("") ??
     "";
+  if (meter) {
+    const sample = parseGeminiUsage(
+      (resp as { usageMetadata?: unknown } | undefined)?.usageMetadata,
+      modelId
+    );
+    if (sample) void recordMeteredProviderUsage(meter, sample);
+  }
   return text.trim();
 }
 
 export async function runTenantAnthropicValidation(
   apiKey: string,
-  prompt: string
+  prompt: string,
+  meter?: ProviderMeterContext
 ): Promise<string> {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const modelId =
@@ -98,6 +116,10 @@ export async function runTenantAnthropicValidation(
       },
       { signal }
     );
+    if (meter) {
+      const sample = parseAnthropicUsage(msg.usage, modelId);
+      if (sample) void recordMeteredProviderUsage(meter, sample);
+    }
     const block = msg.content[0];
     return block.type === "text" ? block.text.trim() : "";
   });
@@ -185,11 +207,12 @@ export async function assertTenantDualValidationModelsConfigured(
 async function runProviderValidation(
   provider: MsgfConsensusProvider,
   apiKey: string,
-  prompt: string
+  prompt: string,
+  meter?: ProviderMeterContext
 ): Promise<string> {
-  if (provider === "google") return runTenantGeminiValidation(apiKey, prompt);
-  if (provider === "anthropic") return runTenantAnthropicValidation(apiKey, prompt);
-  return runTenantXaiValidation(apiKey, prompt);
+  if (provider === "google") return runTenantGeminiValidation(apiKey, prompt, meter);
+  if (provider === "anthropic") return runTenantAnthropicValidation(apiKey, prompt, meter);
+  return runTenantXaiValidation(apiKey, prompt, meter);
 }
 
 function pairwiseAgreement(outputs: string[]): number {
@@ -267,11 +290,15 @@ export async function runTenantDualModelConsensusGateway(params: {
   }
 
   const prompt = buildTenantDualValidationPrompt(params);
+  const meter: ProviderMeterContext = {
+    tenantId: params.tenantId,
+    purpose: "dual_model",
+  };
 
   const outputs = await executeAiWave("dual_model.tenant_validators", () =>
     Promise.all(
       consensusConfig.providers.map((p, i) =>
-        runProviderValidation(p, keys[i]!, prompt)
+        runProviderValidation(p, keys[i]!, prompt, meter)
       )
     )
   );

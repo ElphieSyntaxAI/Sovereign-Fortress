@@ -17,10 +17,25 @@
 import {
   runWithLlmTimeout,
 } from "@/lib/services/cost-runaway-guard";
+import {
+  parseOpenAiStyleUsage,
+  recordMeteredProviderUsage,
+  type ProviderMeterContext,
+} from "@/lib/services/provider-usage-meter";
 
-export async function runTenantXaiValidation(apiKey: string, prompt: string): Promise<string> {
-  const modelId = process.env.MSGF_XAI_MODEL?.trim() || process.env.MSGF_TENANT_VALIDATION_XAI_MODEL?.trim() || "grok-2-latest";
-  const base = (process.env.MSGF_XAI_API_BASE?.trim() || "https://api.x.ai/v1").replace(/\/$/, "");
+export async function runTenantXaiValidation(
+  apiKey: string,
+  prompt: string,
+  meter?: ProviderMeterContext
+): Promise<string> {
+  const modelId =
+    process.env.MSGF_XAI_MODEL?.trim() ||
+    process.env.MSGF_TENANT_VALIDATION_XAI_MODEL?.trim() ||
+    "grok-2-latest";
+  const base = (process.env.MSGF_XAI_API_BASE?.trim() || "https://api.x.ai/v1").replace(
+    /\/$/,
+    ""
+  );
 
   return runWithLlmTimeout("dual_model.tenant.xai", async (signal) => {
     const res = await fetch(`${base}/chat/completions`, {
@@ -42,7 +57,13 @@ export async function runTenantXaiValidation(apiKey: string, prompt: string): Pr
     }
     const json = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
+      usage?: unknown;
+      model?: string;
     };
+    if (meter) {
+      const sample = parseOpenAiStyleUsage(json.usage, json.model || modelId, "xai");
+      if (sample) void recordMeteredProviderUsage(meter, sample);
+    }
     const text = json.choices?.[0]?.message?.content?.trim() ?? "";
     return text;
   });

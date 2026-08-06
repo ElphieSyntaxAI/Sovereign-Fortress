@@ -13,18 +13,26 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
-import { calculateEcoSavings, type EcoMetrics } from "@/lib/utils/ecoCalculator";
+import {
+  calculateEcoSavings,
+  ECO_METHODOLOGY_SHORT,
+  type EcoMetrics,
+} from "@/lib/utils/ecoCalculator";
 import {
   buildEcoEquivalencyStatements,
   type EcoEquivalencyStatements,
 } from "@/lib/utils/ecoEquivalencies";
+import { PROVEN_ECO_DISCLAIMER } from "@/lib/services/proven-savings";
 
 export type PublicEcoMetricsResponse = {
   ok: true;
-  source: "live" | "mock";
+  source: "live" | "empty";
   generated_at: string;
   metrics: EcoMetrics;
   equivalencies: EcoEquivalencyStatements;
+  claimable: boolean;
+  methodology: string;
+  disclaimer: string;
 };
 
 export const PUBLIC_ECO_CACHE_CONTROL =
@@ -35,6 +43,8 @@ export function hasPublicEcoDatabaseEnv(): boolean {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   return Boolean(url && key);
 }
+
+const EMPTY_METRICS = calculateEcoSavings(0);
 
 export async function getPublicEcoMetrics(
   supabase?: SupabaseClient
@@ -69,24 +79,31 @@ export async function getPublicEcoMetrics(
       ),
     };
 
+    const claimable = metrics.tokens_saved > 0 && leaderboard.source === "live";
+
     return {
       ok: true,
-      source: leaderboard.source,
+      source: claimable ? "live" : "empty",
       generated_at: leaderboard.generated_at,
-      metrics,
-      equivalencies: buildEcoEquivalencyStatements(metrics),
+      metrics: claimable ? metrics : EMPTY_METRICS,
+      equivalencies: buildEcoEquivalencyStatements(claimable ? metrics : EMPTY_METRICS),
+      claimable,
+      methodology: ECO_METHODOLOGY_SHORT,
+      disclaimer: PROVEN_ECO_DISCLAIMER,
     };
   } catch (error) {
-    console.warn("[public-eco-metrics] live read failed; returning mock metrics.", {
+    console.warn("[public-eco-metrics] live read failed; returning empty claimable metrics.", {
       message: error instanceof Error ? error.message : "Unknown eco metrics error",
     });
-    const metrics = calculateEcoSavings(5_230_000);
     return {
       ok: true,
-      source: "mock",
+      source: "empty",
       generated_at: new Date().toISOString(),
-      metrics,
-      equivalencies: buildEcoEquivalencyStatements(metrics),
+      metrics: EMPTY_METRICS,
+      equivalencies: buildEcoEquivalencyStatements(EMPTY_METRICS),
+      claimable: false,
+      methodology: ECO_METHODOLOGY_SHORT,
+      disclaimer: PROVEN_ECO_DISCLAIMER,
     };
   }
 }

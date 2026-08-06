@@ -224,6 +224,8 @@ Optimizer output includes **MANDATORY AGENT EXECUTION RULES**: attach `@` files,
 
 | Metric | Meaning |
 | :--- | :--- |
+| **Metered provider tokens** | Real `response.usage` from MSGF-owned Claude / Gemini / xAI calls |
+| **Proven tokens saved** | Avoided spend vs rolling metered CONVERGE baseline, or audited pack deltas — **only** these feed public eco |
 | CONVERGE cache hits | Replay prior Big Brain verdict |
 | IDE dev-events | Heal Cheap build failures |
 | **Verify passes** | Safe Build / Run Scripts success |
@@ -233,7 +235,7 @@ Optimizer output includes **MANDATORY AGENT EXECUTION RULES**: attach `@` files,
 | Pulse idempotency / ingest hash / credit reserve | Efficiency modules |
 | Tier / quarantine telemetry | When Part B / T3 path fires |
 
-**Defensible ROI** block combines confirm-pack savings + verify→Vault + Run Scripts re-prompt avoidance.
+**Defensible ROI** prefers metered spend when available. **Public eco** (`MSGF_ECO_PROVEN_ONLY`, default on) refuses estimated routing models — zeros beat fake “billions.”
 
 ---
 

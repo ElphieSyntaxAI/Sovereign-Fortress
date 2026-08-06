@@ -434,23 +434,51 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
           <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300/90">
             Defensible ROI (24h)
           </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Metric
+              label="Metered provider tokens"
+              value={defensible.metered_provider_tokens}
+              hint={`${defensible.metered_provider_calls} API calls · response.usage`}
+              variant="highlight"
+            />
+            <Metric
+              label="Proven tokens saved"
+              value={defensible.proven_tokens_saved}
+              hint={
+                defensible.eco_claim_allowed
+                  ? "Eligible for eco claims"
+                  : "Need metered CONVERGE baseline (≥2 samples) or pack deltas"
+              }
+              variant="highlight"
+            />
             <Metric
               label="MSGF cloud tokens"
               value={defensible.msgf_cloud_tokens}
               hint={defensible.msgf_cloud_formula}
-              variant="highlight"
             />
             <Metric
               label="Context savings tokens"
               value={defensible.context_savings_tokens}
               hint={`${defensible.guided_sessions_verified} confirm-pack(s) · ${defensible.verify_result_vault_tokens_saved.toLocaleString()} verify→Vault · ${defensible.run_script_rerun_tokens_saved.toLocaleString()} Run Scripts`}
-              variant="highlight"
             />
           </div>
-          <p className="mt-3 text-xs text-amber-200/90">
-            ⚠️ Notice: {defensible.footnote}
-          </p>
+          {defensible.rolling_converge_baseline_tokens != null ? (
+            <p className="mt-3 text-xs text-slate-400">
+              Rolling metered CONVERGE baseline:{" "}
+              <strong className="text-slate-200">
+                {defensible.rolling_converge_baseline_tokens.toLocaleString()}
+              </strong>{" "}
+              tokens/call · ops estimate (not eco):{" "}
+              {defensible.estimated_tokens_saved_ops_only.toLocaleString()}
+            </p>
+          ) : (
+            <p className="mt-3 text-xs text-amber-200/90">
+              Eco claims unlock after ≥2 metered CONVERGE/dual/TRI calls establish a tenant baseline.
+              Until then, routing savings stay on the ops estimate track only.
+            </p>
+          )}
+          <p className="mt-3 text-xs text-amber-200/90">Notice: {defensible.footnote}</p>
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-500">{defensible.eco_disclaimer}</p>
         </div>
       ) : null}
 
