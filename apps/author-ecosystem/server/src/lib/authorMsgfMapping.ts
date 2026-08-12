@@ -3,8 +3,22 @@
  */
 
 import { buildAuthorMsgfDashboardLinks, type AuthorMsgfDashboardLinks } from "./authorMsgfDashboardLinks.js";
+import {
+  AUTHOR_MSGF_LOCAL_DEV_ORIGIN,
+  AUTHOR_MSGF_PROJECT_ORIGIN,
+  authorMsgfBridgeConfigured,
+  resolveAuthorMsgfAppUrl,
+  resolveAuthorMsgfTenantId,
+  resolveAuthorPulseLicenseKey,
+} from "./authorMsgfEnv.js";
+import { getAuthorGovernanceStatus, resolveAuthorGatewayMode } from "./authorMsgfGovernance.js";
 
-export const AUTHOR_MSGF_PROJECT_ORIGIN = "elphiesyntax/author-ecosystem" as const;
+export {
+  AUTHOR_MSGF_LOCAL_DEV_ORIGIN,
+  AUTHOR_MSGF_PROJECT_ORIGIN,
+  resolveAuthorMsgfAppUrl,
+  resolveAuthorMsgfTenantId,
+};
 
 export type AuthorMsgfMappingStatus = {
   tenant_id: string;
@@ -21,6 +35,8 @@ export type AuthorMsgfMappingStatus = {
   ready: boolean;
   missing: string[];
   dashboard_links: AuthorMsgfDashboardLinks;
+  gateway_mode: ReturnType<typeof resolveAuthorGatewayMode>;
+  governance: ReturnType<typeof getAuthorGovernanceStatus>;
   stress_test_commands: {
     probe: string;
     track_tokens_live: string;
@@ -33,32 +49,10 @@ function trim(name: string): string {
   return process.env[name]?.trim() || "";
 }
 
-export function resolveAuthorMsgfTenantId(raw?: string | null): string {
-  return raw?.trim() || trim("MSGF_AUTHOR_TENANT_ID") || "author_ecosystem";
-}
-
-/** Local MSGF dev origin when env unset (see packages/msgf `MSGF_DEV_DEFAULT_PORT` = 3001). */
-export const AUTHOR_MSGF_LOCAL_DEV_ORIGIN = "http://127.0.0.1:3001" as const;
-
-export function resolveAuthorMsgfAppUrl(): string | null {
-  const url =
-    trim("MSGF_APP_URL") ||
-    trim("NEXT_PUBLIC_MSGF_APP_URL") ||
-    trim("MSGF_BASE_URL") ||
-    trim("MSGF_LOCAL_DEV_URL");
-  if (url) return url.replace(/\/+$/, "");
-  if (process.env.NODE_ENV !== "production") {
-    return AUTHOR_MSGF_LOCAL_DEV_ORIGIN;
-  }
-  return null;
-}
-
 export function getAuthorMsgfMappingStatus(): AuthorMsgfMappingStatus {
   const tenant_id = resolveAuthorMsgfTenantId();
   const msgf_app_url = resolveAuthorMsgfAppUrl();
-  const pulse_license_configured = Boolean(
-    trim("MSGF_AUTHOR_PULSE_LICENSE_KEY") || trim("MSGF_CONTRACT_LICENSE_KEY")
-  );
+  const pulse_license_configured = Boolean(resolveAuthorPulseLicenseKey());
   const hal_pulse_enabled = trim("MSGF_AUTHOR_HAL_PULSE_ENABLED").toLowerCase() !== "0";
   const ingest_api_key_configured = Boolean(trim("MSGF_INGEST_API_KEY"));
   const ingest_tenant_id = trim("MSGF_INGEST_TENANT_ID") || tenant_id;
@@ -70,6 +64,7 @@ export function getAuthorMsgfMappingStatus(): AuthorMsgfMappingStatus {
   }
 
   const ready = missing.length === 0 && hal_pulse_enabled;
+  const governance = getAuthorGovernanceStatus();
 
   return {
     tenant_id,
@@ -86,6 +81,8 @@ export function getAuthorMsgfMappingStatus(): AuthorMsgfMappingStatus {
     ready,
     missing,
     dashboard_links: buildAuthorMsgfDashboardLinks(tenant_id),
+    gateway_mode: resolveAuthorGatewayMode(),
+    governance,
     stress_test_commands: {
       probe: "npm run probe:author-ecosystem -w msgf",
       track_tokens_live: "npm run track:author-tokens:live -w msgf",
@@ -94,4 +91,9 @@ export function getAuthorMsgfMappingStatus(): AuthorMsgfMappingStatus {
         "npm run bootstrap:author-msgf -w msgf  (prints MSGF_AUTHOR_PULSE_LICENSE_KEY for .env)",
     },
   };
+}
+
+/** @deprecated Prefer {@link authorMsgfBridgeConfigured} from authorMsgfEnv. */
+export function isAuthorMsgfReady(): boolean {
+  return authorMsgfBridgeConfigured();
 }

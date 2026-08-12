@@ -9,6 +9,7 @@ import {
   EDITOR_HUB_QUALITY_REQUIREMENTS_TOOLTIP,
   evaluateManuscriptQualityForEditorHub,
 } from "../lib/EditorRequestService.js";
+import { postAuthorVerifyResult } from "../lib/authorMsgfGovernance.js";
 import { P4_EDITOR_LEDGER } from "../lib/database/canonicalIdentifiers.js";
 import { assertUuid, HalValidationError } from "../lib/halMetrics.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
@@ -604,6 +605,26 @@ manuscriptController.post("/api/manuscripts/:id/unlock", async (req: Request, re
     .eq("id", manuscriptId)
     .eq("tenant_id", user.userId);
 
+  const continuity =
+    revision_report &&
+    revision_report.report_json &&
+    typeof (revision_report.report_json as Record<string, unknown>).continuity_score === "number"
+      ? Number((revision_report.report_json as Record<string, unknown>).continuity_score)
+      : null;
+
+  void postAuthorVerifyResult({
+    passed: continuity == null || continuity >= 0.78,
+    command: "author:revision:cooldown-unlock",
+    actorId: user.userId,
+    manuscriptId,
+    surface: "revision_unlock",
+    stdoutSnippet: `continuity=${continuity ?? "n/a"}; locked_until=${String(lockedUntilRaw)}`,
+    stderrSnippet:
+      continuity != null && continuity < 0.78
+        ? `continuity_score ${continuity} below editor hub threshold 0.78`
+        : undefined,
+  });
+
   const { data: msFinal } = await supabase
     .from("p4_manuscripts")
     .select(MANUSCRIPT_UNLOCK_SELECT)
@@ -618,5 +639,9 @@ manuscriptController.post("/api/manuscripts/:id/unlock", async (req: Request, re
     report_json: revision_report?.report_json ?? null,
     critic_sensitivity_text,
     manuscript: msFinal ?? msAfter,
+    msgf_verify: {
+      command: "author:revision:cooldown-unlock",
+      continuity_score: continuity,
+    },
   });
 });

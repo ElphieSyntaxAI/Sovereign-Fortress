@@ -10,7 +10,7 @@ import {
   type AuthorHalTelemetrySnapshot,
 } from "msgf/hal-author-bridge";
 
-import { AUTHOR_MSGF_PROJECT_ORIGIN } from "./authorMsgfMapping.js";
+import { AUTHOR_MSGF_PROJECT_ORIGIN } from "./authorMsgfEnv.js";
 
 export type { AuthorHalDnaEvent, AuthorHalTelemetrySnapshot };
 
@@ -32,6 +32,8 @@ type ForwardAuthorPulseInput = {
   body: unknown;
   idempotencyKey?: string | null;
   authorHal?: AuthorHalTelemetrySnapshot | null;
+  /** Part B CONVERGE tier header (TIER_1 | TIER_2 | TIER_3). */
+  convergeTier?: string | null;
 };
 
 function trimEnv(name: string): string {
@@ -164,6 +166,10 @@ export async function forwardAuthorPulseToMsgf(
   }
   if (input.authorHal) {
     headers[MSGF_AUTHOR_HAL_HEADER] = serializeAuthorHalTelemetry(input.authorHal);
+  }
+  const tier = input.convergeTier?.trim();
+  if (tier === "TIER_1" || tier === "TIER_2" || tier === "TIER_3") {
+    headers["x-msgf-converge-tier"] = tier;
   }
 
   try {

@@ -2,7 +2,7 @@
 
 Use after merging the P0–P4 roadmap work. **Code is built; production needs deploy + migrations.**
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-11
 
 ---
 
@@ -28,6 +28,9 @@ Use after merging the P0–P4 roadmap work. **Code is built; production needs de
 | `20260806030000_shadow_evaluation_logs.sql` | Shadow Proxy eval ledger |
 | `20260806030100_period_reports_shadow_usd.sql` | Shadow projected USD on period reports |
 | `20260806200000_launch_governance_writers.sql` | Proven/usage gateway audit columns |
+| `20260810010000_msgf_p7_source_reputation.sql` | P7 source audit + reputation + reverse impact |
+| `20260811010000_p4_active_incidents_bug_inbox.sql` | Bug inbox columns on `p4_active_incidents` |
+| `20260811020000_p4_upsert_reopen_bug_inbox.sql` | Reopen dismissed inbox rows on re-report |
 
 ```bash
 npm run db:push -w msgf

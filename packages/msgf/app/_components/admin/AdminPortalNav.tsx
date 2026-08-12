@@ -615,10 +615,13 @@ const NAV_ITEMS = [
   { href: "/admin/portal", label: "Portal" },
   { href: "/admin/dashboard", label: "Pillar health" },
   { href: "/admin/ops", label: "Ops console" },
+  { href: "/admin/ops#bug-inbox", label: "Bug inbox" },
+  { href: "/admin/ops#provenance", label: "Provenance" },
   { href: "/admin/dashboard#token-savings", label: "Token savings" },
   { href: "/admin/dashboard#big-brain-issues", label: "Big Brain queue" },
-  { href: "/dashboard", label: "Your governance" },
-  { href: "/workspace", label: "Workspace" },
+  { href: "/workspace?tab=setup", label: "Team" },
+  { href: "/account", label: "Account" },
+  { href: "/dashboard", label: "User dashboard" },
 ] as const;
 
 export function AdminPortalNav({ userEmail }: Props) {
@@ -649,9 +652,9 @@ export function AdminPortalNav({ userEmail }: Props) {
           />
           <div className="leading-tight">
             <span className="block text-sm font-semibold tracking-tight text-slate-100 group-hover:text-violet-200">
-              MSGF Admin Portal
+              MSGF Admin
             </span>
-            <span className="block text-[11px] text-slate-500">Operator · prelaunch testing</span>
+            <span className="block text-[11px] text-slate-500">Operator console</span>
           </div>
         </Link>
 

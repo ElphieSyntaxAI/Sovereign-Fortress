@@ -3,7 +3,9 @@
 #
 # Submit:
 #   gcloud builds submit --config=cloudbuild.msgf-image.yaml \
-#     --substitutions=_IMAGE_TAG=abc1234,_GIT_REVISION=fullsha .
+#     --substitutions=_IMAGE_TAG=abc1234,_GIT_REVISION=fullsha,_NEXT_PUBLIC_SUPABASE_URL=...,... .
+#
+# NEXT_PUBLIC_* must be build-args — Next inlines them at compile time.
 
 substitutions:
   _REGION: us-central1
@@ -11,6 +13,11 @@ substitutions:
   _IMAGE_NAME: msgf-core
   _IMAGE_TAG: manual
   _GIT_REVISION: ""
+  _NEXT_PUBLIC_SUPABASE_URL: ""
+  _NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ""
+  _NEXT_PUBLIC_AUTHOR_APP_URL: ""
+  _NEXT_PUBLIC_EDUCATION_APP_URL: ""
+  _NEXT_PUBLIC_MSGF_APP_URL: ""
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -32,6 +39,16 @@ steps:
       - GIT_REVISION=${_GIT_REVISION}
       - --build-arg
       - APP_IMAGE_VERSION=${_IMAGE_TAG}
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+      - --build-arg
+      - NEXT_PUBLIC_AUTHOR_APP_URL=${_NEXT_PUBLIC_AUTHOR_APP_URL}
+      - --build-arg
+      - NEXT_PUBLIC_EDUCATION_APP_URL=${_NEXT_PUBLIC_EDUCATION_APP_URL}
+      - --build-arg
+      - NEXT_PUBLIC_MSGF_APP_URL=${_NEXT_PUBLIC_MSGF_APP_URL}
       - .
 
 images:

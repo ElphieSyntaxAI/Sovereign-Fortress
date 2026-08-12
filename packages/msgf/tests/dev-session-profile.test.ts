@@ -33,6 +33,9 @@ const greenPreflight: ShadowPreflightResult = {
   reason: "ok",
   vaultMatch: null,
   hallMatch: null,
+  scoredHits: [],
+  prunedHits: [],
+  contextHits: [],
 };
 
 describe("dev-session-profile", () => {

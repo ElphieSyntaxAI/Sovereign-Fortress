@@ -101,6 +101,7 @@ export default async function DashboardPage() {
       scopeDescription={scopeDescription}
       dashboardLabel="Your governance dashboard"
       showGovernanceMatrix={showGovernanceMatrix}
+      bugReportUserId={user.id}
     />
   );
 }

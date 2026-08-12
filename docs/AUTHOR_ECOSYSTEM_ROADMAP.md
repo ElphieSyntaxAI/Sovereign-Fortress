@@ -7,19 +7,20 @@
 
 **Shared engine:** MSGF (guardrails, Pulse, Vault/Hall) — **https://elphiesgatedai.elphiesyntax.com** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) and [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md).
 
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 
 ---
 
-## 0. Progress pulse (2026-07-13)
+## 0. Progress pulse (2026-08-06)
 
 | Scope | % complete | Notes |
 | :--- | :---: | :--- |
 | **Project switcher plan** (nav + hub isolation) | **100%** | All five plan todos shipped — see §3 Phase 1 row + changelog. |
-| **Phase 1 — Foundation** (table below) | **~72%** | Ingest / hub / switcher / RAG strong; HAL cert export + tier/copy alignment still partial. |
-| **Phase 2 — Professionalization** | **~35%** | Cool-down locks and revision reports partial; Editor Suite + Guild mostly not started. |
+| **Phase 1 — Foundation** (table below) | **~78%** | Ingest + MSGF governance wires (Shadow/Active, verify-result, sync brain default); HAL cert + tier copy still partial. |
+| **Phase 2 — Professionalization** | **~42%** | Cool-down unlock → verify-result; editor hub + deploy-gate advisory; dual-structure T3 HITL on ingest. |
 | **Phase 3 — Scaling & Sovereignty** | **~5%** | Lore-bot / multimedia / growth analytics mostly future. |
-| **Author Ecosystem overall (Phases 1–3)** | **~45%** | Weighted toward Phase 1 shipping surface on authorecosystem. |
+| **Author Ecosystem overall (Phases 1–3)** | **~48%** | Weighted toward Phase 1 shipping surface on authorecosystem. |
+| **MSGF governance adoption (high/medium)** | **~85%** | Gateway + tiers + quarantine signals + period-report links + Hybrid seal; Gemini still direct (no `/api/v1` Gemini upstream yet). |
 
 **Project switcher plan checklist (100%):**
 
@@ -55,27 +56,28 @@ ElphieSyntax is a sovereign narrative infrastructure that transitions authors fr
 
 ## 3. Development Phases
 
-### Phase 1: The Foundation (Current WIP — ~72%)
+### Phase 1: The Foundation (Current WIP — ~78%)
 
 | Feature | Description | Status |
 | :--- | :--- | :---: |
-| **Document ingest (MSGF V3.2)** | Uploads & Google Docs → scan → authorship Q&A → review → commit (wiki, outline, world bible). | ~85% |
+| **Document ingest (MSGF V3.2)** | Uploads & Google Docs → scan → authorship Q&A → review → commit (wiki, outline, world bible). Default `sync_msgf_brain` when pulse ready; dual-disagree → T3 HITL + verify fail. | ~90% |
 | **Project switcher (nav + hub)** | Always-visible `MS:` dropdown + hub kanban; activate with `manuscriptId` / `tenantId` / `seriesId`; outline & docs remount per book; series siblings may share RAG. | **100%** |
 | **HAL v2 Certificate** | Telemetry summary + Vault Seal + Lore-Git chain (exportable proof bundle). **ML-DSA-65** (FIPS 204 algorithm family) over RFC 8785-canonical JSON when `MSGF_HAL_PQC_SIGN=1`. See [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). | ~70% |
-| **MSGF Pulse bridge** | HAL chunk-pulse → Gated AI routing; token savings on `tenant_id=author_ecosystem`. | ~80% |
-| **Author RAG Model** | Sidekick for continuity and outline adherence. | ~70% |
+| **MSGF Pulse bridge** | HAL chunk-pulse → Gated AI routing (`x-msgf-converge-tier: TIER_1`); token savings on `tenant_id=author_ecosystem`. | ~90% |
+| **MSGF governance (high/medium)** | Shadow/Active gateway for Librarian + Critic; verify-result on unlock/commit; deploy-gate advisory on editor hub; period-report + quarantine ops links; Hybrid KEM Vault Pact seal. | **~85%** |
+| **Author RAG Model** | Sidekick for continuity and outline adherence (OpenAI via MSGF gateway when mode ≠ off). | ~75% |
 | **Progress Tracking** | Word count + outline percentage. | ~40% |
-| **Unified Registration** | Atomic transaction (Auth + Profile + Pact + Legacy). | ~60% |
+| **Unified Registration** | Atomic transaction (Auth + Profile + Pact + Legacy) + optional Hybrid KEM attestation envelope. | ~70% |
 
 **Project switcher evidence:** `ActiveManuscriptChip.tsx`, `NarrativeContext.tsx`, `manuscriptTypes.ts` (`hubRowToSelection`), `ManuscriptHub.tsx`, `PlanningCommandCenter.tsx`, series scope via `seriesRagScope.ts`.
 
-### Phase 2: Professionalization (Immediate Focus — ~35%)
+### Phase 2: Professionalization (Immediate Focus — ~42%)
 
 | Feature | Description | Status |
 | :--- | :--- | :---: |
-| **Cool Down Revision Lock** | Read-only state gate with timer-based unlocks. | ~55% |
-| **Revision Reports** | Automated insights on continuity, plot holes, and market appeal. | ~40% |
-| **Editor Suite** | Dashboard for human editors to view HAL scores and revision history. | ~15% |
+| **Cool Down Revision Lock** | Read-only state gate with timer-based unlocks; unlock posts MSGF `verify-result`. | ~70% |
+| **Revision Reports** | Automated insights on continuity, plot holes, and market appeal (Critic via MSGF gateway). | ~50% |
+| **Editor Suite** | Dashboard for human editors; quality gate + optional deploy-gate (`MSGF_AUTHOR_REQUIRE_DEPLOY_GATE`). | ~30% |
 | **Community Guild** | Marketplace for verified human translators, artists, and VAs. | ~10% |
 
 ### Phase 3: Scaling & Sovereignty (~5%)
@@ -133,6 +135,7 @@ Target lifecycle vocabulary (product / guardrail layer). Map to `p4_manuscripts.
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-06 | **MSGF high/medium governance adoption:** Shadow/Active gateway (Librarian+Critic), CONVERGE tiers on Pulse, T3 HITL on ingest dual-disagree, verify-result on commit/unlock, deploy-gate on editor hub, period-report/quarantine ops links, Hybrid KEM Vault Pact seal. Onboarding defaults `sync_msgf_brain`. Progress pulse refreshed (~48% overall). |
 | 2026-08-05 | HAL v2 certificate: ML-DSA-65 signed proof bundles (RFC 8785 canonicalize) when `MSGF_HAL_PQC_SIGN=1`; crypto audit linked. |
 | 2026-07-13 | **Project switcher shipped (plan 100%):** nav `MS:` dropdown + hub activate with `seriesId`; per-book outline/wiki/drafting isolation; series RAG share retained. Added §0 progress pulse (Phase 1 ~72%, overall ~45%). Lexicon: Active Project, Series RAG share. |
 | 2026-05-15 | Linked production URL (elphiesyntax.com), MSGF engine (elphiesgatedai.elphiesyntax.com), and monorepo/MSGF 1.0 companion docs. |

@@ -1,7 +1,7 @@
 # MSGF Pillar Mapping — Single Source of Truth
 
 **Status:** Canonical crosswalk for engineering, product, and AI/dev charters.  
-**Last updated:** 2026-06-01
+**Last updated:** 2026-08-10
 
 This document resolves **documentation debt** where local filenames (e.g. `.msgf/P1_HAL.md`) used pillar numbers that **do not match** the V3.0 / V3.2 master specifications. When in conflict, **master-spec pillar numbers win** for platform architecture; `.msgf/*.md` files are **Author-domain extension charters** and must be read through the mapping table below—not by filename alone.
 
@@ -32,6 +32,19 @@ V3.2 **does not replace** the six-pillar meanings from V3.0; it adds **Redis hot
 | **P4 — State Ledger** | Flight recorder; session memory; active logic beats | **SHARD** — Redis hot slices + cold beats | [`packages/msgf/lib/P4.ts`](../packages/msgf/lib/P4.ts), [`packages/msgf/lib/msgf-hot-layer.ts`](../packages/msgf/lib/msgf-hot-layer.ts), [`packages/msgf/lib/msgf-consensus.ts`](../packages/msgf/lib/msgf-consensus.ts), [`packages/msgf/utils/msgf/pulse-client.ts`](../packages/msgf/utils/msgf/pulse-client.ts), [`packages/msgf/src/lib/universal/p1HalStandard.ts`](../packages/msgf/src/lib/universal/p1HalStandard.ts) *(rhythm types; name is legacy)* | `p4_state_ledger`, `state_beats`, **`p4_hal_ledger`**, `p4_narrative_logs` (beats) |
 | **P5 — Local Variables** | Per-site / module UI and config shards | Tenant manifest, dashboard shells | [`packages/msgf/config/tenant-manifest.json`](../packages/msgf/config/tenant-manifest.json), [`packages/msgf/lib/tenant-silo.ts`](../packages/msgf/lib/tenant-silo.ts), `apps/msgf-dashboard` | Per-tenant JSONB config, demo todos, UI-only state |
 | **P6 — Constraint Ledger** | Compliance regression, error history, hallucination avoidance | **Vault** (success) vs **Hall** (failure); **CROSS-REF** + **DEFEND** preflight | [`packages/msgf/lib/defend-preflight.ts`](../packages/msgf/lib/defend-preflight.ts), [`packages/msgf/lib/msgf-shadow.ts`](../packages/msgf/lib/msgf-shadow.ts), [`packages/msgf/lib/msgf-index.ts`](../packages/msgf/lib/msgf-index.ts), [`packages/msgf/lib/services/constraint-ledger.ts`](../packages/msgf/lib/services/constraint-ledger.ts), [`packages/msgf/lib/schemas/vault-hall-metadata.ts`](../packages/msgf/lib/schemas/vault-hall-metadata.ts) | `pillar_vectors`, `msgf_sandbox`, `p4_narrative_library_chunks` (semantic cold) |
+
+### 2.0a Engineering extension — P7 Source Audit (not a seventh SWEEP pillar)
+
+**P7** is a **DEFEND / P6 provenance layer**, not a new `pillar_vectors.metadata.pillar` value and not a seventh SWEEP ingest bucket. It sits beside Vault/Hall:
+
+| Concern | Tables / modules |
+| :--- | :--- |
+| Forward audit of cited sources | `msgf_source_audit_events`, beat `metadata.source_audit` |
+| Resource reputation + prune/boost | `msgf_resource_reputation` (`lib/schemas/source-audit.ts`, `lib/services/source-audit.ts`) |
+| Reverse impact by content hash | `msgf_source_downstream_impact` |
+| Dashboard | `GET /api/msgf/dashboard/source-audit`, `SourceAuditPanel` |
+
+`attribution_class` is source compliance (copyleft / untrusted), **not** Stripe `billing_license_type`.
 
 ### 2.1 HAL (Human Authorship Ledger) — not P1
 

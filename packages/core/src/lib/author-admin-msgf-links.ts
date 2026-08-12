@@ -17,6 +17,10 @@ export type AuthorAdminMsgfLinks = {
   token_savings: string;
   big_brain: string;
   governance_dashboard: string;
+  period_reports: string;
+  vault_quarantine: string;
+  shadow_proxy: string;
+  heal_queue: string;
 };
 
 export function buildAuthorAdminMsgfLinks(msgfOrigin: string): AuthorAdminMsgfLinks {
@@ -32,6 +36,10 @@ export function buildAuthorAdminMsgfLinks(msgfOrigin: string): AuthorAdminMsgfLi
     token_savings: `${base}/admin/dashboard#token-savings?${tenantQ}`,
     big_brain: `${base}/admin/dashboard#big-brain-issues?${tenantQ}`,
     governance_dashboard: `${base}/dashboard?${tenantQ}`,
+    period_reports: `${base}/dashboard/daily-reports?${tenantQ}`,
+    vault_quarantine: `${base}/admin/ops#vault-quarantine`,
+    shadow_proxy: `${base}/dashboard#token-savings?${tenantQ}`,
+    heal_queue: `${base}/admin/ops#heal-queue`,
   };
 }
 

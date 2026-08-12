@@ -144,6 +144,7 @@ Engineering SSOT: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md). When the PDF and
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-11 | MSGF ops bug inbox closed loop (FAB → `/admin/ops#bug-inbox`); see [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md). |
 | 2026-05-15 | Linked V3.2-ULTRA PDF in `docs/references/`; MSGF 1.0 plan uses V3.2 as primary spec. |
 | 2026-05-15 | Initial SSoT: three production domains, MSGF dual role (engine + standalone), monorepo mapping. |
 | 2026-05-20 | Workspace preset table; link to `MSGF_BRAIN_ROUTING.md` (per-app workspaces vs admin Big Brain). |

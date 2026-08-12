@@ -98,6 +98,42 @@ export default function AuthorAdminOpsPage() {
           <h2 className="text-sm font-semibold text-amber-100">Bugs &amp; complaints</h2>
           <p className="mt-1 text-xs text-zinc-500">Big Brain operator queue</p>
         </a>
+        <a
+          href={msgf.period_reports}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-sky-900/35 bg-sky-950/15 p-4 hover:border-sky-600/40"
+        >
+          <h2 className="text-sm font-semibold text-sky-100">Period reports</h2>
+          <p className="mt-1 text-xs text-zinc-500">Weekly / monthly proven vs projected</p>
+        </a>
+        <a
+          href={msgf.vault_quarantine}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-orange-900/35 bg-orange-950/15 p-4 hover:border-orange-600/40"
+        >
+          <h2 className="text-sm font-semibold text-orange-100">Vault quarantine</h2>
+          <p className="mt-1 text-xs text-zinc-500">T3 disagree / HITL restore-demote</p>
+        </a>
+        <a
+          href={msgf.shadow_proxy}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-teal-900/35 bg-teal-950/15 p-4 hover:border-teal-600/40"
+        >
+          <h2 className="text-sm font-semibold text-teal-100">Shadow Proxy / Active</h2>
+          <p className="mt-1 text-xs text-zinc-500">Librarian + Critic gateway metering</p>
+        </a>
+        <a
+          href={msgf.heal_queue}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-fuchsia-900/35 bg-fuchsia-950/15 p-4 hover:border-fuchsia-600/40"
+        >
+          <h2 className="text-sm font-semibold text-fuchsia-100">Heal queue (signed HITL)</h2>
+          <p className="mt-1 text-xs text-zinc-500">A6 ARBITRATE packages for Author traffic</p>
+        </a>
       </section>
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-4">

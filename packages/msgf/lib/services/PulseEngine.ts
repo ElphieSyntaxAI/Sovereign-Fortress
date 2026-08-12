@@ -103,6 +103,12 @@ import {
   type GlobalMitigationsPayload,
 } from "@/lib/services/msgf-global-rules";
 import {
+  attachSourceAuditToBeatMetadata,
+  applyReputationOutcome,
+  recordSourceAudit,
+} from "@/lib/services/source-audit";
+import type { SourceHit } from "@/lib/schemas/source-audit";
+import {
   buildP2RoadmapDirective,
   buildVaultCrossRefContext,
   loadP2Roadmap,
@@ -921,6 +927,23 @@ export class PulseEngine {
         license_tenant: ctx.license.tenantId,
         license_tier: ctx.license.tierId,
         ...(haltStateSummary ? { halt_state_summary: haltStateSummary } : {}),
+        ...attachSourceAuditToBeatMetadata(
+          {},
+          {
+            tenant_id: ctx.tenantId,
+            entity_id: ctx.entityId,
+            trace_id: `arbitrate:${ctx.entityId}`,
+            decision_kind: "defend",
+            routing: "converge",
+            defend_tier: ctx.preflight.tier,
+            defend_reason: ctx.preflight.reason,
+            sources: [
+              ...(ctx.preflight.scoredHits ?? []),
+              ...(ctx.preflight.prunedHits ?? []),
+            ],
+            outcome: "unknown",
+          }
+        ),
       },
     });
 
@@ -1137,6 +1160,37 @@ export class PulseEngine {
       previousBeats: refreshedBeats,
       previousRetryCount: c.retryCount,
     });
+
+    // P7: durable source audit + reputation (non-blocking)
+    {
+      const hits: SourceHit[] = [
+        ...(c.preflight.scoredHits ?? []),
+        ...(c.preflight.prunedHits ?? []),
+      ];
+      const outcome =
+        ledger === "vault"
+          ? "persist_vault"
+          : ledger === "hall"
+            ? "persist_hall"
+            : "unknown";
+      recordSourceAudit(params.adminSupabase, {
+        tenant_id: c.tenantId,
+        entity_id: c.entityId,
+        trace_id: params.pulseTraceId,
+        pulse_beat_id: c.storedBeat?.id ?? null,
+        decision_kind: "converge",
+        routing: c.convergeRoutingProfile ?? "converge",
+        defend_tier: c.preflight.tier,
+        defend_reason: c.preflight.reason,
+        sources: hits,
+        outcome,
+      });
+      applyReputationOutcome(params.adminSupabase, c.tenantId, hits, {
+        kind: ledger === "vault" ? "good" : "bad",
+        highDrift: ledger === "hall",
+        driftScore: typeof c.halScore === "number" ? c.halScore : null,
+      });
+    }
 
     return { vaultNarrativeLogId, hallNarrativeLogId, ledger };
   }
@@ -1812,6 +1866,28 @@ export class PulseEngine {
         severity: "Violation",
       });
 
+      // P7: non-blocking source audit (RED block)
+      const redHits: SourceHit[] = [
+        ...(preflight.scoredHits ?? []),
+        ...(preflight.prunedHits ?? []),
+      ];
+      recordSourceAudit(params.adminSupabase, {
+        tenant_id: params.tenantId,
+        entity_id: params.entityId,
+        trace_id: randomUUID(),
+        decision_kind: "defend",
+        routing: "defend_red",
+        defend_tier: preflight.tier,
+        defend_reason: preflight.reason,
+        sources: redHits,
+        outcome: "block",
+      });
+      applyReputationOutcome(params.adminSupabase, params.tenantId, redHits, {
+        kind: "bad",
+        highDrift: true,
+        driftScore: 1,
+      });
+
       const hallLabel =
         typeof preflight.hallMatch?.metadata?.label === "string"
           ? preflight.hallMatch.metadata.label
@@ -2303,6 +2379,9 @@ ${pulseText.slice(0, 1800)}
           instance: LINEAGE_INSTANCE,
         },
       },
+      scoredHits: [],
+      prunedHits: [],
+      contextHits: [],
     };
   }
 

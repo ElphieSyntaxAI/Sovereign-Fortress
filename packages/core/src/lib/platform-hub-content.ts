@@ -167,10 +167,10 @@ export const PLATFORM_HUB_ENTRIES: readonly PlatformHubEntry[] = [
   {
     id: "msgf",
     anchor: "msgf",
-    eyebrow: "Brain · For developers & enterprise teams",
+    eyebrow: "Prefrontal cortex · For developers & enterprise teams",
     title: "MSGF — Gated AI",
     tagline:
-      "MSGF V3.2-ULTRA — stateful, self-defending orchestration. Six pillars, hot/cold storage, dual-model consensus, mandatory human tie-breaker on RED disagreement.",
+      "Prefrontal cortex for AI — MSGF V3.2-ULTRA stateful orchestration. Six pillars, hot/cold storage, dual-model consensus, mandatory human tie-breaker on RED disagreement.",
     bullets: [
       "SWEEP → SHARD → DEFEND → CONVERGE → ARBITRATE → PERSIST",
       "Vault (positive) vs Hall (negative) on every Pulse",

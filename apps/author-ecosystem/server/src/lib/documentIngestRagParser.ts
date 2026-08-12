@@ -1,6 +1,10 @@
 import type { DocumentIngestSlot, ProposedWikiEntry } from "./documentIngestGate.js";
 import { slotDefaultMetadata } from "./documentIngestGate.js";
 import { areNearDuplicateTexts } from "./documentIngestCompile.js";
+import {
+  distillDomainSectionToFactCards,
+  isLoreDomainSectionHeading,
+} from "./documentIngestFactCards.js";
 import { MAX_GOOGLE_DOC_TABS, MAX_RAG_WIKI_EXCERPT } from "./documentIngestLimits.js";
 import { detectHeuristicBoundaries } from "./narrative/semanticChunking.js";
 import {
@@ -8,6 +12,12 @@ import {
   wikiKindForPlanningLayer,
   type PlanningLayer,
 } from "./documentPlanningTaxonomy.js";
+import {
+  inferFoundationFromHeading,
+  inferFoundationFromRagTagName,
+  isFoundationDomainHeading,
+  type FoundationInference,
+} from "./storyFoundationTaxonomy.js";
 
 export type RagTag = { name: string; value: string };
 
@@ -26,7 +36,7 @@ const RAG_TAG_INLINE_RE = /RAG\s+TAG:\s*\[([^\]]+)\]/gi;
 const CAPS_HEADER_RE = /^[A-Z][A-Z0-9\s/&\-—–.:]{3,}$/;
 const SECTION_BREAK_RE = /^---+\s*(?:SECTION|TAB)?\s*---+\s*$/i;
 const DOMAIN_LINE_RE =
-  /^(technology|government|politics|species|history|timeline|chronology|magic|religion|geography|economy|culture|military|biology|physics|propulsion|climate|language|fauna|flora|ecosystem|geology|prophecy|era|dynasty|ancestry|xenobiology)\b/i;
+  /^(technology|government|politics|species|history|timeline|chronology|magic|religion|geography|economy|culture|military|biology|physics|propulsion|climate|language|fauna|flora|ecosystem|geology|prophecy|era|dynasty|ancestry|xenobiology|law|food|theme|genre|trope|spoiler|character|planet|solar.?system|spatial|senses|parallel.?arc|sensitivity)\b/i;
 
 export function parseRagTagsFromText(text: string): RagTag[] {
   const tags: RagTag[] = [];
@@ -56,40 +66,147 @@ export function inferDomainFromHeading(heading: string): {
   kind: string;
   domain: string;
   panel: string;
+  location_kind?: string;
+  stack_layer?: string;
+  source_type?: string;
+  distill?: boolean;
 } {
-  const h = heading.toLowerCase();
-  if (/tech|propulsion|engineer|system law|hard magic|soft magic/.test(h)) {
-    return { kind: "setting", domain: "technology", panel: "settings" };
+  const inf = inferFoundationFromHeading(heading);
+  return {
+    kind: inf.kind,
+    domain: inf.domain,
+    panel: inf.panel,
+    location_kind: inf.location_kind,
+    stack_layer: inf.stack_layer,
+    source_type: inf.source_type,
+    distill: inf.distill,
+  };
+}
+
+function foundationToInferred(inf: FoundationInference) {
+  return {
+    kind: inf.kind,
+    domain: inf.domain,
+    panel: inf.panel,
+    location_kind: inf.location_kind,
+    stack_layer: inf.stack_layer,
+    source_type: inf.source_type,
+    distill: inf.distill,
+  };
+}
+
+/** Emit one fact card per RAG TAG — these are the World Bible / Outline foundation atoms. */
+export function factCardsFromRagTags(
+  tags: RagTag[],
+  sectionPath: string,
+  baseMeta: Record<string, unknown>
+): ProposedWikiEntry[] {
+  const out: ProposedWikiEntry[] = [];
+  for (const tag of tags) {
+    const label = tag.value ? `${tag.name}: ${tag.value}` : tag.name;
+    const title = (tag.value || tag.name).replace(/\s+/g, " ").trim().slice(0, 100);
+    if (title.length < 2) continue;
+    const inferred = foundationToInferred(inferFoundationFromRagTagName(tag.name));
+    const excerpt = `${label}.`.slice(0, MAX_RAG_WIKI_EXCERPT);
+    if (excerpt.length < 24) continue;
+    out.push({
+      title,
+      excerpt,
+      chunk_type:
+        inferred.kind === "character"
+          ? "character"
+          : inferred.kind === "plot_point" || inferred.kind === "chapter"
+            ? "event"
+            : inferred.kind === "theme" || inferred.kind === "genre"
+              ? "theme"
+              : "location",
+      tags: ["file_import", "rag_tag", "fact_card", inferred.domain],
+      wiki_metadata: {
+        ...baseMeta,
+        outline_entity_kind: inferred.kind,
+        semantic_domain: inferred.domain,
+        stack_layer: inferred.stack_layer,
+        location_kind: inferred.location_kind,
+        source_type: inferred.source_type ?? baseMeta.source_type ?? "world_bible",
+        section_path: `${sectionPath} › RAG:${title}`,
+        rag_canon: false,
+        fact_card: true,
+        lore_fact_distill: true,
+        foundation: true,
+        rag_tag: tag,
+        wiki_author_entry: true,
+        lore_extraction: true,
+      },
+    });
   }
-  if (
-    /planet|orbit|atmosphere|biome|geo|solar|gravity|climate|environment|fauna|flora|species|biology|ecolog|terrestrial|spatial|xenobiology|alien|race|cryptid|genome|lineage|ancestry/.test(
-      h
-    )
-  ) {
-    return { kind: "environment", domain: "species", panel: "environmental" };
+  return out;
+}
+
+/**
+ * Markdown planet / entity tables from RAG READY WORLD BIBLE §1.2.2 → one card per data row.
+ */
+export function factCardsFromMarkdownTables(
+  body: string,
+  sectionPath: string,
+  inferred: ReturnType<typeof inferDomainFromHeading>,
+  baseMeta: Record<string, unknown>
+): ProposedWikiEntry[] {
+  const lines = body.split(/\n/);
+  const out: ProposedWikiEntry[] = [];
+  let headers: string[] | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!.trim();
+    if (!/^\|.+\|$/.test(line)) {
+      headers = null;
+      continue;
+    }
+    if (/^\|\s*-+/.test(line)) continue;
+    const cells = line
+      .split("|")
+      .map((c) => c.trim())
+      .filter((c, idx, arr) => idx > 0 && idx < arr.length - 1);
+    if (cells.length < 2) continue;
+    if (!headers) {
+      headers = cells;
+      continue;
+    }
+    const name = cells[0]?.replace(/^\[|\]$/g, "").trim();
+    if (!name || /^name$/i.test(name) || name.length < 2) continue;
+    const facts = headers
+      .slice(1)
+      .map((h, idx) => {
+        const v = (cells[idx + 1] ?? "").replace(/^\[|\]$/g, "").trim();
+        if (!v || /^\[?name\]?$/i.test(v)) return null;
+        return `${h}: ${v}`;
+      })
+      .filter(Boolean);
+    if (facts.length === 0) continue;
+    const excerpt = `${name}: ${facts.join(". ")}.`.slice(0, MAX_RAG_WIKI_EXCERPT);
+    out.push({
+      title: name.slice(0, 100),
+      excerpt,
+      chunk_type: "location",
+      tags: ["file_import", "table_row", "fact_card", inferred.domain],
+      wiki_metadata: {
+        ...baseMeta,
+        outline_entity_kind: inferred.kind,
+        semantic_domain: inferred.domain === "other" ? "planet" : inferred.domain,
+        stack_layer: inferred.stack_layer ?? "environment",
+        location_kind: inferred.location_kind ?? "planet",
+        source_type: inferred.source_type ?? "world_bible",
+        section_path: `${sectionPath} › ${name}`,
+        rag_canon: false,
+        fact_card: true,
+        lore_fact_distill: true,
+        foundation: true,
+        table_row: true,
+        wiki_author_entry: true,
+        lore_extraction: true,
+      },
+    });
   }
-  if (/history|timeline|prophecy|chronolog|era\b|ancient|dynasty|epoch|millennia|centur(y|ies)|collapse|prehistory/.test(h)) {
-    return { kind: "environment", domain: "history", panel: "environmental" };
-  }
-  if (/timeline|chronology|sequence of events|dated events/.test(h)) {
-    return { kind: "environment", domain: "history", panel: "environmental" };
-  }
-  if (/government|politic|law|treaty|faction|regime/.test(h)) {
-    return { kind: "environment", domain: "government", panel: "environmental" };
-  }
-  if (/character|cast|dramatis|persona/.test(h)) {
-    return { kind: "character", domain: "character", panel: "character" };
-  }
-  if (/setting|location|place|venue|scene now/.test(h)) {
-    return { kind: "setting", domain: "setting", panel: "settings" };
-  }
-  if (/theme|motif|moral/.test(h)) {
-    return { kind: "theme", domain: "theme", panel: "theme" };
-  }
-  if (/outline|chapter|scene|beat|act\b/.test(h)) {
-    return { kind: "plot_point", domain: "outline", panel: "breadcrumbs" };
-  }
-  return { kind: "environment", domain: "other", panel: "environmental" };
+  return out;
 }
 
 function slotToSourceType(slot: DocumentIngestSlot): string {
@@ -285,6 +402,102 @@ export function parseDocumentToRagSections(
       const ledger = detectLedger(sub.text);
       const plotHints = extractPlotHints(tags);
 
+      const pushWikiRow = (row: ProposedWikiEntry) => {
+        proposedWiki.push(row);
+        diagnostics.push({
+          section_path: String(row.wiki_metadata?.section_path ?? sub.path),
+          heading: row.title,
+          outline_entity_kind: String(row.wiki_metadata?.outline_entity_kind ?? kind),
+          source_type: String(row.wiki_metadata?.source_type ?? source_type),
+          plot_engine_panel: inferred.panel,
+          ledger,
+        });
+      };
+
+      const sectionBase = {
+        ...baseMeta,
+        ledger,
+        plot_point: plotHints.plot_point,
+        spoiler_level: plotHints.spoiler_level,
+        plot_point_order: plotHints.plot_point_order,
+        rag_tags: tags,
+        wiki_author_entry: true,
+        lore_extraction: true,
+        planning_layer: tab.layer,
+        tab_title: tab.title,
+        foundation: true,
+      };
+
+      // RAG TAG atoms from World Bible / Outline templates — always foundation cards.
+      for (const tagCard of factCardsFromRagTags(tags, sub.path, sectionBase)) {
+        pushWikiRow(tagCard);
+      }
+
+      // Markdown tables (e.g. Interplanetary Data planet list) → one card per row.
+      for (const tableCard of factCardsFromMarkdownTables(sub.text, sub.path, inferred, sectionBase)) {
+        pushWikiRow(tableCard);
+      }
+
+      const shouldDistill =
+        isFoundationDomainHeading(sub.heading) ||
+        isFoundationDomainHeading(inferred.domain) ||
+        isLoreDomainSectionHeading(sub.heading) ||
+        inferred.distill === true ||
+        tab.layer === "world_bible" ||
+        tab.layer === "character_bible";
+
+      // Story foundations: one fact card per entity — never the whole section dump.
+      if (shouldDistill) {
+        const cards = distillDomainSectionToFactCards({
+          sectionHeading: sub.heading,
+          sectionPath: sub.path,
+          body: sub.text,
+          inferred: {
+            kind: kind === "character" || kind === "plot_point" || kind === "theme" || kind === "genre"
+              ? kind
+              : inferred.kind,
+            domain: inferred.domain,
+            panel: inferred.panel,
+            location_kind: inferred.location_kind,
+            stack_layer: inferred.stack_layer,
+          },
+        });
+        for (const card of cards) {
+          // Skip if we already emitted the same title from a table/RAG tag.
+          const titleKey = card.title.toLowerCase();
+          if (
+            proposedWiki.some(
+              (r) =>
+                r.title.toLowerCase() === titleKey &&
+                String(r.wiki_metadata?.semantic_domain ?? "") === String(card.metadata.semantic_domain ?? "")
+            )
+          ) {
+            continue;
+          }
+          pushWikiRow({
+            title: card.title,
+            excerpt: card.excerpt.slice(0, MAX_RAG_WIKI_EXCERPT),
+            chunk_type:
+              inferred.kind === "character"
+                ? "character"
+                : inferred.kind === "plot_point" || inferred.kind === "chapter"
+                  ? "event"
+                  : inferred.kind === "theme" || inferred.kind === "genre"
+                    ? "theme"
+                    : "location",
+            tags: ["file_import", "fact_card", "foundation", source_type, inferred.domain].filter(
+              Boolean
+            ),
+            wiki_metadata: {
+              ...sectionBase,
+              ...card.metadata,
+              source_type: inferred.source_type ?? source_type,
+            },
+          });
+        }
+        continue;
+      }
+
       const title =
         sub.heading.trim().slice(0, 100) ||
         sub.text
@@ -296,7 +509,7 @@ export function parseDocumentToRagSections(
 
       const excerpt = sub.text.slice(0, MAX_RAG_WIKI_EXCERPT);
 
-      proposedWiki.push({
+      pushWikiRow({
         title,
         excerpt,
         chunk_type:
@@ -307,31 +520,16 @@ export function parseDocumentToRagSections(
               : "location",
         tags: ["file_import", source_type, inferred.domain].filter(Boolean),
         wiki_metadata: {
-          ...baseMeta,
+          ...sectionBase,
           outline_entity_kind: kind,
           source_type,
           section_path: sub.path,
           rag_canon: true,
-          ledger,
           semantic_domain: inferred.domain,
-          plot_point: plotHints.plot_point,
-          spoiler_level: plotHints.spoiler_level,
-          plot_point_order: plotHints.plot_point_order,
-          rag_tags: tags,
-          wiki_author_entry: true,
-          lore_extraction: true,
-          planning_layer: tab.layer,
-          tab_title: tab.title,
+          location_kind: inferred.location_kind,
+          stack_layer: inferred.stack_layer,
+          foundation: false,
         },
-      });
-
-      diagnostics.push({
-        section_path: sub.path,
-        heading: sub.heading,
-        outline_entity_kind: kind,
-        source_type,
-        plot_engine_panel: inferred.panel,
-        ledger,
       });
     }
   }
@@ -358,7 +556,9 @@ export function buildIngestTabDiagnostics(text: string): {
   };
 }
 
-/** Merge RAG-template rows into an existing proposed list without duplicates. */
+/** Merge RAG-template rows into an existing proposed list without duplicates.
+ * Prefer multi-pass / fact-card (short entity facts) over long section dumps.
+ */
 export function mergeRagProposedWiki(
   existing: ProposedWikiEntry[],
   text: string,
@@ -368,16 +568,32 @@ export function mergeRagProposedWiki(
   const { proposedWiki, diagnostics } = parseDocumentToRagSections(text, slot, manuscriptId);
   const merged = [...existing];
 
+  const quality = (row: ProposedWikiEntry): number => {
+    let score = 0;
+    if (row.wiki_metadata?.multi_pass === true) score += 40;
+    if (row.wiki_metadata?.fact_card === true || row.wiki_metadata?.lore_fact_distill === true) score += 35;
+    if (row.wiki_metadata?.rag_canon === true) score += 5;
+    // Prefer concise fact excerpts over chapter blobs.
+    const len = row.excerpt.length;
+    if (len > 0 && len <= 520) score += 20;
+    if (len > 1200) score -= 30;
+    return score;
+  };
+
   for (const row of proposedWiki) {
     const dup = merged.find(
       (e) =>
         areNearDuplicateTexts(e.excerpt, row.excerpt) ||
         (e.title.toLowerCase() === row.title.toLowerCase() &&
           String(e.wiki_metadata?.section_path ?? "") ===
-            String(row.wiki_metadata?.section_path ?? ""))
+            String(row.wiki_metadata?.section_path ?? "")) ||
+        (e.title.toLowerCase() === row.title.toLowerCase() &&
+          String(e.wiki_metadata?.semantic_domain ?? "") ===
+            String(row.wiki_metadata?.semantic_domain ?? "") &&
+          String(e.wiki_metadata?.semantic_domain ?? "").length > 0)
     );
     if (dup) {
-      if (row.excerpt.length > dup.excerpt.length) {
+      if (quality(row) > quality(dup)) {
         const idx = merged.indexOf(dup);
         merged[idx] = row;
       }

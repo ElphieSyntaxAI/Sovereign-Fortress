@@ -49,6 +49,17 @@ const DOMAIN_KEYWORDS = [
   "propulsion",
   "climate",
   "language",
+  "planet",
+  "fauna",
+  "flora",
+  "food",
+  "law",
+  "theme",
+  "genre",
+  "trope",
+  "spoiler",
+  "solar system",
+  "spatial",
 ];
 
 const MIN_SEMANTIC_WORDS = 400;

@@ -224,8 +224,34 @@ MSGF only attributes **pulse**, **ingest**, **daily reports**, and **personal da
 
 Pulse Guard no longer uses the workspace folder name as `project_origin` for shadow scans or flush bodies.
 
+## Governance upgrades (2026-08-06)
+
+Author BFF now adopts MSGF high/medium launch hardening without duplicating the brain.
+
+| Capability | Env / API | Effect on Author |
+| :--- | :--- | :--- |
+| **Shadow / Active gateway** | `MSGF_AUTHOR_GATEWAY_MODE=shadow\|active\|off` (default shadow when license ready) | Librarian (OpenAI) + Critic (Anthropic) route through `/api/v1` — projected then proven savings. **Gemini ingest compiler stays direct** (no Gemini upstream on gateway yet). |
+| **CONVERGE tiers** | Pulse header `x-msgf-converge-tier` | HAL pulse → T1; onboarding/revision → T2; structure dual-disagree / publisher → T3 |
+| **T3 / quarantine signal** | Dual structure disagree on ingest commit | Hall rejection + `verify-result` fail + `INGEST_STRUCTURE_HITL` (409) |
+| **verify-result** | Unlock + successful document commit | Vault/Hall learning for cooldown seal and onboarding green |
+| **deploy-gate** | `MSGF_OPS_CRON_SECRET` + optional `MSGF_AUTHOR_REQUIRE_DEPLOY_GATE=1` | Editor hub advisory (or hard block when enforce on) |
+| **Period reports / quarantine** | Ops links + `GET /api/msgf/governance/status` | Operator deep-links on Author admin ops |
+| **Hybrid KEM** | `MSGF_HYBRID_KEM_ENABLED=1` | Vault Pact registration stores optional `0x03` seal in attestation metadata |
+
+Status probe: `GET http://127.0.0.1:3002/api/msgf/governance/status` (or `/api/status` → `msgf_mapping.governance`).
+
+### Onboarding / novel planning docs — what got easier
+
+1. **Commit syncs the brain by default** when pulse license is ready (`sync_msgf_brain: true` from client; BFF also defaults on).
+2. **Structure disagreements block with a clear HITL path** instead of silently merging bad wiki/outline — fix in review or `force_commit` after human confirmation.
+3. **Successful commits + cooldown unlocks feed MSGF verify-result**, so the next planning session’s DEFEND preflight can learn what worked.
+4. **Librarian Q&A cost** shows up on Shadow Proxy / period reports once gateway mode is on — useful while iterating outline questions during onboarding.
+5. Still hard: long Gemini multi-pass compile latency (not gateway-metered yet); Google Docs multi-tab edge cases; embeddings without `OPENAI_API_KEY`.
+
 ## Related docs
 
 - [`docs/MONOREPO_PRODUCTS.md`](MONOREPO_PRODUCTS.md) — workspace preset `author_ecosystem`
 - [`docs/MSGF_BRAIN_ROUTING.md`](MSGF_BRAIN_ROUTING.md) — Small Brain savings
+- [`docs/MSGF_SHADOW_PROXY.md`](MSGF_SHADOW_PROXY.md) — Shadow / Active gateway
 - [`docs/MSGF_RC_CHECKLIST.md`](MSGF_RC_CHECKLIST.md) — RC gates
+- [`docs/AUTHOR_ECOSYSTEM_ROADMAP.md`](AUTHOR_ECOSYSTEM_ROADMAP.md) — product phases

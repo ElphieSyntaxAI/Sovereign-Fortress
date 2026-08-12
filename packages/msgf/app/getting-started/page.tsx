@@ -17,6 +17,7 @@ import { PillarGuideSection } from "@/app/_components/getting-started/PillarGuid
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
 import { MarketingSection } from "@/app/_components/marketing/MarketingSection";
 import { MarketingShell } from "@/app/_components/marketing/MarketingShell";
+import { ShadowSavingsHowTo } from "@/app/_components/marketing/ShadowSavingsHowTo";
 import { PricingCtaButton } from "@/app/_components/pricing/PricingCtaButton";
 import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -119,7 +120,7 @@ export default async function GettingStartedPage() {
     const access = await resolveDashboardAccessForUser(user);
 
     return (
-      <div className="landing-mesh min-h-screen text-slate-100">
+      <div className="app-shell min-h-screen text-slate-100">
         <DashboardNav
           userEmail={user.email ?? "Signed in"}
           showAdminPortalLink={access.canAccessAdminDashboard}
@@ -144,6 +145,10 @@ export default async function GettingStartedPage() {
           </header>
 
           <QuickstartSteps />
+
+          <div className="mt-12">
+            <ShadowSavingsHowTo />
+          </div>
 
           <hr className="my-16 border-slate-800/80" />
 
@@ -170,6 +175,10 @@ export default async function GettingStartedPage() {
         </header>
 
         <QuickstartSteps />
+
+        <div className="mt-12">
+          <ShadowSavingsHowTo />
+        </div>
 
         <p className="mt-12 text-center text-sm text-slate-500">
           <Link href="#six-pillars" className="text-violet-400/90 underline-offset-4 hover:underline">

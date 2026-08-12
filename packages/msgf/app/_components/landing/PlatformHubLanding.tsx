@@ -30,7 +30,7 @@ import {
 import { canAccessPrelaunchProducts } from "@/lib/prelaunch-product-access";
 
 import { AuthLandingNav } from "./AuthLandingNav";
-import { PublicEcoMetricsWidget } from "./PublicEcoMetricsWidget";
+import { SignedInHubBanner } from "./SignedInHubBanner";
 
 type PlatformPrimary =
   | { label: string; href: string; external: false }
@@ -394,13 +394,13 @@ export async function PlatformHubLanding() {
           </p>
         </section>
 
+        <SignedInHubBanner />
+
         <section className="grid gap-4 lg:grid-cols-3" aria-label="Pick a platform">
           {PLATFORM_HUB_ENTRIES.map((p) => (
             <QuickCard key={p.id} platform={p} canOpenPrelaunch={canOpenPrelaunch} />
           ))}
         </section>
-
-        <PublicEcoMetricsWidget />
 
         <section className="space-y-8" aria-label="Roadmap and platform details">
           <header className="flex flex-wrap items-baseline justify-between gap-3">

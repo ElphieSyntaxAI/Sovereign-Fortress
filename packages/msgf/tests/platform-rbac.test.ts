@@ -37,7 +37,7 @@ describe("platform-rbac", () => {
     });
     const links = filterNavLinksForPermissions(
       [
-        { label: "Home", href: "/" },
+        { label: "Platform hub", href: "/" },
         { label: "Dashboard", href: "/dashboard" },
         { label: "Workspace", href: "/workspace" },
       ],
@@ -45,7 +45,7 @@ describe("platform-rbac", () => {
     );
     assert.deepEqual(
       links.map((l) => l.label),
-      ["Home", "Dashboard", "Workspace"]
+      ["Platform hub", "Dashboard", "Workspace"]
     );
   });
 

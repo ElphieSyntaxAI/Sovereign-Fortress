@@ -6,8 +6,8 @@
 
 **SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-08-06  
-**Focus:** Migrations `db:push` + staging smoke + Cloud Run secrets + Stripe test Checkout. Code for TRI/PQC/Stripe/Sentry/Shadow Proxy/Active Governance is largely landed.  
+**Last updated:** 2026-08-11 (bug inbox closed loop)  
+**Focus:** Staging smoke + `validate:deployment` + Stripe Checkout. Migrations + core Cloud Run secrets (`MSGF_OPS_CRON_SECRET`, Sentry, Stripe prices) landed on `msgf-api-00068-v4d`.  
 **Readiness:** Technical soft-RC **~84%** · Paid self-serve **~68%** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
@@ -25,10 +25,10 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 - [ ] `npm run deep-test:solo -w msgf`
 - [ ] `npm run verify:msgf-env -w msgf`
 - [x] `npm run db:push` applied `20260802010000_p4_profiles_stripe_subscription.sql` (2026-08-02)
-- [ ] `npm run db:push` / verify for `20260805010000_tri_consensus_config.sql` (TRI + xAI provider)
-- [ ] `npm run db:push` for `20260806010000`–`20260806030100` (usage / period / shadow eval)
-- [ ] `npm run db:push` for `20260806200000_launch_governance_writers.sql` (proven/usage audit columns)
-- [ ] `npm run db:push:verify -w msgf`
+- [x] `npm run db:push` / verify for `20260805010000_tri_consensus_config.sql` (TRI + xAI provider) — 2026-08-06
+- [x] `npm run db:push` for `20260806010000`–`20260806030100` (usage / period / shadow eval) — 2026-08-06
+- [x] `npm run db:push` for `20260806200000_launch_governance_writers.sql` (proven/usage audit columns) — 2026-08-06
+- [x] `npm run db:push:verify -w msgf` — 2026-08-06 green
 - [ ] `npm run validate:deployment` (unit + production `next build`)
 - [x] Jul 24 pitfall/integration unit suites: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
 - [x] Migration `20260724030400_msgf_company_tier_rules.sql` applied on remote (2026-07-24 `db:push`)
@@ -92,26 +92,35 @@ Document date + operator + tenant id in changelog when done.
 - [ ] Live Cloud Run: heal-queue E2E — circuit breaker → human arbitration approve/deny
 - [ ] Cron skips `PENDING_HUMAN_ARBITRATION` (verify in heartbeat logs)
 
+### Bug inbox (closed loop)
+
+- [x] Schema: `inbox_status` + reopen RPC applied (`20260811010000` / `20260811020000`) — 2026-08-11
+- [ ] Staging: onscreen FAB on `/dashboard` → row appears in `/admin/ops#bug-inbox` as `open`
+- [ ] Staging: **Promote** → `msgf_incidents` USER_SENTINEL pending in ARBITRATE
+- [ ] Staging: **Dismiss** then re-submit same message/location → inbox reopens as `open`
+
 ---
 
 ## P1 — Production ops (no mock authority)
 
-- [ ] `MSGF_OPS_CRON_SECRET` on Cloud Run + GitHub Actions `msgf-tier-heartbeat.yml`
-- [ ] `MSGF_SKIP_AUDIT_SECRET` and/or `MSGF_ARBITRATE_AUDIT_KEY` (may reuse ops cron secret)
-- [ ] Jul 24 migrations applied on staging/prod (compound scope, webhook inbox, skip + arbitrate audit)
-- [ ] `REDIS_URL` or Upstash — `/health` SHARD green; savings counters increment
-- [ ] Supabase service role on deploy — dashboard pillar health not `mockDashboardHealthReport`
+- [x] `MSGF_OPS_CRON_SECRET` on Cloud Run `msgf-api` (2026-08-06 revision `00068-v4d`)
+- [ ] GitHub Actions `msgf-tier-heartbeat.yml` wired to that secret
+- [~] `MSGF_SKIP_AUDIT_SECRET` and/or `MSGF_ARBITRATE_AUDIT_KEY` (may reuse ops cron secret — confirm fallback works)
+- [x] Jul 24 + Aug 2026 migrations applied on remote (`db:push:verify` 2026-08-06)
+- [x] Upstash on Cloud Run — hot layer configured
+- [x] Supabase service role on deploy
 - [ ] Eco rollups / public eco metrics: UI gated on `source === "live"` or errors surfaced
 - [ ] Demo streams (`v32_mock_stream`, fake ticker events) disabled or ops-only in production
 - [ ] `npm run verify:brain-routing -w msgf` on staging (live smoke)
 - [ ] Ops: Signed HITL audit verify + Skip-MSGF audit panels load for an admin session
+- [ ] `v32-heartbeat` dry-run → 200 with ops secret
 
 ### Sentry (SDK + ops)
 
 - [x] `@sentry/nextjs` wired in `packages/msgf` (errors + tracing; tunnel `/monitoring`)
 - [x] Local env: DSN, `SENTRY_ORG_SLUG=elphie-syntax-llc`, `SENTRY_PROJECT_SLUG=msgf`, auth token, `SENTRY_BASE_URL=https://us.sentry.io`
+- [x] Cloud Run: `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` + auth token + org/project (2026-08-06)
 - [ ] Rotate auth token; ensure scopes cover ops panel read (+ Resolve if needed)
-- [ ] Cloud Run: `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` + auth token + org/project
 - [ ] Ops panel Load issues smoke
 - [ ] Delete `app/api/sentry-test` after first verified event
 
@@ -134,6 +143,7 @@ Full detail: [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b.
 
 - [x] Stripe test Price IDs mapped: Pro perpetual `price_1TzvlH45Z9uJcKXAiX8a5IF` → `STRIPE_PRICE_PRO_INDIVIDUAL`; Startup monthly `price_1TzwGGH45Z9uJcKXaWckdzAt` → `STRIPE_PRICE_STARTUP_TEAM` (Solo Pro + yearly kept in Stripe, not in app yet)
 - [x] `STRIPE_SECRET_KEY` (test) + Price IDs in local `.env.local`
+- [x] Price IDs on Cloud Run `msgf-api` (2026-08-06)
 - [~] Local `stripe listen` → `localhost:3000/api/webhooks/stripe` (CLI `whsec_` in `.env.local`); staging Dashboard webhook still open
 - [x] Startup Team checkout writes seats / `stripe_subscription_status=active` (code)
 - [x] Subscription updated/deleted + payment_failed update profile status (code)
@@ -182,6 +192,7 @@ MSGF can RC without these; include if your gate requires M5:
 
 | Date | Note |
 | :--- | :--- |
+| 2026-08-06 | Migrations `db:push:verify` green; Cloud Run `msgf-api-00068-v4d` got `MSGF_OPS_CRON_SECRET` + Sentry + Stripe Price IDs. Remaining soft-RC: staging smokes, heartbeat Action, `validate:deployment`. |
 | 2026-08-05 | TRI + PQC unit gates noted; TRI migration still to push; readiness soft-RC ~84% / paid ~68%. |
 | 2026-08-02 | Marked Stripe entitlement **code** + Sentry SDK local wiring done; added build blocker, Stripe migration, Sentry Cloud Run / verify smokes; P0-M3 still blocked on Prices + staging smoke + mock-off. |
 | 2026-08-02 | Stripe M3 added as **P0-M3** (paid go-live gate); no longer “out of scope.” |

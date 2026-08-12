@@ -24,7 +24,7 @@ import { HomeLanding } from "@/app/_components/landing/HomeLanding";
 export const metadata: Metadata = {
   title: "MSGF — Gated AI · Brand · Elphie Syntax",
   description:
-    "Glass box sovereignty from IDE to cloud. MSGF V3.2 — Command Center, verify loop, six pillars, and defensible token savings.",
+    "Prefrontal cortex for AI — from IDE to cloud. MSGF V3.2 — Command Center, verify loop, six pillars, and defensible token savings.",
 };
 
 export default function Page() {

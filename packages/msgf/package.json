@@ -109,6 +109,11 @@
       "development": "./lib/schemas/vault-hall-metadata.ts",
       "import": "./lib/schemas/vault-hall-metadata.ts",
       "default": "./lib/schemas/vault-hall-metadata.ts"
+    },
+    "./lib/crypto/CryptoService": {
+      "development": "./lib/crypto/CryptoService.ts",
+      "import": "./lib/crypto/CryptoService.ts",
+      "default": "./lib/crypto/CryptoService.ts"
     }
   },
   "scripts": {

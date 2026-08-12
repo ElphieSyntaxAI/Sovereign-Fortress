@@ -342,9 +342,10 @@ export function DashboardNav({
       <header className="sticky top-0 z-50 border-b border-violet-500/10 bg-slate-950/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-5">
           <Link
-            href="/"
+            href="/dashboard"
             className="group flex shrink-0 items-center gap-2.5"
             onClick={closeAll}
+            aria-label="MSGF governance dashboard"
           >
             <BrandLogo
               size={36}
@@ -355,7 +356,7 @@ export function DashboardNav({
               <span className="block text-sm font-semibold tracking-tight text-slate-100 group-hover:text-emerald-200">
                 Elphie&apos;s Gated AI
               </span>
-              <span className="block text-[11px] text-slate-500">Glass-box platform</span>
+              <span className="block text-[11px] text-slate-500">Governance dashboard</span>
             </div>
           </Link>
 

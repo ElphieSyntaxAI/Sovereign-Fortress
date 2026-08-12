@@ -15,7 +15,7 @@ import { cookies, headers } from "next/headers";
 import { LandingNav } from "@/app/_components/landing/LandingNav";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
-/** Site header that keeps you signed in across marketing pages (Dashboard / Workspace links). */
+/** Marketing site header. Signed-in users get the same primary app destinations as DashboardNav. */
 export async function AuthLandingNav() {
   const cookieStore = await cookies();
   const hdrs = await headers();

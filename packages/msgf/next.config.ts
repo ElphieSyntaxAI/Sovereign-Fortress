@@ -52,11 +52,40 @@ const nextConfig: NextConfig = {
         ],
       };
     }
-    return config;
+    return sanitizeWatchOptionsIgnored(config as Record<string, unknown>) as typeof config;
   },
 };
 
-/** Drop empty `watchOptions.ignored` entries (webpack schema) after Sentry wraps webpack. */
+/**
+ * Webpack schema requires every `watchOptions.ignored` entry to be a non-empty string.
+ * Sentry/Next can inject `""` on a sealed `watchOptions` object — replace the object, don't mutate.
+ */
+function sanitizeWatchOptionsIgnored(webpackConfig: Record<string, unknown>) {
+  const watchOptions = webpackConfig.watchOptions as
+    | { ignored?: unknown; [key: string]: unknown }
+    | undefined;
+  if (!watchOptions || watchOptions.ignored == null) return webpackConfig;
+
+  const ignored = watchOptions.ignored;
+  const list = (Array.isArray(ignored) ? ignored : [ignored]).filter(
+    (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+  );
+
+  const nextWatchOptions: Record<string, unknown> = { ...watchOptions };
+  if (list.length > 0) {
+    nextWatchOptions.ignored = list;
+  } else {
+    delete nextWatchOptions.ignored;
+  }
+
+  try {
+    webpackConfig.watchOptions = nextWatchOptions;
+    return webpackConfig;
+  } catch {
+    return { ...webpackConfig, watchOptions: nextWatchOptions };
+  }
+}
+
 function withSanitizedWatchOptions(config: NextConfig): NextConfig {
   const prior = config.webpack;
   return {
@@ -64,31 +93,30 @@ function withSanitizedWatchOptions(config: NextConfig): NextConfig {
     webpack(webpackConfig, options) {
       const resolved =
         typeof prior === "function" ? prior(webpackConfig, options) : webpackConfig;
-      const ignored = resolved.watchOptions?.ignored;
-      if (ignored == null) return resolved;
-      const list = (Array.isArray(ignored) ? ignored : [ignored]).filter((entry) =>
-        typeof entry === "string" ? entry.trim().length > 0 : entry != null
-      );
-      resolved.watchOptions = {
-        ...resolved.watchOptions,
-        ...(list.length > 0 ? { ignored: list } : {}),
-      };
-      if (list.length === 0 && resolved.watchOptions) {
-        delete resolved.watchOptions.ignored;
-      }
-      return resolved;
+      return sanitizeWatchOptionsIgnored(resolved as Record<string, unknown>) as typeof resolved;
     },
   };
 }
 
-export default withSanitizedWatchOptions(
-  withSentryConfig(nextConfig, {
-    org: process.env.SENTRY_ORG?.trim() || process.env.SENTRY_ORG_SLUG?.trim() || undefined,
-    project:
-      process.env.SENTRY_PROJECT?.trim() || process.env.SENTRY_PROJECT_SLUG?.trim() || undefined,
-    authToken: process.env.SENTRY_AUTH_TOKEN?.trim() || undefined,
-    widenClientFileUpload: true,
-    tunnelRoute: "/monitoring",
-    silent: !process.env.CI,
-  })
-);
+const hasSentryToken = Boolean(process.env.SENTRY_AUTH_TOKEN?.trim());
+
+const sentryOptions = {
+  org: process.env.SENTRY_ORG?.trim() || process.env.SENTRY_ORG_SLUG?.trim() || undefined,
+  project:
+    process.env.SENTRY_PROJECT?.trim() || process.env.SENTRY_PROJECT_SLUG?.trim() || undefined,
+  authToken: process.env.SENTRY_AUTH_TOKEN?.trim() || undefined,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+  silent: !process.env.CI,
+  // Docker/Cloud Build has no Sentry token — skip Sentry webpack injection (avoids empty
+  // `watchOptions.ignored` schema failures during `next build`).
+  webpack: {
+    disableSentryConfig: !hasSentryToken,
+  },
+  sourcemaps: {
+    disable: !hasSentryToken,
+  },
+};
+
+// Sanitize must wrap Sentry so empty `ignored` entries are removed last.
+export default withSanitizedWatchOptions(withSentryConfig(nextConfig, sentryOptions));

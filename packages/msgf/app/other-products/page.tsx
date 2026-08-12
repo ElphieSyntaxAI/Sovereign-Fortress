@@ -40,7 +40,7 @@ export default async function OtherProductsPage() {
   const access = await resolveDashboardAccessForUser(user);
 
   return (
-    <div className="landing-mesh min-h-screen text-slate-100">
+    <div className="app-shell min-h-screen text-slate-100">
       <DashboardNav
         userEmail={user.email ?? "Signed in"}
         showAdminPortalLink={access.canAccessAdminDashboard}

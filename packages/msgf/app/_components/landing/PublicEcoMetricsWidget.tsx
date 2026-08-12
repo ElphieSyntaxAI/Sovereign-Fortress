@@ -755,13 +755,14 @@ export function PublicEcoMetricsWidget() {
       <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300/90">
-            Public Sustainable Compute Telemetry
+            Network impact · marketing totals
           </p>
           <h2 className="mt-4 text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl">
             AI that doesn&apos;t cost the Earth
           </h2>
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            We only publish environmental impact from{" "}
+            Public network totals — not your private governance dashboard. We only publish
+            environmental impact from{" "}
             <strong className="text-emerald-200">proven avoided provider tokens</strong> — metered
             CONVERGE baselines when Small Brain skips cloud calls, or audited pack deltas from
             verify / Run Scripts. Estimates never inflate this board.

@@ -455,40 +455,14 @@ function buildUserPrompt(
 }
 
 async function openaiChatCompletion(system: string, user: string, model: string): Promise<string> {
-  const key = process.env.OPENAI_API_KEY?.trim();
-  if (!key) {
-    throw new Error("OPENAI_API_KEY is required for Lore Librarian chat");
-  }
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.35,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
+  const { authorOpenAiChatCompletion } = await import("../authorMsgfGovernance.js");
+  return authorOpenAiChatCompletion({
+    system,
+    user,
+    model,
+    temperature: 0.35,
+    surface: "librarian",
   });
-
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`OpenAI chat failed (${res.status}): ${errBody.slice(0, 600)}`);
-  }
-
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
-  };
-  const content = json.choices?.[0]?.message?.content;
-  if (content == null || String(content).trim() === "") {
-    throw new Error("OpenAI returned empty Librarian reply");
-  }
-  return String(content);
 }
 
 /**

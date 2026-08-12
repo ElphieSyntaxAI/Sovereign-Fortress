@@ -17,6 +17,7 @@ import {
   ENTERPRISE_FEATURE_CARDS,
   SHIPPED_FEATURE_CARDS,
 } from "@/app/_components/marketing/shipped-capabilities";
+import { ShadowSavingsHowTo } from "@/app/_components/marketing/ShadowSavingsHowTo";
 import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
 
 import { AuthLandingNav } from "./AuthLandingNav";
@@ -61,6 +62,29 @@ const PILLARS = [
   },
 ];
 
+const BRAIN_COMPARISON = [
+  {
+    human: "Prefrontal cortex",
+    msgf: "DEFEND / GATE",
+  },
+  {
+    human: "Working memory",
+    msgf: "Hot SHARD / State Ledger",
+  },
+  {
+    human: "Long-term learning",
+    msgf: "Vault + Hall",
+  },
+  {
+    human: "Habit vs deliberation",
+    msgf: "Small Brain vs Big Brain",
+  },
+  {
+    human: "Error memory",
+    msgf: "Source reputation (P7) + quarantine",
+  },
+] as const;
+
 function accentRing(accent: "emerald" | "purple") {
   return accent === "emerald"
     ? "border-emerald-500/25 group-hover:border-emerald-400/50"
@@ -85,8 +109,8 @@ export function HomeLanding() {
               MSGF V3.2 · Gated AI
             </p>
             <h1 className="mt-4 text-center text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-              <span className="text-gradient-jewel">Glass box</span>
-              <span className="text-slate-100"> sovereignty</span>
+              <span className="text-gradient-jewel">Prefrontal cortex</span>
+              <span className="text-slate-100"> for AI</span>
               <br className="hidden sm:block" />
               <span className="text-slate-300">from IDE to cloud.</span>
             </h1>
@@ -142,26 +166,72 @@ export function HomeLanding() {
         <section className="mx-auto max-w-6xl px-5 py-8">
           <div className="grid gap-6 lg:grid-cols-2">
             <article className="glass-panel rounded-2xl p-6 sm:p-8">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Black box</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                Opaque LLM stack
+              </p>
               <h2 className="mt-2 text-xl font-semibold text-slate-400 line-through decoration-slate-600">
-                Opaque prompts. Hidden state. No lineage.
+                No gate before spend.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-500">
-                Traditional AI stacks ship answers without showing which rules fired, which model
-                disagreed, or what failed before.
+                Prompts hit the model first. You pay for every call — no DEFEND check, no state
+                prune, no lineage when something fails.
               </p>
             </article>
             <article className="glass-panel glass-panel-emerald rounded-2xl p-6 sm:p-8 ring-1 ring-emerald-500/20">
-              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">Glass box</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
+                Prefrontal cortex for AI
+              </p>
               <h2 className="mt-2 text-xl font-semibold text-slate-50">
-                Visible gates. Vault &amp; Hall lineage. HITL when it matters.
+                DEFEND / GATE before model spend.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                MSGF exposes pillar checks, verify-result beats, Sentry quarantine, signed HITL, and
-                savings counters — so compliance and engineering share the same truth.
+                MSGF runs pillar checks, Vault/Hall memory, and consensus before tokens burn — so
+                compliance and engineering share the same truth.
               </p>
             </article>
           </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 py-8">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/85">
+              Analogy
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+              Human brain <span className="text-slate-500">vs</span>{" "}
+              <span className="text-gradient-jewel">MSGF</span>
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-slate-400">
+              The same control loops biology uses — mapped onto gated AI infrastructure.
+            </p>
+          </div>
+          <div className="glass-panel mt-8 overflow-hidden rounded-2xl border border-violet-500/15">
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-x-3 border-b border-slate-800/80 bg-slate-950/40 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:px-6">
+              <span>Human brain</span>
+              <span className="text-center text-slate-700" aria-hidden>
+                →
+              </span>
+              <span className="text-emerald-400/80">MSGF</span>
+            </div>
+            <ul className="divide-y divide-slate-800/70" role="list">
+              {BRAIN_COMPARISON.map((row) => (
+                <li
+                  key={row.human}
+                  className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 px-5 py-4 text-sm sm:px-6"
+                >
+                  <span className="text-slate-400">{row.human}</span>
+                  <span className="text-slate-700" aria-hidden>
+                    →
+                  </span>
+                  <span className="font-medium text-slate-100">{row.msgf}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 py-8">
+          <ShadowSavingsHowTo />
         </section>
 
         <section className="mx-auto max-w-6xl px-5 py-16">
@@ -185,19 +255,27 @@ export function HomeLanding() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 pb-20">
+        <section id="six-pillars" className="mx-auto max-w-6xl scroll-mt-24 px-5 pb-20">
           <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
             Six pillars. <span className="text-emerald-400">One</span>{" "}
             <span className="text-violet-400">framework.</span>
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-center text-sm text-slate-400">
-            MSGF V3.2 — modular state gates that never mix contexts.
+            MSGF V3.2 — modular state gates that never mix contexts.{" "}
+            <Link
+              href="/getting-started#six-pillars"
+              className="text-emerald-400/90 underline-offset-4 hover:underline"
+            >
+              Full pillar guide
+            </Link>
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {PILLARS.map((p) => (
-              <article
+              <Link
                 key={p.id}
-                className={`glass-panel group rounded-2xl border p-5 transition ${accentRing(p.accent)}`}
+                id={`pillar-${p.id}`}
+                href={`/getting-started#pillar-${p.id}`}
+                className={`glass-panel group scroll-mt-24 rounded-2xl border p-5 transition ${accentRing(p.accent)}`}
               >
                 <span
                   className={`inline-flex rounded-lg px-2 py-0.5 text-xs font-bold ring-1 ${accentBadge(p.accent)}`}
@@ -206,7 +284,7 @@ export function HomeLanding() {
                 </span>
                 <h3 className="mt-3 font-semibold text-slate-100">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-400">{p.body}</p>
-              </article>
+              </Link>
             ))}
           </div>
         </section>
@@ -228,10 +306,10 @@ export function HomeLanding() {
                 Get started free
               </Link>
               <Link
-                href="/dashboard"
+                href="/sign-in?next=/dashboard"
                 className="rounded-full border border-slate-600/50 px-10 py-3.5 text-sm font-semibold text-slate-200 transition hover:bg-white/5"
               >
-                Open dashboard
+                Sign in to dashboard
               </Link>
             </div>
           </div>

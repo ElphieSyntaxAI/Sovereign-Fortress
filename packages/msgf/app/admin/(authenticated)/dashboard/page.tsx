@@ -51,7 +51,9 @@ export default async function AdminDashboardPage() {
         healthScope="operator"
         embeddedInAdminPortal
         dashboardLabel={
-          op.role === "GLOBAL_ADMIN" ? "Global admin dashboard" : "Company admin dashboard"
+          op.role === "GLOBAL_ADMIN"
+            ? "Global operator dashboard"
+            : "Team overview dashboard"
         }
         canAccessAdminDashboard
         scopeDescription={
@@ -61,6 +63,7 @@ export default async function AdminDashboardPage() {
         }
         showMasterEcoLeaderboard
         showNetworkStreams
+        bugReportUserId={user?.id}
       />
   );
 }

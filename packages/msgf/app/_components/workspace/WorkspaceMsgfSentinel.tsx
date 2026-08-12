@@ -164,7 +164,7 @@ type Props = {
 };
 
 /**
- * Gated AI workspace FAB — unified POST /api/msgf/report-issue (incident + optional self-heal).
+ * Gated AI FAB — POST /api/msgf/report-issue → p4_active_incidents (admin bug inbox) + optional self-heal.
  */
 export function WorkspaceMsgfSentinel({ tenantKey, userId }: Props) {
   return (

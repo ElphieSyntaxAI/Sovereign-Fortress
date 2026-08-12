@@ -52,7 +52,8 @@ Stripe (real “purchase” path): set `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO_IN
 6. **Pulse** — From dashboard / workspace / extension after baseline typing (see Phase 0 in [`packages/msgf/README.md`](../packages/msgf/README.md) Steps D–E).  
    - Session Pulse uses **`p4_profiles`** (no `msgf_live_` key in the browser).  
 7. **Reports** — `/dashboard/daily-reports`: metered vs proven; Shadow Proxy panel if you pointed an SDK at `/api/v1`.  
-8. **Heal queue** — Dashboard drawer; API uses your profile tenant (`tenant_gated` by default), not `integration_sandbox`.
+8. **Report a bug (optional)** — onscreen bug FAB on `/dashboard` or `/workspace` → operators triage in `/admin/ops#bug-inbox` (promote to ARBITRATE or dismiss).  
+9. **Heal queue** — Dashboard drawer; API uses your profile tenant (`tenant_gated` by default), not `integration_sandbox`.
 
 ---
 

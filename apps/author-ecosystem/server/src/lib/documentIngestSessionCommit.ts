@@ -13,6 +13,11 @@ import {
 import type { DocumentIngestSlot, IngestOutlineBeat, ProposedWikiEntry } from "./documentIngestGate.js";
 import { normalizeProposedWikiEntry } from "./documentIngestOutline.js";
 import type { ClarifyingQuestion, IngestConflict } from "./documentIngestStructure.js";
+import {
+  getAuthorGovernanceStatus,
+  postAuthorVerifyResult,
+} from "./authorMsgfGovernance.js";
+import { getAuthorMsgfMappingStatus } from "./authorMsgfMapping.js";
 
 export type IngestSessionRow = {
   id: string;
@@ -126,8 +131,11 @@ export async function executeDocumentIngestSessionCommit(
   if (needsDualReview && !forceCommit) {
     const dualReview = await runDualStructureReview({ sourceText, preview: previewText });
     const failDual = dualReview.ran && dualReview.structure_valid === false;
-    if (failDual) {
-      const reason = dualReview.reason;
+    const hitlDisagree = dualReview.ran && dualReview.models_disagree === true;
+    if (failDual || hitlDisagree) {
+      const reason = hitlDisagree
+        ? `Structure dual reviewers disagree (T3 HITL): ${dualReview.reason || dualReview.reviewer_a || "see review"}`
+        : dualReview.reason;
       await recordIngestHallRejection({
         supabase,
         tenantId: params.tenantId,
@@ -137,15 +145,27 @@ export async function executeDocumentIngestSessionCommit(
         sessionId,
         reason,
         previewText,
-        code: failDual && dualReview.models_disagree ? "structure_dual_fail" : "structure_merge_risk",
+        code: hitlDisagree ? "structure_dual_fail" : "structure_merge_risk",
+      });
+      void postAuthorVerifyResult({
+        passed: false,
+        command: hitlDisagree
+          ? "author:onboarding:structure-dual-disagree"
+          : "author:onboarding:structure-review-fail",
+        actorId: params.tenantId,
+        manuscriptId: String(session.manuscript_id),
+        surface: hitlDisagree ? "structure_dual_disagree" : "onboarding_ingest",
+        stderrSnippet: reason,
       });
       return {
         ok: false,
         committed: false,
         httpStatus: 409,
-        error: "INGEST_STRUCTURE_REVIEW_FAILED",
-        code: "INGEST_STRUCTURE_REVIEW_FAILED",
-        hint: "Fix the mapping in review, or resubmit with force_commit if you accept the risk.",
+        error: hitlDisagree ? "INGEST_STRUCTURE_HITL" : "INGEST_STRUCTURE_REVIEW_FAILED",
+        code: hitlDisagree ? "INGEST_STRUCTURE_HITL" : "INGEST_STRUCTURE_REVIEW_FAILED",
+        hint: hitlDisagree
+          ? "Dual structure models disagreed — fix the mapping in review, or resubmit with force_commit after human confirmation (MSGF T3-style quarantine signal recorded)."
+          : "Fix the mapping in review, or resubmit with force_commit if you accept the risk.",
       };
     }
   }
@@ -190,6 +210,11 @@ export async function executeDocumentIngestSessionCommit(
         ? (msgf.compiler_state as import("./documentIngestMultiPassCompiler.js").DocumentIngestCompilerState)
         : undefined;
 
+    const syncBrainDefault =
+      params.syncMsgfBrain === true ||
+      process.env.MSGF_DOCUMENT_INGEST_SYNC_BRAIN === "1" ||
+      getAuthorMsgfMappingStatus().ready;
+
     const result = await commitDocumentIngestToBackend({
       supabase,
       tenantId: params.tenantId,
@@ -199,10 +224,18 @@ export async function executeDocumentIngestSessionCommit(
       sourceText,
       proposed: normalizedProposed,
       outlineBeats: archiveOnly ? [] : outlineBeats,
-      syncMsgfBrain:
-        params.syncMsgfBrain === true || process.env.MSGF_DOCUMENT_INGEST_SYNC_BRAIN === "1",
+      syncMsgfBrain: syncBrainDefault,
       semanticRegions,
       compilerState,
+    });
+
+    void postAuthorVerifyResult({
+      passed: true,
+      command: "author:onboarding:document-commit",
+      actorId: params.tenantId,
+      manuscriptId: String(session.manuscript_id),
+      surface: "onboarding_ingest",
+      stdoutSnippet: `wiki=${result.planning.wiki_entry_count}; sync_msgf=${syncBrainDefault}; gateway=${getAuthorGovernanceStatus().gateway_mode}`,
     });
 
     await supabase

@@ -3,11 +3,6 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /** Live Redis/ops checks — do not statically cache (stale SHARD after deploy). */
@@ -15,11 +10,15 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import Link from "next/link";
+import { cookies, headers } from "next/headers";
 
 import { getSystemConnectionStatus } from "@msgf/lib/system-connection-status";
 
+import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
 import { AuthLandingNav } from "@/app/_components/landing/AuthLandingNav";
+import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { evaluateV32RuntimeStatus } from "@/lib/v32-ultra-directive";
+import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
 function StatusRow({ ok, label, detail }: { ok: boolean; label: string; detail: string }) {
   return (
@@ -66,9 +65,26 @@ export default async function StatusPage() {
   const { gcp, anthropic, stripe } = getSystemConnectionStatus();
   const v32 = await evaluateV32RuntimeStatus();
 
+  const cookieStore = await cookies();
+  const hdrs = await headers();
+  const supabase = createClient(cookieStore, requestHostFromHeaders(hdrs));
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const access = user ? await resolveDashboardAccessForUser(user) : null;
+  const shellClass = user ? "app-shell" : "landing-mesh";
+
   return (
-    <div className="landing-mesh min-h-screen text-slate-100">
-      <AuthLandingNav />
+    <div className={`${shellClass} min-h-screen text-slate-100`}>
+      {user && access ? (
+        <DashboardNav
+          userEmail={user.email ?? "Signed in"}
+          showAdminPortalLink={access.canAccessAdminDashboard}
+        />
+      ) : (
+        <AuthLandingNav />
+      )}
       <main className="mx-auto max-w-xl space-y-8 px-5 py-10">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight">System status</h1>
@@ -110,6 +126,9 @@ export default async function StatusPage() {
           </Link>
           <Link href="/dashboard" className="text-violet-300 underline-offset-4 hover:underline">
             Governance dashboard
+          </Link>
+          <Link href="/account" className="text-emerald-300 underline-offset-4 hover:underline">
+            Account
           </Link>
           <Link href="/" className="text-slate-300 underline-offset-4 hover:underline">
             Home

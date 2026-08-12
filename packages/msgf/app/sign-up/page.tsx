@@ -25,7 +25,9 @@ export default function SignUpPage() {
             Elphie&apos;s Gated AI
           </p>
           <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-          <p className="text-sm text-slate-400">Join the glass-box framework — sovereign AI with visible gates.</p>
+          <p className="text-sm text-slate-400">
+            Join the prefrontal cortex for AI — sovereign gates before model spend.
+          </p>
         </div>
         <AuthForm mode="sign-up" />
         <p className="text-center text-sm text-slate-500">

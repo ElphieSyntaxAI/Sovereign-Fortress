@@ -77,6 +77,11 @@ export async function runLocalGatewayPhase(
     logicDrift,
     isPillarBaselineSet: defended.isPillarBaselineSet,
     defendPreflightTier: defended.preflight.tier,
+    defendReason: defended.preflight.reason,
+    sourceHits: [
+      ...(defended.preflight.scoredHits ?? []),
+      ...(defended.preflight.prunedHits ?? []),
+    ],
     pulseTraceId,
     beatLabel,
     convergeBypass: params.convergeBypass,

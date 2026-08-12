@@ -11,7 +11,7 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) | **1.0 vision & release plan** (MSGF V3.2-ULTRA) |
 | [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) | **Product map, full features & sales angles** |
 | [`docs/MSGF_CONVERGE_TIER.md`](../../docs/MSGF_CONVERGE_TIER.md) | **Part B** — 3-tier CONVERGE + T3 quarantine |
-| [`docs/MSGF_ADMIN_HUB.md`](../../docs/MSGF_ADMIN_HUB.md) | **Ops console** — ARBITRATE, quarantine, audits |
+| [`docs/MSGF_ADMIN_HUB.md`](../../docs/MSGF_ADMIN_HUB.md) | **Ops console** — bug inbox, provenance, ARBITRATE, quarantine, audits |
 | [`docs/MSGF_LEARNING_AND_BIG_BRAIN.md`](../../docs/MSGF_LEARNING_AND_BIG_BRAIN.md) | **Learning loop** — Vault without Big Brain; `smoke:pulse-converge` |
 | [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
 | [`docs/MSGF_SOLO_INTEGRATION.md`](../../docs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |

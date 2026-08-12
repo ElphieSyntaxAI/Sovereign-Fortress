@@ -144,6 +144,7 @@
  *
  * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { GlobalNotificationTickerEvent } from "@/lib/services/dashboard-orchestration";
@@ -259,6 +260,12 @@ export function GovernanceLatestActivityLog({
           <p className="mt-1 text-sm text-slate-400">
             Each line names the project, what happened, and flags items that need immediate attention.
           </p>
+          <Link
+            href="/dashboard/daily-reports"
+            className="mt-2 inline-block text-xs font-semibold text-emerald-300 underline-offset-2 hover:underline"
+          >
+            View history →
+          </Link>
         </div>
         {urgentCount > 0 ? (
           <span className="inline-flex items-center gap-2 self-start rounded-full border border-rose-500/40 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold text-rose-100">

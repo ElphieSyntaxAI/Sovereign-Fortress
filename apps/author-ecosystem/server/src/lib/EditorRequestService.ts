@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { AuthorSovereigntyService } from "./AuthorSovereigntyService.js";
 import type { HumanAuthorshipCertificate } from "./AuthorSovereigntyService.js";
+import { evaluateAuthorPublisherDeployGate } from "./authorMsgfGovernance.js";
 
 /** Minimum `p4_manuscripts.revision_count` before editor hub unlocks (inclusive). */
 export const MIN_MANUSCRIPT_REVISION_COUNT_FOR_EDITOR = 2;
@@ -36,6 +37,13 @@ export type ManuscriptQualityVerification = {
 export type EditorRequestGate = ManuscriptQualityVerification & {
   /** Same as {@link ManuscriptQualityVerification.verified}. */
   allowed: boolean;
+  /** MSGF deploy-gate advisory / enforced check for Author project_origin. */
+  deploy_gate?: {
+    allowed: boolean;
+    skipped: boolean;
+    status: string | null;
+    reason: string;
+  };
 };
 
 export type EditorPendingAssignmentView = {
@@ -241,7 +249,28 @@ export class EditorRequestService {
    */
   async evaluateEditorRequest(manuscriptId: string): Promise<EditorRequestGate> {
     const q = await evaluateManuscriptQualityForEditorHub(this.supabase, manuscriptId);
-    return { ...q, allowed: q.verified };
+    const deploy = await evaluateAuthorPublisherDeployGate();
+    const qualityOk = q.verified;
+    const deployOk = deploy.allowed;
+    const allowed = qualityOk && deployOk;
+    const reasonParts = [q.reason];
+    if (!deployOk || !deploy.deploy.skipped) {
+      reasonParts.push(deploy.reason);
+    }
+    return {
+      ...q,
+      verified: qualityOk,
+      allowed,
+      reason: allowed
+        ? `${q.reason} ${deploy.reason}`.trim()
+        : reasonParts.join(" ").trim(),
+      deploy_gate: {
+        allowed: deploy.allowed,
+        skipped: deploy.deploy.skipped,
+        status: deploy.deploy.status,
+        reason: deploy.reason,
+      },
+    };
   }
 
   async assertMayRequestEditor(manuscriptId: string): Promise<EditorRequestGate> {

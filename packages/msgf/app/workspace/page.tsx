@@ -85,7 +85,7 @@ export default async function WorkspacePage({
   );
 
   return (
-    <div className="landing-mesh min-h-screen text-slate-100">
+    <div className="app-shell min-h-screen text-slate-100">
       <DashboardNav
         userEmail={ctx.email}
         showAdminPortalLink={ctx.canAccessAdminDashboard}

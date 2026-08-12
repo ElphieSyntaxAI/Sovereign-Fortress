@@ -2,11 +2,11 @@
 
 **Audience:** Jessica / MSGF engineering  
 **Status:** Living checklist for **MSGF 1.0 production readiness** (gatedai + Pulse Guard + ops).  
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-11 (bug inbox + FAB closed loop)
 
-**Priority now:** `db:push` usage/shadow/governance migrations → staging smoke + Cloud Run secrets + green `validate:deployment` → technical soft-RC; then Stripe test Checkout smoke → paid go-live after identity.
+**Priority now:** Staging smoke + green `validate:deployment` → technical soft-RC; then Stripe test Checkout smoke → paid go-live after identity.
 
-**Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~84%** · **paid self-serve ~68%**.
+**Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~84%** · **paid self-serve ~68%** (secrets gap closed on `msgf-api`; verification still open).
 
 **Related:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md) · [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md)
 
@@ -27,12 +27,13 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 ### 1.1 Schema on the live DB
 
 - [x] Jul 24 wave + Stripe entitlement migration applied (2026-07-24 / 2026-08-02)
-- [ ] Apply TRI consensus migration `20260805010000_tri_consensus_config.sql` (`msgf_tenant_consensus_config` + xAI provider CHECK)
-- [ ] Apply provider usage / proven savings migration `20260806010000_provider_usage_proven_savings.sql`
-- [ ] Apply period savings reports migration `20260806020000_period_savings_reports.sql`
-- [ ] Apply shadow evaluation logs migration `20260806030000_shadow_evaluation_logs.sql` (+ `…30100` shadow USD column)
-- [ ] Apply launch governance writers migration `20260806200000_launch_governance_writers.sql` (proven/usage audit columns)
-- [ ] `npm run db:push:verify -w msgf` after TRI + usage + shadow + governance migrations
+- [x] Apply TRI consensus migration `20260805010000_tri_consensus_config.sql` (`msgf_tenant_consensus_config` + xAI provider CHECK) — 2026-08-06 `db:push`
+- [x] Apply provider usage / proven savings migration `20260806010000_provider_usage_proven_savings.sql` — 2026-08-06
+- [x] Apply period savings reports migration `20260806020000_period_savings_reports.sql` — 2026-08-06
+- [x] Apply shadow evaluation logs migration `20260806030000_shadow_evaluation_logs.sql` (+ `…30100` shadow USD column) — 2026-08-06
+- [x] Apply launch governance writers migration `20260806200000_launch_governance_writers.sql` (proven/usage audit columns) — 2026-08-06
+- [x] `npm run db:push:verify -w msgf` after TRI + usage + shadow + governance migrations — 2026-08-06 green
+- [x] Apply bug inbox migrations `20260811010000_p4_active_incidents_bug_inbox.sql` + `20260811020000_p4_upsert_reopen_bug_inbox.sql` — 2026-08-11 `db:push`
 
 ### 1.1b Launch hardening (code Done 2026-08-06)
 
@@ -60,19 +61,19 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 
 | Env | Purpose | Status |
 | :--- | :--- | :--- |
-| `REDIS_URL` / Upstash | Hot layer + gateway completion cache | Confirm on staging/prod |
-| `MSGF_OPS_CRON_SECRET` | Heartbeat / audits | **Open** on Cloud Run |
-| Sentry DSN + auth token + org/project | SDK + ops panel | Local **[~]**; Cloud Run **open** |
-| Stripe test keys + Price IDs + webhook secret | Paid path | Local **[~]**; Cloud Run **open** |
+| Upstash Redis | Hot layer + gateway completion cache | **Done** on `msgf-api` (REST URL + token) |
+| `MSGF_OPS_CRON_SECRET` | Heartbeat / audits | **Done** — generated + deployed `msgf-api-00068-v4d` (2026-08-06) |
+| Sentry DSN + auth token + org/project | SDK + ops panel | **Done** on Cloud Run (copied from local) |
+| Stripe test keys + Price IDs + webhook secret | Paid path | **Done** secret/webhook on Run; Price IDs deployed 2026-08-06 |
 | `XAI_API_KEY` + `MSGF_TRI_CONSENSUS_ENABLED=1` | Big Brain TRI | Optional until TRI live |
 | `MSGF_HYBRID_KEM_ENABLED=1` | Quantum-ready envelopes | Optional; document when on |
 | `MSGF_ACTIVE_AGGRESSIVENESS` | Active gateway default (`shard-and-route`) | Optional |
 | `ALLOW_DEMO_TENANT` | Non-prod gateway demo tenant only | Never on prod |
 
-- [ ] Secrets on staging + prod Cloud Run
-- [ ] GH Actions `msgf-tier-heartbeat.yml` wired
+- [x] Core secrets on prod Cloud Run `msgf-api` (ops cron + Sentry + Stripe prices) — 2026-08-06
+- [ ] GH Actions `msgf-tier-heartbeat.yml` wired to use `MSGF_OPS_CRON_SECRET`
 - [ ] `/admin/ops` live data (not mock pillar health)
-- [ ] `v32-heartbeat` dry-run → 200
+- [ ] `v32-heartbeat` dry-run → 200 with new ops secret
 
 ### 1.4 Staging smoke (one real tenant)
 
@@ -101,7 +102,9 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 ### Sentry
 
 - [x] `@sentry/nextjs` wired
-- [ ] Rotate auth token; Cloud Run DSN; panel smoke; quarantine demote/restore
+- [x] Cloud Run DSN + auth token + org/project on `msgf-api` (2026-08-06)
+- [ ] Ops panel Load issues smoke; quarantine demote/restore
+- [ ] Rotate auth token when convenient (scopes cover panel read)
 
 ### GitHub picker
 
@@ -114,7 +117,7 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 ### TRI / Grok
 
 - [x] Config SSoT + Pulse majority + tenant API/UI + unit tests
-- [ ] `db:push` TRI migration; enable flags on staging with `XAI_API_KEY`
+- [x] `db:push` TRI migration (2026-08-06); enable flags on staging with `XAI_API_KEY` still open
 - [ ] Soft-escalate + bias_mitigated preset smoke (Claude+Grok BYOK)
 
 ### PQC
@@ -136,6 +139,7 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 **Code Done (2026-08-02):** Startup Team + subscription lifecycle + `past_due` + test Price IDs + migration.
 
 - [x] Test Price IDs mapped; entitlement writers; unit tests
+- [x] Price IDs on Cloud Run `msgf-api` (2026-08-06)
 - [~] Local `stripe listen` webhook secret
 - [ ] Staging Checkout smoke (Pro + Startup) with test cards
 - [ ] Stripe **identity verification** (blocks live keys)
@@ -166,6 +170,9 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK
 - [x] TRI Big Brain + tenant presets (flagged)
 - [x] Hybrid PQC envelopes (flagged)
 - [x] Shadow Proxy + Active Governance (launch cut — hash cache / state-gate; embedding semantic + dual chat wire deferred)
+- [x] **P7 Source Audit & Resource Reputation** (Pulse-first; non-blocking; prune/boost; attribution_class; reverse impact)
+- [x] Admin provenance search + `/account` hub + Stripe Customer Portal API (nav/ops pass)
+- [x] **Bug inbox** — `p4_active_incidents` triage → promote to ARBITRATE / dismiss; FAB on dashboard + workspace; self-heal upserts inbox; reopen dismissed on re-report
 - [ ] Embedding semantic similarity cache on `/api/v1`
 - [ ] Dual/TRI chat completion synthesis on Active escalate
 - [ ] Sentry issue create from Pulse RED
@@ -193,7 +200,10 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK
 
 | Date | Note |
 | :--- | :--- |
-| 2026-08-06 | Launch hardening Done (auth, sanitizer, IDOR, Active orchestrator, docs/marketing); unit suite re-green; remaining = migrations `db:push` + staging gateway smoke. |
+| 2026-08-11 | **Bug inbox** + FAB closed loop (migrations applied); account hub + Stripe portal API; provenance search; ops `project_origin` + resolved incidents; prefrontal marketing. |
+| 2026-08-10 | P7 Source Audit shipped (migration + Pulse hooks + dashboard API/panel + unit tests). Apply remote schema via `db:push:verify`. |
+| 2026-08-06 | Cloud Run `msgf-api-00068-v4d`: `MSGF_OPS_CRON_SECRET` + Sentry + Stripe Price IDs deployed; schema already pushed. Next = staging smokes + heartbeat Action + `validate:deployment`. |
+| 2026-08-06 | Launch hardening Done (auth, sanitizer, IDOR, Active orchestrator, docs/marketing); unit suite re-green; migrations `db:push:verify` green. |
 | 2026-08-05 | Rebaseline: TRI + PQC code Done; soft-RC ~84% / paid ~68%; remaining = validate + staging + secrets + Stripe smoke/identity. |
 | 2026-08-02 | Stripe entitlement code + Sentry SDK local; build typing fixed. |
 | 2026-07-24 | Production RC focus; Jul 24 migrations; Part B landed. |

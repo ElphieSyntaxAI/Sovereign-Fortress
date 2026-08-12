@@ -39,7 +39,20 @@ function entityWikiType(kind: EntityKind): string {
   switch (kind) {
     case "character":
       return "character";
+    case "theme":
+      return "theme";
     case "setting":
+    case "planet":
+    case "technology":
+    case "religion":
+    case "physics":
+    case "magic":
+    case "species":
+    case "fauna":
+    case "flora":
+    case "history":
+    case "government":
+    case "culture":
       return "location";
     case "item":
       return "object";
@@ -55,14 +68,129 @@ function entityWikiType(kind: EntityKind): string {
   }
 }
 
+function authorEntityWikiMeta(kind: EntityKind): Record<string, unknown> {
+  switch (kind) {
+    case "character":
+      return { outline_entity_kind: "character", semantic_domain: "character" };
+    case "planet":
+      return {
+        outline_entity_kind: "environment",
+        semantic_domain: "planet",
+        location_kind: "planet",
+        stack_layer: "environment",
+        foundation: true,
+      };
+    case "religion":
+      return {
+        outline_entity_kind: "environment",
+        semantic_domain: "religion",
+        stack_layer: "religion",
+        foundation: true,
+      };
+    case "technology":
+      return {
+        outline_entity_kind: "setting",
+        semantic_domain: "technology",
+        stack_layer: "science",
+        world_bible_section: "technology",
+        foundation: true,
+      };
+    case "physics":
+      return {
+        outline_entity_kind: "setting",
+        semantic_domain: "physics",
+        stack_layer: "physics",
+        foundation: true,
+      };
+    case "magic":
+      return {
+        outline_entity_kind: "setting",
+        semantic_domain: "magic",
+        stack_layer: "magic",
+        foundation: true,
+      };
+    case "species":
+    case "fauna":
+      return {
+        outline_entity_kind: "environment",
+        semantic_domain: kind === "fauna" ? "fauna" : "species",
+        stack_layer: "fauna",
+        foundation: true,
+      };
+    case "flora":
+      return {
+        outline_entity_kind: "environment",
+        semantic_domain: "flora",
+        stack_layer: "flora",
+        foundation: true,
+      };
+    case "history":
+      return {
+        outline_entity_kind: "note",
+        semantic_domain: "history",
+        stack_layer: "history",
+        foundation: true,
+      };
+    case "government":
+      return {
+        outline_entity_kind: "note",
+        semantic_domain: "government",
+        stack_layer: "government",
+        foundation: true,
+      };
+    case "culture":
+      return {
+        outline_entity_kind: "note",
+        semantic_domain: "culture",
+        stack_layer: "cultural",
+        foundation: true,
+      };
+    case "theme":
+      return { outline_entity_kind: "theme", semantic_domain: "theme", foundation: true };
+    case "setting":
+      return { outline_entity_kind: "environment", semantic_domain: "setting", foundation: true };
+    case "faction":
+      return {
+        outline_entity_kind: "note",
+        semantic_domain: "government",
+        stack_layer: "government",
+        foundation: true,
+      };
+    default:
+      return { outline_entity_kind: "note", semantic_domain: kind, foundation: true };
+  }
+}
+
+const AUTHOR_FOUNDATION_KINDS: EntityKind[] = [
+  "character",
+  "setting",
+  "item",
+  "faction",
+  "planet",
+  "religion",
+  "technology",
+  "physics",
+  "magic",
+  "species",
+  "history",
+  "government",
+  "culture",
+  "fauna",
+  "flora",
+  "theme",
+  "other",
+];
+
 export const authorNarrativeProfile: DomainProfileConfig = {
   id: "author_narrative",
-  entityKinds: ["character", "setting", "item", "faction", "other"],
+  entityKinds: AUTHOR_FOUNDATION_KINDS,
   pass1SystemPrompt: [
     "You are Pass 1 of a 3-pass document ingest compiler for AUTHOR narrative onboarding.",
     "Extract named entities from ONE macro-window only. Use stable entity_fingerprint slugs.",
-    'Output ONLY JSON: {"entities":[{"name":"string","kind":"character|setting|item|faction|other","traits":["string"]}]}',
-    "Do not invent entities absent from the window text.",
+    "FACTS ONLY: each trait must be one atomic world fact (≤12 words). No dialogue, no scene narration, no filler.",
+    "Map every story foundation that appears: physics, magic, planets, technology, religion, culture, fauna, flora, species, history, government, characters, themes — not section titles.",
+    'Output ONLY JSON: {"entities":[{"name":"string","kind":"character|setting|item|faction|planet|religion|technology|physics|magic|species|history|government|culture|fauna|flora|theme|other","traits":["string"]}]}',
+    "Do not invent entities absent from the window text. Do not copy whole paragraphs into traits.",
   ].join("\n"),
   pass2SystemPrompt: [
     "You are Pass 2 of a 3-pass document ingest compiler for AUTHOR narrative.",
@@ -79,29 +207,26 @@ export const authorNarrativeProfile: DomainProfileConfig = {
     const proposed: CompilerWikiArtifact[] = [];
 
     for (const entity of state.entities) {
+      const traits = entity.traits
+        .map((t) => t.replace(/\s+/g, " ").trim())
+        .filter((t) => t.length > 0 && t.length <= 120)
+        .slice(0, 8);
       const excerpt =
-        entity.traits.length > 0
-          ? `${entity.name}: ${entity.traits.join(". ")}.`
+        traits.length > 0
+          ? `${entity.name}: ${traits.join(". ")}.`
           : `${entity.name} (${entity.kind}).`;
       if (excerpt.length < 40) continue;
+      const meta = authorEntityWikiMeta(entity.kind);
       proposed.push({
         title: entity.name,
         excerpt: excerpt.length >= 40 ? excerpt : `${excerpt} Document inventory entry.`,
-        chunk_type:
-          entity.kind === "character" ? "character" : entity.kind === "setting" ? "location" : "other",
-        tags: ["multi_pass", "pass1_entity", entity.kind],
+        chunk_type: entityWikiType(entity.kind),
+        tags: ["multi_pass", "pass1_entity", "fact_card", entity.kind],
         wiki_metadata: {
-          outline_entity_kind:
-            entity.kind === "character"
-              ? "character"
-              : entity.kind === "setting"
-                ? "environment"
-                : entity.kind === "faction"
-                  ? "note"
-                  : "note",
+          ...meta,
           entity_fingerprint: entity.entity_fingerprint,
-          semantic_domain: entity.kind,
           multi_pass: true,
+          fact_card: true,
         },
       });
     }

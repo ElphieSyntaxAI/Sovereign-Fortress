@@ -122,6 +122,8 @@ export async function orchestrateReportIssue(
       body: parsed.data,
       entityId,
       tenantId: input.tenant_id,
+      // Orchestrator already upserted p4_active_incidents for the bug inbox.
+      bugInboxAlreadyRecorded: true,
     });
     const ui = buildTenantSentinelSelfHealBody(report);
     return {

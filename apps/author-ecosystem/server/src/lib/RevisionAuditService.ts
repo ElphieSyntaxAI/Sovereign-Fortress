@@ -14,6 +14,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUuid } from "./halMetrics.js";
 import { getSupabaseAdmin } from "./supabaseAdmin.js";
 import { isRagExcluded } from "./narrative/narrativeChunkVisibility.js";
+import { authorAnthropicClientInit } from "./authorMsgfGovernance.js";
 
 const require = createRequire(import.meta.url);
 
@@ -49,7 +50,9 @@ let _anthropic: Anthropic | null | undefined;
 function getAnthropic(): Anthropic | null {
   if (_anthropic === undefined) {
     const key = process.env.ANTHROPIC_API_KEY?.trim();
-    _anthropic = key ? new Anthropic({ apiKey: key }) : null;
+    _anthropic = key
+      ? new Anthropic(authorAnthropicClientInit({ apiKey: key, surface: "bicameral_audit" }))
+      : null;
   }
   return _anthropic;
 }

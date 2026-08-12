@@ -627,12 +627,14 @@ import {
 } from "@/app/_components/dashboard/PostIngestHealingConsole";
 import { BigBrainIssuesPanel } from "@/app/_components/dashboard/BigBrainIssuesPanel";
 import { GovernanceEnvironmentalShelf } from "@/app/_components/dashboard/GovernanceEnvironmentalShelf";
+import { SourceAuditPanel } from "@/app/_components/dashboard/SourceAuditPanel";
 import { GovernanceLatestActivityLog } from "@/app/_components/dashboard/GovernanceLatestActivityLog";
 import { ProjectGovernanceAccordion } from "@/app/_components/dashboard/ProjectGovernanceAccordion";
 import { SecurityViewSection } from "@/app/_components/dashboard/SecurityViewSection";
 import { TokenSavingsRouteSection } from "@/app/_components/dashboard/TokenSavingsRouteSection";
 import { TokenSavingsFeaturesPanel } from "@/app/_components/dashboard/TokenSavingsFeaturesPanel";
 import { ConsensusPresetPanel } from "@/app/_components/dashboard/ConsensusPresetPanel";
+import { WorkspaceMsgfSentinel } from "@/app/_components/workspace/WorkspaceMsgfSentinel";
 import {
   overallLabel,
   PillarCard,
@@ -691,6 +693,8 @@ type Props = {
   mappedProjects?: { project_origin: string; label: string }[];
   /** False for new accounts with no mapped projects — show onboarding empty state. */
   showGovernanceMatrix?: boolean;
+  /** When set, mount onscreen bug FAB → POST /api/msgf/report-issue → bug inbox. */
+  bugReportUserId?: string;
 };
 
 type PillarHealthApiResponse = PillarHealthReport & { ok?: boolean; error?: string };
@@ -1032,6 +1036,7 @@ export function DashboardShell({
   healQueueTenantId,
   mappedProjects = [],
   showGovernanceMatrix = true,
+  bugReportUserId,
 }: Props) {
   const [report, setReport] = useState<PillarHealthReport>(initialReport);
   const [loading, setLoading] = useState(false);
@@ -1218,11 +1223,11 @@ export function DashboardShell({
         <section className="flex flex-col items-center gap-4 text-center">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-              Glass-box overview
+              Your MSGF console
             </p>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
               <span className="text-gradient-jewel">
-                {useProjectAccordion ? "Your Governance Dashboard" : dashboardLabel}
+                {useProjectAccordion ? "Governance dashboard" : dashboardLabel}
               </span>
             </h1>
             <p className="mx-auto max-w-2xl text-sm text-slate-400 sm:text-base">
@@ -1278,6 +1283,7 @@ export function DashboardShell({
         {useProjectAccordion ? (
           <div className="space-y-6">
             <GovernanceEnvironmentalShelf />
+            <SourceAuditPanel tenantId={healQueueTenantId} />
             <GovernanceLatestActivityLog report={report} mappedProjects={mappedProjects} />
           </div>
         ) : null}
@@ -1523,17 +1529,33 @@ export function DashboardShell({
   );
 
   if (embeddedInAdminPortal) {
-    return content;
+    return (
+      <>
+        {content}
+        {bugReportUserId ? (
+          <WorkspaceMsgfSentinel
+            tenantKey={healQueueTenantId}
+            userId={bugReportUserId}
+          />
+        ) : null}
+      </>
+    );
   }
 
   return (
-    <div className="landing-mesh min-h-screen text-slate-100">
+    <div className="app-shell min-h-screen text-slate-100">
       <DashboardNav
         userEmail={userEmail}
         showAdminPortalLink={canAccessAdminDashboard}
         tokenSavingsHref="/dashboard#token-savings"
       />
       {content}
+      {bugReportUserId ? (
+        <WorkspaceMsgfSentinel
+          tenantKey={healQueueTenantId}
+          userId={bugReportUserId}
+        />
+      ) : null}
     </div>
   );
 }

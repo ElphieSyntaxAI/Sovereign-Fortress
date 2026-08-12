@@ -59,7 +59,8 @@ export function PillarGuideSection() {
         {PILLAR_GUIDE_ENTRIES.map((entry) => (
           <article
             key={entry.pillar}
-            className="glass-panel rounded-2xl border border-violet-500/12 p-5 sm:p-6"
+            id={`pillar-${entry.pillar}`}
+            className="glass-panel scroll-mt-24 rounded-2xl border border-violet-500/12 p-5 sm:p-6"
           >
             <div className="flex flex-wrap items-baseline gap-2">
               <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-200">

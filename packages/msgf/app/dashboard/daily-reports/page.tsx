@@ -47,7 +47,7 @@ export default async function DailyReportsPage() {
     user.id;
 
   return (
-    <div className="landing-mesh min-h-screen text-slate-100">
+    <div className="app-shell min-h-screen text-slate-100">
       <DashboardNav
         userEmail={user.email ?? "Signed in"}
         showAdminPortalLink={access.canAccessAdminDashboard}

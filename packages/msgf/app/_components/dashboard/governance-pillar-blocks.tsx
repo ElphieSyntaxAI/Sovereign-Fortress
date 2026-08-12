@@ -144,6 +144,7 @@
  *
  * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import type {
@@ -321,9 +322,17 @@ export function PillarCard({
         <p className="text-[11px] font-medium uppercase tracking-wider text-violet-400/70">
           V3.2 · {v32Step}
         </p>
-        <span className="text-xs font-medium text-emerald-200">
-          {healActive ? "Open healing console →" : "View latest →"}
-        </span>
+        {healActive ? (
+          <span className="text-xs font-medium text-amber-200">Open healing console →</span>
+        ) : (
+          <Link
+            href={`/dashboard/daily-reports?pillar=${encodeURIComponent(pillarId)}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs font-medium text-emerald-200 underline-offset-2 hover:underline"
+          >
+            View history →
+          </Link>
+        )}
       </div>
     </button>
   );

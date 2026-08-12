@@ -3,17 +3,13 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 import Link from "next/link";
 
 import { BrandLogo } from "@/app/_components/brand/BrandLogo";
 import { SignOutButton } from "@/app/_components/auth/SignOutButton";
+import { SIGNED_IN_MARKETING_PRIMARY_LINKS } from "@/app/_components/dashboard/dashboard-nav-links";
 
 type Props = {
   /** When set, show authenticated nav (stay signed in while browsing marketing pages). */
@@ -40,41 +36,20 @@ export function LandingNav({ userEmail = null }: Props) {
         <nav className="flex flex-wrap items-center justify-end gap-1 sm:gap-2" aria-label="Site">
           {signedIn ? (
             <>
+              {SIGNED_IN_MARKETING_PRIMARY_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:inline-block"
+                >
+                  {link.label}
+                </Link>
+              ))}
               <Link
-                href="/dashboard"
-                className="rounded-full px-2.5 py-2 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/10 hover:text-emerald-100"
+                href="/brain"
+                className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white md:inline-block"
               >
-                Dashboard
-              </Link>
-              <Link
-                href="/features"
-                className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white md:inline-block"
-              >
-                Features
-              </Link>
-              <Link
-                href="/other-products"
-                className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:inline-block"
-              >
-                Other products
-              </Link>
-              <Link
-                href="/getting-started#six-pillars"
-                className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white lg:inline-block"
-              >
-                Pillar guide
-              </Link>
-              <Link
-                href="/workspace"
-                className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:inline-block"
-              >
-                Workspace
-              </Link>
-              <Link
-                href="/pricing"
-                className="hidden rounded-full px-2.5 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:inline-block"
-              >
-                Pricing
+                MSGF
               </Link>
               <span
                 className="hidden max-w-[10rem] truncate text-sm text-slate-500 lg:inline"
@@ -82,6 +57,12 @@ export function LandingNav({ userEmail = null }: Props) {
               >
                 {userEmail}
               </span>
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:from-emerald-500 hover:to-violet-500"
+              >
+                Open dashboard
+              </Link>
               <SignOutButton />
             </>
           ) : (

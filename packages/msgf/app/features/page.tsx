@@ -92,7 +92,7 @@ export default function FeaturesPage() {
             <span className="block text-slate-200">&amp; zero re-prompt verify</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-400">
-            Glass-box AI with six pillars, IDE verify loops,{" "}
+            Prefrontal cortex for AI with six pillars, IDE verify loops,{" "}
             <strong className="text-cyan-300/90">Grok-aware model presets</strong>,{" "}
             <strong className="text-violet-300/90">Sentry→Vault quarantine</strong>,{" "}
             <strong className="text-emerald-200">DocuSign / Dropbox Sign</strong>, and{" "}

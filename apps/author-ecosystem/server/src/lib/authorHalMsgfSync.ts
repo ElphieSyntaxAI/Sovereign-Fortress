@@ -5,6 +5,7 @@ import {
   type AuthorHalTelemetrySnapshot,
 } from "msgf/hal-author-bridge";
 
+import { convergeTierForSurface } from "./authorMsgfGovernance.js";
 import {
   forwardAuthorPulseToMsgf,
   resolveAuthorMsgfTenantId,
@@ -73,6 +74,7 @@ export async function syncAuthorHalChunksToMsgf(params: {
       tenantId: resolveAuthorMsgfTenantId(),
       body: packet.body,
       authorHal,
+      convergeTier: convergeTierForSurface("hal_pulse"),
       idempotencyKey: params.sessionId
         ? `hal:${params.sessionId}:c${packet.chunkIndex}`
         : `hal:${params.manuscriptId}:c${packet.chunkIndex}`,

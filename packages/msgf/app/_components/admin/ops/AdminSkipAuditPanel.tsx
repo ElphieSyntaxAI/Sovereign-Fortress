@@ -25,6 +25,7 @@
  * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type SkipRow = {
   id: string;
@@ -43,10 +44,16 @@ type ListPayload = {
 };
 
 export function AdminSkipAuditPanel() {
+  const searchParams = useSearchParams();
+  const urlOrigin = searchParams?.get("project_origin")?.trim() || "";
   const [rows, setRows] = useState<SkipRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [originFilter, setOriginFilter] = useState("");
+  const [originFilter, setOriginFilter] = useState(urlOrigin);
+
+  useEffect(() => {
+    setOriginFilter(urlOrigin);
+  }, [urlOrigin]);
 
   const load = useCallback(async () => {
     setLoading(true);

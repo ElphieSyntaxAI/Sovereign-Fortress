@@ -7,6 +7,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { bootstrapTenantBrain, MSGF } from "msgf/onboarding";
 
+import { sealVaultPactAttestation, vaultSealFingerprint } from "./authorHybridSeal.js";
+
 const AUTHOR_MSGF_TENANT_ID =
   process.env.MSGF_AUTHOR_TENANT_ID?.trim() || "author_ecosystem";
 
@@ -127,6 +129,7 @@ export async function registerAuthorWithVaultPact(
   const userId = created.user.id;
 
   try {
+    const vaultSeal = await sealVaultPactAttestation(vaultPactSha256);
     const { data: rpcData, error: rpcErr } = await admin.rpc("register_author_with_vault_pact", {
       p_user_id: userId,
       p_display_name: displayName,
@@ -136,7 +139,12 @@ export async function registerAuthorWithVaultPact(
       p_tier_id: Number(tierId),
       p_vault_pact_content_sha256: vaultPactSha256,
       p_signature_text: VAULT_PACT_SIGNATURE_PHRASE,
-      p_metadata: { vault_pact_md5: vaultPactMd5, correlation_id: correlationId },
+      p_metadata: {
+        vault_pact_md5: vaultPactMd5,
+        correlation_id: correlationId,
+        vault_seal: vaultSeal,
+        vault_seal_fp: vaultSealFingerprint(vaultSeal),
+      },
     });
 
     if (rpcErr) {

@@ -2,7 +2,7 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-08-06 (Shadow Proxy + Active Governance + launch hardening)
+**Last updated:** 2026-08-11 (Bug inbox closed loop + onscreen FAB)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
 **RC / deploy:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md)  
@@ -83,11 +83,26 @@ Deploy gate (GET /api/msgf/deploy-gate · project_origin green)
 | :--- | :--- | :--- |
 | **SWEEP** | Structural ingest | Day-zero scan; files → P1–P6; genealogical **1.1.1** bug index |
 | **SHARD** | Hot + cold storage | Redis active slices (hot-primary reads + ns gate stamp) + Postgres/pgvector |
-| **DEFEND** | Preflight guard | Silent Vault/Hall pre-flight (`runDefendPreflight`); blocks P1/P6 violations before injection |
+| **DEFEND** | Preflight guard | Silent Vault/Hall pre-flight (`runDefendPreflight`); blocks P1/P6 violations before injection; **P7** prunes low-reputation sources and blocks `copyleft_risk` / `untrusted_external` from auto-GREEN |
 | **CROSS-REF** | Vault / Hall check | Proposed changes vs positive fixes and negative patterns (quarantine-aware) |
 | **CONVERGE** | Dual / TRI consensus | Tenant dual presets; Big Brain **TRI majority** (Claude+Gemini+Grok) when enabled; optional **3-tier** cost ladder (T1→T3) |
 | **ARBITRATE** | Human tie-breaker | Operator approval; **HMAC-signed hash-chained** audit snapshots |
 | **PERSIST** | Learning loop | Approved → Vault; failures / T3 quarantine → Hall path + HITL |
+
+### 3.1a Pillar 7 — Source Audit & Resource Reputation (shipped)
+
+Pulse DEFEND / CROSS-REF now records **which sources** influenced a decision (Vault/Hall/file hits), not only the outcome tier:
+
+| Capability | Behavior |
+| :--- | :--- |
+| **Content hash** | `content_hash = sha256` of the injected chunk (CRLF→LF + trim) so path/UUID churn does not break audit |
+| **Reputation** | Per-tenant `msgf_resource_reputation`; score in [-1, 1] from good / bad / high-drift counts |
+| **Active prune** | `reputation_score < -0.3` removed from auto-GREEN context (still audited with `pruned: true`); `> 0.3` boosts match score |
+| **Attribution class** | `attribution_class` on each hit (`internal_spec`, `permissive_oss`, `copyleft_risk`, `untrusted_external`, `unknown`). Copyleft / untrusted **block auto-GREEN** (escalate). Not Stripe `billing_license_type`. |
+| **Reverse impact** | `msgf_source_downstream_impact` side table (not JSONB `->>` on an array) answers “what used this source?” via `content_hash` / `resource_key` |
+| **Hot path** | Audit + impact + reputation writes are **non-blocking** — never fail GATE/DEFEND |
+
+Dashboard: **Source Audit** panel on Governance home; API `GET /api/msgf/dashboard/source-audit`. Migration: `20260810010000_msgf_p7_source_reputation.sql`.
 
 ### 3.2 Primary APIs
 
@@ -106,9 +121,14 @@ Deploy gate (GET /api/msgf/deploy-gate · project_origin green)
 | `GET /api/msgf/dashboard/savings-features` | 24h token savings counters + catalog |
 | `GET /api/msgf/dashboard/period-reports` | Weekly / monthly metered consumption vs proven savings (+ PDF) |
 | `GET /api/msgf/dashboard/shadow-eval` | 24h Shadow Proxy projected savings summary |
+| `GET /api/msgf/dashboard/source-audit` | **P7** forward provenance + reputation tops; `?content_hash=` / `?resource_key=` reverse impact |
+| `GET /api/msgf/admin/provenance-search` | Operator / company-admin cross-project Vault·Hall·HAL·source trust search |
+| `GET/PATCH /api/msgf/admin/bug-inbox` | Operator bug inbox for onscreen FAB / report-issue / self-heal rows → promote to ARBITRATE or dismiss |
+| `POST /api/billing/portal` | Stripe Customer Portal session (account hub) |
 | `POST /api/v1/chat/completions` | OpenAI-compatible **Shadow Proxy / Active Governance** gateway |
 | `POST /api/v1/messages` | Anthropic-compatible gateway (SDK `baseURL` → `/api`) |
-| `POST /api/msgf/report-issue` | Authenticated incident report (web Bug Reporter) |
+| `POST /api/msgf/report-issue` | Authenticated incident report (onscreen FAB / BugReporter) → `p4_active_incidents` bug inbox |
+| `POST /api/msgf/admin/self-heal/report` | Sentinel diagnostic self-heal (also upserts bug inbox when not already recorded) |
 | `POST /api/msgf/p4/state-ledger` | Education / P4 telemetry + hot-layer latency fields |
 | `POST /api/msgf/ops/v32-heartbeat` | Tier batches, scheduled heals, Hall purge |
 | `GET/POST /api/msgf/workspace/tier-rules` | Company path → CONVERGE tier overrides (COMPANY_ADMIN) |
@@ -246,9 +266,22 @@ Optimizer output includes **MANDATORY AGENT EXECUTION RULES**: attach `@` files,
 | Workspace | `/dashboard`, `#token-savings`, Reports, `/workspace` | Tenants |
 | IDE setup | `/workspace#ide-setup`, `/setup/projects` | Developers |
 | Team | Workspace team + readiness | COMPANY_ADMIN |
-| Admin ops | `/admin/ops`, `/admin/dashboard` | GLOBAL/COMPANY admins |
+| Account | `/account` | Plan / seats · Stripe Customer Portal |
+| Admin ops | `/admin/ops` (bug inbox · provenance · ARBITRATE · …), `/admin/dashboard` | GLOBAL/COMPANY admins |
 | Extension download | `/extension` | IDE users |
 | Status | `/status` | Ops / prospects |
+
+### 6.1 Bug inbox closed loop (shipped 2026-08-11)
+
+| Step | What happens |
+| :--- | :--- |
+| **Report** | Onscreen **MsgfSentinel** FAB on `/workspace`, `/dashboard`, and admin dashboard posts `POST /api/msgf/report-issue` (web **BugReporter** / Author self-heal paths also land here). |
+| **Ledger** | Row in `p4_active_incidents` with `inbox_status=open` (deduped by message+location hash). Re-submit of a **dismissed** report reopens it. |
+| **Triage** | Operators open `/admin/ops#bug-inbox` → `GET/PATCH /api/msgf/admin/bug-inbox`. |
+| **Promote** | Creates `msgf_incidents` (`USER_SENTINEL`) for the ARBITRATE pending queue; marks inbox `promoted`. |
+| **Dismiss** | Marks inbox `dismissed` (with optional note). |
+
+Migrations: `20260811010000_p4_active_incidents_bug_inbox.sql`, `20260811020000_p4_upsert_reopen_bug_inbox.sql`. Details: [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md).
 
 ---
 
@@ -325,7 +358,7 @@ Dashboard APIs that accept `tenant_id` enforce membership (or `GLOBAL_ADMIN`) �
 
 **Flow:** Redacted snippets; Sentry→quarantine; T3 disagree quarantines Vault wins; A6 signed ARBITRATE chain.
 
-**Value:** Glass-box governance story for security review.
+**Value:** Prefrontal-cortex governance story for security review.
 
 ### 8.6 DevOps / release manager
 
@@ -349,7 +382,7 @@ Dashboard APIs that accept `tenant_id` enforce membership (or `GLOBAL_ADMIN`) �
 | :--- | :--- | :--- | :--- |
 | **Indie / Cursor power user** | “Stop paying to re-paste your repo” | 0-token prompt, Run Scripts, Small Brain % | Download Pulse Guard |
 | **Tech lead** | “Governance that doesn’t slow the sprint” | Verify loop, heal queue, deploy gate, Shadow→Active gateway | Team workspace / demo |
-| **CTO / security** | “Glass-box AI with quarantine + signed HITL” | DEFEND preflight, allowlisted exec, A5/A6 audits, T3 quarantine, license-bound gateway auth | Pilot / security brief |
+| **CTO / security** | “Prefrontal cortex for AI with quarantine + signed HITL” | DEFEND preflight, allowlisted exec, A5/A6 audits, T3 quarantine, license-bound gateway auth | Pilot / security brief |
 | **Agency** | “Per-client silos + savings you can invoice” | `project_origin` isolation, ROI rollup, period PDF | Startup / agency tier |
 | **Integrator** | “Drop in the consensus brain — or just the SDK baseURL” | Pulse, ingest, solo license, `/api/v1` Shadow Proxy | `MSGF_SOLO_INTEGRATION` · `MSGF_SHADOW_PROXY` |
 | **Ops / founder** | “See whether Small Brain is winning” | Admin savings catalog, Big Brain queue, Shadow projected vs proven | `/admin/ops` walkthrough |
@@ -441,6 +474,8 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Date | Note |
 | :--- | :--- |
+| 2026-08-11 | **Bug inbox** closed loop (`p4_active_incidents` → promote/dismiss); onscreen FAB on dashboard + workspace; self-heal also upserts inbox; reopen-on-resubmit RPC. Earlier same day: nav consistency + `/account` portal + provenance search + prefrontal marketing + Shadow baseURL how-to. |
+| 2026-08-10 | **P7 Source Audit & Resource Reputation:** content-hash provenance, reputation prune/boost, attribution_class auto-GREEN gate, reverse impact table + dashboard panel. |
 | 2026-08-06 | **Launch hardening:** §3.6 Shadow Proxy / Active Governance; naming glossary (DEFEND vs Passive IDE Scan vs Shadow Proxy); period reports + proven honesty; sales/SDK use case; marketing sync. |
 | 2026-08-02 | Stripe M3 moved **into plan** (not deferred): §9.1 checkout status + §10 claim-safety updated; pointer to DEV_TODO §2b. |
 | 2026-08-01 | Pulse Guard **0.1.8 → 0.2.3**: opt-in default, setup wizard, monorepo product scoping, `.msgf/dev/` integrator kit (§5.1a), BYOK Small Brain providers (§5.1b), optional MCP (§5.4). Added §9.1 packaging table sourced from `pricing-tiers.ts`, three BYOK/integration objections, and a **configured vs shipped** rule in §10. |

@@ -848,7 +848,9 @@ onboardingController.post("/api/onboarding/document/commit", async (req: Request
     forceCommit,
     syncMsgfBrain:
       body.sync_msgf_brain === true ||
-      String(body.sync_msgf_brain).toLowerCase() === "true",
+      String(body.sync_msgf_brain).toLowerCase() === "true" ||
+      body.sync_msgf_brain === undefined ||
+      body.sync_msgf_brain === null,
   });
 
   if (!result.ok) {

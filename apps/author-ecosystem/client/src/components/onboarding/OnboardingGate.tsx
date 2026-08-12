@@ -91,7 +91,7 @@ export function OnboardingGate(props: { children: ReactNode }) {
           action,
           proposed_wiki: proposed,
           outline_beats: docReview.outline_beats,
-          sync_msgf_brain: false,
+          sync_msgf_brain: true,
           ...(opts?.force_commit ? { force_commit: true } : {}),
         }),
       });

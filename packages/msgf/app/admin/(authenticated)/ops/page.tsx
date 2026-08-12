@@ -3,19 +3,19 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
+import { Suspense } from "react";
+
 import { AdminArbitrateAuditPanel } from "@/app/_components/admin/ops/AdminArbitrateAuditPanel";
 import { AdminArbitrateSection } from "@/app/_components/admin/ops/AdminArbitrateSection";
+import { AdminBugInboxPanel } from "@/app/_components/admin/ops/AdminBugInboxPanel";
 import { AdminDocuSignPanel } from "@/app/_components/admin/ops/AdminDocuSignPanel";
+import { AdminProvenanceSearchPanel } from "@/app/_components/admin/ops/AdminProvenanceSearchPanel";
 import { AdminSentryPanel } from "@/app/_components/admin/ops/AdminSentryPanel";
 import { AdminSkipAuditPanel } from "@/app/_components/admin/ops/AdminSkipAuditPanel";
 import { AdminVaultQuarantinePanel } from "@/app/_components/admin/ops/AdminVaultQuarantinePanel";
+import { OpsProjectOriginStrip } from "@/app/_components/admin/ops/OpsProjectOriginStrip";
 
 export default function AdminOpsPage() {
   return (
@@ -28,17 +28,27 @@ export default function AdminOpsPage() {
           <span className="text-gradient-jewel">Ops console</span>
         </h1>
         <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-          ARBITRATE, signed HITL audit, Vault quarantine, Sentry, signing, and skip-MSGF — one
-          ops surface. Prefer the same <code className="text-slate-300">project_origin</code> when
-          filtering. Deploy gate:{" "}
-          <code className="text-slate-300">GET /api/msgf/deploy-gate?project_origin=…</code>
+          Bug inbox → ARBITRATE, provenance, quarantine, Sentry, signing, and skip-MSGF — one ops
+          surface. Prefer the same <code className="text-slate-300">project_origin</code> when
+          filtering.
         </p>
       </header>
 
+      <Suspense fallback={null}>
+        <OpsProjectOriginStrip />
+      </Suspense>
+      <AdminBugInboxPanel />
+      <Suspense fallback={null}>
+        <AdminProvenanceSearchPanel />
+      </Suspense>
       <AdminArbitrateSection hideDeveloperKeystrokes />
-      <AdminArbitrateAuditPanel />
+      <Suspense fallback={null}>
+        <AdminArbitrateAuditPanel />
+      </Suspense>
       <AdminVaultQuarantinePanel />
-      <AdminSkipAuditPanel />
+      <Suspense fallback={null}>
+        <AdminSkipAuditPanel />
+      </Suspense>
       <AdminSentryPanel />
       <AdminDocuSignPanel />
     </main>

@@ -13,7 +13,7 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-08-06 (Shadow Proxy + Active Governance + launch hardening; TRI/PQC/Stripe/Sentry code landed; gap = migrations `db:push`, staging smoke, Cloud Run secrets, Stripe identity)
+**Last updated:** 2026-08-11 (bug inbox closed loop; Shadow Proxy + Active Governance + launch hardening; TRI/PQC/Stripe/Sentry code landed; gap = staging smoke, Cloud Run secrets, Stripe identity)
 
 **Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles, **launch readiness %**.
 
@@ -117,7 +117,7 @@ Maps V3.0 defensive ideas to V3.2 **DEFEND** / **CROSS-REF** steps:
 | :---: | :--- | :--- | :--- |
 | 1 | **SWEEP** | Audit maintained; ingest writes lineage + `pre_ingestion_audit.md` | **Done** — `pre_ingestion_audit.md`, `sweepAndIngest`, `tests/ingest-workflow.test.ts` |
 | 2 | **SHARD** | Cold pgvector + hot Redis on Pulse | **Done** (ops) — migrations + Upstash on Cloud Run; nanosecond SLO → 1.1 |
-| 3 | **DEFEND** | Shadow + LOM on Pulse/ingest | **Done** (routes) — `preFlightCheck` on Pulse + ingest; LOM harness staging-only |
+| 3 | **DEFEND** | Shadow + LOM on Pulse/ingest | **Done** (routes) — `preFlightCheck` on Pulse + ingest; LOM harness staging-only; **P7** source audit + reputation prune/boost + `attribution_class` auto-GREEN gate (2026-08-10) |
 | 4 | **CROSS-REF** | Vault/Hall preflight before consensus | **Done** — CROSS-REF enforced via `preFlightCheck` (Shadow DEFEND gate) + per-tenant `vaultCrossRefContext` persisted into the ARBITRATE/PERSIST flow |
 | 5 | **CONVERGE** | Dual-model on RED/critical | **Done** — dual-model consensus runs through the modular `lib/services/pulse-pipeline/` (gate → consensus → arbitrate → persist) with converge-timeout handling |
 | 6 | **ARBITRATE** | HITL + retry > 3 | **Done** — PulseEngine `runArbitratePhase` + heal-queue packages (`human_arbitration_packages`) + `POST .../human-arbitration`, guarded by retry circuit breaker after 3 failures |
@@ -565,6 +565,8 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-08-11 | **Bug inbox** closed loop: operator triage for FAB / report-issue / self-heal → promote to ARBITRATE or dismiss; `/account` portal + provenance search (same day nav/ops pass). |
+| 2026-08-10 | **P7 Source Audit & Resource Reputation:** content-hash provenance, reputation prune/boost, `attribution_class` auto-GREEN gate, reverse impact table; DEFEND §2.6 note. |
 | 2026-08-06 | **Launch hardening:** gateway license auth (no tenant spoof), header allowlist, dashboard IDOR guard, Active Governance Orchestrator (`PromptIR` + cache + state-gate), durable proven/usage PG writers. See [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md). |
 | 2026-08-05 | **M8 TRI + PQC:** milestones, §7 snapshot, readiness **soft-RC ~84% / paid ~68%**; build typing no longer listed as failing. |
 | 2026-08-05 | **PQC:** App-layer hybrid KEM envelope `0x03` (X25519 + ML-KEM-768) + HAL v2 ML-DSA-65 certs; audit [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). Platform TLS PQ remains infra checklist. |

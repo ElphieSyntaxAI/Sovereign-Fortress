@@ -2,10 +2,11 @@ import { createRequire } from "node:module";
 
 import Anthropic from "@anthropic-ai/sdk";
 
+import { authorAnthropicClientInit } from "../lib/authorMsgfGovernance.js";
+
 /**
  * Narrative logic / continuity pass: Gemini with a very large wiki/Bible window.
- * (Anthropic/Claude lives in {@link runSensitivityCritique}; we mirror the pattern used in
- * `packages/msgf/src/lib/ai.ts` — there is no published `@msgf/core` Anthropic export in this repo.)
+ * Critic (Claude) routes through MSGF Shadow Proxy / Active Governance when configured.
  */
 const require = createRequire(import.meta.url);
 const { generateBullets } = require("./geminiClient.js") as {
@@ -41,7 +42,9 @@ let _anthropic: Anthropic | null | undefined;
 function getAnthropic(): Anthropic | null {
   if (_anthropic === undefined) {
     const key = process.env.ANTHROPIC_API_KEY?.trim();
-    _anthropic = key ? new Anthropic({ apiKey: key }) : null;
+    _anthropic = key
+      ? new Anthropic(authorAnthropicClientInit({ apiKey: key, surface: "bicameral_audit" }))
+      : null;
   }
   return _anthropic;
 }

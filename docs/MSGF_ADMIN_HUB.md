@@ -6,7 +6,8 @@
 | :--- | :--- | :--- |
 | Portal | `/admin/portal` | Launch Author / Education / MSGF; local stack checklist |
 | Pillar health | `/admin/dashboard` | Six-pillar operator lens, token savings, Big Brain summary |
-| **Ops console** | `/admin/ops` | ARBITRATE · quarantine · audits · Sentry · DocuSign / signing |
+| **Ops console** | `/admin/ops` | Bug inbox · Provenance · ARBITRATE · quarantine · audits · Sentry · DocuSign |
+| Account | `/account` | Plan / seats summary · Stripe Customer Portal |
 | Governance (personal) | `/dashboard` | Tenant pillar health, daily reports / period PDF, Shadow Proxy panel, security view |
 
 Sign in: `/admin/sign-in` (requires `GLOBAL_ADMIN` or `COMPANY_ADMIN` on `p4_profiles`, or `MSGF_GLOBAL_ADMIN_EMAILS`).
@@ -15,9 +16,13 @@ Sign in: `/admin/sign-in` (requires `GLOBAL_ADMIN` or `COMPANY_ADMIN` on `p4_pro
 
 Replaces the need to run `apps/msgf-dashboard` for day-to-day operator work. Uses **Supabase session cookies** — not `SUPABASE_SERVICE_ROLE_KEY` in the browser.
 
+Shared **`project_origin`** filter strip syncs provenance, HITL audit, and skip-audit panels via `?project_origin=`.
+
 | Panel | API / notes |
 | :--- | :--- |
-| Pending ARBITRATE incidents | `GET /api/msgf/admin/incidents?status=pending` · resolve `PATCH .../incidents/:id` |
+| **Bug inbox** (`#bug-inbox`) | See § Bug inbox below |
+| **Provenance search** | `GET /api/msgf/admin/provenance-search` — Vault / Hall / HAL / P7 sources + reputation (GLOBAL_ADMIN + COMPANY_ADMIN scoped) |
+| ARBITRATE incidents | `GET /api/msgf/admin/incidents?status=pending|resolved` · resolve `PATCH .../incidents/:id` |
 | Signed HITL audit (A6) | List + verify — [`MSGF_ARBITRATE_AUDIT.md`](./MSGF_ARBITRATE_AUDIT.md) |
 | Skip-MSGF audit (A5) | Extension / IDE skip trail — [`MSGF_ASYNC_PREFLIGHT.md`](./MSGF_ASYNC_PREFLIGHT.md) |
 | Vault quarantine (A2/A3 + T3) | `GET/POST /api/msgf/admin/vault-quarantine` — restore / demote (no auto-Hall) |
@@ -25,6 +30,20 @@ Replaces the need to run `apps/msgf-dashboard` for day-to-day operator work. Use
 | DocuSign / signing roster | Envelopes + webhook inbox — [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) |
 
 Legacy Vite dashboard (`npm run dev -w msgf-dashboard`) still works with Bearer auth for cross-origin Cloud Run proxy.
+
+### Bug inbox
+
+Closed loop for user-reported bugs before (or beside) ARBITRATE HITL.
+
+| | |
+| :--- | :--- |
+| **UI** | `/admin/ops#bug-inbox` · nav “Bug inbox” |
+| **API** | `GET /api/msgf/admin/bug-inbox?status=open\|promoted\|dismissed\|all` · `PATCH` `{ id, action: "promote"\|"dismiss", note? }` |
+| **Table** | `p4_active_incidents` (`inbox_status`, `promoted_msgf_incident_id`, `inbox_note`, `inbox_updated_at`) |
+| **Ingest** | Onscreen **MsgfSentinel** FAB (`/workspace`, `/dashboard`, admin dashboard) → `POST /api/msgf/report-issue`; also web BugReporter, IDE/extension report-issue, and `persistSelfHealReport` when the caller did not already upsert |
+| **Promote** | Inserts `msgf_incidents` source `USER_SENTINEL` → appears in ARBITRATE **pending** |
+| **Scope** | `GLOBAL_ADMIN` sees all tenants; `COMPANY_ADMIN` limited to company allowlist |
+| **Migrations** | `20260811010000_p4_active_incidents_bug_inbox.sql` · `20260811020000_p4_upsert_reopen_bug_inbox.sql` (reopen dismissed on re-report) |
 
 ## Author Ecosystem ↔ MSGF (operator pathway)
 

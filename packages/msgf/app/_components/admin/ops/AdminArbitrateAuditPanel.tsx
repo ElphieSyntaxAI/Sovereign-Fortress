@@ -25,6 +25,7 @@
  * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
  */
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type AuditRow = {
   id: string;
@@ -48,12 +49,18 @@ type ListPayload = {
 };
 
 export function AdminArbitrateAuditPanel() {
+  const searchParams = useSearchParams();
+  const urlOrigin = searchParams?.get("project_origin")?.trim() || "";
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [originFilter, setOriginFilter] = useState("");
+  const [originFilter, setOriginFilter] = useState(urlOrigin);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOriginFilter(urlOrigin);
+  }, [urlOrigin]);
 
   const load = useCallback(async () => {
     setLoading(true);

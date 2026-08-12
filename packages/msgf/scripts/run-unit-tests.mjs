@@ -640,6 +640,7 @@ const UNIT_TESTS = [
   { label: "test:hybrid-crypto", args: ["--test", "tests/hybrid-crypto-envelope.test.ts"] },
   { label: "test:hal-pqc", args: ["--test", "tests/hal-pqc-certificate.test.ts"] },
   { label: "test:tri-consensus", args: ["--test", "tests/tri-consensus.test.ts"] },
+  { label: "test:source-audit", args: ["--test", "tests/source-audit.test.ts"] },
 ];
 
 function resolveTsxCli() {

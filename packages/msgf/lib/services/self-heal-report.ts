@@ -40,6 +40,7 @@ import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter"
 import { logicDriftService } from "@/lib/services/LogicDriftService";
 import { applyLocalSessionDelta } from "@/lib/services/local-session-delta";
 import { loadP2Roadmap } from "@/lib/services/p2-flow-roadmap";
+import { upsertActiveIncidentReport } from "@/lib/services/active-incident-report";
 import {
   insertMsgfArbitrateIncident,
   insertMsgfUserSentinelIncident,
@@ -172,6 +173,11 @@ export async function persistSelfHealReport(params: {
   entityId: string;
   tenantId: string;
   context?: SelfHealReportContext;
+  /**
+   * When true, caller already wrote p4_active_incidents (e.g. report-issue).
+   * When false/omitted, upsert so onscreen FAB / self-heal-only paths land in bug inbox.
+   */
+  bugInboxAlreadyRecorded?: boolean;
 }): Promise<SelfHealReportResult> {
   const snapshot = SelfHealReportBodySchema.parse({
     ...params.body,
@@ -179,6 +185,28 @@ export async function persistSelfHealReport(params: {
   });
 
   const tenantId = snapshot.tenant_id?.trim() || params.tenantId;
+
+  if (!params.bugInboxAlreadyRecorded) {
+    const location =
+      (typeof snapshot.editor?.location_href === "string" &&
+        snapshot.editor.location_href.trim()) ||
+      "";
+    const message =
+      (typeof snapshot.operator_note === "string" && snapshot.operator_note.trim()) ||
+      "Sentinel diagnostic report";
+    const upsert = await upsertActiveIncidentReport(params.adminSupabase, {
+      message,
+      location,
+      tenantId,
+    });
+    if (!upsert.ok) {
+      console.warn(
+        "[self-heal] bug inbox upsert failed:",
+        upsert.error,
+        upsert.detail ?? ""
+      );
+    }
+  }
 
   const healBugIndex = bugIndexForGovernanceHeal({
     governancePillar: params.context?.governancePillar,

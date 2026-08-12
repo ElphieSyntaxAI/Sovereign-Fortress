@@ -54,6 +54,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # Next/msgf `prebuild` expects service-account.json locally; omit baking secrets into the image.
 ENV MSGF_DOCKER_BUILD_SKIP_SA=1
+# No Sentry auth in image build — keep webpack clean (see next.config.ts).
+ENV SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1
 
 # Same toolchain as deps — compile phase must not fail on optional native modules.
 RUN apt-get update \

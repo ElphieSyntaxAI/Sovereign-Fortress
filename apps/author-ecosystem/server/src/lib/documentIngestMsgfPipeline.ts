@@ -26,6 +26,7 @@ import {
   extractOutlineBeatsFromText,
   mergePlotBeats,
 } from "./documentIngestOutline.js";
+import { FOUNDATION_PASS1_DOMAIN_HINT } from "./storyFoundationTaxonomy.js";
 import {
   buildDocumentIngestSignals,
 } from "./documentIngestSignals.js";
@@ -78,6 +79,19 @@ export function resolveDocumentIngestMode(): DocumentIngestMode {
   return "converge";
 }
 
+function wikiRowQuality(row: ProposedWikiEntry): number {
+  let score = 0;
+  if (row.wiki_metadata?.multi_pass === true) score += 40;
+  if (row.wiki_metadata?.fact_card === true || row.wiki_metadata?.lore_fact_distill === true) {
+    score += 35;
+  }
+  if (row.wiki_metadata?.rag_canon === true) score += 5;
+  const len = row.excerpt.length;
+  if (len > 0 && len <= 520) score += 20;
+  if (len > 1200) score -= 30;
+  return score;
+}
+
 function mergeProposedDedupe(into: ProposedWikiEntry[], add: ProposedWikiEntry[]): ProposedWikiEntry[] {
   const merged = [...into];
   for (const row of add) {
@@ -86,24 +100,28 @@ function mergeProposedDedupe(into: ProposedWikiEntry[], add: ProposedWikiEntry[]
         areNearDuplicateTexts(e.excerpt, row.excerpt) ||
         (e.title.toLowerCase() === row.title.toLowerCase() &&
           String(e.wiki_metadata?.section_path ?? "") ===
-            String(row.wiki_metadata?.section_path ?? ""))
+            String(row.wiki_metadata?.section_path ?? "")) ||
+        (e.title.toLowerCase() === row.title.toLowerCase() &&
+          String(e.wiki_metadata?.entity_fingerprint ?? "") ===
+            String(row.wiki_metadata?.entity_fingerprint ?? "") &&
+          String(e.wiki_metadata?.entity_fingerprint ?? "").length > 0)
     );
     if (!dup) merged.push(row);
-    else if (row.excerpt.length > dup.excerpt.length) {
+    else if (wikiRowQuality(row) > wikiRowQuality(dup)) {
       merged[merged.indexOf(dup)] = row;
     }
   }
   return merged;
 }
 
+/** Prefer entity fact cards / multi-pass over raw section dumps when capping. */
 function capProposedWikiWithRagPriority(
   rows: ProposedWikiEntry[],
   limit: number
 ): { rows: ProposedWikiEntry[]; capped: boolean } {
   if (rows.length <= limit) return { rows, capped: false };
-  const ragCanon = rows.filter((r) => r.wiki_metadata?.rag_canon === true);
-  const other = rows.filter((r) => r.wiki_metadata?.rag_canon !== true);
-  return { rows: [...ragCanon, ...other].slice(0, limit), capped: true };
+  const ranked = [...rows].sort((a, b) => wikiRowQuality(b) - wikiRowQuality(a));
+  return { rows: ranked.slice(0, limit), capped: true };
 }
 
 function collectSemanticDomains(rows: ProposedWikiEntry[]): string[] {
@@ -119,7 +137,7 @@ const SLOT_CONVERGE_HINTS: Record<DocumentIngestSlot, string> = {
   character_sheet:
     "Prefer character_cards: one proposed_wiki row per named character with outline_entity_kind character.",
   world_bible:
-    "Prefer world_lore: extract setting, environment, and technology/system rows (outline_entity_kind setting|environment|technology). Emit semantic_regions for each distinct lore domain (technology, government, species, history). Split proposed_wiki at domain boundaries — one concept per row.",
+    `Prefer world_lore FACT CARDS for every planner/RAG foundation. ${FOUNDATION_PASS1_DOMAIN_HINT} Use outline_entity_kind setting|environment|character|theme|plot_point and matching semantic_domain. Never dump a whole domain section into one excerpt.`,
   current_draft:
     "Prefer scene_grid and chapter_breakdown beats; character/setting rows only when clearly stated in prose.",
 };

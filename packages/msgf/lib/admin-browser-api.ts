@@ -161,12 +161,14 @@ export type AdminDashboardSession = {
   can_promote_to_global?: boolean;
 };
 
-export async function fetchPendingIncidents(): Promise<{
+export async function fetchIncidentsByStatus(
+  status: "pending" | "resolved"
+): Promise<{
   incidents: MsgfIncident[];
   session: AdminDashboardSession;
 }> {
   const res = await fetch(
-    `${apiBase()}/api/msgf/admin/incidents?status=pending&limit=50`,
+    `${apiBase()}/api/msgf/admin/incidents?status=${encodeURIComponent(status)}&limit=50`,
     adminFetchInit()
   );
   const data = await parseJson<{
@@ -184,6 +186,13 @@ export async function fetchPendingIncidents(): Promise<{
       can_promote_to_global: data.can_promote_to_global,
     },
   };
+}
+
+export async function fetchPendingIncidents(): Promise<{
+  incidents: MsgfIncident[];
+  session: AdminDashboardSession;
+}> {
+  return fetchIncidentsByStatus("pending");
 }
 
 export async function applyGlobalMitigationRules(params: {

@@ -208,11 +208,14 @@ export function GovernanceEnvironmentalShelf() {
     <section className="glass-panel rounded-2xl border border-emerald-500/20 p-5 sm:p-6">
       <div className="text-center sm:text-left">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-          Environmental stats layer
+          Your account · proven impact
         </p>
         <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-50 sm:text-2xl">
           Sustainable compute across your repositories
         </h2>
+        <p className="mt-2 max-w-2xl text-xs text-slate-500">
+          Private to this login — not the public marketing totals on the platform hub.
+        </p>
       </div>
 
       {loading ? (

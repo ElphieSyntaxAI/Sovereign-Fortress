@@ -472,7 +472,7 @@ export function DocumentIngestFlow(props: {
           action,
           proposed_wiki: proposed,
           outline_beats: outlineBeats,
-          sync_msgf_brain: false,
+          sync_msgf_brain: true,
           ...extra,
         }),
       });

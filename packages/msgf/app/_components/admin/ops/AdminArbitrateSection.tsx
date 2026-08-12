@@ -5,113 +5,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-149f647f-20260728T230931Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-c1a5d75-20260723T221428Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-c1a5d75-20260723T221141Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-c1a5d75-20260723T220451Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-a7aa881-20260620T084430Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-48a02b8-20260530T050749Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-48a02b8-20260530T050211Z-internal
- */
-/**
- * @msgf-license-header
- * Proprietary and Confidential
- * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
- *
- * This source code and associated documentation are the exclusive property of
- * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
- * reverse-engineering — including decompilation, disassembly, or derivative
- * works — is strictly prohibited without prior written consent.
- *
- * Distribution Build ID: MSGF-48a02b8-20260530T045550Z-internal
  */
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  fetchPendingIncidents,
+  fetchIncidentsByStatus,
   incidentDetail,
   incidentSummary,
   type AdminDashboardSession,
@@ -127,7 +26,14 @@ type Props = {
   seedSession?: AdminDashboardSession;
 };
 
-export function AdminArbitrateSection({ onSession, hideDeveloperKeystrokes, seedSession }: Props) {
+type StatusTab = "pending" | "resolved";
+
+export function AdminArbitrateSection({
+  onSession,
+  hideDeveloperKeystrokes,
+  seedSession,
+}: Props) {
+  const [statusTab, setStatusTab] = useState<StatusTab>("pending");
   const [incidents, setIncidents] = useState<MsgfIncident[]>([]);
   const [session, setSession] = useState<AdminDashboardSession>(seedSession ?? {});
   const [loading, setLoading] = useState(true);
@@ -138,7 +44,8 @@ export function AdminArbitrateSection({ onSession, hideDeveloperKeystrokes, seed
     setLoading(true);
     setError(null);
     try {
-      const { incidents: rows, session: nextSession } = await fetchPendingIncidents();
+      const { incidents: rows, session: nextSession } =
+        await fetchIncidentsByStatus(statusTab);
       const merged = seedSession ? { ...nextSession, ...seedSession } : nextSession;
       setSession(merged);
       onSession?.(merged);
@@ -152,7 +59,7 @@ export function AdminArbitrateSection({ onSession, hideDeveloperKeystrokes, seed
     } finally {
       setLoading(false);
     }
-  }, [onSession, seedSession]);
+  }, [onSession, seedSession, statusTab]);
 
   useEffect(() => {
     void load();
@@ -171,9 +78,11 @@ export function AdminArbitrateSection({ onSession, hideDeveloperKeystrokes, seed
         <div>
           <h2 className="text-sm font-semibold text-slate-100">ARBITRATE queue (live)</h2>
           <p className="text-xs text-slate-500">
-            <code className="text-violet-300/90">GET /api/msgf/admin/incidents?status=pending</code>
+            <code className="text-violet-300/90">
+              GET /api/msgf/admin/incidents?status={statusTab}
+            </code>
             {" · "}
-            {incidents.length} pending
+            {incidents.length} {statusTab}
             {session.operator_role ? (
               <>
                 {" · "}
@@ -181,6 +90,25 @@ export function AdminArbitrateSection({ onSession, hideDeveloperKeystrokes, seed
               </>
             ) : null}
           </p>
+          <div className="mt-2 flex gap-1">
+            {(["pending", "resolved"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  setSelectedId(null);
+                  setStatusTab(tab);
+                }}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize transition ${
+                  statusTab === tab
+                    ? "bg-violet-500/25 text-violet-100"
+                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
         <button
           type="button"
@@ -199,9 +127,9 @@ export function AdminArbitrateSection({ onSession, hideDeveloperKeystrokes, seed
       ) : null}
 
       {loading ? (
-        <p className="mt-4 text-sm text-zinc-500">Loading pending incidents…</p>
+        <p className="mt-4 text-sm text-zinc-500">Loading {statusTab} incidents…</p>
       ) : incidents.length === 0 ? (
-        <p className="mt-4 text-sm text-zinc-500">No pending ARBITRATE incidents.</p>
+        <p className="mt-4 text-sm text-zinc-500">No {statusTab} ARBITRATE incidents.</p>
       ) : (
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <ul className="max-h-[28rem] space-y-1 overflow-y-auto rounded-lg border border-zinc-800/80 p-1">
@@ -227,7 +155,7 @@ export function AdminArbitrateSection({ onSession, hideDeveloperKeystrokes, seed
             ))}
           </ul>
 
-          {selected ? (
+          {selected && statusTab === "pending" ? (
             <AdminResolutionPanel
               incident={selected}
               detail={incidentDetail(selected)}
@@ -235,6 +163,19 @@ export function AdminArbitrateSection({ onSession, hideDeveloperKeystrokes, seed
               canPromoteToGlobal={session.can_promote_to_global === true}
               hideDeveloperKeystrokes={hideDeveloperKeystrokes}
             />
+          ) : selected ? (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 text-sm text-slate-300">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">
+                Resolved
+              </p>
+              <p className="mt-2 font-medium text-slate-100">{incidentSummary(selected)}</p>
+              <p className="mt-2 whitespace-pre-wrap text-xs text-slate-400">
+                {selected.resolution_note?.trim() || "No resolution note."}
+              </p>
+              <p className="mt-3 font-mono text-[10px] text-zinc-500">
+                {incidentDetail(selected)}
+              </p>
+            </div>
           ) : (
             <p className="text-sm text-zinc-500">Select an incident.</p>
           )}

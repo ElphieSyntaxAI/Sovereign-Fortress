@@ -19,10 +19,59 @@ describe("documentIngestRagParser", () => {
     assert.equal(tags[0]?.name, "Physics Law: Low Gravity");
   });
 
-  test("inferDomainFromHeading maps technology and fauna", () => {
+  test("inferDomainFromHeading maps technology, planet, religion, fauna, physics", () => {
     assert.equal(inferDomainFromHeading("TECHNOLOGY & PROPULSION").domain, "technology");
-    assert.equal(inferDomainFromHeading("Terrestrial Fauna").domain, "species");
+    assert.equal(inferDomainFromHeading("TECHNOLOGY & PROPULSION").stack_layer, "science");
+    assert.equal(inferDomainFromHeading("PLANETS").domain, "planet");
+    assert.equal(inferDomainFromHeading("PLANETS").location_kind, "planet");
+    assert.equal(inferDomainFromHeading("RELIGION & FAITH").domain, "religion");
+    assert.equal(inferDomainFromHeading("RELIGION & FAITH").stack_layer, "religion");
+    assert.equal(inferDomainFromHeading("Terrestrial Fauna").domain, "fauna");
     assert.equal(inferDomainFromHeading("Ancient History").domain, "history");
+    assert.equal(inferDomainFromHeading("PHYSICS LAWS").domain, "physics");
+    assert.equal(inferDomainFromHeading("Themes & Motifs").domain, "theme");
+  });
+
+  test("parseDocumentToRagSections emits RAG TAG and markdown table foundation cards", () => {
+    const doc = [
+      "--- TAB: World Bible ---",
+      "",
+      "PHYSICS",
+      "RAG TAG: [Physics Law: Frost Line] | RAG TAG: [Tech: Ion Drive Cap]",
+      "Signal lag grows linearly beyond the belt.",
+      "",
+      "PLANETS",
+      "| Name | Gravity | Climate |",
+      "| ---- | ------- | ------- |",
+      "| Elphine Prime | 0.98g | Temperate |",
+      "| Kestrel Reach | 0.4g | Frozen |",
+      "",
+    ].join("\n");
+
+    const { proposedWiki } = parseDocumentToRagSections(doc, "world_bible", "ms-foundation");
+
+    assert.ok(
+      proposedWiki.some(
+        (r) =>
+          Boolean(r.wiki_metadata?.rag_tag) &&
+          Boolean(r.wiki_metadata?.foundation) &&
+          /frost line|ion drive/i.test(r.title)
+      ),
+      "RAG TAG atoms become foundation cards"
+    );
+    assert.ok(
+      proposedWiki.some(
+        (r) =>
+          Boolean(r.wiki_metadata?.table_row) &&
+          /elphine prime/i.test(r.title) &&
+          /0\.98g/i.test(r.excerpt)
+      ),
+      "planet table rows become foundation cards"
+    );
+    assert.ok(
+      proposedWiki.some((r) => String(r.wiki_metadata?.semantic_domain) === "physics"),
+      "physics foundation domain"
+    );
   });
 
   test("splitBodyIntoRagSections splits caps headers", () => {
@@ -39,16 +88,22 @@ describe("documentIngestRagParser", () => {
     assert.match(sections[1]?.heading ?? "", /FAUNA/i);
   });
 
-  test("parseDocumentToRagSections pairs world bible sections with RAG metadata", () => {
+  test("parseDocumentToRagSections emits entity fact cards not section dumps", () => {
     const doc = [
       "--- TAB: World Bible ---",
       "",
       "TECHNOLOGY",
-      "Ships use ion drives limited to 0.2c within the habitable belt.",
+      "Ion Drive: Ships use ion drives limited to 0.2c within the habitable belt.",
+      "Warp Lattice: Field coils stabilize jump corridors between marked beacons.",
       "RAG TAG: [Hard Magic: Ion Drive Cap]",
       "",
       "PLANETS",
       "Elphine Prime is a rocky world at 1.02 AU with breathable atmosphere.",
+      "Kestrel Reach orbits a red dwarf and hosts ice-mining stations.",
+      "",
+      "RELIGION",
+      "The Twin Choir forbids AI priesthoods after the Collapse.",
+      "Solace Rite marks arrivals with salt and void-oil.",
       "",
       "HISTORY",
       "The Collapse ended centralized rule two centuries before the story begins.",
@@ -61,18 +116,41 @@ describe("documentIngestRagParser", () => {
       "ms-test-001"
     );
 
-    assert.ok(proposedWiki.length >= 3, "expected technology, planets, history rows");
+    assert.ok(proposedWiki.length >= 4, "expected multiple fact cards across domains");
     assert.ok(
       proposedWiki.some((r) => String(r.wiki_metadata?.semantic_domain) === "technology"),
       "technology domain"
     );
     assert.ok(
+      proposedWiki.some((r) => /elphine prime/i.test(r.title) || /elphine prime/i.test(r.excerpt)),
+      "planet named as its own card"
+    );
+    assert.ok(
+      proposedWiki.every((r) => r.excerpt.length <= 520),
+      "no chapter-length excerpts"
+    );
+    assert.ok(
+      !proposedWiki.some(
+        (r) =>
+          /^planets$/i.test(r.title.trim()) &&
+          /elphine prime/i.test(r.excerpt) &&
+          /kestrel reach/i.test(r.excerpt) &&
+          r.excerpt.length > 200
+      ),
+      "must not dump both planets under one PLANETS title blob"
+    );
+    assert.ok(
+      proposedWiki.some((r) => String(r.wiki_metadata?.semantic_domain) === "religion"),
+      "religion domain"
+    );
+    assert.ok(
       proposedWiki.some((r) => /history|collapse/i.test(r.title) || /collapse/i.test(r.excerpt)),
       "history section"
     );
-    assert.ok(proposedWiki.every((r) => r.wiki_metadata?.rag_canon === true));
     assert.equal(diagnostics.length, proposedWiki.length);
-    assert.ok(diagnostics.some((d) => d.plot_engine_panel === "settings" || d.plot_engine_panel === "environmental"));
+    assert.ok(
+      diagnostics.some((d) => d.plot_engine_panel === "settings" || d.plot_engine_panel === "environmental")
+    );
   });
 
   test("mergeRagProposedWiki dedupes near-duplicate excerpts", () => {
