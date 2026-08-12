@@ -6,6 +6,7 @@
 
 - MSGF 1.0 vision & release plan: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md)
 - MSGF testing (admin vs users): [`MSGF_TESTING.md`](./MSGF_TESTING.md)
+- Cross-repo MSGF telemetry soak: [`MSGF_CROSS_REPO_TESTING.md`](./MSGF_CROSS_REPO_TESTING.md)
 - Small Brain / Big Brain + workspaces: [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)
 - Author product roadmap: [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md)
 - Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/syntax_education_pillars.md)
