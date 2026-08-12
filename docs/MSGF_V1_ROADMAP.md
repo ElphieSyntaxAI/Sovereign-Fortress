@@ -13,7 +13,9 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-08-11 (bug inbox closed loop; Shadow Proxy + Active Governance + launch hardening; TRI/PQC/Stripe/Sentry code landed; gap = staging smoke, Cloud Run secrets, Stripe identity)
+**Last updated:** 2026-08-12 (picker: **beta testing** on elphiesgatedai; Shadow Proxy trial; beta waitlist + ops inbox)
+
+**Picker status (public):** **Beta testing** — console seats invite-only; free 24h Shadow Proxy at `/shadow-trial`.
 
 **Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles, **launch readiness %**.
 

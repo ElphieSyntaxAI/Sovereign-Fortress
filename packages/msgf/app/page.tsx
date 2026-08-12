@@ -10,14 +10,13 @@
  *
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
-import { PlatformHubLanding } from "@/app/_components/landing/PlatformHubLanding";
+import { HomeLanding } from "@/app/_components/landing/HomeLanding";
 
 /**
- * `/` is the platform chooser hub ("What are you looking for?"). MSGF's own
- * marketing page (the original `HomeLanding`) now lives at `/brain` and stays
- * linked from the MSGF card. Keeps a single deployed URL viable as the
- * "main page" while DNS / Author client deployment catches up.
+ * `/` — MSGF marketing (logged-out home on elphiesgatedai).
+ * Platform chooser lives at elphiesyntax.com (Author client picker).
+ * Legacy hub mirror: `/hub` → PlatformHubLanding.
  */
 export default function Page() {
-  return <PlatformHubLanding />;
+  return <HomeLanding />;
 }

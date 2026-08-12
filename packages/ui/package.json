@@ -28,6 +28,16 @@
       "types": "./src/pillar-health.ts",
       "import": "./src/pillar-health.ts",
       "default": "./src/pillar-health.ts"
+    },
+    "./platform-roadmap": {
+      "types": "./src/components/PlatformRoadmapExplorer.tsx",
+      "import": "./src/components/PlatformRoadmapExplorer.tsx",
+      "default": "./src/components/PlatformRoadmapExplorer.tsx"
+    },
+    "./author-roadmap": {
+      "types": "./src/components/AuthorRoadmapDeepDive.tsx",
+      "import": "./src/components/AuthorRoadmapDeepDive.tsx",
+      "default": "./src/components/AuthorRoadmapDeepDive.tsx"
     }
   },
   "peerDependencies": {

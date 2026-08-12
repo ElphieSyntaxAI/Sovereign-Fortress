@@ -9,6 +9,7 @@ import { Suspense } from "react";
 
 import { AdminArbitrateAuditPanel } from "@/app/_components/admin/ops/AdminArbitrateAuditPanel";
 import { AdminArbitrateSection } from "@/app/_components/admin/ops/AdminArbitrateSection";
+import { AdminBetaWaitlistPanel } from "@/app/_components/admin/ops/AdminBetaWaitlistPanel";
 import { AdminBugInboxPanel } from "@/app/_components/admin/ops/AdminBugInboxPanel";
 import { AdminDocuSignPanel } from "@/app/_components/admin/ops/AdminDocuSignPanel";
 import { AdminProvenanceSearchPanel } from "@/app/_components/admin/ops/AdminProvenanceSearchPanel";
@@ -37,6 +38,7 @@ export default function AdminOpsPage() {
       <Suspense fallback={null}>
         <OpsProjectOriginStrip />
       </Suspense>
+      <AdminBetaWaitlistPanel />
       <AdminBugInboxPanel />
       <Suspense fallback={null}>
         <AdminProvenanceSearchPanel />

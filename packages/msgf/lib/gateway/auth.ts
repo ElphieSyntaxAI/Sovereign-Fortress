@@ -186,7 +186,7 @@ export async function authenticateGatewayKey(
     const licenseKeyHash = sha256HexUtf8(msgfKey);
     const { data, error } = await admin
       .from("msgf_licenses")
-      .select("id, tenant_id, status")
+      .select("id, tenant_id, status, expires_at")
       .eq("license_key_hash", licenseKeyHash)
       .maybeSingle();
 
@@ -207,6 +207,18 @@ export async function authenticateGatewayKey(
           message: "Invalid or inactive contract license.",
           type: "authentication_error",
           code: "msgf_license_invalid",
+        },
+      });
+    }
+
+    const expiresAt =
+      typeof data.expires_at === "string" ? data.expires_at.trim() : "";
+    if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
+      throw new GatewayAuthError(401, {
+        error: {
+          message: "Contract license expired.",
+          type: "authentication_error",
+          code: "msgf_license_expired",
         },
       });
     }

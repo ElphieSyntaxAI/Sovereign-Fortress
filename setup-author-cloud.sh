@@ -116,10 +116,19 @@ if [[ -z "${IMAGE_TAG// /}" ]]; then
   IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || echo "manual-$(date +%s)")"
 fi
 
+RUN_ENV[GIT_SHA]="${GIT_SHA:-${IMAGE_TAG}}"
+RUN_ENV[IMAGE_TAG]="${IMAGE_TAG}"
+RUN_ENV[DEPLOY_ENV]="${DEPLOY_ENV:-production}"
+RUN_ENV[DEPLOYED_AT]="${DEPLOYED_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+
 # Comma-separated --update-env-vars breaks on BFF_ALLOWED_ORIGINS (multiple URLs).
 # Write a YAML env file for gcloud run deploy --env-vars-file.
 BFF_ENV_KEYS=(
   NODE_ENV
+  GIT_SHA
+  IMAGE_TAG
+  DEPLOY_ENV
+  DEPLOYED_AT
   NEXT_PUBLIC_SUPABASE_URL
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   SUPABASE_URL

@@ -626,6 +626,7 @@ const UNIT_TESTS = [
   { label: "test:period-counters", args: ["--test", "tests/period-counters.test.ts"] },
   { label: "test:period-report-pdf", args: ["--test", "tests/period-report-pdf.test.ts"] },
   { label: "test:shadow-proxy", args: ["--test", "tests/shadow-proxy.test.ts"] },
+  { label: "test:shadow-trial", args: ["--test", "tests/shadow-trial.test.ts"] },
   { label: "test:ingest-hash-cache", args: ["--test", "tests/ingest-hash-cache.test.ts"] },
   { label: "test:pulse-idempotency", args: ["--test", "tests/pulse-idempotency.test.ts"] },
   { label: "test:usage-monitor", args: ["--test", "tests/usage-monitor.test.ts"] },

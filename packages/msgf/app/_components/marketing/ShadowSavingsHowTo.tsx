@@ -40,9 +40,9 @@ const client = new Anthropic({
 });`;
 
 const STEPS = [
-  "Point your OpenAI or Anthropic SDK baseURL at MSGF.",
-  "Set x-msgf-key and x-msgf-mode: shadow on every request.",
-  "Open Token Savings to review projected bill drop.",
+  "Start a free 24h trial — we mint your Shadow Proxy key and email a live savings link.",
+  "Point OpenAI or Anthropic SDK baseURL at MSGF with x-msgf-mode: shadow.",
+  "Watch projected bill drop on your trial dashboard; get the 24h report by email when it ends.",
 ] as const;
 
 export function ShadowSavingsHowTo() {
@@ -85,10 +85,19 @@ export function ShadowSavingsHowTo() {
 
       <p className="flex flex-wrap gap-x-3 gap-y-2 text-sm">
         <Link
-          href="/dashboard#token-savings"
+          href="/shadow-trial"
           className="font-medium text-emerald-400 underline-offset-4 hover:underline"
         >
-          Open Token Savings
+          Start free 24h trial
+        </Link>
+        <span className="text-slate-600" aria-hidden>
+          ·
+        </span>
+        <Link
+          href="/dashboard#token-savings"
+          className="font-medium text-emerald-400/80 underline-offset-4 hover:underline"
+        >
+          Token Savings (signed in)
         </Link>
         <span className="text-slate-600" aria-hidden>
           ·

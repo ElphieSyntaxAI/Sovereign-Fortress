@@ -47,6 +47,7 @@ const adminRoutes = require("./src/routes/adminRoutes");
 app.use("/api/admin", adminRoutes);
 // --- 1. ROUTE IMPORTS ---
 const authRoutes = require("./src/routes/authRoutes");
+const betaSignupRoutes = require("./src/routes/betaSignupRoutes");
 const testRoutes = require("./src/routes/testRoutes");
 // Import the Human Authorship Ledger routes
 
@@ -55,6 +56,7 @@ const testRoutes = require("./src/routes/testRoutes");
 //app.use(tenantResolver);
 
 app.use("/api/auth", authRoutes);
+app.use("/api/beta-signup", betaSignupRoutes);
 app.use("/api/test", testRoutes);
 // Mount the HAL routes at /api/hal
 

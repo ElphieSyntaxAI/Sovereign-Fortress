@@ -1,7 +1,9 @@
 # Syntax Education — Product Roadmap
 
 **Status:** Delivery tracker aligned to MSGF P1–P6 and phased master spec.  
-**Last updated:** 2026-07-13 (offline Phase 2/3 package — parent / reading gate / friction / Citation Hall)
+**Last updated:** 2026-08-12 (picker: **in development** — ~78% code complete; public host signup not open)
+
+**Picker status (public):** **In development** — Syntax Educates code is largely wired; production soak and public registration still pending.
 
 | Document | Purpose |
 | :--- | :--- |

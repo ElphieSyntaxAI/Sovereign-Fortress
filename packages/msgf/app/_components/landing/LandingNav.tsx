@@ -98,10 +98,10 @@ export function LandingNav({ userEmail = null }: Props) {
                 Admin
               </Link>
               <Link
-                href="/sign-up"
+                href="/shadow-trial"
                 className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:from-emerald-500 hover:to-violet-500"
               >
-                Sign up
+                Free 24h trial
               </Link>
             </>
           )}

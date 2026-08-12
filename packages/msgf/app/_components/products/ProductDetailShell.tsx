@@ -19,6 +19,14 @@
  */
 import Link from "next/link";
 
+import {
+  hypeFeatureCtaUrl,
+  hypeFeatureStageLabel,
+  platformHubEntryById,
+  type PlatformHubEntry,
+  type PlatformHypeFeature,
+} from "@elphie-syntax/core";
+
 export type ProductTone = "emerald" | "amethyst" | "topaz";
 
 export type ProductPhase = {
@@ -44,6 +52,8 @@ export type ProductDetailProps = {
   roadmapDocPath: string;
   metrics: ProductMetric[];
   phases: ProductPhase[];
+  /** Pull hype feature cards from platform hub SSOT when set. */
+  platformId?: PlatformHubEntry["id"];
   pillarRows?: { pillar: string; capability: string; notes?: string }[];
   footnotes?: string[];
 };
@@ -99,21 +109,118 @@ const TONE: Record<
   },
 };
 
+function stageBadgeForFeature(
+  tone: ProductTone,
+  stage: PlatformHypeFeature["stage"]
+): string {
+  const t = TONE[tone];
+  switch (stage) {
+    case "beta_live":
+      return "border-emerald-500/40 bg-emerald-500/15 text-emerald-200";
+    case "shipped":
+      return "border-teal-500/35 bg-teal-500/10 text-teal-200";
+    case "foundational":
+      return t.badge;
+    case "in_development":
+      return "border-amber-500/35 bg-amber-500/15 text-amber-200";
+    case "coming_soon":
+      return "border-slate-600/50 bg-slate-800/50 text-slate-300";
+    case "vision":
+      return "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200";
+  }
+}
+
+function HypeFeatureGrid({
+  entry,
+  toneKey,
+}: {
+  entry: PlatformHubEntry;
+  toneKey: ProductTone;
+}) {
+  const tone = TONE[toneKey];
+  return (
+    <section aria-label="Feature spotlight" className="space-y-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="text-lg font-semibold tracking-tight text-slate-100 sm:text-xl">
+          Feature spotlight
+        </h2>
+        <Link
+          href="/roadmap"
+          className={`text-xs font-semibold uppercase tracking-[0.16em] underline-offset-4 hover:underline ${tone.accentText}`}
+        >
+          Interactive roadmap →
+        </Link>
+      </div>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {entry.hypeFeatures.map((feature) => {
+          const ctaUrl = hypeFeatureCtaUrl(entry, feature);
+          return (
+            <li
+              key={feature.id}
+              className={`glass-panel rounded-2xl border p-4 ${tone.ringSoft}`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  {feature.category ? (
+                    <p className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${tone.accentText}`}>
+                      {feature.category}
+                    </p>
+                  ) : null}
+                  <h3 className="mt-1 text-sm font-semibold text-slate-100">{feature.title}</h3>
+                </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${stageBadgeForFeature(toneKey, feature.stage)}`}
+                >
+                  {hypeFeatureStageLabel(feature.stage)}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">{feature.tagline}</p>
+              {ctaUrl ? (
+                <a
+                  href={ctaUrl}
+                  className={`mt-3 inline-flex text-xs font-semibold underline-offset-4 hover:underline ${tone.accentText}`}
+                >
+                  {feature.ctaLabel ?? "Try on production ↗"}
+                </a>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 export function ProductDetailShell(props: ProductDetailProps) {
   const tone = TONE[props.tone];
+  const hubEntry = props.platformId ? platformHubEntryById(props.platformId) : undefined;
 
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
       <main className="mx-auto max-w-5xl space-y-10 px-5 py-10 sm:py-14">
         <nav className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <Link
-            href="/dashboard"
+            href="/"
             className="rounded-full border border-slate-700/70 px-3 py-1 font-medium text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
           >
-            ← Governance dashboard
+            ← MSGF home
           </Link>
           <span className="text-slate-700">·</span>
-          <span className="uppercase tracking-[0.2em]">Product roadmap</span>
+          <Link
+            href="/hub"
+            className="rounded-full border border-slate-700/70 px-3 py-1 font-medium text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+          >
+            Platform picker
+          </Link>
+          <span className="text-slate-700">·</span>
+          <Link
+            href="/roadmap"
+            className={`rounded-full border px-3 py-1 font-medium transition ${tone.secondary}`}
+          >
+            Roadmap explorer
+          </Link>
+          <span className="text-slate-700">·</span>
+          <span className="uppercase tracking-[0.2em]">Product detail</span>
         </nav>
 
         <header className="space-y-4">
@@ -152,13 +259,15 @@ export function ProductDetailShell(props: ProductDetailProps) {
               </span>
             )}
             <Link
-              href="/dashboard"
+              href="/roadmap"
               className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${tone.secondary}`}
             >
-              Back to dashboard
+              Explore roadmap
             </Link>
           </div>
         </header>
+
+        {hubEntry ? <HypeFeatureGrid entry={hubEntry} toneKey={props.tone} /> : null}
 
         <section
           aria-label="Vision"

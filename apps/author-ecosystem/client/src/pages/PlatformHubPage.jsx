@@ -4,11 +4,17 @@ import {
   PLATFORM_HUB_ENTRIES,
   PLATFORM_HUB_ROADMAP_AS_OF,
   availabilityLabel,
+  platformHubIntroBlurb,
+  platformPrimaryCtaUrl,
   productionMapLine,
 } from "@elphie-syntax/core";
+import { PlatformRoadmapExplorer } from "@elphie-syntax/ui/platform-roadmap";
 
 import { OperatorAdminLink } from "../components/OperatorAdminLink";
-import { getAuthorPrimaryTarget } from "../lib/authorHostRouting";
+
+function learnMoreHref(platform) {
+  return `${GATED_AI_HOST}/products/${platform.id}`;
+}
 
 /**
  * elphiesyntax.com home — "What are you looking for?" platform chooser.
@@ -86,32 +92,19 @@ const GLASS_PANEL_STYLE = {
 
 function statusBadgeClass(tone, availability) {
   const styles = TONE[tone];
-  if (availability === "live") return styles.statusLive;
-  if (availability === "deploying") return styles.statusDeploy;
+  if (availability === "beta_testing") return styles.statusLive;
+  if (availability === "foundational_testing") return styles.statusDeploy;
   return styles.statusSoon;
 }
 
-function learnMoreHref(platform) {
-  return `${GATED_AI_HOST}/products/${platform.id}`;
-}
-
 function primaryForPlatform(platform) {
-  if (platform.id === "author") {
-    return {
-      label: "Open Author Ecosystem",
-      ...getAuthorPrimaryTarget(AUTHOR_HOST),
-    };
-  }
-  if (platform.id === "education") {
-    return {
-      label: "Open Syntax Education",
-      to: EDUCATION_HOST,
-      external: true,
-    };
+  const url = platformPrimaryCtaUrl(platform);
+  if (!url || platform.prelaunch) {
+    return null;
   }
   return {
-    label: "Open MSGF console",
-    to: GATED_AI_HOST,
+    label: platform.primaryCta?.label ?? "Learn more",
+    to: url,
     external: true,
   };
 }
@@ -120,33 +113,33 @@ function PrimaryCta({ platform }) {
   const styles = TONE[platform.tone];
   const className = `inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${styles.primary}`;
 
-  if (platform.prelaunch) {
+  if (platform.prelaunch || !platform.primaryCta) {
     return (
       <span className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-800/40 px-4 py-2 text-sm font-medium text-slate-400">
-        Coming soon
+        {platform.availability === "in_development" ? "In development" : "Coming soon"}
       </span>
     );
   }
 
   const primary = primaryForPlatform(platform);
-  if (primary.external) {
+  if (!primary) {
     return (
-      <a
-        href={primary.to}
-        target="_blank"
-        rel="noreferrer noopener"
-        className={className}
-      >
-        {primary.label}
-        <span aria-hidden>↗</span>
-      </a>
+      <span className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-800/40 px-4 py-2 text-sm font-medium text-slate-400">
+        Invite only
+      </span>
     );
   }
+
   return (
-    <Link to={primary.to} className={className}>
+    <a
+      href={primary.to}
+      target="_blank"
+      rel="noreferrer noopener"
+      className={className}
+    >
       {primary.label}
-      <span aria-hidden>→</span>
-    </Link>
+      <span aria-hidden>↗</span>
+    </a>
   );
 }
 
@@ -380,10 +373,7 @@ export default function PlatformHubPage() {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            Three surfaces, one shared MSGF brain. MSGF 1.0 RC is live on{" "}
-            <span className="text-emerald-300/90">elphiesgatedai</span>; Author Phase 1 is
-            deploying to <span className="text-violet-300/90">authorecosystem</span>; Syntax
-            Education remains prelaunch.
+            {platformHubIntroBlurb()}
           </p>
         </section>
 
@@ -392,6 +382,12 @@ export default function PlatformHubPage() {
             <QuickCard key={p.id} platform={p} />
           ))}
         </section>
+
+        <PlatformRoadmapExplorer
+          variant="embedded"
+          initialProductId="msgf"
+          productPageBaseUrl={GATED_AI_HOST}
+        />
 
         <section className="space-y-8" aria-label="What each platform does">
           <header className="flex flex-wrap items-baseline justify-between gap-3">
@@ -420,25 +416,55 @@ export default function PlatformHubPage() {
           style={GLASS_PANEL_STYLE}
           className="rounded-2xl border border-slate-700/50 p-5 text-sm text-slate-300"
         >
-          <h2 className="text-base font-semibold text-slate-100">Deploying this week</h2>
+          <h2 className="text-base font-semibold text-slate-100">Where to go next</h2>
           <ul className="mt-3 list-inside list-disc space-y-1 text-xs sm:text-sm">
             <li>
-              <strong className="text-emerald-300">elphiesgatedai</strong> — MSGF console (
-              <code className="text-slate-400">./setup-cloud.sh</code>)
+              <strong className="text-emerald-300">elphiesgatedai</strong> — MSGF beta testing ·{" "}
+              <a
+                href={`${GATED_AI_HOST}/sign-up`}
+                className="text-emerald-200 underline-offset-4 hover:underline"
+              >
+                join beta ↗
+              </a>
+              {" · "}
+              <a
+                href={`${GATED_AI_HOST}/shadow-trial`}
+                className="text-emerald-200 underline-offset-4 hover:underline"
+              >
+                free 24h Shadow Proxy ↗
+              </a>
+              {" · "}
+              <a
+                href={`${GATED_AI_HOST}/roadmap`}
+                className="text-emerald-200 underline-offset-4 hover:underline"
+              >
+                full roadmap ↗
+              </a>
             </li>
             <li>
-              <strong className="text-violet-300">authorecosystem</strong> — Author UI +{" "}
-              <strong className="text-violet-300">api.authorecosystem</strong> BFF (
-              <code className="text-slate-400">./setup-author-cloud.sh</code>)
+              <strong className="text-violet-300">authorecosystem</strong> — Author foundational
+              testing ·{" "}
+              <a
+                href={`${AUTHOR_HOST}/beta`}
+                className="text-violet-200 underline-offset-4 hover:underline"
+              >
+                join foundational testing ↗
+              </a>
+              {" · "}
+              <a
+                href={`${AUTHOR_HOST}/roadmap`}
+                className="text-violet-200 underline-offset-4 hover:underline"
+              >
+                Author roadmap ↗
+              </a>
             </li>
             <li>
-              <strong className="text-slate-400">elphiesyntax.com</strong> — this hub (apex DNS →
-              author-client or shared static host)
+              <strong className="text-amber-300/90">syntaxeducates</strong> — Syntax Education in
+              development (signup not open yet)
             </li>
           </ul>
           <p className="mt-3 text-xs text-slate-500">
-            Runbook · <code className="text-slate-400">docs/DEPLOY_PRODUCT_DOMAINS.md</code> in the
-            monorepo
+            Runbook · <code className="text-slate-400">docs/DEPLOY_PRODUCT_DOMAINS.md</code>
           </p>
         </section>
 

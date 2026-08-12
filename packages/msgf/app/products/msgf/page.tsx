@@ -33,6 +33,7 @@ export default function Page() {
   return (
     <ProductDetailShell
       tone="emerald"
+      platformId="msgf"
       eyebrow="Brain · Engine"
       title="MSGF — Gated AI"
       tagline="Stateful, self-defending AI orchestration. Six pillars, IDE verify, Grok-aware TRI CONVERGE, Sentry quarantine, DocuSign / Dropbox Sign, and quantum-ready hybrid vault crypto."

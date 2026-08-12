@@ -866,9 +866,13 @@
 /**
  * Apply packages/msgf/supabase/migrations to the linked or configured remote Postgres.
  *
- * Loads env: ../../.env, ../../.env.local, .env, .env.local
+ * Loads env:
+ *   Production (default): ../../.env, ../../.env.local, .env, .env.local
+ *   Staging (--staging):  .env.staging.local, .env.staging, ../../.env.staging.local
  *
- * Usage (from repo root): npm run db:push
+ * Usage (from repo root):
+ *   npm run db:push          # production Supabase
+ *   npm run db:push:staging    # staging Supabase (beta waitlist stays on prod)
  *
  * Executes: npx supabase db push --db-url "<DATABASE_URL>" --yes
  * cwd: packages/msgf
@@ -893,10 +897,21 @@ const repoRoot = path.resolve(pkgRoot, "../..");
 const migrationsDir = path.join(pkgRoot, "supabase", "migrations");
 
 function loadEnvFiles() {
-  for (const rel of ["../../.env", "../../.env.local", ".env", ".env.local"]) {
+  const useStaging = process.argv.includes("--staging");
+  const files = useStaging
+    ? [".env.staging.local", ".env.staging", "../../.env.staging.local"]
+    : ["../../.env", "../../.env.local", ".env", ".env.local"];
+
+  if (useStaging) {
+    console.log("Target: STAGING Supabase (.env.staging.local)");
+  } else {
+    console.log("Target: PRODUCTION Supabase (.env.local) — beta waitlist & shadow trials live here");
+  }
+
+  for (const rel of files) {
     const p = path.resolve(pkgRoot, rel);
     if (fs.existsSync(p)) {
-      dotenv.config({ path: p, override: true });
+      dotenv.config({ path: p, override: useStaging ? false : true });
     }
   }
 }
@@ -1055,10 +1070,15 @@ console.error(
   [
     "Missing database credentials for supabase db push.",
     "",
-    "Set in packages/msgf/.env.local:",
+    process.argv.includes("--staging")
+      ? "Set in packages/msgf/.env.staging.local:"
+      : "Set in packages/msgf/.env.local:",
     "  SUPABASE_DB_PASSWORD=<database password from Supabase Dashboard → Database>",
     "  DATABASE_URL=postgresql://postgres@db.<project-ref>.supabase.co:5432/postgres",
     "",
+    process.argv.includes("--staging")
+      ? "Staging uses a separate Supabase project — never point staging at production."
+      : "Production receives beta signup, shadow trials, and live user data.",
     `SUPABASE_PROJECT_REF: ${projectRef || "(set SUPABASE_PROJECT_REF or NEXT_PUBLIC_SUPABASE_URL)"}`,
   ].join("\n")
 );

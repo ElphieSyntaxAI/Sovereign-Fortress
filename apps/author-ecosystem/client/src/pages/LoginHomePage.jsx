@@ -4,7 +4,6 @@ import { PlatformLoginMatrix } from "@elphie-syntax/ui/platform-login";
 import "@elphie-syntax/ui/platform-login.css";
 
 import { OperatorAdminLink } from "../components/OperatorAdminLink";
-import { RegisterForm } from "../components/RegisterForm";
 import { bffFetch, formatBffFetchError } from "../lib/bffFetch";
 
 export default function LoginHomePage() {
@@ -41,7 +40,7 @@ export default function LoginHomePage() {
                 : "rounded-full px-4 py-1.5 text-xs font-medium text-[#c9c4bc] hover:text-[#f5f0e8]"
             }
           >
-            Register (Author)
+            Join testing list
           </button>
         </div>
       </div>
@@ -77,8 +76,29 @@ export default function LoginHomePage() {
         />
       ) : (
         <div className="platform-login-root flex flex-col items-center px-4 py-10">
-          <div className="platform-login-panel w-full max-w-lg rounded-2xl p-6 sm:p-8">
-            <RegisterForm onError={setAuthError} />
+          <div className="platform-login-panel w-full max-w-lg rounded-2xl p-6 sm:p-8 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/90">
+              Foundational testing
+            </p>
+            <h2 className="mt-2 text-xl font-bold text-[#f5f0e8]">Author registration is invite-only</h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#c9c4bc]">
+              Join the foundational testing waitlist — we&apos;ll email you an invite link when a seat
+              opens.
+            </p>
+            <Link
+              to="/beta"
+              className="mt-6 inline-flex rounded-full border border-violet-500/40 bg-violet-500/20 px-6 py-3 text-sm font-semibold text-violet-50 hover:bg-violet-500/30"
+            >
+              Join foundational testing list →
+            </Link>
+            <p className="mt-4">
+              <Link
+                to="/roadmap"
+                className="text-sm font-medium text-violet-300/90 underline-offset-4 hover:underline"
+              >
+                Explore Author roadmap →
+              </Link>
+            </p>
           </div>
         </div>
       )}
@@ -103,6 +123,10 @@ export default function LoginHomePage() {
         {" · "}
         <Link to="/vault-pact" className="text-emerald-400/80 underline underline-offset-2 hover:text-[#f5f0e8]">
           Vault Pact
+        </Link>
+        {" · "}
+        <Link to="/roadmap" className="text-violet-300/90 underline underline-offset-2 hover:text-violet-200">
+          Roadmap
         </Link>
         {" · "}
         <OperatorAdminLink className="text-violet-300/90 underline underline-offset-2 hover:text-violet-200" />

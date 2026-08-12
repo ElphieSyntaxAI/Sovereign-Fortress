@@ -115,7 +115,10 @@ export {
   type AssignmentResourceSlice,
 } from "./education/CurriculumTreePicker";
 export {
-  ResourceReaderPane,
-  type ResourceReaderPaneProps,
-  type ResourceReaderPayload,
-} from "./education/ResourceReaderPane";
+  AuthorRoadmapDeepDive,
+  type AuthorRoadmapDeepDiveProps,
+} from "./components/AuthorRoadmapDeepDive";
+export {
+  PlatformRoadmapExplorer,
+  type PlatformRoadmapExplorerProps,
+} from "./components/PlatformRoadmapExplorer";

@@ -69,13 +69,42 @@ export {
 } from "./lib/operator-handoff-url";
 
 export {
+  AUTHOR_FLYWHEEL,
+  AUTHOR_LEXICON,
+  AUTHOR_MSGF_STATES,
+  AUTHOR_PHASE_1_DETAIL,
+  AUTHOR_PHASE_2_DETAIL,
+  AUTHOR_PHASE_3_DETAIL,
+  AUTHOR_PROGRESS_PULSE,
+  AUTHOR_PUBLISHER_KEYS,
+  AUTHOR_ROADMAP_AS_OF,
+  AUTHOR_TIERS,
+  authorRoadmapHeroBlurb,
+  type AuthorFlywheelStep,
+  type AuthorLexiconEntry,
+  type AuthorMsgfState,
+  type AuthorPhaseDetailRow,
+  type AuthorProgressPulse,
+  type AuthorPublisherKeyRow,
+  type AuthorTierRow,
+} from "./lib/author-roadmap-content";
+
+export {
   ELPHIE_PRODUCT_HOSTS,
   PLATFORM_HUB_ENTRIES,
   PLATFORM_HUB_ROADMAP_AS_OF,
   availabilityLabel,
+  hypeFeatureCtaUrl,
+  hypeFeatureStageLabel,
+  platformHubEntryById,
+  platformHubIntroBlurb,
+  platformPrimaryCtaUrl,
   productionMapLine,
   type PlatformHubAvailability,
   type PlatformHubEntry,
+  type PlatformHubPrimaryCta,
   type PlatformHubRoadmapPhase,
   type PlatformHubTone,
+  type PlatformHypeFeature,
+  type PlatformHypeFeatureStage,
 } from "./lib/platform-hub-content";

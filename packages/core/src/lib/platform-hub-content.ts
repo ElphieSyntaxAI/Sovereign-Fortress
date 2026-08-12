@@ -1,10 +1,10 @@
 /**
- * Platform chooser ("picker") copy — SSOT for apex hub + MSGF `/` landing.
+ * Platform chooser ("picker") copy — SSOT for apex hub + MSGF `/hub` landing.
  * Roadmap sources: docs/MSGF_V1_ROADMAP.md, docs/AUTHOR_ECOSYSTEM_ROADMAP.md,
  * docs/syntax-education/ROADMAP.md. Update when shipping milestones change.
  */
 
-export const PLATFORM_HUB_ROADMAP_AS_OF = "2026-05-25";
+export const PLATFORM_HUB_ROADMAP_AS_OF = "2026-08-12";
 
 export const ELPHIE_PRODUCT_HOSTS = {
   apex: "elphiesyntax.com",
@@ -15,12 +15,44 @@ export const ELPHIE_PRODUCT_HOSTS = {
 } as const;
 
 export type PlatformHubTone = "emerald" | "amethyst" | "topaz";
-export type PlatformHubAvailability = "live" | "deploying" | "prelaunch";
+
+/** Shipped-stage labels for the public picker (Aug 2026). */
+export type PlatformHubAvailability =
+  | "beta_testing"
+  | "foundational_testing"
+  | "in_development";
 
 export type PlatformHubRoadmapPhase = {
   label: string;
   status: string;
   highlights: readonly string[];
+};
+
+export type PlatformHubPrimaryCta = {
+  label: string;
+  /** Path on `productionHost` (leading `/`) or absolute https URL. */
+  path: string;
+};
+
+/** Marketing-stage labels for public roadmap explorer cards. */
+export type PlatformHypeFeatureStage =
+  | "beta_live"
+  | "shipped"
+  | "foundational"
+  | "in_development"
+  | "coming_soon"
+  | "vision";
+
+export type PlatformHypeFeature = {
+  id: string;
+  title: string;
+  tagline: string;
+  stage: PlatformHypeFeatureStage;
+  /** Optional category chip — e.g. "Governance", "Classroom" */
+  category?: string;
+  /** Path on `productionHost` or absolute https URL for live CTAs. */
+  ctaPath?: string;
+  ctaLabel?: string;
 };
 
 export type PlatformHubEntry = {
@@ -37,36 +69,42 @@ export type PlatformHubEntry = {
   productionHost: string;
   roadmapDoc: string;
   phases: readonly PlatformHubRoadmapPhase[];
+  hypeFeatures: readonly PlatformHypeFeature[];
+  /** When true, primary CTA is hidden unless operator/prelaunch access. */
   prelaunch: boolean;
+  primaryCta: PlatformHubPrimaryCta | null;
 };
 
 const AUTHOR_PHASES: readonly PlatformHubRoadmapPhase[] = [
   {
-    label: "Phase 1 — Foundation (current)",
-    status: "In flight · deploy-ready",
+    label: "Phase 1 — Foundation (~78%)",
+    status: "Foundational testing · live",
     highlights: [
-      "Document ingest (MSGF V3.2) — uploads & Google Docs → wiki, outline, world bible",
-      "HAL Ledger + MSGF Pulse bridge — token savings on Gated AI dashboard",
-      "Manuscript hub, planning command center, Vault Pact registration",
-      "Unified auth — Supabase + BFF on api.authorecosystem",
+      "Document ingest V3.2 (~90%) — Google Docs / uploads → wiki, outline, world bible",
+      "Project switcher 100% — MS: nav dropdown, hub kanban, zero cross-book bleed",
+      "HAL v2 certificate (~70%) — ML-DSA-65 proof bundles + Vault Seal export",
+      "MSGF Pulse bridge (~90%) — Librarian & Critic via Shadow/Active; savings on author_ecosystem tenant",
+      "Unified auth + Vault Pact registration on api.authorecosystem + authorecosystem client",
     ],
   },
   {
-    label: "Phase 2 — Professionalization",
-    status: "Next",
+    label: "Phase 2 — Professionalization (~42%)",
+    status: "Next · immediate focus",
     highlights: [
-      "Cool Down revision locks (4w / 6w / 8w tiers)",
-      "Bicameral audit — Librarian + Critic revision reports",
-      "Editor suite + Community Guild marketplace",
+      "Cool Down locks (~70%) — 4w / 6w / 8w tiers + verify-result unlock",
+      "Bicameral audit (~50%) — Librarian logic + Critic sensitivity revision dossiers",
+      "Editor suite (~30%) — HAL scores, revision history, deploy-gate advisory",
+      "Community Guild (~10%) — verified translators, artists, voice actors",
     ],
   },
   {
-    label: "Phase 3 — Scaling & sovereignty",
+    label: "Phase 3 — Scaling & sovereignty (~5%)",
     status: "Planned",
     highlights: [
-      "Publisher Hub (anonymized WIP scouting)",
-      "Multimedia vault + personality lore bots",
-      "Growth analytics & graph comparison",
+      "Publisher Hub — anonymized WIP scouting with HAL scores (no IP exposure)",
+      "Personality lore bots (~15%) — character RAG for fans, non-spoiler boundaries",
+      "Multimedia vault + graph comparison — Patreon-style content × sales analytics",
+      "Author growth tracking — vocabulary & craft analytics over your career arc",
     ],
   },
 ];
@@ -74,51 +112,349 @@ const AUTHOR_PHASES: readonly PlatformHubRoadmapPhase[] = [
 const MSGF_PHASES: readonly PlatformHubRoadmapPhase[] = [
   {
     label: "V3.2-ULTRA — SWEEP · SHARD · DEFEND",
-    status: "Shipped (ops)",
+    status: "Shipped · ops",
     highlights: [
       "Cold pgvector + hot Redis active slices on Pulse",
-      "Shadow preflight + Vault/Hall cross-reference",
-      "Ops heartbeat — tier batches, 6h/nightly heals, Hall purge",
+      "Shadow Proxy + Active Governance at /api/v1",
+      "Ops heartbeat — tier batches, bug inbox, Hall purge",
     ],
   },
   {
-    label: "CONVERGE · ARBITRATE",
-    status: "Partial · active",
+    label: "CONVERGE · ARBITRATE · TRI",
+    status: "Beta · active",
     highlights: [
-      "Dual-model consensus on RED/critical paths",
-      "Heal-queue human arbitration + circuit breaker after 3 failures",
-      "Post-ingest healing console (web + Pulse Guard IDE)",
+      "TRI majority (Claude + Gemini + Grok when enabled)",
+      "Heal-queue human arbitration + Sentinel bug FAB",
+      "Free 24h Shadow Proxy trial + email savings report",
     ],
   },
   {
     label: "MSGF 1.0 GA",
-    status: "RC · Stripe after test signoff",
+    status: "Beta testing → RC",
     highlights: [
       "Standalone console at elphiesgatedai.elphiesyntax.com",
+      "Stripe entitlements + DocuSign / Dropbox Sign gates",
       "Embedded engine for Author + Education tenants",
-      "BYOK multi-tenant API + contract licenses",
     ],
   },
 ];
 
 const EDUCATION_PHASES: readonly PlatformHubRoadmapPhase[] = [
   {
-    label: "Syntax Education 1.0 track",
-    status: "Prelaunch",
+    label: "Syntax Education 1.0 track (~84% code)",
+    status: "In development",
     highlights: [
       "Layer A toolbox + Layer B AI allowance (grade-aware)",
-      "Canvas LTI 1.3 + de-identified privacy gate",
-      "Curriculum tree picker → resource_context_id slicing",
+      "Utah S.B. 149 / H.B. 273 gates + teacher lesson builder",
+      "Google Classroom OAuth + Docs add-on scaffold",
     ],
   },
   {
-    label: "Classroom workflows",
-    status: "Planned",
+    label: "Classroom workflows (~72% Phase 2)",
+    status: "Coding",
     highlights: [
-      "Human Effort Certificate → SpeedGrader passback",
-      "Socratic sandbox with district-approved slices",
-      "Utah-aware policy templates",
+      "Parent dashboard · reading gate · Citation Hall",
+      "Canvas LTI 1.3 routes (secondary smoke)",
+      "Human Effort Certificate → Classroom grade stub",
     ],
+  },
+  {
+    label: "District soak + launch",
+    status: "Not open yet",
+    highlights: [
+      "Live migrations / OAuth / Docs soak",
+      "syntaxeducates.elphiesyntax.com host",
+      "District curriculum RAG soak",
+    ],
+  },
+];
+
+const AUTHOR_HYPE: readonly PlatformHypeFeature[] = [
+  {
+    id: "ingest-v32",
+    title: "Document ingest V3.2",
+    tagline:
+      "Google Docs & uploads → authorship Q&A → review → commit into wiki, outline, and world bible. Dual-disagree triggers T3 HITL + verify fail — no silent lore drift.",
+    stage: "foundational",
+    category: "Ingest · ~90%",
+    ctaPath: "/beta",
+    ctaLabel: "Join foundational testing",
+  },
+  {
+    id: "project-switcher",
+    title: "Project switcher & manuscript hub",
+    tagline:
+      "MS: nav dropdown + hub kanban — activate with manuscriptId / tenantId / seriesId. Outline, wiki, and drafting remount per book. Shipped 100%.",
+    stage: "shipped",
+    category: "Workspace",
+    ctaPath: "/beta",
+    ctaLabel: "Request access",
+  },
+  {
+    id: "hal-v2-cert",
+    title: "HAL v2 authorship certificate",
+    tagline:
+      "Exportable proof bundle with Vault Seal + Lore-Git chain. ML-DSA-65 (FIPS 204) over RFC 8785 JSON when MSGF_HAL_PQC_SIGN=1 — defend Chain of Origin.",
+    stage: "foundational",
+    category: "Sovereignty · ~70%",
+  },
+  {
+    id: "vault-pact",
+    title: "Vault Pact zero-training seal",
+    tagline:
+      "Bilateral NDA: no model training, no human browsing. Optional Hybrid KEM attestation envelope on registration — contractual data sovereignty.",
+    stage: "foundational",
+    category: "Legal",
+    ctaPath: "/vault-pact",
+    ctaLabel: "Read Vault Pact",
+  },
+  {
+    id: "msgf-pulse-bridge",
+    title: "MSGF Pulse bridge",
+    tagline:
+      "HAL chunk-pulse → Gated AI routing with x-msgf-converge-tier. Token savings visible on elphiesgatedai for tenant author_ecosystem — same brain as MSGF beta.",
+    stage: "foundational",
+    category: "Governance · ~90%",
+  },
+  {
+    id: "shadow-active-librarian",
+    title: "Shadow/Active Librarian & Critic",
+    tagline:
+      "~85% MSGF governance adoption — revision intelligence through /api/v1 gateway, verify-result on unlock/commit, quarantine ops links when drift spikes.",
+    stage: "foundational",
+    category: "Bicameral prep",
+  },
+  {
+    id: "author-rag-sidekick",
+    title: "Author RAG sidekick",
+    tagline:
+      "Continuity and outline adherence assistant — OpenAI via MSGF gateway when governance mode ≠ off. Lore-Git Vault retrieval, not generic chat.",
+    stage: "foundational",
+    category: "Intelligence · ~75%",
+  },
+  {
+    id: "planning-command-center",
+    title: "Planning command center",
+    tagline:
+      "Manuscript hub kanban, word-count + outline percentage tracking, series-scoped RAG share for multi-book sagas — one sovereign command surface.",
+    stage: "foundational",
+    category: "Planning",
+  },
+  {
+    id: "cool-down-locks",
+    title: "Cool Down revision locks",
+    tagline:
+      "4w / 6w / 8w lock tiers + 24h planning-sync cooldown. Read-only state gate forces professional distance — unlock posts MSGF verify-result (~70% built).",
+    stage: "coming_soon",
+    category: "Workflow · Phase 2",
+  },
+  {
+    id: "bicameral-audit",
+    title: "Bicameral audit reports",
+    tagline:
+      "Librarian (logic) + Critic (sensitivity) revision dossiers — continuity, plot holes, market appeal with MSGF drift scoring (~50% built).",
+    stage: "coming_soon",
+    category: "Publisher proof",
+  },
+  {
+    id: "editor-suite",
+    title: "Editor suite & deploy-gate",
+    tagline:
+      "Human editor dashboard with HAL scores and revision history. Optional MSGF_AUTHOR_REQUIRE_DEPLOY_GATE advisory before manuscript handoff (~30%).",
+    stage: "coming_soon",
+    category: "Collaboration",
+  },
+  {
+    id: "community-guild",
+    title: "Community Guild marketplace",
+    tagline:
+      "Verified translators, artists, and voice actors inside Vault Pact boundaries — Tier 2+ guild access levels (~10% scaffold).",
+    stage: "coming_soon",
+    category: "Marketplace",
+  },
+  {
+    id: "author-tiers",
+    title: "Five author tiers (Free → $199.99)",
+    tagline:
+      "Tier 1 HAL-only → Tier 5 with 20 WIP, 7 lore bots, automated sales tracking, and courses. WIP caps and guild levels scale with subscription.",
+    stage: "foundational",
+    category: "Pricing SSOT",
+    ctaPath: "/beta",
+    ctaLabel: "Join waitlist",
+  },
+  {
+    id: "publisher-keys",
+    title: "Four publisher encryption keys",
+    tagline:
+      "Level 1 HAL average (free) → Level 4 full forensic audit trail. Publishers buy proof depth without seeing your manuscript until you opt into discovery.",
+    stage: "vision",
+    category: "Publisher Hub",
+  },
+  {
+    id: "publisher-hub",
+    title: "Publisher Hub scouting",
+    tagline:
+      "STATE_DISCOVERY — anonymized WIP feed with HAL scores, blurbs, and genre. Proof-based scouting; your identity stays sealed until you choose exposure.",
+    stage: "vision",
+    category: "Discovery",
+  },
+  {
+    id: "lore-bots-multimedia",
+    title: "Lore bots + multimedia vault",
+    tagline:
+      "Character-specific RAG for fan interaction (non-spoiler). Patreon-style video/audio vault with graph comparison vs sales data — Phase 3 horizon.",
+    stage: "vision",
+    category: "Scale",
+  },
+];
+
+const MSGF_HYPE: readonly PlatformHypeFeature[] = [
+  {
+    id: "shadow-trial-24h",
+    title: "Free 24h Shadow Proxy trial",
+    tagline:
+      "Live token savings on your stack — email report at expiry proves MSGF governance ROI before you subscribe.",
+    stage: "beta_live",
+    category: "Try it now",
+    ctaPath: "/shadow-trial",
+    ctaLabel: "Start free trial",
+  },
+  {
+    id: "tri-converge",
+    title: "TRI majority CONVERGE",
+    tagline:
+      "Claude + Gemini + Grok when enabled — Big Brain majority on high drift, heal-queue human arbitration.",
+    stage: "beta_live",
+    category: "Consensus",
+    ctaPath: "/sign-up",
+    ctaLabel: "Join beta",
+  },
+  {
+    id: "pulse-guard",
+    title: "Pulse Guard IDE verify",
+    tagline:
+      "0-token prompt optimizer, Run Scripts, Safe Build — verify-result → Vault, repeated fail → Hall.",
+    stage: "beta_live",
+    category: "IDE",
+    ctaPath: "/sign-up",
+    ctaLabel: "Join beta",
+  },
+  {
+    id: "sentinel-inbox",
+    title: "Sentinel bug FAB + inbox",
+    tagline:
+      "Floating report button routes to operator bug inbox — Sentry issues quarantine to Vault, not silent Hall.",
+    stage: "shipped",
+    category: "Ops",
+  },
+  {
+    id: "esign-gates",
+    title: "DocuSign / Dropbox Sign gates",
+    tagline:
+      "Team invites and webhook queue — contractual onboarding before console seats go live.",
+    stage: "shipped",
+    category: "Integrations",
+  },
+  {
+    id: "hybrid-pq-vault",
+    title: "Quantum-ready hybrid vault",
+    tagline:
+      "Hybrid KEM (X25519 + ML-KEM-768) envelopes + HAL v2 ML-DSA-65 when flags enabled — harvest-now-decrypt-later resistant.",
+    stage: "shipped",
+    category: "Security",
+  },
+  {
+    id: "shadow-proxy-gateway",
+    title: "Shadow Proxy / Active gateway",
+    tagline:
+      "OpenAI + Anthropic compatible /api/v1 — prove savings in Shadow mode, enforce governance in Active.",
+    stage: "beta_live",
+    category: "Gateway",
+    ctaPath: "/shadow-trial",
+    ctaLabel: "Try Shadow Proxy",
+  },
+  {
+    id: "stripe-entitlements",
+    title: "Stripe entitlements + team seats",
+    tagline:
+      "Paid go-live after identity smoke — tier batches, license expiry, and operator heartbeat on elphiesgatedai.",
+    stage: "coming_soon",
+    category: "Billing",
+  },
+  {
+    id: "workspace-sso",
+    title: "Workspace SSO + company domains",
+    tagline:
+      "Google Workspace SSO, domain allowlists, signed ARBITRATE audits — enterprise-ready identity without siloing pillars.",
+    stage: "coming_soon",
+    category: "Enterprise",
+  },
+];
+
+const EDUCATION_HYPE: readonly PlatformHypeFeature[] = [
+  {
+    id: "layer-ab-workspace",
+    title: "Layer A toolbox + Layer B allowance",
+    tagline:
+      "Grade-aware AI sandbox — Socratic Layer A tools with metered Layer B assistance teachers control per lesson.",
+    stage: "in_development",
+    category: "Workspace",
+  },
+  {
+    id: "utah-policy-gates",
+    title: "Utah S.B. 149 / H.B. 273 gates",
+    tagline:
+      "Policy-aware curriculum slicing — district-approved content only, with audit trails for compliance reviewers.",
+    stage: "in_development",
+    category: "Governance",
+  },
+  {
+    id: "lesson-builder",
+    title: "Teacher lesson builder",
+    tagline:
+      "Compose assignments with resource slices, reading gates, and human-effort certificates — one board for the class.",
+    stage: "in_development",
+    category: "Classroom",
+  },
+  {
+    id: "classroom-oauth",
+    title: "Google Classroom OAuth",
+    tagline:
+      "Roster sync + grade stub hooks — Classroom as source of truth while MSGF brain stays tenant-isolated.",
+    stage: "in_development",
+    category: "Integrations",
+  },
+  {
+    id: "hec-certificate",
+    title: "Human Effort Certificate",
+    tagline:
+      "Prove student authorship before AI assistance counts — Classroom grade stub when effort threshold met.",
+    stage: "coming_soon",
+    category: "Integrity",
+  },
+  {
+    id: "canvas-lti",
+    title: "Canvas LTI 1.3 launch",
+    tagline:
+      "Secondary LMS path — deep-link into Layer A/B workspace with district curriculum RAG behind the gate.",
+    stage: "coming_soon",
+    category: "Integrations",
+  },
+  {
+    id: "parent-dashboard",
+    title: "Parent dashboard + reading gate",
+    tagline:
+      "Guardian visibility into assignments and reading progress — Citation Hall for source transparency.",
+    stage: "coming_soon",
+    category: "Family",
+  },
+  {
+    id: "district-rag-soak",
+    title: "District curriculum RAG soak",
+    tagline:
+      "Live migrations, OAuth, and Docs add-on production soak — syntaxeducates host when districts are ready.",
+    stage: "vision",
+    category: "Launch",
   },
 ];
 
@@ -130,19 +466,21 @@ export const PLATFORM_HUB_ENTRIES: readonly PlatformHubEntry[] = [
     eyebrow: "Sovereign · For writers & publishers",
     title: "Author Ecosystem",
     tagline:
-      "Sovereign narrative infrastructure — document ingest into wiki & outline, HAL proof-of-authorship, Vault Pact NDA, and MSGF-gated revision intelligence.",
+      "Sovereign narrative infrastructure — document ingest into wiki & outline, HAL proof-of-authorship, Vault Pact NDA, MSGF-gated Librarian & Critic, and Cool Down locks on the Phase 2 path. ~48% overall across three phases; foundational testing on authorecosystem.",
     bullets: [
-      "Document ingest — scan → authorship → review → commit (wiki, outline, world bible)",
-      "HAL Ledger — biometric proof linked to MSGF Pulse & token savings",
-      "Vault Pact — zero-training, no-human-browsing contractual seal",
+      "Phase 1 ~78% — ingest (~90%), project switcher (100%), HAL cert, MSGF Pulse bridge",
+      "Phase 2 ~42% — Cool Down locks, bicameral audit, editor suite, Community Guild",
+      "Five tiers Free → $199.99 · Publisher Hub discovery on the Phase 3 horizon",
     ],
     tone: "amethyst",
-    availability: "deploying",
-    roadmapHeadline: "Phase 1 · Foundation — shipping to authorecosystem",
+    availability: "foundational_testing",
+    roadmapHeadline: "Creative Integrity Flywheel · Phase 1 ~78% · foundational testing",
     productionHost: ELPHIE_PRODUCT_HOSTS.author,
     roadmapDoc: "docs/AUTHOR_ECOSYSTEM_ROADMAP.md",
     phases: AUTHOR_PHASES,
+    hypeFeatures: AUTHOR_HYPE,
     prelaunch: false,
+    primaryCta: { label: "Join foundational testing", path: "/beta" },
   },
   {
     id: "education",
@@ -150,19 +488,21 @@ export const PLATFORM_HUB_ENTRIES: readonly PlatformHubEntry[] = [
     eyebrow: "K–12 · LTI 1.3 · Utah-aware",
     title: "Syntax Education",
     tagline:
-      "Socratic sandbox with grade-aware AI Allowance, district-approved curriculum slicing, and Canvas LTI 1.3 — on the shared MSGF brain, isolated by tenant.",
+      "Socratic sandbox with grade-aware AI Allowance and district-approved curriculum slicing — on the shared MSGF brain, isolated by tenant. Code ~78% of full roadmap; host and public registration still in development.",
     bullets: [
-      "Layered Workspace Control — Layer A toolbox · Layer B allowance",
-      "Canvas LTI 1.3 + de-identified privacy gate (roadmap)",
-      "Human Effort Certificate → SpeedGrader passback (planned)",
+      "Vite shell + lessons, board, curriculum, governance UI wired in repo",
+      "Classroom OAuth + Docs add-on need production env soak",
+      "Public host syntaxeducates.elphiesyntax.com — not open for signup yet",
     ],
     tone: "topaz",
-    availability: "prelaunch",
-    roadmapHeadline: "Education 1.0 · Prelaunch",
+    availability: "in_development",
+    roadmapHeadline: "Education 1.0 · In development (~78% code complete)",
     productionHost: ELPHIE_PRODUCT_HOSTS.education,
     roadmapDoc: "docs/syntax-education/ROADMAP.md",
     phases: EDUCATION_PHASES,
+    hypeFeatures: EDUCATION_HYPE,
     prelaunch: true,
+    primaryCta: null,
   },
   {
     id: "msgf",
@@ -170,35 +510,85 @@ export const PLATFORM_HUB_ENTRIES: readonly PlatformHubEntry[] = [
     eyebrow: "Prefrontal cortex · For developers & enterprise teams",
     title: "MSGF — Gated AI",
     tagline:
-      "Prefrontal cortex for AI — MSGF V3.2-ULTRA stateful orchestration. Six pillars, hot/cold storage, dual-model consensus, mandatory human tie-breaker on RED disagreement.",
+      "Prefrontal cortex for AI — MSGF V3.2-ULTRA on elphiesgatedai. Six pillars, Shadow Proxy proof mode, TRI consensus, bug inbox, and operator ops — beta testing now with waitlist for console seats.",
     bullets: [
-      "SWEEP → SHARD → DEFEND → CONVERGE → ARBITRATE → PERSIST",
-      "Vault (positive) vs Hall (negative) on every Pulse",
-      "RED immediate · YELLOW 6h · GREEN 24h tiered batching",
+      "Shadow Proxy / Active Governance — /api/v1 OpenAI + Anthropic gateway",
+      "Free 24h Shadow Proxy trial — live savings + email report",
+      "Beta console — Pulse Guard, dashboard, admin ops on elphiesgatedai",
     ],
     tone: "emerald",
-    availability: "live",
-    roadmapHeadline: "MSGF 1.0 RC · V3.2-ULTRA on elphiesgatedai",
+    availability: "beta_testing",
+    roadmapHeadline: "MSGF 1.0 · Beta testing on elphiesgatedai",
     productionHost: ELPHIE_PRODUCT_HOSTS.msgf,
     roadmapDoc: "docs/MSGF_V1_ROADMAP.md",
     phases: MSGF_PHASES,
+    hypeFeatures: MSGF_HYPE,
     prelaunch: false,
+    primaryCta: { label: "Join beta", path: "/sign-up" },
   },
 ];
+
+export function platformHubEntryById(
+  id: PlatformHubEntry["id"]
+): PlatformHubEntry | undefined {
+  return PLATFORM_HUB_ENTRIES.find((e) => e.id === id);
+}
+
+export function hypeFeatureStageLabel(stage: PlatformHypeFeatureStage): string {
+  switch (stage) {
+    case "beta_live":
+      return "Beta · live now";
+    case "shipped":
+      return "Shipped";
+    case "foundational":
+      return "Foundational testing";
+    case "in_development":
+      return "In development";
+    case "coming_soon":
+      return "Coming soon";
+    case "vision":
+      return "On the horizon";
+  }
+}
+
+/** Resolve a hype-feature CTA against production hosts (beta stays on live domains). */
+export function hypeFeatureCtaUrl(
+  entry: PlatformHubEntry,
+  feature: PlatformHypeFeature
+): string | null {
+  if (!feature.ctaPath?.trim()) return null;
+  const path = feature.ctaPath.trim();
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `https://${entry.productionHost}${normalized}`;
+}
 
 export function availabilityLabel(
   availability: PlatformHubAvailability
 ): string {
   switch (availability) {
-    case "live":
-      return "Live";
-    case "deploying":
-      return "Deploying";
-    case "prelaunch":
-      return "Coming soon";
+    case "beta_testing":
+      return "Beta testing";
+    case "foundational_testing":
+      return "Foundational testing";
+    case "in_development":
+      return "In development";
   }
 }
 
+export function platformPrimaryCtaUrl(entry: PlatformHubEntry): string | null {
+  if (!entry.primaryCta) return null;
+  const path = entry.primaryCta.path.trim();
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `https://${entry.productionHost}${normalized}`;
+}
+
 export function productionMapLine(): string {
-  return `Production map: ${ELPHIE_PRODUCT_HOSTS.apex} → global hub · ${ELPHIE_PRODUCT_HOSTS.author} · ${ELPHIE_PRODUCT_HOSTS.education} · ${ELPHIE_PRODUCT_HOSTS.msgf}`;
+  return `Production map: ${ELPHIE_PRODUCT_HOSTS.apex} → picker · ${ELPHIE_PRODUCT_HOSTS.author} · ${ELPHIE_PRODUCT_HOSTS.education} · ${ELPHIE_PRODUCT_HOSTS.msgf}`;
+}
+
+/** Intro blurb for picker hero — keep in sync with PLATFORM_HUB_ENTRIES availability. */
+export function platformHubIntroBlurb(): string {
+  return "Three surfaces, one shared MSGF brain. MSGF is in beta testing on elphiesgatedai; Author Ecosystem is in foundational testing on authorecosystem; Syntax Education is still being coded.";
 }

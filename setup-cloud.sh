@@ -362,6 +362,12 @@ for key in "${ALLOWLIST_EXPORT_KEYS[@]}"; do
   fi
 done
 
+# Release identity → GET /health and GET /api/release
+RUN_ENV[GIT_SHA]="${GIT_SHA:-${IMAGE_TAG}}"
+RUN_ENV[IMAGE_TAG]="${IMAGE_TAG}"
+RUN_ENV[DEPLOY_ENV]="${DEPLOY_ENV:-production}"
+RUN_ENV[DEPLOYED_AT]="${DEPLOYED_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+
 # --- Build (Cloud Build: submit context + tag → Artifact Registry) ------------
 echo ""
 echo "Building and pushing: ${IMAGE_URI}"

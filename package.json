@@ -25,6 +25,7 @@
     "security:prancer-pillars": "node packages/msgf/scripts/security-primer-pillars.mjs",
     "verify:supabase-schema": "npm run verify:db-schema -w msgf",
     "db:push": "npm run db:push -w msgf",
+    "db:push:staging": "npm run db:push:staging -w msgf",
     "db:push:verify": "npm run db:push && npm run verify:supabase-schema",
     "test:msgf:unit": "npm run test:unit -w msgf",
     "test:msgf:integration": "npm run test:integration -w msgf",

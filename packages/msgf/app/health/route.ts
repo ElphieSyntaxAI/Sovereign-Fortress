@@ -55,6 +55,13 @@ export async function GET() {
     return NextResponse.json({
       status: "healthy",
       v32,
+      release: {
+        service: process.env.K_SERVICE ?? "msgf-api",
+        revision: process.env.K_REVISION ?? null,
+        deploy_env: process.env.DEPLOY_ENV?.trim() || "production",
+        git_sha: process.env.GIT_SHA?.trim() || process.env.IMAGE_TAG?.trim() || null,
+        deployed_at: process.env.DEPLOYED_AT?.trim() || null,
+      },
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "health_check_error";

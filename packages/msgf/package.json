@@ -192,6 +192,7 @@
     "db:reload-schema-cache": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/reload-postgrest-schema.mjs",
     "email:templates:build": "tsx scripts/build-supabase-email-templates.mjs",
     "db:push": "node scripts/supabase-db-push.mjs",
+    "db:push:staging": "node scripts/supabase-db-push.mjs --staging",
     "db:push:verify": "node scripts/supabase-db-push.mjs && npm run verify:db-schema",
     "security:prancer-pillars": "node scripts/security-primer-pillars.mjs",
     "bootstrap:author-msgf": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/bootstrap-author-msgf.mjs",
@@ -219,6 +220,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@elphie-syntax/core": "file:../core",
+    "@elphie-syntax/ui": "file:../ui",
     "@google-cloud/aiplatform": "^6.7.0",
     "@google-cloud/kms": "^5.5.0",
     "@google-cloud/vertexai": "^1.12.0",

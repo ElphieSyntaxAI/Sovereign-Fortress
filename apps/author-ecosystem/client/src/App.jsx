@@ -35,6 +35,8 @@ const PlatformHubPage = lazyPage(
   () => import("./pages/PlatformHubPage.jsx"),
   "home"
 );
+const AuthorBetaPage = lazyPage(() => import("./pages/AuthorBetaPage.jsx"), "beta");
+const AuthorRoadmapPage = lazyPage(() => import("./pages/AuthorRoadmapPage.jsx"), "roadmap");
 const LoginHomePage = lazyPage(() => import("./pages/LoginHomePage.jsx"), "sign-in");
 const AuthCallbackRedirectPage = lazyPage(
   () => import("./pages/AuthCallbackRedirectPage.jsx"),
@@ -115,6 +117,8 @@ export default function App() {
     <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route path="/" element={<HomeRoute />} />
+        <Route path="/beta" element={<AuthorBetaPage />} />
+        <Route path="/roadmap" element={<AuthorRoadmapPage />} />
         <Route path="/sign-in" element={<LoginHomePage />} />
         <Route path="/login" element={<Navigate to="/sign-in" replace />} />
         <Route path="/auth/callback" element={<AuthCallbackRedirectPage />} />

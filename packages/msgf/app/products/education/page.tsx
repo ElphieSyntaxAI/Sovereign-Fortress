@@ -36,6 +36,7 @@ export default async function Page() {
   return (
     <ProductDetailShell
       tone="topaz"
+      platformId="education"
       eyebrow="K–12 · LTI 1.3 · Utah-aware"
       title="Syntax Education"
       tagline="Layered Workspace Control: permanent grade-cohort toolbox (Layer A) plus teacher-set AI Allowance regulator (Layer B). District-approved curriculum slicing, Canvas LTI 1.3, and a Human Effort Certificate that survives the SpeedGrader handoff."

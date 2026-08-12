@@ -22,6 +22,7 @@ import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
 
 import { AuthLandingNav } from "./AuthLandingNav";
 import { PublicEcoMetricsWidget } from "./PublicEcoMetricsWidget";
+import { PublicSiblingProductsSection } from "./PublicSiblingProductsSection";
 
 const PILLARS = [
   {
@@ -124,10 +125,16 @@ export function HomeLanding() {
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <Link
-                href="/sign-up"
+                href="/shadow-trial"
                 className="w-full rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-violet-600 px-8 py-3.5 text-center text-sm font-semibold text-white shadow-xl shadow-emerald-900/25 transition hover:brightness-110 sm:w-auto"
               >
-                Start gated access
+                Try free 24h Shadow Proxy
+              </Link>
+              <Link
+                href="/sign-up"
+                className="w-full rounded-full border border-emerald-400/30 bg-emerald-500/10 px-8 py-3.5 text-center text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/20 sm:w-auto"
+              >
+                Join beta
               </Link>
               <Link
                 href="/getting-started"
@@ -140,6 +147,12 @@ export function HomeLanding() {
                 className="w-full rounded-full border border-violet-400/30 bg-violet-500/10 px-8 py-3.5 text-center text-sm font-semibold text-violet-100 transition hover:bg-violet-500/20 sm:w-auto"
               >
                 See what ships
+              </Link>
+              <Link
+                href="/roadmap"
+                className="w-full rounded-full border border-slate-600/50 bg-slate-900/40 px-8 py-3.5 text-center text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800/50 sm:w-auto"
+              >
+                Explore full roadmap
               </Link>
             </div>
           </div>
@@ -289,6 +302,8 @@ export function HomeLanding() {
           </div>
         </section>
 
+        <PublicSiblingProductsSection />
+
         <section className="border-t border-violet-500/10 bg-slate-950/40">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 py-14 text-center">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
@@ -300,10 +315,10 @@ export function HomeLanding() {
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/sign-up"
+                href="/shadow-trial"
                 className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-10 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:brightness-110"
               >
-                Get started free
+                Try free 24h Shadow Proxy
               </Link>
               <Link
                 href="/sign-in?next=/dashboard"

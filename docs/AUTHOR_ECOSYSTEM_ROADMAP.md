@@ -7,7 +7,11 @@
 
 **Shared engine:** MSGF (guardrails, Pulse, Vault/Hall) — **https://elphiesgatedai.elphiesyntax.com** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) and [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md).
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-12
+
+**Public roadmap UI (SSOT):** `packages/core/src/lib/author-roadmap-content.ts` · live at **https://authorecosystem.elphiesyntax.com/roadmap** and **https://elphiesgatedai.elphiesyntax.com/roadmap?product=author**
+
+**Picker status (public):** **Foundational testing** on authorecosystem — registration gated behind `/beta` waitlist.
 
 ---
 

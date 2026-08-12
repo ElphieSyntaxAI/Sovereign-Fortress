@@ -21,6 +21,8 @@ import {
   PLATFORM_HUB_ENTRIES,
   PLATFORM_HUB_ROADMAP_AS_OF,
   availabilityLabel,
+  platformHubIntroBlurb,
+  platformPrimaryCtaUrl,
   productionMapLine,
   type PlatformHubAvailability,
   type PlatformHubEntry,
@@ -28,6 +30,8 @@ import {
 } from "@elphie-syntax/core";
 
 import { canAccessPrelaunchProducts } from "@/lib/prelaunch-product-access";
+
+import { PlatformRoadmapExplorer } from "@elphie-syntax/ui/platform-roadmap";
 
 import { AuthLandingNav } from "./AuthLandingNav";
 import { SignedInHubBanner } from "./SignedInHubBanner";
@@ -107,30 +111,19 @@ const TONE: Record<
 
 function statusBadgeClass(tone: PlatformHubTone, availability: PlatformHubAvailability) {
   const styles = TONE[tone];
-  if (availability === "live") return styles.statusLive;
-  if (availability === "deploying") return styles.statusDeploy;
+  if (availability === "beta_testing") return styles.statusLive;
+  if (availability === "foundational_testing") return styles.statusDeploy;
   return styles.statusSoon;
 }
 
-function resolvePrimary(platform: PlatformHubEntry): PlatformPrimary {
-  if (platform.id === "author") {
-    return {
-      label: "Open Author Ecosystem",
-      href: AUTHOR_HOST,
-      external: true,
-    };
-  }
-  if (platform.id === "education") {
-    return {
-      label: "Open Syntax Education",
-      href: SYNTAX_EDUCATES_HOST,
-      external: true,
-    };
-  }
+function resolvePrimary(platform: PlatformHubEntry): PlatformPrimary | null {
+  if (platform.prelaunch && !platform.primaryCta) return null;
+  const href = platformPrimaryCtaUrl(platform);
+  if (!href) return null;
   return {
-    label: "Sign in to MSGF console",
-    href: "/sign-in",
-    external: false,
+    label: platform.primaryCta?.label ?? "Learn more",
+    href,
+    external: true,
   };
 }
 
@@ -146,11 +139,18 @@ function PrimaryCta({
   if (platform.prelaunch && !canOpenPrelaunch) {
     return (
       <span className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-800/40 px-4 py-2 text-sm font-medium text-slate-400">
-        Coming soon
+        {platform.availability === "in_development" ? "In development" : "Coming soon"}
       </span>
     );
   }
   const primary = resolvePrimary(platform);
+  if (!primary) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-800/40 px-4 py-2 text-sm font-medium text-slate-400">
+        Invite only
+      </span>
+    );
+  }
   if (primary.external) {
     return (
       <a
@@ -387,10 +387,7 @@ export async function PlatformHubLanding() {
             <span className="text-gradient-jewel">What are you looking for?</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            Three surfaces, one shared MSGF brain. MSGF 1.0 RC is live on{" "}
-            <span className="text-emerald-300/90">elphiesgatedai</span>; Author Phase 1 is
-            deploying to <span className="text-violet-300/90">authorecosystem</span>; Syntax
-            Education remains prelaunch.
+            {platformHubIntroBlurb()}
           </p>
         </section>
 
@@ -401,6 +398,8 @@ export async function PlatformHubLanding() {
             <QuickCard key={p.id} platform={p} canOpenPrelaunch={canOpenPrelaunch} />
           ))}
         </section>
+
+        <PlatformRoadmapExplorer variant="embedded" initialProductId="msgf" />
 
         <section className="space-y-8" aria-label="Roadmap and platform details">
           <header className="flex flex-wrap items-baseline justify-between gap-3">
@@ -437,10 +436,10 @@ export async function PlatformHubLanding() {
             </a>
             <span className="mx-2 text-slate-700">·</span>
             <Link
-              href="/brain"
-              className="font-semibold text-violet-300 underline-offset-4 hover:text-violet-200 hover:underline"
+              href="/"
+              className="font-semibold text-emerald-300 underline-offset-4 hover:text-emerald-200 hover:underline"
             >
-              MSGF brand page →
+              MSGF home →
             </Link>
           </p>
         </section>

@@ -97,6 +97,7 @@ Sign in on both subdomains; open MSGF token savings:
 
 ## Related docs
 
+- [`STAGING_AND_RELEASE.md`](./STAGING_AND_RELEASE.md) — staging services, version tracking, rollback
 - [`TOMORROW_MSGF_AND_SUBDOMAINS.md`](./TOMORROW_MSGF_AND_SUBDOMAINS.md)
 - [`AUTHOR_MSGF_WIRING.md`](./AUTHOR_MSGF_WIRING.md)
 - [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md)
