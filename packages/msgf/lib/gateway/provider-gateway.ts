@@ -253,58 +253,60 @@ export async function handleProviderGateway(params: {
       }
 
       // Non-blocking Session Replay + harm classify (plan Phase 5)
-      try {
-        const { emitPromptSession } = await import("@/lib/services/prompt-sessions");
-        const { emitModelFitness, inferFitnessLabel } = await import(
-          "@/lib/services/model-fitness"
-        );
-        const { recordTenantSpend } = await import("@/lib/services/tenant-budget");
-        const { enqueueSiemExport } = await import("@/lib/services/siem-exporter");
+      if (admin) {
+        try {
+          const { emitPromptSession } = await import("@/lib/services/prompt-sessions");
+          const { emitModelFitness, inferFitnessLabel } = await import(
+            "@/lib/services/model-fitness"
+          );
+          const { recordTenantSpend } = await import("@/lib/services/tenant-budget");
+          const { enqueueSiemExport } = await import("@/lib/services/siem-exporter");
 
-        emitPromptSession(admin, {
-          tenant_id: auth.tenantId,
-          trace_id: lineageHash || `gw_${Date.now()}`,
-          product: "gateway",
-          prompt_hash: lineageHash ?? null,
-          prompt_text: promptText?.slice(0, 50_000) ?? "",
-          completion_text: "",
-          model_provider: params.provider,
-          model_id: usage.model || model,
-          tokens_in: usage.input_tokens ?? 0,
-          tokens_out: usage.output_tokens ?? 0,
-          entity_id:
-            params.req.headers.get("x-msgf-entity-id")?.trim() || auth.tenantId,
-        });
+          emitPromptSession(admin, {
+            tenant_id: auth.tenantId,
+            trace_id: lineageHash || `gw_${Date.now()}`,
+            product: "gateway",
+            prompt_hash: lineageHash ?? null,
+            prompt_text: promptText?.slice(0, 50_000) ?? "",
+            completion_text: "",
+            model_provider: params.provider,
+            model_id: usage.model || model,
+            tokens_in: usage.input_tokens ?? 0,
+            tokens_out: usage.output_tokens ?? 0,
+            entity_id:
+              params.req.headers.get("x-msgf-entity-id")?.trim() || auth.tenantId,
+          });
 
-        emitModelFitness(admin, {
-          tenant_id: auth.tenantId,
-          product: "gateway",
-          purpose: effectiveMode,
-          model_provider: params.provider,
-          model_id: usage.model || model || "unknown",
-          prompt_hash: lineageHash ?? null,
-          label: inferFitnessLabel({
-            usedBigBrain: effectiveMode === "active",
-            lowDrift: true,
-          }),
-          tokens_in: usage.input_tokens ?? 0,
-          tokens_out: usage.output_tokens ?? 0,
-          trace_id: lineageHash ?? null,
-        });
+          emitModelFitness(admin, {
+            tenant_id: auth.tenantId,
+            product: "gateway",
+            purpose: effectiveMode,
+            model_provider: params.provider,
+            model_id: usage.model || model || "unknown",
+            prompt_hash: lineageHash ?? null,
+            label: inferFitnessLabel({
+              usedBigBrain: effectiveMode === "active",
+              lowDrift: true,
+            }),
+            tokens_in: usage.input_tokens ?? 0,
+            tokens_out: usage.output_tokens ?? 0,
+            trace_id: lineageHash ?? null,
+          });
 
-        const est =
-          ((usage.input_tokens ?? 0) + (usage.output_tokens ?? 0)) * 0.000002;
-        await recordTenantSpend(admin, auth.tenantId, est);
+          const est =
+            ((usage.input_tokens ?? 0) + (usage.output_tokens ?? 0)) * 0.000002;
+          await recordTenantSpend(admin, auth.tenantId, est);
 
-        enqueueSiemExport(admin, {
-          tenant_id: auth.tenantId,
-          kind: "prompt_session",
-          severity: "info",
-          summary: `Gateway ${effectiveMode} ${usage.model || model}`,
-          trace_id: lineageHash ?? null,
-        });
-      } catch (bg) {
-        console.warn("[provider-gateway] governance emit failed:", bg);
+          enqueueSiemExport(admin, {
+            tenant_id: auth.tenantId,
+            kind: "prompt_session",
+            severity: "info",
+            summary: `Gateway ${effectiveMode} ${usage.model || model}`,
+            trace_id: lineageHash ?? null,
+          });
+        } catch (bg) {
+          console.warn("[provider-gateway] governance emit failed:", bg);
+        }
       }
 
       if (!fast.skipShadowEval) {

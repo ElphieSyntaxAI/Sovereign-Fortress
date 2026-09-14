@@ -41,7 +41,9 @@ function toOtelJson(row: {
   created_at?: string;
   metadata?: Record<string, unknown>;
 }): SiemPayload {
-  const ts = BigInt(Date.parse(row.created_at ?? new Date().toISOString()) || Date.now()) * 1_000_000n;
+  const ts =
+    BigInt(Date.parse(row.created_at ?? new Date().toISOString()) || Date.now()) *
+    BigInt(1_000_000);
   return {
     resourceLogs: [
       {
