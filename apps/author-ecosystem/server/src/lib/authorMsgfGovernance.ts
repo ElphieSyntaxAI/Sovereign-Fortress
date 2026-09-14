@@ -182,7 +182,9 @@ export function emitAuthorResourceUsage(params: {
   void (async () => {
     try {
       if (!authorMsgfBridgeConfigured()) return;
-      const base = resolveAuthorMsgfAppUrl().replace(/\/$/, "");
+      const baseRaw = resolveAuthorMsgfAppUrl();
+      if (!baseRaw) return;
+      const base = baseRaw.replace(/\/$/, "");
       const res = await fetch(`${base}/api/msgf/governance/resource-usage`, {
         method: "POST",
         headers: msgfAuthHeaders(),
