@@ -500,6 +500,7 @@ SECRET_BACKED_ENV_KEYS=(
   MASTER_ANTHROPIC_KEY
   STRIPE_SECRET_KEY
   STRIPE_WEBHOOK_SECRET
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 )
 for _sk in "${SECRET_BACKED_ENV_KEYS[@]}"; do
   unset "RUN_ENV[${_sk}]"
@@ -540,7 +541,7 @@ done
 if [[ "${MISSING}" -eq 0 ]]; then
   # --update-secrets merges; --set-secrets would wipe Stripe / other secret mounts.
   SECRET_FLAGS=(
-    --update-secrets="MASTER_GEMINI_KEY=${SECRET_GEMINI_KEY_RESOURCE}:latest,MASTER_ANTHROPIC_KEY=${SECRET_ANTHROPIC_KEY_RESOURCE}:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest"
+    --update-secrets="MASTER_GEMINI_KEY=${SECRET_GEMINI_KEY_RESOURCE}:latest,MASTER_ANTHROPIC_KEY=${SECRET_ANTHROPIC_KEY_RESOURCE}:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=stripe-publishable-key:latest"
   )
 fi
 
