@@ -74,6 +74,9 @@ export const MSGF_FLUSH_REASON_HEADER = "x-msgf-flush-reason";
 /** Dashboard / BFF: Supabase `auth.users` id of the human operator (RBAC + audit). */
 export const MSGF_OPERATOR_USER_ID_HEADER = "x-msgf-operator-user-id";
 
+/** Prompt optimizer / fitness lineage hash (SHA-256 hex of optimized markdown). */
+export const MSGF_PROMPT_HASH_HEADER = "x-msgf-prompt-hash";
+
 /** Trusted Author BFF HAL snapshot JSON ({@link AuthorHalTelemetrySnapshot}) — rhythm only, no RAG. */
 export const MSGF_AUTHOR_HAL_HEADER = "x-msgf-author-hal";
 
