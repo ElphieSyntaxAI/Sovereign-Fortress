@@ -6,8 +6,8 @@
 
 **SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-09-11 (live Stripe keys + webhook on `msgf-api-00077-7qx`; identity done; mock still ON)  
-**Focus:** One-tenant staging smoke → technical soft-RC; live Checkout smoke → mock-off.  
+**Last updated:** 2026-09-14 (governance audit migrations + docs sync; Stripe mock may still be ON)  
+**Focus:** One-tenant staging smoke → technical soft-RC; live Checkout smoke → mock-off. Apply `20260915120000_governance_audit_platform.sql` + `20260915130000_trusted_license_allowlist.sql` on staging/prod.  
 **Readiness:** Technical soft-RC **~90%** · Paid self-serve **~82%** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
@@ -170,7 +170,7 @@ Full detail: [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b.
 | Item | Track |
 | :--- | :--- |
 | Stripe live keys / mock-off | **Required for paid go-live (P0-M3)** — live keys + identity + webhook landed 2026-09-11; soft-RC still OK with mock ON until Checkout smoke + mock-off |
-| Sentry Session Replay / Logging / Profiling | P2 — first-error baseline is errors + tracing only |
+| Sentry Session Replay / Logging / Profiling | P2 — first-error baseline is errors + tracing only (**not** MSGF Session Replay — that ships on `/admin/ops#session-replay`) |
 | `packages/msgf/apps/web` split | Optional M2 polish |
 | Author BFF healing popout | Author 1.x |
 | Education LTI / sandbox MVP | [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) |

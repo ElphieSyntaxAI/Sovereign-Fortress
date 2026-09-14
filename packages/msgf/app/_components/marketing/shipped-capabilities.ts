@@ -41,7 +41,7 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "04",
     title: "Govern",
-    body: "Small Brain dual presets · TRI Big Brain on high drift · Shadow→Active gateway · Sentry quarantine · signed HITL.",
+    body: "Small Brain dual presets · TRI Big Brain on high drift · Shadow→Active gateway · human-proof HITL · Session Replay · SIEM.",
   },
 ] as const;
 
@@ -139,8 +139,22 @@ export const ENTERPRISE_FEATURE_CARDS: ShippedFeature[] = [
     id: "ops-tower",
     title: "Admin ops control tower",
     description:
-      "ARBITRATE queue, Vault quarantine, Sentry issues, DocuSign envelopes, strategy matrix, and remediation circuit — one /admin/ops surface for operators.",
+      "One /admin/ops surface: audit hub timeline, Session Replay + harm ledger, most-used resources, model fitness, diff impact, tenant budgets, SIEM export, trusted-OSS bulk ARBITRATE, Sentry quarantine, and DocuSign.",
     accent: "amber",
+  },
+  {
+    id: "governance-audit",
+    title: "Platform governance audit",
+    description:
+      "Hashed resource-usage rankings, unified platform_audit_events, prompt-session forensics (purge-exempt), and human-proof gates — RED and harm always open HITL; budgets never bypass safety.",
+    accent: "cyan",
+  },
+  {
+    id: "siem-budgets",
+    title: "Budgets + SIEM export",
+    description:
+      "Hard monthly dollar caps and rapid-retry circuit breakers before gateway dispatch, plus async OpenTelemetry JSON webhooks to customer SIEM — primary paths never wait on export.",
+    accent: "emerald",
   },
 ];
 
@@ -148,6 +162,8 @@ export const DASHBOARD_QUICK_LINKS = [
   { label: "Workspace & extension", href: "/workspace" },
   { label: "Map a project", href: "/setup/projects" },
   { label: "Features & IDE", href: "/features" },
+  { label: "Ops audit hub", href: "/admin/ops#audit-hub" },
+  { label: "Session Replay", href: "/admin/ops#session-replay" },
   { label: "CONVERGE presets", href: "#token-savings" },
   { label: "Token savings", href: "#token-savings" },
   { label: "Reports", href: "/dashboard/daily-reports" },

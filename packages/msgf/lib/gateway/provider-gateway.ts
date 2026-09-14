@@ -41,6 +41,7 @@ import { processShadowEvaluation } from "@/lib/shadow-eval/shadow-evaluator";
 import { recordMeteredProviderUsage } from "@/lib/services/provider-usage-meter";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
+  MSGF_PROMPT_HASH_HEADER,
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
@@ -149,8 +150,56 @@ export async function handleProviderGateway(params: {
     admin = null;
   }
 
+  // Phase 7/9: budget + circuit breaker must run before upstream dispatch.
+  let forceFallbackSmallBrain = false;
+  if (admin) {
+    try {
+      const { checkTenantBudgetBeforeDispatch } = await import(
+        "@/lib/services/tenant-budget"
+      );
+      const clientPromptHashPre = params.req.headers.get(MSGF_PROMPT_HASH_HEADER)?.trim();
+      const preTrace =
+        clientPromptHashPre && /^[0-9a-f]{16,128}$/i.test(clientPromptHashPre)
+          ? clientPromptHashPre.toLowerCase()
+          : `gw_pre_${Date.now()}`;
+      const budget = await checkTenantBudgetBeforeDispatch(admin, {
+        tenant_id: auth.tenantId,
+        estimated_cost_usd: 0.002,
+        trace_id: preTrace,
+        safety_critical: auth.mode === "active",
+      });
+      if (!budget.ok) {
+        if (budget.action === "fallback_small_brain") {
+          forceFallbackSmallBrain = true;
+        } else {
+          return new Response(
+            JSON.stringify({
+              error: {
+                message: `Tenant budget / circuit blocked dispatch (${budget.reason}).`,
+                type: "budget_exceeded_error",
+                code: budget.reason,
+              },
+            }),
+            {
+              status: 429,
+              headers: {
+                "content-type": "application/json",
+                "retry-after": "60",
+              },
+            }
+          );
+        }
+      }
+    } catch (budgetErr) {
+      console.warn("[provider-gateway] pre-dispatch budget check failed:", budgetErr);
+    }
+  }
+
+  const effectiveMode =
+    forceFallbackSmallBrain && auth.mode === "active" ? "shadow" : auth.mode;
+
   const fast =
-    auth.mode === "active"
+    effectiveMode === "active"
       ? await runActiveOrchestrator({
           req: params.req,
           provider: params.provider,
@@ -178,6 +227,11 @@ export async function handleProviderGateway(params: {
   after(async () => {
     try {
       const usage = await fast.usagePromise;
+      const clientPromptHash = params.req.headers.get(MSGF_PROMPT_HASH_HEADER)?.trim();
+      const lineageHash =
+        clientPromptHash && /^[0-9a-f]{16,128}$/i.test(clientPromptHash)
+          ? clientPromptHash.toLowerCase()
+          : fast.promptHash;
 
       if (auth.mode === "active" && !fast.skipBackgroundMeter) {
         await recordMeteredProviderUsage(
@@ -185,7 +239,7 @@ export async function handleProviderGateway(params: {
             tenantId: auth.tenantId,
             purpose: "other",
             endpoint: params.endpointLabel,
-            promptHash: fast.promptHash,
+            promptHash: lineageHash,
             admin,
           },
           {
@@ -198,12 +252,67 @@ export async function handleProviderGateway(params: {
         );
       }
 
+      // Non-blocking Session Replay + harm classify (plan Phase 5)
+      try {
+        const { emitPromptSession } = await import("@/lib/services/prompt-sessions");
+        const { emitModelFitness, inferFitnessLabel } = await import(
+          "@/lib/services/model-fitness"
+        );
+        const { recordTenantSpend } = await import("@/lib/services/tenant-budget");
+        const { enqueueSiemExport } = await import("@/lib/services/siem-exporter");
+
+        emitPromptSession(admin, {
+          tenant_id: auth.tenantId,
+          trace_id: lineageHash || `gw_${Date.now()}`,
+          product: "gateway",
+          prompt_hash: lineageHash ?? null,
+          prompt_text: promptText?.slice(0, 50_000) ?? "",
+          completion_text: "",
+          model_provider: params.provider,
+          model_id: usage.model || model,
+          tokens_in: usage.input_tokens ?? 0,
+          tokens_out: usage.output_tokens ?? 0,
+          entity_id:
+            params.req.headers.get("x-msgf-entity-id")?.trim() || auth.tenantId,
+        });
+
+        emitModelFitness(admin, {
+          tenant_id: auth.tenantId,
+          product: "gateway",
+          purpose: effectiveMode,
+          model_provider: params.provider,
+          model_id: usage.model || model || "unknown",
+          prompt_hash: lineageHash ?? null,
+          label: inferFitnessLabel({
+            usedBigBrain: effectiveMode === "active",
+            lowDrift: true,
+          }),
+          tokens_in: usage.input_tokens ?? 0,
+          tokens_out: usage.output_tokens ?? 0,
+          trace_id: lineageHash ?? null,
+        });
+
+        const est =
+          ((usage.input_tokens ?? 0) + (usage.output_tokens ?? 0)) * 0.000002;
+        await recordTenantSpend(admin, auth.tenantId, est);
+
+        enqueueSiemExport(admin, {
+          tenant_id: auth.tenantId,
+          kind: "prompt_session",
+          severity: "info",
+          summary: `Gateway ${effectiveMode} ${usage.model || model}`,
+          trace_id: lineageHash ?? null,
+        });
+      } catch (bg) {
+        console.warn("[provider-gateway] governance emit failed:", bg);
+      }
+
       if (!fast.skipShadowEval) {
         await processShadowEvaluation({
           tenantId: auth.tenantId,
           endpoint: params.endpointLabel,
           provider: params.provider,
-          mode: auth.mode,
+          mode: effectiveMode,
           stream,
           model: usage.model || model,
           promptText,

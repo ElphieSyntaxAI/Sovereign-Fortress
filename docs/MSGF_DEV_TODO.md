@@ -179,7 +179,7 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK
 - [ ] Embedding semantic similarity cache on `/api/v1`
 - [ ] Dual/TRI chat completion synthesis on Active escalate
 - [ ] Sentry issue create from Pulse RED
-- [ ] Session Replay / Logging / Profiling
+- [ ] **Sentry** Session Replay / Logging / Profiling (P2 — distinct from MSGF Session Replay on `/admin/ops#session-replay`, which is **shipped**)
 - [ ] GitHub App (org-wide)
 - [ ] Nanosecond hot-layer **SLO claim**
 - [ ] Stripe Customer Portal UI

@@ -55,10 +55,13 @@ export const PRICING_TIERS: PricingTierConfig[] = [
     priceLabel: "$49",
     priceSuffix: "/ user / mo",
     description:
-      "Multi-tenant corporate workspace with ARBITRATE consoles and shared incident logs.",
+      "Multi-tenant corporate workspace with ARBITRATE, audit hub, Session Replay, budgets, and SIEM.",
     bullets: [
       "Multi-tenant corporate workspace organization scopes",
-      "Global ARBITRATE + Sentry quarantine + DocuSign / Dropbox Sign ops panels",
+      "Global ARBITRATE + trusted-OSS bulk triage + signed A6 audits",
+      "Audit hub, Session Replay / harm ledger, most-used resources, model fitness, diff impact",
+      "Tenant budgets / circuit breaker + SIEM webhook export",
+      "Sentry quarantine + DocuSign / Dropbox Sign ops panels",
       "Custom company-wide P1 rulebooks, Workspace SSO, and shared incident review logs",
     ],
     cta: {

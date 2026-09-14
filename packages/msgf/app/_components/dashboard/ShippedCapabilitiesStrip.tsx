@@ -26,7 +26,7 @@ export function ShippedCapabilitiesStrip() {
             Shipped in V3.2
           </p>
           <h2 className="text-lg font-semibold text-slate-50 sm:text-xl">
-            IDE verify · TRI/Grok · Sentry · e-sign — live on your tenant
+            IDE verify · TRI/Grok · audit hub · Session Replay — live on your tenant
           </h2>
           <p className="text-sm leading-relaxed text-slate-400">
             Connect{" "}
@@ -39,8 +39,9 @@ export function ShippedCapabilitiesStrip() {
             <Link href="/admin/ops" className="text-violet-300/90 underline-offset-2 hover:underline">
               /admin/ops
             </Link>{" "}
-            for Sentry quarantine and DocuSign / Dropbox Sign when configured. Vault and Hall update
-            from verify even when Big Brain CONVERGE is idle.
+            for audit hub, Session Replay, budgets, SIEM, Sentry quarantine, and DocuSign / Dropbox
+            Sign when configured. Vault and Hall update from verify even when Big Brain CONVERGE is
+            idle.
           </p>
         </div>
         <nav

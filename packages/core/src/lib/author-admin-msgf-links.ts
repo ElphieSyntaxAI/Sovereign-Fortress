@@ -21,6 +21,11 @@ export type AuthorAdminMsgfLinks = {
   vault_quarantine: string;
   shadow_proxy: string;
   heal_queue: string;
+  audit_hub: string;
+  session_replay: string;
+  model_fitness: string;
+  siem_integrations: string;
+  diff_impact: string;
 };
 
 export function buildAuthorAdminMsgfLinks(msgfOrigin: string): AuthorAdminMsgfLinks {
@@ -40,6 +45,11 @@ export function buildAuthorAdminMsgfLinks(msgfOrigin: string): AuthorAdminMsgfLi
     vault_quarantine: `${base}/admin/ops#vault-quarantine`,
     shadow_proxy: `${base}/dashboard#token-savings?${tenantQ}`,
     heal_queue: `${base}/admin/ops#heal-queue`,
+    audit_hub: `${base}/admin/ops#audit-hub`,
+    session_replay: `${base}/admin/ops#session-replay`,
+    model_fitness: `${base}/admin/ops#model-fitness`,
+    siem_integrations: `${base}/admin/ops#siem-integrations`,
+    diff_impact: `${base}/admin/ops#diff-impact`,
   };
 }
 

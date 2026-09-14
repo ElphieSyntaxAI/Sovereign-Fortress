@@ -29,7 +29,17 @@ export type AttributionClass = (typeof ATTRIBUTION_CLASSES)[number];
 
 export const AttributionClassSchema = z.enum(ATTRIBUTION_CLASSES);
 
-export const SourceHitKindSchema = z.enum(["vault", "hall", "file", "pack"]);
+export const SourceHitKindSchema = z.enum([
+  "vault",
+  "hall",
+  "file",
+  "pack",
+  "tool",
+  "search",
+  "mcp",
+  "agent",
+  "citation",
+]);
 
 export const LineRangeSchema = z
   .object({
@@ -56,7 +66,10 @@ export const SourceHitSchema = z.object({
   label: z.string().optional().nullable(),
   attribution_class: AttributionClassSchema.default("unknown"),
   pruned: z.boolean().optional(),
-  ledger: z.enum(["vault", "hall", "file"]).optional().nullable(),
+  ledger: z
+    .enum(["vault", "hall", "file", "tool", "search", "mcp", "agent", "citation", "pack"])
+    .optional()
+    .nullable(),
   reputation_score: z.number().min(-1).max(1).optional(),
 });
 
@@ -99,7 +112,17 @@ export type SourceAuditRecord = z.infer<typeof SourceAuditRecordSchema>;
 export const ResourceReputationSchema = z.object({
   tenant_id: z.string(),
   resource_key: z.string(),
-  ledger: z.enum(["vault", "hall", "file"]),
+  ledger: z.enum([
+    "vault",
+    "hall",
+    "file",
+    "tool",
+    "search",
+    "mcp",
+    "agent",
+    "citation",
+    "pack",
+  ]),
   resource_id: z.string().uuid().optional().nullable(),
   file_path: z.string().optional().nullable(),
   good_count: z.number().int().nonnegative(),

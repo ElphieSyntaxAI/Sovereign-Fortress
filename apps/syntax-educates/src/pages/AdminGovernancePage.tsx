@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 
 import { PillarBadge } from "@elphie-syntax/ui";
 
-import { msgfFetch } from "../lib/msgfClient";
+import { msgfFetch, msgfBaseUrl } from "../lib/msgfClient";
+import { buildEducatesAdminMsgfLinks } from "@elphie-syntax/core/educates-admin-msgf-links";
 
 type Snapshot = {
   legalVersion: string;
@@ -28,6 +29,7 @@ type Snapshot = {
 export function AdminGovernancePage() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const msgfLinks = buildEducatesAdminMsgfLinks(msgfBaseUrl());
 
   useEffect(() => {
     void (async () => {
@@ -111,6 +113,37 @@ export function AdminGovernancePage() {
                 >
                   {d}
                 </span>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded border border-cyan-900/40 bg-cyan-950/20 p-4 text-sm">
+            <h2 className="mb-2 text-xs uppercase tracking-wider text-cyan-400/90">
+              MSGF governance (tenant {msgfLinks.tenant_id})
+            </h2>
+            <p className="mb-3 text-xs text-zinc-500">
+              Same audit hub / Session Replay / fitness surfaces as MSGF Ops — scoped to Educates.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["Ops console", msgfLinks.ops_console],
+                  ["Audit hub", msgfLinks.audit_hub],
+                  ["Session Replay", msgfLinks.session_replay],
+                  ["Model fitness", msgfLinks.model_fitness],
+                  ["SIEM", msgfLinks.siem_integrations],
+                  ["Dashboard", msgfLinks.governance_dashboard],
+                ] as const
+              ).map(([label, href]) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="rounded border border-cyan-800/60 bg-zinc-950 px-2.5 py-1 text-xs text-cyan-100 hover:border-cyan-500/70"
+                >
+                  {label} ↗
+                </a>
               ))}
             </div>
           </section>

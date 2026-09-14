@@ -47,12 +47,12 @@ Stripe (real “purchase” path): set `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO_IN
 4. **Confirm email** — Supabase confirmation link → `/auth/callback` → `/dashboard`.  
    - First dashboard load creates **`p4_profiles` + pledge** only — pillars stay empty until you add a project.  
 5. **Purchase (optional but realistic)**  
-   - `/pricing` → **Pro Individual** → Stripe Checkout (test card `4242 4242 4242 4242`).  
-   - Success URL: `/pricing?checkout=success` — webhook stamps `INDIVIDUAL_PERPETUAL` on your profile.  
+   - `/pricing` → **Individual Pro ($99 one-time)** or **Startup Team ($49 / user / mo)** → Stripe Checkout (test card `4242 4242 4242 4242`).  
+   - Success URL: `/pricing?checkout=success` — webhook stamps entitlements on your profile.  
 6. **Pulse** — From dashboard / workspace / extension after baseline typing (see Phase 0 in [`packages/msgf/README.md`](../packages/msgf/README.md) Steps D–E).  
    - Session Pulse uses **`p4_profiles`** (no `msgf_live_` key in the browser).  
 7. **Reports** — `/dashboard/daily-reports`: metered vs proven; Shadow Proxy panel if you pointed an SDK at `/api/v1`.  
-8. **Report a bug (optional)** — onscreen bug FAB on `/dashboard` or `/workspace` → operators triage in `/admin/ops#bug-inbox` (promote to ARBITRATE or dismiss).  
+8. **Ops (operators)** — `/admin/ops`: audit hub, Session Replay / harm, most-used resources, budgets, SIEM; bug FAB → `#bug-inbox` (promote to ARBITRATE or dismiss).  
 9. **Heal queue** — Dashboard drawer; API uses your profile tenant (`tenant_gated` by default), not `integration_sandbox`.
 
 ---

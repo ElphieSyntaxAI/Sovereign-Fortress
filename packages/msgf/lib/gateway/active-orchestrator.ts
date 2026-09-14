@@ -204,16 +204,37 @@ export async function runActiveOrchestrator(params: {
       });
     }
 
-    // Step C — drift classification
+    // Step C — drift classification (+ fitness feedback: prefer Small Brain on over-provision)
     const drift = assessGatewayDrift(ir);
+    let preferSmallFromFitness = false;
+    if (params.admin) {
+      try {
+        const { listModelFitnessRollups, fitnessSuggestsSmallBrain } = await import(
+          "@/lib/services/model-fitness"
+        );
+        const rows = await listModelFitnessRollups(params.admin, {
+          tenant_id: params.tenantId,
+          prompt_class: "gateway",
+          limit: 8,
+        });
+        const forModel = rows.find((r) => r.model_id === ir.model) ?? rows[0];
+        if (forModel && fitnessSuggestsSmallBrain(forModel)) {
+          preferSmallFromFitness = true;
+        }
+      } catch {
+        /* fitness read must never block gateway */
+      }
+    }
     const wantConsensus =
-      policy.active_aggressiveness === "full-consensus" && drift.escalate;
+      policy.active_aggressiveness === "full-consensus" &&
+      drift.escalate &&
+      !preferSmallFromFitness;
 
     // Step D — sharded single-model upstream
     const routing = wantConsensus
       ? "STATE_GATED_CONVERGE"
       : gated.applied
-        ? drift.escalate
+        ? drift.escalate && !preferSmallFromFitness
           ? "STATE_GATED_ESCALATE_UPSTREAM"
           : "STATE_GATED_SMALL_BRAIN"
         : "SMALL_BRAIN_UPSTREAM";

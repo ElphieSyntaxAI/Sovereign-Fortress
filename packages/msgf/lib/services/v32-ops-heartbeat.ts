@@ -34,6 +34,9 @@ import {
   runV32TierMaintenance,
   type TierMaintenanceResult,
 } from "@/lib/services/v32-tier-maintenance";
+import { flushAllResourceUsageBuffers } from "@/lib/services/emit-resource-usage";
+import { flushAllPlatformAuditBuffers } from "@/lib/services/emit-platform-audit";
+import { flushPendingSiemExports } from "@/lib/services/siem-exporter";
 
 export type V32RoutineStatus<T> =
   | { ok: true; result: T }
@@ -63,6 +66,13 @@ export type V32OpsHeartbeatResult = {
       | { ok: true; skipped: true };
     hall_purge_cold: V32RoutineStatus<HallPurgeProtocolResult> | { ok: true; skipped: true };
     hall_purge_redis: V32RoutineStatus<HallRedisPurgeResult> | { ok: true; skipped: true };
+    governance_buffer_flush:
+      | V32RoutineStatus<{
+          usage: { tenants: number; flushed: number };
+          audit: { tenants: number; flushed: number };
+          siem: { tenants: number; exported: number; failed: number };
+        }>
+      | { ok: true; skipped: true };
   };
 };
 
@@ -176,11 +186,29 @@ export async function runV32OpsHeartbeat(
         dryRun,
       });
 
+  let governance_buffer_flush: V32OpsHeartbeatResult["routines"]["governance_buffer_flush"];
+  if (dryRun) {
+    governance_buffer_flush = { ok: true, skipped: true };
+  } else {
+    try {
+      const usage = await flushAllResourceUsageBuffers(input.admin);
+      const audit = await flushAllPlatformAuditBuffers(input.admin);
+      const siem = await flushPendingSiemExports(input.admin);
+      governance_buffer_flush = { ok: true, result: { usage, audit, siem } };
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "governance buffer / SIEM flush failed";
+      console.error("[v32-ops-heartbeat] governance_buffer_flush", e);
+      governance_buffer_flush = { ok: false, error: message };
+    }
+  }
+
   const routinesFailed =
     ("ok" in tier_batches && tier_batches.ok === false) ||
     ("ok" in scheduled_heal_batch && scheduled_heal_batch.ok === false) ||
     ("ok" in hall_purge_cold && hall_purge_cold.ok === false) ||
-    ("ok" in hall_purge_redis && hall_purge_redis.ok === false);
+    ("ok" in hall_purge_redis && hall_purge_redis.ok === false) ||
+    ("ok" in governance_buffer_flush && governance_buffer_flush.ok === false);
 
   return {
     ok: !routinesFailed,
@@ -193,6 +221,7 @@ export async function runV32OpsHeartbeat(
       scheduled_heal_batch,
       hall_purge_cold,
       hall_purge_redis,
+      governance_buffer_flush,
     },
   };
 }

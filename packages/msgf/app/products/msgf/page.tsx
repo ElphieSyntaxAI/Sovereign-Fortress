@@ -21,7 +21,7 @@ import { ProductDetailShell } from "@/app/_components/products/ProductDetailShel
 export const metadata: Metadata = {
   title: "MSGF — Gated AI · Elphie Syntax",
   description:
-    "MSGF V3.2: six pillars, IDE Command Center, Grok-aware TRI consensus, Sentry→Vault quarantine, DocuSign/Dropbox Sign, Workspace SSO, and defensible token savings.",
+    "MSGF V3.2: six pillars, IDE Command Center, Grok-aware TRI consensus, governance audit hub, Session Replay, Sentry→Vault quarantine, DocuSign/Dropbox Sign, Workspace SSO, and defensible token savings.",
 };
 
 export default function Page() {
@@ -36,7 +36,7 @@ export default function Page() {
       platformId="msgf"
       eyebrow="Brain · Engine"
       title="MSGF — Gated AI"
-      tagline="Stateful, self-defending AI orchestration. Six pillars, IDE verify, Grok-aware TRI CONVERGE, Sentry quarantine, DocuSign / Dropbox Sign, and quantum-ready hybrid vault crypto."
+      tagline="Stateful, self-defending AI orchestration. Six pillars, IDE verify, Grok-aware TRI CONVERGE, human-proof HITL, Session Replay, SIEM, Sentry quarantine, DocuSign / Dropbox Sign, and quantum-ready hybrid vault crypto."
       vision="MSGF 1.0 delivers a stateful, self-defending AI orchestration layer that any application can adopt. For Elphie Syntax products it is the brain behind the Author Ecosystem and Syntax Education. For the market, MSGF at elphiesgatedai.elphiesyntax.com is a standalone gated-AI product — subscribe, send keystroke or logic deltas through Pulse, ingest knowledge into pillars, and receive tiered audits without running your own consensus stack."
       liveUrl={liveUrl}
       liveLabel="Open MSGF console"
@@ -44,7 +44,7 @@ export default function Page() {
       metrics={[
         { label: "Master directive", value: "V3.2-ULTRA", hint: "SWEEP → PERSIST (7 steps)" },
         { label: "Consensus", value: "TRI + Grok", hint: "Claude · Gemini · Grok" },
-        { label: "Ops glue", value: "Sentry · Sign", hint: "Quarantine · e-sign invites" },
+        { label: "Ops glue", value: "Audit · SIEM", hint: "Replay · budgets · e-sign" },
         { label: "Crypto", value: "Hybrid PQ", hint: "ML-KEM + ML-DSA when enabled" },
       ]}
       phases={[
@@ -82,6 +82,15 @@ export default function Page() {
             "Sentry issues → Vault quarantine on /admin/ops (no silent auto-Hall)",
             "DocuSign or Dropbox Sign for team invites + webhook queue",
             "Google Workspace SSO, company domains, signed ARBITRATE audits",
+          ],
+        },
+        {
+          label: "Governance audit platform",
+          status: "Shipped",
+          highlights: [
+            "Audit hub timeline · Session Replay / harm ledger · most-used resources",
+            "Model fitness + prompt templates · diff impact · tenant budgets / circuit breaker",
+            "SIEM OTel webhook export · trusted-OSS bulk ARBITRATE · human-proof RED/harm HITL",
           ],
         },
         {

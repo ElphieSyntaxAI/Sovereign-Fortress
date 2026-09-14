@@ -44,6 +44,11 @@
       "import": "./src/lib/author-admin-msgf-links.ts",
       "default": "./src/lib/author-admin-msgf-links.ts"
     },
+    "./educates-admin-msgf-links": {
+      "types": "./src/lib/educates-admin-msgf-links.ts",
+      "import": "./src/lib/educates-admin-msgf-links.ts",
+      "default": "./src/lib/educates-admin-msgf-links.ts"
+    },
     "./author-handoff-origins": {
       "types": "./src/lib/author-handoff-origins.ts",
       "import": "./src/lib/author-handoff-origins.ts",

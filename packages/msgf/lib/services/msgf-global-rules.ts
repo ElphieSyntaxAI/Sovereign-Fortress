@@ -547,11 +547,26 @@ export function applyDefendMitigationOverrides(
       hallContent.includes("arbitration_beat");
 
     if (matchesGuard) {
+      // Phase 3/9: refuse silent RED demotion unless an A6-linked mitigation exists.
+      const justified = payload.mitigations.find(
+        (m) =>
+          m.bug_index_instance === guard.bug_index_instance &&
+          typeof m.incident_id === "string" &&
+          m.incident_id.trim().length > 0 &&
+          typeof m.human_reasoning === "string" &&
+          m.human_reasoning.trim().length > 0
+      );
+      if (!justified) {
+        return {
+          ...preflight,
+          reason: `DEFEND: mitigation guard [${guard.bug_index_instance}] matched but lacks A6-linked incident justification — keeping RED HITL.`,
+        };
+      }
       return {
         ...preflight,
         tier: "YELLOW",
         blocked: false,
-        reason: `DEFEND: global_mitigations guard [${guard.bug_index_instance}] overrides Hall RED.`,
+        reason: `DEFEND: global_mitigations guard [${guard.bug_index_instance}] overrides Hall RED (A6 incident ${justified.incident_id}).`,
         vaultMatch: preflight.vaultMatch,
         hallMatch: preflight.hallMatch,
       };

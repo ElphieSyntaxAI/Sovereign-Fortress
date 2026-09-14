@@ -108,6 +108,7 @@ import {
   recordSourceAudit,
 } from "@/lib/services/source-audit";
 import type { SourceHit } from "@/lib/schemas/source-audit";
+import { incidentAttributionMetadataFromHits } from "@/lib/services/trusted-license-allowlist";
 import {
   buildP2RoadmapDirective,
   buildVaultCrossRefContext,
@@ -433,6 +434,8 @@ export type PersistHallRejectionInput = {
   actionType?: string;
   narrativeExtra?: Record<string, unknown>;
   hitlStrategyContext?: HitlStrategyGenerationContext;
+  /** P7 attribution fields stamped onto msgf_incidents.metadata for trusted-OSS bulk. */
+  metadataExtra?: Record<string, unknown> | null;
 };
 
 export class PulseEngine {
@@ -1092,6 +1095,14 @@ export class PulseEngine {
           : lomDisagreement
             ? "PULSE_HALL_LOM_DISAGREE"
             : "PULSE_HALL_HITL",
+        metadataExtra: incidentAttributionMetadataFromHits(
+          [
+            ...(c.preflight.scoredHits ?? []),
+            ...(c.preflight.contextHits ?? []),
+            ...(c.preflight.prunedHits ?? []),
+          ],
+          c.preflight.reason
+        ),
         narrativeExtra: {
           ...buildArbitrateNarrativeExtra({
             keystrokesPlainText: c.pulseText,
@@ -1326,6 +1337,7 @@ export class PulseEngine {
       bugIndex,
       hitlStrategyContext: input.hitlStrategyContext,
       scope: { tenantId: input.tenantId, entityId: input.entityId },
+      metadataExtra: input.metadataExtra ?? null,
     });
 
     return incidentId ? { ...result, incidentId } : result;
@@ -1854,16 +1866,25 @@ export class PulseEngine {
           ? preflight.hallMatch.content
           : params.pulseText.slice(0, 400) || "shadow_reject";
 
-      await persistToHall({
-        supabase: params.adminSupabase,
+      // Phase 3/9: RED always opens HITL — never block-and-forget.
+      await this.persistHitlToHall({
+        adminSupabase: params.adminSupabase,
         entityId: params.entityId,
         tenantId: params.tenantId,
         content: hallContent,
-        bugIndex: PULSE_BUG_INDEX.hallShadowReject,
         reason: preflight.reason,
+        bugIndex: PULSE_BUG_INDEX.hallHitlRequired,
         tier: "RED",
         actionType: "PULSE_HALL_SHADOW",
-        severity: "Violation",
+        metadataExtra: incidentAttributionMetadataFromHits(
+          [...(preflight.scoredHits ?? []), ...(preflight.prunedHits ?? [])],
+          preflight.reason
+        ),
+        narrativeExtra: {
+          defend_tier: "RED",
+          defend_blocked: true,
+          shadow_reject: true,
+        },
       });
 
       // P7: non-blocking source audit (RED block)
@@ -1899,10 +1920,11 @@ export class PulseEngine {
         lineage: {
           label: hallLabel,
           instance: LINEAGE_INSTANCE,
-          bug_index: PULSE_BUG_INDEX.hallShadowReject,
+          bug_index: PULSE_BUG_INDEX.hallHitlRequired,
         },
         vault_lineage_count: params.crossRefVaultLineage.length,
         ledger: "hall",
+        hitl_required: true,
       });
     }
 

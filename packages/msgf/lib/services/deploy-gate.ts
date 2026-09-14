@@ -112,6 +112,7 @@ export function evaluateDeployGateFromVerify(params: {
 
 /**
  * Load latest VERIFY_RESULT for tenant_id (= project_origin / IDE tenantKey).
+ * When MSGF_REQUIRE_DIFF_IMPACT=1, also refuse deploy if latest hub diff_impact is red.
  */
 export async function resolveDeployGate(
   admin: SupabaseClient,
@@ -156,11 +157,57 @@ export async function resolveDeployGate(
   const md = (data?.metadata ?? {}) as Record<string, unknown>;
   const passed = typeof md.passed === "boolean" ? md.passed : null;
 
-  return evaluateDeployGateFromVerify({
+  const verifyDecision = evaluateDeployGateFromVerify({
     projectOrigin,
     passed,
     createdAt: (data?.created_at as string | undefined) ?? null,
     narrativeLogId: (data?.id as string | undefined) ?? null,
     maxAgeHours: params.maxAgeHours,
   });
+
+  if (!verifyDecision.ok) return verifyDecision;
+
+  const requireDiff =
+    process.env.MSGF_REQUIRE_DIFF_IMPACT?.trim() === "1" ||
+    process.env.MSGF_REQUIRE_DIFF_IMPACT?.trim()?.toLowerCase() === "true";
+
+  if (!requireDiff) return verifyDecision;
+
+  const { data: impactRow } = await admin
+    .from("platform_audit_events")
+    .select("id, summary, metadata, created_at")
+    .eq("kind", "diff_impact")
+    .eq("tenant_id", projectOrigin)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const impactMeta = (impactRow?.metadata ?? {}) as Record<string, unknown>;
+  const score =
+    typeof impactMeta.score === "string" ? impactMeta.score.toLowerCase() : "";
+
+  if (!impactRow) {
+    return {
+      ...verifyDecision,
+      ok: false,
+      status: "missing",
+      message:
+        "MSGF_REQUIRE_DIFF_IMPACT=1: no diff-impact report found for this project_origin. Run POST /api/msgf/diff-impact before deploy.",
+    };
+  }
+
+  if (score === "red") {
+    return {
+      ...verifyDecision,
+      ok: false,
+      status: "red",
+      message: `Diff impact is red — ${
+        typeof impactRow.summary === "string"
+          ? impactRow.summary
+          : "acknowledge / re-scan before Starport deploy"
+      }.`,
+    };
+  }
+
+  return verifyDecision;
 }

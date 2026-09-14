@@ -24,7 +24,7 @@ import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
 export const metadata = {
   title: "Features | Elphie's Gated AI",
   description:
-    "MSGF V3.2 — IDE Command Center, TRI/Grok consensus presets, Sentry→Vault quarantine, DocuSign/Dropbox Sign, Workspace SSO, deploy gate, and defensible token savings.",
+    "MSGF V3.2 — IDE Command Center, TRI/Grok consensus, governance audit hub, Session Replay, SIEM, Sentry→Vault quarantine, DocuSign/Dropbox Sign, Workspace SSO, and defensible token savings.",
 };
 
 const PILLARS = [
@@ -94,6 +94,8 @@ export default function FeaturesPage() {
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-400">
             Prefrontal cortex for AI with six pillars, IDE verify loops,{" "}
             <strong className="text-cyan-300/90">Grok-aware model presets</strong>,{" "}
+            <strong className="text-emerald-200">human-proof HITL</strong> with Session Replay and
+            SIEM export,{" "}
             <strong className="text-violet-300/90">Sentry→Vault quarantine</strong>,{" "}
             <strong className="text-emerald-200">DocuSign / Dropbox Sign</strong>, and{" "}
             <strong className="text-amber-200">quantum-ready</strong> hybrid vault envelopes —

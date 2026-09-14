@@ -134,6 +134,60 @@ export default function AuthorAdminOpsPage() {
           <h2 className="text-sm font-semibold text-fuchsia-100">Heal queue (signed HITL)</h2>
           <p className="mt-1 text-xs text-zinc-500">A6 ARBITRATE packages for Author traffic</p>
         </a>
+        <a
+          href={msgf.audit_hub}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-cyan-900/35 bg-cyan-950/15 p-4 hover:border-cyan-600/40"
+        >
+          <h2 className="text-sm font-semibold text-cyan-100">Audit hub</h2>
+          <p className="mt-1 text-xs text-zinc-500">Unified platform timeline</p>
+        </a>
+        <a
+          href={msgf.session_replay}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-indigo-900/35 bg-indigo-950/15 p-4 hover:border-indigo-600/40"
+        >
+          <h2 className="text-sm font-semibold text-indigo-100">Session Replay</h2>
+          <p className="mt-1 text-xs text-zinc-500">Prompt forensics + harm flags</p>
+        </a>
+        <a
+          href={msgf.model_fitness}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-lime-900/35 bg-lime-950/15 p-4 hover:border-lime-600/40"
+        >
+          <h2 className="text-sm font-semibold text-lime-100">Model fitness</h2>
+          <p className="mt-1 text-xs text-zinc-500">Under/over provision + cheapest fit</p>
+        </a>
+        <a
+          href={msgf.diff_impact}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-stone-700/50 bg-stone-950/30 p-4 hover:border-stone-500/50"
+        >
+          <h2 className="text-sm font-semibold text-stone-100">Diff impact</h2>
+          <p className="mt-1 text-xs text-zinc-500">Blast radius vs governance memory</p>
+        </a>
+        <a
+          href={msgf.siem_integrations}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-slate-700/50 bg-slate-950/40 p-4 hover:border-slate-500/50"
+        >
+          <h2 className="text-sm font-semibold text-slate-100">SIEM &amp; Integrations</h2>
+          <p className="mt-1 text-xs text-zinc-500">Webhook export status</p>
+        </a>
+        <a
+          href={msgf.governance_dashboard}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="rounded-xl border border-violet-900/35 bg-violet-950/15 p-4 hover:border-violet-600/40"
+        >
+          <h2 className="text-sm font-semibold text-violet-100">Governance dashboard</h2>
+          <p className="mt-1 text-xs text-zinc-500">Tenant-scoped MSGF dashboard</p>
+        </a>
       </section>
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-4">

@@ -66,19 +66,24 @@ export type MsgfIncidentScope = {
 
 function buildIncidentInsertRow(
   base: Record<string, unknown>,
-  scope?: MsgfIncidentScope
+  scope?: MsgfIncidentScope,
+  metadataExtra?: Record<string, unknown> | null
 ): Record<string, unknown> {
   if (!MSGF_INCIDENTS_SUPPORTS_METADATA || !scope?.tenantId?.trim()) {
     return base;
   }
-  return {
-    ...base,
-    metadata: withMsgfMetadataScope({}, {
+  const scoped = withMsgfMetadataScope(
+    { ...(metadataExtra ?? {}) },
+    {
       tenantId: scope.tenantId,
       entityId: scope.entityId ?? scope.tenantId,
       companyId: scope.companyId,
       projectOrigin: scope.projectOrigin?.trim() || undefined,
-    }),
+    }
+  );
+  return {
+    ...base,
+    metadata: scoped,
   };
 }
 
@@ -157,6 +162,9 @@ export async function insertMsgfArbitrateIncident(params: {
 
   scope?: MsgfIncidentScope;
 
+  /** Merged into incident.metadata (e.g. attribution_class for trusted-OSS bulk). */
+  metadataExtra?: Record<string, unknown> | null;
+
 }): Promise<string | undefined> {
 
   if (!isArbitrateIncidentBugIndex(params.bugIndex)) {
@@ -218,7 +226,8 @@ export async function insertMsgfArbitrateIncident(params: {
           strategies,
           source: MSGF_INCIDENT_SOURCE_ARBITRATE_AUTO,
         },
-        scope
+        scope,
+        params.metadataExtra
       )
     )
 

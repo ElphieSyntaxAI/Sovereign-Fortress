@@ -34,7 +34,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | Product | Production URL | Repo home (today) | Role |
 | :--- | :--- | :--- | :--- |
 | **Author Ecosystem** | **https://elphiesyntax.com** | `apps/author-ecosystem/` (BFF, Vite client, Chrome extension) | Sovereign author workflow: HAL, Vault Pact, manuscripts, revision gates, RAG librarian, publisher-facing proofs. |
-| **MSGF (Gated AI)** | **https://elphiesgatedai.elphiesyntax.com** | `packages/msgf/` (Next.js), `apps/msgf-dashboard/`, future `packages/msgf/apps/web/` | Guardrail engine + SaaS: Pulse, ingest, DEFEND preflight, Shadow Proxy / Active Governance (`/api/v1`), consensus, billing/credits, ops dashboard, public marketing/checkout shell. |
+| **MSGF (Gated AI)** | **https://elphiesgatedai.elphiesyntax.com** | `packages/msgf/` (Next.js), `apps/msgf-dashboard/`, future `packages/msgf/apps/web/` | Guardrail engine + SaaS: Pulse, ingest, DEFEND preflight, Shadow Proxy / Active Governance (`/api/v1`), consensus, billing/credits, **governance audit platform** (audit hub, Session Replay, budgets, SIEM), ops dashboard, public marketing/checkout shell. |
 | **Syntax Education** | **https://syntaxeducates.elphiesyntax.com** | `apps/syntax-educates/` | Education platform; tenant-scoped paths in `packages/msgf/config/tenant-manifest.json` (`tenant_education`). Spec: [`docs/syntax-education/`](./syntax-education/). |
 
 **Local dev defaults (typical):**
@@ -145,6 +145,7 @@ Engineering SSOT: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md). When the PDF and
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-14 | MSGF governance audit platform noted on product map; ops SSOT remains [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md). Pricing SSOT: **$0 / $99 / $49** (`pricing-tiers.ts`). |
 | 2026-08-11 | MSGF ops bug inbox closed loop (FAB → `/admin/ops#bug-inbox`); see [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md). |
 | 2026-05-15 | Linked V3.2-ULTRA PDF in `docs/references/`; MSGF 1.0 plan uses V3.2 as primary spec. |
 | 2026-05-15 | Initial SSoT: three production domains, MSGF dual role (engine + standalone), monorepo mapping. |

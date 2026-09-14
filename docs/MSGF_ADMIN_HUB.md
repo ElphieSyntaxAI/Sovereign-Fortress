@@ -6,7 +6,7 @@
 | :--- | :--- | :--- |
 | Portal | `/admin/portal` | Launch Author / Education / MSGF; local stack checklist |
 | Pillar health | `/admin/dashboard` | Six-pillar operator lens, token savings, Big Brain summary |
-| **Ops console** | `/admin/ops` | Bug inbox · Provenance · ARBITRATE · quarantine · audits · Sentry · DocuSign |
+| **Ops console** | `/admin/ops` | Audit hub · Session Replay · most-used · fitness · budgets · SIEM · ARBITRATE · quarantine · Sentry · DocuSign |
 | Account | `/account` | Plan / seats summary · Stripe Customer Portal |
 | Governance (personal) | `/dashboard` | Tenant pillar health, daily reports / period PDF, Shadow Proxy panel, security view |
 
@@ -18,16 +18,30 @@ Replaces the need to run `apps/msgf-dashboard` for day-to-day operator work. Use
 
 Shared **`project_origin`** filter strip syncs provenance, HITL audit, and skip-audit panels via `?project_origin=`.
 
-| Panel | API / notes |
+| Panel | Anchor / API / notes |
 | :--- | :--- |
+| **Audit hub** | `#audit-hub` · `GET /api/msgf/admin/audit-hub` — unified `platform_audit_events` timeline (COMPANY_ADMIN tenant-scoped) |
+| **Session Replay** | `#session-replay` · `GET /api/msgf/admin/prompt-sessions/search` (+ harm-ledger alias) — full-text prompt/completion forensics; harm opens HITL |
+| **Prompt templates** | Versioned bodies + `prompt_hash` lineage · `GET/POST /api/msgf/admin/prompt-templates` |
+| **Model fitness** | `#model-fitness` · `GET /api/msgf/admin/model-fitness` — under/over/fit rollups + cheapest-fit suggestion |
+| **Most-used resources** | Ranked `msgf_resource_usage_events` (hashed queries only) · `GET /api/msgf/dashboard/source-audit?mode=rank` |
+| **Diff impact** | `#diff-impact` · `POST /api/msgf/diff-impact` — path blast-radius vs P7/Vault/Hall; optional `MSGF_REQUIRE_DIFF_IMPACT=1` on deploy-gate |
+| **Tenant budgets** | `#…` · `GET/PUT /api/msgf/tenant-budgets` — monthly $ cap, circuit breaker; pre-dispatch on gateway |
+| **SIEM & Integrations** | `#siem-integrations` · `PUT /api/msgf/admin/siem-integrations` — OTel JSON webhook; heartbeat batch drain |
 | **Bug inbox** (`#bug-inbox`) | See § Bug inbox below |
-| **Provenance search** | `GET /api/msgf/admin/provenance-search` — Vault / Hall / HAL / P7 sources + reputation (GLOBAL_ADMIN + COMPANY_ADMIN scoped) |
-| ARBITRATE incidents | `GET /api/msgf/admin/incidents?status=pending|resolved` · resolve `PATCH .../incidents/:id` |
+| **Provenance search** | `GET /api/msgf/admin/provenance-search` — Vault / Hall / HAL / P7 sources + reputation |
+| **ARBITRATE incidents** | `#arbitrate` · `GET /api/msgf/admin/incidents` · resolve `PATCH .../incidents/:id` · **trusted-OSS bulk** approve (allowlist only, still A6) |
 | Signed HITL audit (A6) | List + verify — [`MSGF_ARBITRATE_AUDIT.md`](./MSGF_ARBITRATE_AUDIT.md) |
 | Skip-MSGF audit (A5) | Extension / IDE skip trail — [`MSGF_ASYNC_PREFLIGHT.md`](./MSGF_ASYNC_PREFLIGHT.md) |
 | Vault quarantine (A2/A3 + T3) | `GET/POST /api/msgf/admin/vault-quarantine` — restore / demote (no auto-Hall) |
 | Sentry issues | `GET /api/msgf/admin/sentry?issues=1` · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md) |
 | DocuSign / signing roster | Envelopes + webhook inbox — [`MSGF_SIGNING.md`](./MSGF_SIGNING.md) |
+
+**Human-proof defaults:** DEFEND RED and harm-flagged prompt sessions always open ARBITRATE HITL. Budget `fallback_small_brain` never bypasses RED/harm. Mitigation overrides that demote Hall RED require an A6-linked `incident_id` on the mitigation entry.
+
+**Migrations:** `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`.
+
+**Cron:** `POST /api/msgf/ops/v32-heartbeat` also drains Redis usage/audit buffers and batches SIEM exports.
 
 Legacy Vite dashboard (`npm run dev -w msgf-dashboard`) still works with Bearer auth for cross-origin Cloud Run proxy.
 
@@ -52,11 +66,15 @@ Closed loop for user-reported bugs before (or beside) ARBITRATE HITL.
 | Sign in | `http://127.0.0.1:3001/admin/sign-in` → portal |
 | Open Author (SSO) | Portal → **Author dashboard (localhost)** → `GET /api/msgf/admin/author-handoff` → Author BFF `GET /api/auth/msgf-handoff` → `/home` |
 | Author operator hub | Same handoff with **Author admin hub** link → `/admin` and **MSGF ops** at `/admin/ops` |
-| MSGF ops while coding | Author `/admin/ops` links to `/admin/ops`, token savings `?tenant_id=author_ecosystem` |
+| MSGF ops while coding | Author `/admin/ops` deep-links audit hub, Session Replay, fitness, SIEM, diff impact (`tenant_id=author_ecosystem`) |
 
 **One terminal (local):** `npm run dev:author-msgf` — MSGF + Author BFF + Vite.
 
 Operator detection on Author uses the same rules as MSGF: `MSGF_GLOBAL_ADMIN_EMAILS` and/or `p4_profiles.msgf_access_role = GLOBAL_ADMIN`.
+
+## Syntax Educates ↔ MSGF
+
+Educates Admin → Legal governance includes MSGF deep-links (audit hub, Session Replay, fitness, SIEM) for tenant `syntax_education` via `@elphie-syntax/core/educates-admin-msgf-links`.
 
 ## Project tracking rails
 

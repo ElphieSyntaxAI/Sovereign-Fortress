@@ -37,6 +37,7 @@ import {
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
+import { emitResourceUsage } from "@/lib/services/emit-resource-usage";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient as createSupabaseServerClient } from "@/utils/supabase/server";
@@ -81,6 +82,25 @@ export async function POST(req: NextRequest) {
       request: rawBody,
       trustedDomains: trustedDomainsFromEnv(),
     });
+
+    try {
+      const admin = createAdminClient();
+      const resourceKey =
+        result.sourceUrl?.trim() ||
+        result.matchedSnippetId ||
+        `citation:${result.classification}`;
+      emitResourceUsage(admin, {
+        tenant_id: tenantId,
+        product: "educates",
+        kind: "citation",
+        resource_key: String(resourceKey).slice(0, 512),
+        project_origin: "syntax-educates",
+        trace_id: traceId,
+        query_text: null,
+      });
+    } catch {
+      /* non-blocking */
+    }
 
     return json(req, {
       ok: true,
@@ -143,6 +163,23 @@ export async function PUT(req: NextRequest) {
       request: rawBody,
       trustedDomains: trustedDomainsFromEnv(),
     });
+
+    try {
+      const resourceKey =
+        result.sourceUrl?.trim() ||
+        result.matchedSnippetId ||
+        `citation:${result.classification}`;
+      emitResourceUsage(adminSupabase, {
+        tenant_id: tenantId,
+        product: "educates",
+        kind: "citation",
+        resource_key: String(resourceKey).slice(0, 512),
+        project_origin: "syntax-educates",
+        trace_id: traceId,
+      });
+    } catch {
+      /* non-blocking */
+    }
 
     return json(req, {
       ok: true,

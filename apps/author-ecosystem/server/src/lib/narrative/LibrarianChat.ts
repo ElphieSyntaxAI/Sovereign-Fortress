@@ -525,6 +525,29 @@ export class LibrarianChat {
       embedBatch: this.embedBatch,
     });
 
+    // Non-blocking governance ledger (hashed query only — never raw).
+    try {
+      const { emitAuthorResourceUsage } = await import("../authorMsgfGovernance.js");
+      emitAuthorResourceUsage({
+        kind: "search",
+        resource_key: `librarian:ask:${tenantId}`,
+        query_text: q,
+      });
+      for (const chunk of retrievedChunks.slice(0, 12)) {
+        const id =
+          typeof (chunk as { id?: unknown }).id === "string"
+            ? (chunk as { id: string }).id
+            : null;
+        if (!id) continue;
+        emitAuthorResourceUsage({
+          kind: "citation",
+          resource_key: `p4_narrative:${id}`,
+        });
+      }
+    } catch {
+      /* governance emit must never block Librarian */
+    }
+
     const system = buildLibrarianSystemPrompt(detectedLanguage, { tenantScope });
     const canonContext = buildCanonContext(retrievedChunks);
     const user = buildUserPrompt(audience, q, canonContext, detectedLanguage);

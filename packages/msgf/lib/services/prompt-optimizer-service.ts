@@ -14,6 +14,8 @@
  * Structured V1 prompt optimizer — deterministic markdown, no LLM calls.
  */
 
+import { createHash } from "node:crypto";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { RemediationTask } from "@/lib/schemas/heal-queue";
@@ -70,6 +72,8 @@ export type BuildOptimizedPromptResult = {
   task_count: number;
   shadow_files_indexed: number;
   verifyScripts: FeatureVerifyScript[];
+  /** SHA-256 of markdown — attach as x-msgf-prompt-hash for fitness lineage. */
+  prompt_hash: string;
 };
 
 export { buildFeatureVerifyScripts, type FeatureVerifyScript };
@@ -394,5 +398,6 @@ export async function buildOptimizedPrompt(
     task_count: scopedTasks.length,
     shadow_files_indexed: shardLookup.files.filter((f) => f.naive_char_count > 0).length,
     verifyScripts,
+    prompt_hash: createHash("sha256").update(markdown, "utf8").digest("hex"),
   };
 }

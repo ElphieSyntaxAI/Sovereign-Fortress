@@ -158,6 +158,17 @@ export function SourceAuditPanel({ tenantId }: Props) {
   const [lookup, setLookup] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"audit" | "rank">("audit");
+  const [rankQ, setRankQ] = useState("");
+  const [rankings, setRankings] = useState<
+    Array<{
+      resource_key: string;
+      uses: number;
+      last_used: string;
+      kind_sample: string | null;
+      product_sample: string | null;
+    }>
+  >([]);
 
   const loadForward = useCallback(async () => {
     setLoading(true);
@@ -217,6 +228,35 @@ export function SourceAuditPanel({ tenantId }: Props) {
     }
   };
 
+  const loadRank = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        tenant_id: tenantId,
+        mode: "rank",
+        since_days: "30",
+        limit: "20",
+      });
+      if (rankQ.trim()) params.set("q", rankQ.trim());
+      const res = await fetch(`/api/msgf/dashboard/source-audit?${params}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const json = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        rankings?: typeof rankings;
+      };
+      if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setRankings(json.rankings ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Rank load failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section
       id="source-audit"
@@ -233,16 +273,43 @@ export function SourceAuditPanel({ tenantId }: Props) {
           </h2>
           <p className="mt-2 max-w-2xl text-xs text-slate-500">
             Content hashes prove the exact chunk used. Impact lookup finds every trace that cited a
-            bad or deprecated source.
+            bad or deprecated source. Most-used ranks hashed resource usage across products.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadForward()}
-          className="rounded-full border border-slate-600/50 px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
-        >
-          Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setTab("audit")}
+            className={`rounded-full border px-3 py-1.5 text-xs ${
+              tab === "audit"
+                ? "border-cyan-500/50 text-cyan-200"
+                : "border-slate-600/50 text-slate-300 hover:bg-white/5"
+            }`}
+          >
+            Audit
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTab("rank");
+              void loadRank();
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs ${
+              tab === "rank"
+                ? "border-cyan-500/50 text-cyan-200"
+                : "border-slate-600/50 text-slate-300 hover:bg-white/5"
+            }`}
+          >
+            Most used
+          </button>
+          <button
+            type="button"
+            onClick={() => void (tab === "rank" ? loadRank() : loadForward())}
+            className="rounded-full border border-slate-600/50 px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -254,6 +321,46 @@ export function SourceAuditPanel({ tenantId }: Props) {
         </p>
       ) : null}
 
+      {tab === "rank" ? (
+        <div className="mt-5 space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={rankQ}
+              onChange={(e) => setRankQ(e.target.value)}
+              placeholder="Filter resource_key (raw queries never stored)"
+              className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-xs text-slate-200"
+            />
+            <button
+              type="button"
+              onClick={() => void loadRank()}
+              className="rounded-xl border border-cyan-500/40 px-3 py-2 text-xs text-cyan-100"
+            >
+              Search ranks
+            </button>
+          </div>
+          <ul className="max-h-72 space-y-2 overflow-y-auto text-sm">
+            {rankings.length === 0 ? (
+              <li className="text-slate-500">No usage rankings yet.</li>
+            ) : (
+              rankings.map((r) => (
+                <li
+                  key={r.resource_key}
+                  className="rounded-xl border border-slate-700/60 bg-slate-950/40 px-3 py-2"
+                >
+                  <p className="truncate font-mono text-xs text-slate-200">{r.resource_key}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {r.uses} uses · {r.kind_sample ?? "—"} · {r.product_sample ?? "—"} ·{" "}
+                    {new Date(r.last_used).toLocaleString()}
+                  </p>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      ) : null}
+
+      {tab === "audit" ? (
+      <>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -357,6 +464,8 @@ export function SourceAuditPanel({ tenantId }: Props) {
           </ul>
         ) : null}
       </div>
+      </>
+      ) : null}
     </section>
   );
 }

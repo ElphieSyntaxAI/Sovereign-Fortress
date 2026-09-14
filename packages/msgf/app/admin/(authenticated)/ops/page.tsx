@@ -14,12 +14,20 @@ import { Suspense } from "react";
 
 import { AdminArbitrateAuditPanel } from "@/app/_components/admin/ops/AdminArbitrateAuditPanel";
 import { AdminArbitrateSection } from "@/app/_components/admin/ops/AdminArbitrateSection";
+import { AdminAuditHubPanel } from "@/app/_components/admin/ops/AdminAuditHubPanel";
 import { AdminBetaWaitlistPanel } from "@/app/_components/admin/ops/AdminBetaWaitlistPanel";
 import { AdminBugInboxPanel } from "@/app/_components/admin/ops/AdminBugInboxPanel";
+import { AdminDiffImpactPanel } from "@/app/_components/admin/ops/AdminDiffImpactPanel";
 import { AdminDocuSignPanel } from "@/app/_components/admin/ops/AdminDocuSignPanel";
+import { AdminModelFitnessPanel } from "@/app/_components/admin/ops/AdminModelFitnessPanel";
+import { AdminMostUsedResourcesPanel } from "@/app/_components/admin/ops/AdminMostUsedResourcesPanel";
+import { AdminPromptTemplatesPanel } from "@/app/_components/admin/ops/AdminPromptTemplatesPanel";
 import { AdminProvenanceSearchPanel } from "@/app/_components/admin/ops/AdminProvenanceSearchPanel";
 import { AdminSentryPanel } from "@/app/_components/admin/ops/AdminSentryPanel";
+import { AdminSessionReplayPanel } from "@/app/_components/admin/ops/AdminSessionReplayPanel";
+import { AdminSiemIntegrationsPanel } from "@/app/_components/admin/ops/AdminSiemIntegrationsPanel";
 import { AdminSkipAuditPanel } from "@/app/_components/admin/ops/AdminSkipAuditPanel";
+import { AdminTenantBudgetPanel } from "@/app/_components/admin/ops/AdminTenantBudgetPanel";
 import { AdminVaultQuarantinePanel } from "@/app/_components/admin/ops/AdminVaultQuarantinePanel";
 import { OpsProjectOriginStrip } from "@/app/_components/admin/ops/OpsProjectOriginStrip";
 
@@ -34,21 +42,30 @@ export default function AdminOpsPage() {
           <span className="text-gradient-jewel">Ops console</span>
         </h1>
         <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-          Bug inbox → ARBITRATE, provenance, quarantine, Sentry, signing, and skip-MSGF — one ops
-          surface. Prefer the same <code className="text-slate-300">project_origin</code> when
-          filtering.
+          Audit hub, Session Replay, most-used resources, trusted-OSS bulk ARBITRATE, prompt
+          templates, quarantine, SIEM — one ops surface.
         </p>
       </header>
 
       <Suspense fallback={null}>
         <OpsProjectOriginStrip />
       </Suspense>
+      <AdminAuditHubPanel />
+      <AdminSessionReplayPanel />
+      <AdminPromptTemplatesPanel />
+      <AdminModelFitnessPanel />
+      <AdminMostUsedResourcesPanel />
+      <AdminDiffImpactPanel />
+      <AdminTenantBudgetPanel />
+      <AdminSiemIntegrationsPanel />
       <AdminBetaWaitlistPanel />
       <AdminBugInboxPanel />
       <Suspense fallback={null}>
         <AdminProvenanceSearchPanel />
       </Suspense>
-      <AdminArbitrateSection hideDeveloperKeystrokes />
+      <div id="arbitrate">
+        <AdminArbitrateSection hideDeveloperKeystrokes />
+      </div>
       <Suspense fallback={null}>
         <AdminArbitrateAuditPanel />
       </Suspense>

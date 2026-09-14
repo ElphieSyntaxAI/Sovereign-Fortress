@@ -81,6 +81,9 @@ export async function POST(req: NextRequest) {
       task_count: result.task_count,
       shadow_files_indexed: result.shadow_files_indexed,
       verifyScripts: result.verifyScripts,
+      prompt_hash: result.prompt_hash,
+      /** Clients may echo this as `x-msgf-prompt-hash` on gateway calls for fitness lineage. */
+      prompt_hash_header: "x-msgf-prompt-hash",
     });
   } catch (e) {
     if (e instanceof IdePackAuthError) {

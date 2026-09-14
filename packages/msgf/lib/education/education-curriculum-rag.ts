@@ -22,6 +22,7 @@ import {
 } from "@/lib/education/curriculum-metadata";
 import { fromPillarVectors } from "@/lib/msgf-pillar-table";
 import type { GenealogicalBugIndex } from "@/lib/schemas/vault-hall-metadata";
+import { emitResourceUsage } from "@/lib/services/emit-resource-usage";
 import {
   applyPillarVectorsTenantFilter,
   filterPillarRowsByTenant,
@@ -316,7 +317,9 @@ export async function retrieveCurriculumShards(
         lineage,
         request.resourceScope
       );
-      return enforceResourceScope(hits, request.resourceScope);
+      const scoped = enforceResourceScope(hits, request.resourceScope);
+      emitCurriculumUsage(request.supabase, tenantId, queryText, scoped);
+      return scoped;
     }
   } catch {
     // RPC may be missing until migration is applied — fall through.
@@ -330,5 +333,39 @@ export async function retrieveCurriculumShards(
     lineage,
     request.subjectDomain
   );
-  return enforceResourceScope(fallback, request.resourceScope);
+  const scopedFallback = enforceResourceScope(fallback, request.resourceScope);
+  emitCurriculumUsage(request.supabase, tenantId, queryText, scopedFallback);
+  return scopedFallback;
+}
+
+function emitCurriculumUsage(
+  supabase: SupabaseClient,
+  tenantId: string,
+  queryText: string,
+  hits: CurriculumShardHit[]
+): void {
+  try {
+    emitResourceUsage(supabase, {
+      tenant_id: tenantId,
+      product: "educates",
+      kind: "search",
+      resource_key: "curriculum:rag",
+      project_origin: "syntax-educates",
+      query_text: queryText,
+    });
+    for (const hit of hits.slice(0, 12)) {
+      emitResourceUsage(supabase, {
+        tenant_id: tenantId,
+        product: "educates",
+        kind: "citation",
+        resource_key: hit.sourceDocument
+          ? `curriculum:${hit.sourceDocument}`
+          : `curriculum_shard:${hit.id}`,
+        project_origin: "syntax-educates",
+        content_hash: null,
+      });
+    }
+  } catch {
+    /* non-blocking */
+  }
 }

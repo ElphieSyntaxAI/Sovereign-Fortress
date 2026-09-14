@@ -98,6 +98,7 @@ export type MsgfIncident = {
   bug_index: GenealogicalBugIndex;
   resolution_note: string | null;
   strategies: HitlIncidentStrategies | null;
+  metadata?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };
@@ -253,6 +254,27 @@ export async function resolveIncident(params: {
   );
   const data = await parseJson<{ ok: boolean; incident: MsgfIncident }>(res);
   return data.incident;
+}
+
+/** Trusted OSS allowlist bulk-triage — no Pulse tie-break; A6 still written per id. */
+export async function bulkResolveTrustedOssIncidents(params: {
+  incidentIds: string[];
+  operatorNote?: string;
+}): Promise<{
+  approved: string[];
+  skipped: Array<{ id: string; reason: string }>;
+  failed: Array<{ id: string; error: string }>;
+  allowlist: string[];
+}> {
+  const res = await fetch(`${apiBase()}/api/msgf/admin/incidents/bulk-resolve`, {
+    method: "POST",
+    ...adminFetchInit(),
+    body: JSON.stringify({
+      incident_ids: params.incidentIds,
+      operator_note: params.operatorNote,
+    }),
+  });
+  return parseJson(res);
 }
 
 export const PULSE_TIEBREAK_FAILED_TOAST =

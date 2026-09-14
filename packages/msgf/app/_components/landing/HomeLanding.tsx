@@ -117,7 +117,8 @@ export function HomeLanding() {
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-center text-base leading-relaxed text-slate-400 sm:text-lg">
               Six pillars, Grok-aware model presets, TRI majority CONVERGE when drift demands it,
-              Sentry→Vault quarantine, DocuSign / Dropbox Sign team gates, and{" "}
+              human-proof HITL with Session Replay and SIEM export, Sentry→Vault quarantine, DocuSign /
+              Dropbox Sign team gates, and{" "}
               <strong className="font-medium text-slate-200">quantum-ready</strong> hybrid envelopes
               for vault secrets — plus a native{" "}
               <strong className="font-medium text-slate-200">Command Center</strong> that optimizes

@@ -68,11 +68,33 @@ export async function GET(req: NextRequest) {
     );
     const contentHash = req.nextUrl.searchParams.get("content_hash")?.trim() || "";
     const resourceKey = req.nextUrl.searchParams.get("resource_key")?.trim() || "";
+    const mode = req.nextUrl.searchParams.get("mode")?.trim() || "";
     const sinceDays = Math.min(
       365,
       Math.max(1, Number(req.nextUrl.searchParams.get("since_days") || 90) || 90)
     );
     const sinceIso = new Date(Date.now() - sinceDays * 86_400_000).toISOString();
+
+    if (mode === "rank") {
+      const { rankResourceUsage } = await import("@/lib/services/emit-resource-usage");
+      const rankings = await rankResourceUsage(admin, {
+        tenant_id: tenantId,
+        since_days: Math.min(
+          365,
+          Math.max(1, Number(req.nextUrl.searchParams.get("since_days") || 30) || 30)
+        ),
+        kind: req.nextUrl.searchParams.get("kind"),
+        project_origin: req.nextUrl.searchParams.get("project_origin"),
+        q: req.nextUrl.searchParams.get("q"),
+        limit,
+      });
+      return NextResponse.json({
+        ok: true,
+        mode: "rank",
+        tenant_id: tenantId,
+        rankings,
+      });
+    }
 
     if (contentHash || resourceKey) {
       let q = admin

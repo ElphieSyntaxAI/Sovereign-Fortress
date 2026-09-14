@@ -31,6 +31,8 @@ import {
   type SourceAuditRecord,
   type SourceHit,
 } from "@/lib/schemas/source-audit";
+import { emitPlatformAudit } from "@/lib/services/emit-platform-audit";
+import { emitResourceUsage } from "@/lib/services/emit-resource-usage";
 
 const MAX_SOURCES = 12;
 const BOOST_BIAS = 0.15;
@@ -309,6 +311,43 @@ export function recordSourceAudit(
           )
         );
       }
+
+      for (const s of sources) {
+        if (!s.resource_key) continue;
+        emitResourceUsage(admin, {
+          tenant_id: record.tenant_id,
+          product: "msgf",
+          kind:
+            s.kind === "hall"
+              ? "hall"
+              : s.kind === "file"
+                ? "file"
+                : s.kind === "pack"
+                  ? "pack"
+                  : "vault",
+          resource_key: s.resource_key,
+          content_hash: s.content_hash ?? null,
+          project_origin: record.project_origin ?? null,
+          trace_id: record.trace_id,
+        });
+      }
+
+      emitPlatformAudit(admin, {
+        product: "msgf",
+        tenant_id: record.tenant_id,
+        entity_id: record.entity_id ?? null,
+        kind: "p7_source_audit",
+        severity: record.outcome === "block" ? "warn" : "info",
+        trace_id: record.trace_id,
+        ref_table: "msgf_source_audit_events",
+        ref_id: auditId,
+        summary: `P7 ${record.decision_kind}/${record.outcome} (${sources.length} sources)`,
+        metadata: {
+          decision_kind: record.decision_kind,
+          outcome: record.outcome,
+          project_origin: record.project_origin ?? null,
+        },
+      });
     } catch (e) {
       logP7Error("recordSourceAudit", e);
     }

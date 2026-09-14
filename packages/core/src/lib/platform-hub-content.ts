@@ -374,19 +374,31 @@ const MSGF_HYPE: readonly PlatformHypeFeature[] = [
     ctaLabel: "Try Shadow Proxy",
   },
   {
+    id: "governance-audit-platform",
+    title: "Governance audit platform",
+    tagline:
+      "Audit hub, Session Replay + harm HITL, most-used rankings, model fitness, diff impact, budgets, and SIEM export on /admin/ops.",
+    stage: "shipped",
+    category: "Compliance",
+    ctaPath: "/admin/ops",
+    ctaLabel: "Open ops",
+  },
+  {
     id: "stripe-entitlements",
     title: "Stripe entitlements + team seats",
     tagline:
-      "Paid go-live after identity smoke — tier batches, license expiry, and operator heartbeat on elphiesgatedai.",
-    stage: "coming_soon",
+      "Checkout code for $99 Pro perpetual and $49/user/mo Startup Team — flip mock off after live smoke on elphiesgatedai.",
+    stage: "beta_live",
     category: "Billing",
+    ctaPath: "/pricing",
+    ctaLabel: "See pricing",
   },
   {
     id: "workspace-sso",
     title: "Workspace SSO + company domains",
     tagline:
-      "Google Workspace SSO, domain allowlists, signed ARBITRATE audits — enterprise-ready identity without siloing pillars.",
-    stage: "coming_soon",
+      "Google Workspace SSO, domain allowlists, signed ARBITRATE audits — configure when going live.",
+    stage: "shipped",
     category: "Enterprise",
   },
 ];
@@ -510,7 +522,7 @@ export const PLATFORM_HUB_ENTRIES: readonly PlatformHubEntry[] = [
     eyebrow: "Prefrontal cortex · For developers & enterprise teams",
     title: "MSGF — Gated AI",
     tagline:
-      "Prefrontal cortex for AI — MSGF V3.2-ULTRA on elphiesgatedai. Six pillars, Shadow Proxy proof mode, TRI consensus, bug inbox, and operator ops — beta testing now with waitlist for console seats.",
+      "Prefrontal cortex for AI — MSGF V3.2-ULTRA on elphiesgatedai. Six pillars, Shadow Proxy proof mode, TRI consensus, governance audit hub, and operator ops — beta testing now with waitlist for console seats.",
     bullets: [
       "Shadow Proxy / Active Governance — /api/v1 OpenAI + Anthropic gateway",
       "Free 7-day Shadow Proxy trial — live savings + email report, then 3-day Pro",

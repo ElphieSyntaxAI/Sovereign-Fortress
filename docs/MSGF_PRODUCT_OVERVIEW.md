@@ -2,11 +2,13 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-09-11 (live Stripe keys + identity; mock still ON)
+**Last updated:** 2026-09-14 (governance audit platform + pricing/marketing sync)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
+**Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** Indie · **$99** Pro perpetual · **$49**/user/mo Startup Team  
 **RC / deploy:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md)  
-**Provider gateway:** [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md)
+**Provider gateway:** [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md)  
+**Ops map:** [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md)
 
 ### Launch readiness (2026-09-11)
 
@@ -56,22 +58,23 @@ Provider gateway (/api/v1 — Shadow Proxy · Active Governance)
         ↓
 Pulse Guard IDE (Command Center · Safe Build · Passive IDE Scan)
         ↓
-Ops (/admin/ops — ARBITRATE · quarantine · audits · Sentry · signing)
+Ops (/admin/ops — audit hub · Session Replay · budgets · SIEM · ARBITRATE · quarantine · Sentry · signing)
         ↓
-Deploy gate (GET /api/msgf/deploy-gate · project_origin green)
+Deploy gate (GET /api/msgf/deploy-gate · project_origin green · optional diff-impact)
 ```
 
 | Layer | Customer-facing | Operator-facing |
 | :--- | :--- | :--- |
 | **Connect** | Map projects, IDE token, GitHub picker | Portal launch matrix |
 | **Prove** | Shadow Proxy: SDK `baseURL` → projected $ without latency | Shadow Eval ledger + Reports PDF |
-| **Optimize** | Active Governance: cache + state-gate + sharded upstream | Proven avoidance + period history |
+| **Optimize** | Active Governance: cache + state-gate + sharded upstream | Proven avoidance + period history + model fitness |
 | **Govern** | Pulse, ingest, DEFEND RED short-circuit | Compound tenant isolation (`project_origin` + `subpath_hash`) |
 | **Verify** | Safe Build / Run Scripts → Vault/Hall | Skip-MSGF signed audit (A5) |
-| **Escalate** | Small Brain → CONVERGE tiers T1–T3 | ARBITRATE HITL + signed audit chain (A6) |
+| **Escalate** | Small Brain → CONVERGE tiers T1–T3 | ARBITRATE HITL + signed audit chain (A6) + trusted-OSS bulk |
 | **Contain** | Quarantined wins excluded from retrieval | Vault quarantine panel (Sentry + T3) |
+| **Audit** | Retention notice for Session Replay (purge-exempt) | Audit hub · Session Replay / harm · most-used · SIEM |
 | **Secure** | Hybrid PQ envelopes for vault secrets; gateway key never trusts spoofed tenant | CryptoService `0x03` + HAL v2 ML-DSA when enabled |
-| **Ship** | Deploy-gate green for `project_origin` | Heartbeat / archive / webhook workers |
+| **Ship** | Deploy-gate green for `project_origin` | Heartbeat / buffer flush / SIEM batch / archive / webhooks |
 
 ---
 
@@ -121,8 +124,15 @@ Dashboard: **Source Audit** panel on Governance home; API `GET /api/msgf/dashboa
 | `GET /api/msgf/dashboard/savings-features` | 24h token savings counters + catalog |
 | `GET /api/msgf/dashboard/period-reports` | Weekly / monthly metered consumption vs proven savings (+ PDF) |
 | `GET /api/msgf/dashboard/shadow-eval` | 24h Shadow Proxy projected savings summary |
-| `GET /api/msgf/dashboard/source-audit` | **P7** forward provenance + reputation tops; `?content_hash=` / `?resource_key=` reverse impact |
+| `GET /api/msgf/dashboard/source-audit` | **P7** forward provenance + reputation tops; `?mode=rank` most-used resources; `?content_hash=` / `?resource_key=` reverse impact |
 | `GET /api/msgf/admin/provenance-search` | Operator / company-admin cross-project Vault·Hall·HAL·source trust search |
+| `GET /api/msgf/admin/audit-hub` | Unified `platform_audit_events` timeline |
+| `GET /api/msgf/admin/prompt-sessions/search` | Session Replay full-text (+ harm-only alias) |
+| `GET /api/msgf/admin/model-fitness` | Fitness rollups + cheapest-fit suggestion |
+| `POST /api/msgf/diff-impact` | Diff blast-radius vs governance memory |
+| `GET/PUT /api/msgf/tenant-budgets` | Hard monthly $ caps + circuit breaker |
+| `PUT /api/msgf/admin/siem-integrations` | Customer SIEM webhook URL + secret |
+| `POST /api/msgf/governance/resource-usage` | Sister-app (Author / Educates) hashed usage emit |
 | `GET/PATCH /api/msgf/admin/bug-inbox` | Operator bug inbox for onscreen FAB / report-issue / self-heal rows → promote to ARBITRATE or dismiss |
 | `POST /api/billing/portal` | Stripe Customer Portal session (account hub) |
 | `POST /api/v1/chat/completions` | OpenAI-compatible **Shadow Proxy / Active Governance** gateway |
@@ -130,10 +140,29 @@ Dashboard: **Source Audit** panel on Governance home; API `GET /api/msgf/dashboa
 | `POST /api/msgf/report-issue` | Authenticated incident report (onscreen FAB / BugReporter) → `p4_active_incidents` bug inbox |
 | `POST /api/msgf/admin/self-heal/report` | Sentinel diagnostic self-heal (also upserts bug inbox when not already recorded) |
 | `POST /api/msgf/p4/state-ledger` | Education / P4 telemetry + hot-layer latency fields |
-| `POST /api/msgf/ops/v32-heartbeat` | Tier batches, scheduled heals, Hall purge |
+| `POST /api/msgf/ops/v32-heartbeat` | Tier batches, scheduled heals, Hall purge, **governance buffer + SIEM flush** |
 | `GET/POST /api/msgf/workspace/tier-rules` | Company path → CONVERGE tier overrides (COMPANY_ADMIN) |
 | `GET /api/msgf/admin/vault-quarantine` | Ops quarantine queue (Sentry + T3) |
 | Signing / SSO / Sentry / archive webhooks | See [`MSGF_SIGNING.md`](./MSGF_SIGNING.md), [`MSGF_SENTRY.md`](./MSGF_SENTRY.md), [`MSGF_GOOGLE_WORKSPACE_SSO.md`](./MSGF_GOOGLE_WORKSPACE_SSO.md) |
+
+### 3.2a Governance audit platform (shipped 2026-09-14)
+
+Platform-wide ledger + human-proof controls shared by MSGF, Author, and Educates. Details: [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md).
+
+| Capability | Store / behavior |
+| :--- | :--- |
+| **Most-used resources** | `msgf_resource_usage_events` — **hashed** `query_text_hash` only (no raw search strings) |
+| **Audit hub** | `platform_audit_events` — non-blocking emitters; sister apps never wait on MSGF |
+| **Session Replay / harm** | `msgf_prompt_sessions` — full-text forensics; harm flags open ARBITRATE; **purge-exempt** (tenant terms) |
+| **Trusted-OSS bulk** | Allowlist (MIT/Apache/…) ARBITRATE multi-select; still writes A6 |
+| **Model fitness** | Events + rollups; Active gateway prefers Small Brain on over-provision spikes |
+| **Prompt templates** | Versioned bodies correlated via `x-msgf-prompt-hash` |
+| **Diff impact** | Path → P7/Vault/Hall blast radius; optional deploy-gate bind (`MSGF_REQUIRE_DIFF_IMPACT=1`) |
+| **Tenant budgets** | Pre-dispatch block / `fallback_small_brain` (never bypasses RED/harm) |
+| **SIEM** | Async OTel JSON webhook; heartbeat batch drain |
+| **Human-proof** | RED + harm always HITL; mitigation RED demotion requires A6-linked incident |
+
+Migrations: `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`.
 
 ### 3.3 Small Brain vs Big Brain
 
@@ -267,7 +296,7 @@ Optimizer output includes **MANDATORY AGENT EXECUTION RULES**: attach `@` files,
 | IDE setup | `/workspace#ide-setup`, `/setup/projects` | Developers |
 | Team | Workspace team + readiness | COMPANY_ADMIN |
 | Account | `/account` | Plan / seats · Stripe Customer Portal |
-| Admin ops | `/admin/ops` (bug inbox · provenance · ARBITRATE · …), `/admin/dashboard` | GLOBAL/COMPANY admins |
+| Admin ops | `/admin/ops` (audit hub · Session Replay · budgets · SIEM · ARBITRATE · …), `/admin/dashboard` | GLOBAL/COMPANY admins |
 | Extension download | `/extension` | IDE users |
 | Status | `/status` | Ops / prospects |
 
@@ -382,11 +411,11 @@ Dashboard APIs that accept `tenant_id` enforce membership (or `GLOBAL_ADMIN`) �
 | :--- | :--- | :--- | :--- |
 | **Indie / Cursor power user** | “Stop paying to re-paste your repo” | 0-token prompt, Run Scripts, Small Brain % | Download Pulse Guard |
 | **Tech lead** | “Governance that doesn’t slow the sprint” | Verify loop, heal queue, deploy gate, Shadow→Active gateway | Team workspace / demo |
-| **CTO / security** | “Prefrontal cortex for AI with quarantine + signed HITL” | DEFEND preflight, allowlisted exec, A5/A6 audits, T3 quarantine, license-bound gateway auth | Pilot / security brief |
-| **Agency** | “Per-client silos + savings you can invoice” | `project_origin` isolation, ROI rollup, period PDF | Startup / agency tier |
+| **CTO / security** | “Prefrontal cortex for AI with quarantine + signed HITL + Session Replay” | DEFEND preflight, A5/A6 audits, T3 quarantine, audit hub, harm ledger, SIEM | Pilot / security brief |
+| **Agency** | “Per-client silos + savings you can invoice” | `project_origin` isolation, ROI rollup, period PDF | Startup / agency tier ($49/user/mo) |
 | **Integrator** | “Drop in the consensus brain — or just the SDK baseURL” | Pulse, ingest, solo license, `/api/v1` Shadow Proxy | `MSGF_SOLO_INTEGRATION` · `MSGF_SHADOW_PROXY` |
-| **Ops / founder** | “See whether Small Brain is winning” | Admin savings catalog, Big Brain queue, Shadow projected vs proven | `/admin/ops` walkthrough |
-| **Enterprise IT** | “Workspace SSO + signing + domains” | Google Workspace SSO, DocuSign/Dropbox Sign, company domains | Contact / enterprise path |
+| **Ops / founder** | “See whether Small Brain is winning” | Admin savings catalog, Big Brain queue, model fitness, Shadow projected vs proven | `/admin/ops` walkthrough |
+| **Enterprise IT** | “Workspace SSO + signing + SIEM + budgets” | Google Workspace SSO, DocuSign/Dropbox Sign, company domains, tenant budgets, SIEM webhook | Contact / Startup Team |
 
 ### 9.1 Packaging (live on `/pricing`)
 
@@ -396,9 +425,9 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | :--- | :--- | :--- | :--- |
 | **Individual Indie (BYOK)** | **$0** forever | Full local six-pillar tracking + project isolation; customer supplies Redis + Supabase env and model keys in `.msgf/keys/` | Land-and-expand. No credit card, no cloud consensus. Say “free, you run the infra” — not “free trial.” |
 | **Individual Pro (perpetual)** | **$99** one-time | Own it forever; Year 1 managed cloud consensus (**1,200 verification slices / month**); zero config on our infra; graceful fallback to 100% BYOK after Year 1 | The differentiator vs subscriptions. Be precise: the fallback is BYOK, not a shutoff. |
-| **Startup Team** | **$49** / user / mo | Multi-tenant corporate workspace scopes, global ARBITRATE consoles, company-wide P1 rulebooks, shared incident logs | Where signing, domains, SSO, and ops consoles earn their keep. |
+| **Startup Team** | **$49** / user / mo | Multi-tenant workspace scopes; global ARBITRATE + trusted-OSS bulk; audit hub; Session Replay / harm; most-used; model fitness; diff impact; tenant budgets; SIEM export; Sentry quarantine; DocuSign/Dropbox Sign; company P1 rulebooks; Workspace SSO | Where compliance + ops consoles earn their keep. Quote **$49/user/mo** exactly — never invent seat packs. |
 
-**Checkout status:** Stripe is **in plan (M3)**. Skeleton Checkout + Pro perpetual webhook exist; Startup Team entitlement + subscription lifecycle + mock-off flip are still open ([`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b). Until that checklist is green, route paid interest carefully — do not promise self-serve card success on a call.
+**Checkout status:** Stripe Checkout **code is shipped** for Pro perpetual (`$99`) and Startup Team subscription (`$49`/user/mo). Live keys may already be on `msgf-api`; **mock entitlements may still be ON** until [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b live smoke + mock-off is green. Until then, do not promise self-serve card success on a sales call — offer assisted checkout / waitlist.
 
 ### Objection handling (sales)
 
@@ -407,7 +436,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | “Another AI wrapper” | Six-pillar cold archive + Vault/Hall learning + dual-model only on drift — not a chat UI. |
 | “Too expensive” | Small Brain + cache + Heal Cheap are the default; CONVERGE is the exception. Show token-savings + Shadow projected vs proven Reports. |
 | “Will it block my team?” | DEFEND can short-circuit unsafe deltas; Safe Build is local; skip path is audited (A5); HITL is ops, not every commit. Shadow Proxy adds zero latency until you flip Active. |
-| “Trust / compliance?” | Signed skip + ARBITRATE audits; quarantine without auto-demote; tenant compound scope; gateway never trusts spoofed tenant headers. Author Chain of Origin exports can use **ML-DSA-65** signatures (algorithm per FIPS 204) — not a claim that HTTPS itself is post-quantum; see [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). |
+| “Trust / compliance?” | Signed skip + ARBITRATE audits; quarantine without auto-demote; tenant compound scope; **Session Replay + harm HITL**; SIEM export; gateway never trusts spoofed tenant headers. Author Chain of Origin exports can use **ML-DSA-65** signatures (algorithm per FIPS 204) — not a claim that HTTPS itself is post-quantum; see [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md). |
 | “We already have Sentry” | MSGF links crashes to **governance memory** (Vault wins) — Sentry owns runtime; MSGF owns what the AI should remember. |
 | “We can’t send code to your models” | Two separate answers — don’t blur them. **BYOK:** the Small Brain runs on the customer’s provider and key (OpenAI / Anthropic / Ollama / DeepSeek / Gemini); we never bill or read their model account. **Self-hosted:** the Indie tier runs against the customer’s own Redis + Supabase. Note that BYOK alone still routes the Pulse through the MSGF API — only the self-hosted path keeps data off our infrastructure. |
 | “How hard is integration?” | Two paths: (1) Pulse Guard scaffolds `.msgf/dev/` with an API cookbook; (2) change OpenAI/Anthropic `baseURL` to MSGF Shadow Proxy — prove savings before Active. |
@@ -474,6 +503,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-14 | **Governance audit platform** (§3.2a): resource ledger, audit hub, Session Replay/harm, trusted-OSS bulk, model fitness, budgets, SIEM, diff impact, human-proof HITL. Marketing + Startup pricing bullets synced. Pricing SSOT remains **$0 / $99 / $49**. |
 | 2026-08-11 | **Bug inbox** closed loop (`p4_active_incidents` → promote/dismiss); onscreen FAB on dashboard + workspace; self-heal also upserts inbox; reopen-on-resubmit RPC. Earlier same day: nav consistency + `/account` portal + provenance search + prefrontal marketing + Shadow baseURL how-to. |
 | 2026-08-10 | **P7 Source Audit & Resource Reputation:** content-hash provenance, reputation prune/boost, attribution_class auto-GREEN gate, reverse impact table + dashboard panel. |
 | 2026-08-06 | **Launch hardening:** §3.6 Shadow Proxy / Active Governance; naming glossary (DEFEND vs Passive IDE Scan vs Shadow Proxy); period reports + proven honesty; sales/SDK use case; marketing sync. |

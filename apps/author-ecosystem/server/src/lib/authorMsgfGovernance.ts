@@ -42,13 +42,34 @@ export function authorGatewayConfigured(): boolean {
  * Gateway mode for OpenAI / Anthropic traffic.
  * Default: `shadow` when MSGF Pulse license + app URL are set (projected savings, zero latency).
  * Set `MSGF_AUTHOR_GATEWAY_MODE=active` for live state-gating; `off` to bypass.
+ * T2/T3 surfaces never honor `off` when MSGF is configured (human-proof Phase 3/9).
  */
-export function resolveAuthorGatewayMode(): AuthorGatewayMode {
+export function resolveAuthorGatewayMode(
+  surface?: AuthorConvergeSurface
+): AuthorGatewayMode {
   const raw = trim("MSGF_AUTHOR_GATEWAY_MODE").toLowerCase();
-  if (raw === "off" || raw === "0" || raw === "false" || raw === "disabled") return "off";
-  if (raw === "active") return "active";
-  if (raw === "shadow") return "shadow";
-  return authorGatewayConfigured() ? "shadow" : "off";
+  const configured = authorGatewayConfigured();
+  let mode: AuthorGatewayMode = "off";
+  if (raw === "off" || raw === "0" || raw === "false" || raw === "disabled") {
+    mode = "off";
+  } else if (raw === "active") {
+    mode = "active";
+  } else if (raw === "shadow") {
+    mode = "shadow";
+  } else {
+    mode = configured ? "shadow" : "off";
+  }
+
+  if (surface && mode === "off" && configured) {
+    const tier = convergeTierForSurface(surface);
+    if (tier === "TIER_2" || tier === "TIER_3") {
+      console.warn(
+        `[authorMsgfGovernance] refusing gateway off for ${surface} (${tier}) — forcing shadow`
+      );
+      return "shadow";
+    }
+  }
+  return mode;
 }
 
 export function convergeTierForSurface(surface: AuthorConvergeSurface): ConvergeTierHeader {
@@ -70,8 +91,10 @@ export function convergeTierForSurface(surface: AuthorConvergeSurface): Converge
 }
 
 /** OpenAI SDK / fetch: baseURL for `/api/v1/chat/completions`. */
-export function resolveOpenAiGatewayBaseUrl(): string | null {
-  if (resolveAuthorGatewayMode() === "off") return null;
+export function resolveOpenAiGatewayBaseUrl(
+  surface?: AuthorConvergeSurface
+): string | null {
+  if (resolveAuthorGatewayMode(surface) === "off") return null;
   const base = resolveAuthorMsgfAppUrl();
   if (!base || !resolveAuthorPulseLicenseKey()) return null;
   return `${base}/api/v1`;
@@ -81,8 +104,10 @@ export function resolveOpenAiGatewayBaseUrl(): string | null {
  * Anthropic SDK baseURL — SDK appends `/v1/messages`, so use `/api` (not `/api/v1`).
  * @see docs/MSGF_SHADOW_PROXY.md
  */
-export function resolveAnthropicGatewayBaseUrl(): string | null {
-  if (resolveAuthorGatewayMode() === "off") return null;
+export function resolveAnthropicGatewayBaseUrl(
+  surface?: AuthorConvergeSurface
+): string | null {
+  if (resolveAuthorGatewayMode(surface) === "off") return null;
   const base = resolveAuthorMsgfAppUrl();
   if (!base || !resolveAuthorPulseLicenseKey()) return null;
   return `${base}/api`;
@@ -91,7 +116,7 @@ export function resolveAnthropicGatewayBaseUrl(): string | null {
 export function authorGatewayDefaultHeaders(
   surface?: AuthorConvergeSurface
 ): Record<string, string> {
-  const mode = resolveAuthorGatewayMode();
+  const mode = resolveAuthorGatewayMode(surface);
   const key = resolveAuthorPulseLicenseKey();
   const headers: Record<string, string> = {
     "x-msgf-key": key,
@@ -141,6 +166,46 @@ function msgfAuthHeaders(extra?: Record<string, string>): Record<string, string>
     "x-msgf-project-origin": AUTHOR_MSGF_PROJECT_ORIGIN,
     ...(extra ?? {}),
   };
+}
+
+/**
+ * Non-blocking resource-usage emit into MSGF governance ledger (hashed queries only).
+ * Failures are swallowed so Author request paths never wait on MSGF.
+ */
+export function emitAuthorResourceUsage(params: {
+  kind?: "citation" | "search" | "file" | "tool" | "agent";
+  resource_key: string;
+  project_origin?: string | null;
+  trace_id?: string | null;
+  query_text?: string | null;
+}): void {
+  void (async () => {
+    try {
+      if (!authorMsgfBridgeConfigured()) return;
+      const base = resolveAuthorMsgfAppUrl().replace(/\/$/, "");
+      const res = await fetch(`${base}/api/msgf/governance/resource-usage`, {
+        method: "POST",
+        headers: msgfAuthHeaders(),
+        body: JSON.stringify({
+          product: "author",
+          kind: params.kind ?? "citation",
+          resource_key: params.resource_key,
+          project_origin: params.project_origin ?? AUTHOR_MSGF_PROJECT_ORIGIN,
+          trace_id: params.trace_id ?? null,
+          query_text: params.query_text ?? null,
+        }),
+        signal: AbortSignal.timeout(4_000),
+      });
+      if (!res.ok) {
+        console.warn("[authorMsgfGovernance] resource-usage emit HTTP", res.status);
+      }
+    } catch (e) {
+      console.warn(
+        "[authorMsgfGovernance] resource-usage emit failed:",
+        e instanceof Error ? e.message : e
+      );
+    }
+  })();
 }
 
 /** POST /api/msgf/verify-result — Vault/Hall learning after Author verify gates. */
@@ -320,7 +385,7 @@ export async function authorOpenAiChatCompletion(params: {
   const key = trim("OPENAI_API_KEY");
   if (!key) throw new Error("OPENAI_API_KEY is required");
 
-  const gatewayBase = resolveOpenAiGatewayBaseUrl();
+  const gatewayBase = resolveOpenAiGatewayBaseUrl(params.surface ?? "librarian");
   const url = gatewayBase
     ? `${gatewayBase}/chat/completions`
     : "https://api.openai.com/v1/chat/completions";
@@ -370,7 +435,7 @@ export type AuthorAnthropicClientOptions = {
 export function authorAnthropicClientInit(
   opts: AuthorAnthropicClientOptions
 ): { apiKey: string; baseURL?: string; defaultHeaders?: Record<string, string> } {
-  const gatewayBase = resolveAnthropicGatewayBaseUrl();
+  const gatewayBase = resolveAnthropicGatewayBaseUrl(opts.surface ?? "bicameral_audit");
   if (!gatewayBase) {
     return { apiKey: opts.apiKey };
   }

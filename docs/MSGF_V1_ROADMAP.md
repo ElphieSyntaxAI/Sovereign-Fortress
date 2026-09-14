@@ -13,11 +13,11 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-09-11 (live Stripe keys + identity on `msgf-api-00077-7qx`; mock still ON; picker still **beta testing**)
+**Last updated:** 2026-09-14 (governance audit platform shipped; marketing/pricing docs synced; Stripe mock may still be ON)
 
-**Picker status (public):** **Beta testing** — console seats invite-only; free 7-day Shadow Proxy at `/shadow-trial` (clock starts on first call; then 3-day Individual Pro full access).
+**Picker status (public):** **Beta testing** — console seats invite-only; free 7-day Shadow Proxy at `/shadow-trial` (clock starts on first call; then 3-day Individual Pro full access). Pricing SSOT: **$0** Indie · **$99** Pro · **$49**/user/mo Startup Team (`pricing-tiers.ts`).
 
-**Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles, **launch readiness %**.
+**Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles, **launch readiness %**. Ops panel map: [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md).
 
 **Testing & deploy:** [`MSGF_TESTING.md`](./MSGF_TESTING.md) · **Brain routing:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](./MSGF_SOLO_INTEGRATION.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf`
 
@@ -558,7 +558,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | **Ecosystem (Author/Edu)** | **~55%** | Not blocking MSGF-only soft-RC |
 | **Commercial (Stripe)** | **~80%** | Live keys + identity + webhook + live Prices done; Checkout smoke + mock-off open |
 | **Verification / staging** | **~55%** | Local P0 gates green 2026-09-11; live tenant smoke still open |
-| **Marketing / docs** | **~98%** | Overview + features + Shadow Proxy refreshed 2026-08-06 |
+| **Marketing / docs** | **~99%** | Overview + features + pricing + admin hub synced for governance audit platform (2026-09-14) |
 | **Technical soft-RC** | **~90%** | Validate + deep-test + env green; remaining = staging smoke (mock OK) |
 | **Paid self-serve launch** | **~82%** | Soft-RC + live Checkout smoke + mock-off |
 
@@ -568,6 +568,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-14 | **Governance audit platform** shipped (resource ledger, audit hub, Session Replay/harm, fitness, budgets, SIEM, diff impact, trusted-OSS bulk). Docs + marketing + Startup tier bullets updated. Pricing remains **$0 / $99 / $49**. |
 | 2026-09-11 | **Stripe live:** identity done; live keys + webhook + Price IDs on `msgf-api-00077-7qx` via Secret Manager. Paid ~82%. Mock still ON until Checkout smoke. Supabase restored from pause. |
 | 2026-08-11 | **Bug inbox** closed loop: operator triage for FAB / report-issue / self-heal → promote to ARBITRATE or dismiss; `/account` portal + provenance search (same day nav/ops pass). |
 | 2026-08-10 | **P7 Source Audit & Resource Reputation:** content-hash provenance, reputation prune/boost, `attribution_class` auto-GREEN gate, reverse impact table; DEFEND §2.6 note. |
