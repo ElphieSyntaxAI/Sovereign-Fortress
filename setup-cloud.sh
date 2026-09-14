@@ -492,6 +492,19 @@ else
 fi
 
 # --- Cloud Run deploy env (YAML file — comma-separated --update-env-vars breaks on URL lists) ---
+# Never emit string literals for vars already bound to Secret Manager on msgf-api.
+# Mixing types fails with: Cannot update environment variable […] to string literal
+# because it has already been set with a different type.
+SECRET_BACKED_ENV_KEYS=(
+  MASTER_GEMINI_KEY
+  MASTER_ANTHROPIC_KEY
+  STRIPE_SECRET_KEY
+  STRIPE_WEBHOOK_SECRET
+)
+for _sk in "${SECRET_BACKED_ENV_KEYS[@]}"; do
+  unset "RUN_ENV[${_sk}]"
+done
+
 _write_cloudrun_env_file() {
   local out="$1"
   local k v
@@ -525,8 +538,9 @@ for s in "${SECRET_GEMINI_KEY_RESOURCE}" "${SECRET_ANTHROPIC_KEY_RESOURCE}"; do
 done
 
 if [[ "${MISSING}" -eq 0 ]]; then
+  # --update-secrets merges; --set-secrets would wipe Stripe / other secret mounts.
   SECRET_FLAGS=(
-    --set-secrets="MASTER_GEMINI_KEY=${SECRET_GEMINI_KEY_RESOURCE}:latest,MASTER_ANTHROPIC_KEY=${SECRET_ANTHROPIC_KEY_RESOURCE}:latest"
+    --update-secrets="MASTER_GEMINI_KEY=${SECRET_GEMINI_KEY_RESOURCE}:latest,MASTER_ANTHROPIC_KEY=${SECRET_ANTHROPIC_KEY_RESOURCE}:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest"
   )
 fi
 
