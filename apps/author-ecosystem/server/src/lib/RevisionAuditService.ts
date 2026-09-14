@@ -1,5 +1,5 @@
 /**
- * Revision audits aligned with docs/AUTHOR_ROADMAP.md → AUTHOR_ECOSYSTEM_ROADMAP.md:
+ * Revision audits aligned with docs/author-ecosystem/AUTHOR_ROADMAP.md → AUTHOR_ECOSYSTEM_ROADMAP.md:
  * - **STATE_COOLDOWN** (product): triggers Librarian (Logic) JSON report vs RAG World Bible + Outline (`revision_reports`).
  * - **Critic (Sensitivity)** (prior path): Claude pass persisted to `p4_revision_reports` (`CRITIC_SUMMARY`).
  *

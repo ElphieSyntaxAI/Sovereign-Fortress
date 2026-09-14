@@ -102,7 +102,7 @@ export function resolveOpenAiGatewayBaseUrl(
 
 /**
  * Anthropic SDK baseURL — SDK appends `/v1/messages`, so use `/api` (not `/api/v1`).
- * @see docs/MSGF_SHADOW_PROXY.md
+ * @see docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md
  */
 export function resolveAnthropicGatewayBaseUrl(
   surface?: AuthorConvergeSurface

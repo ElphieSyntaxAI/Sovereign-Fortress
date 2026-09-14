@@ -1,6 +1,6 @@
 # Syntax Education — External Ecosystem Add-Ons
 
-Per pillars [§3 Universal external ecosystem integration](../../../docs/syntax-education/syntax_education_pillars.md#3-universal-external-ecosystem-integration), this directory holds the native add-on wrappers that extend P4 telemetry + P6 lineage into the document hosts students already use.
+Per pillars [§3 Universal external ecosystem integration](../../../docs/syntax-education/technical-specs/syntax_education_pillars.md#3-universal-external-ecosystem-integration), this directory holds the native add-on wrappers that extend P4 telemetry + P6 lineage into the document hosts students already use.
 
 ## Layout
 

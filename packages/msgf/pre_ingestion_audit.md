@@ -1,6 +1,6 @@
 # MSGF V3.2-ULTRA Pre-Ingestion Audit
 
-**Spec:** [`docs/references/MSGF_v3_2_masterdoc.pdf`](../../docs/references/MSGF_v3_2_masterdoc.pdf) · **Release plan:** [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) (SWEEP step §2.6).
+**Spec:** [`docs/references/MSGF_v3_2_masterdoc.pdf`](../../docs/references/MSGF_v3_2_masterdoc.pdf) · **Release plan:** [`docs/msgf/MSGF_V1_ROADMAP.md`](../../docs/msgf/MSGF_V1_ROADMAP.md) (SWEEP step §2.6).
 
 ## INIT Phase Status
 - SWEEP completed in analysis mode (no refactor performed).
@@ -124,7 +124,7 @@ Recommended Hall labels:
 
 ## 6) Mock / dead-end API registry (2026-05-22)
 
-See [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) §7.1. Summary for CONVERGE / RAG hygiene:
+See [`docs/msgf/MSGF_V1_ROADMAP.md`](../../docs/msgf/MSGF_V1_ROADMAP.md) §7.1. Summary for CONVERGE / RAG hygiene:
 
 | Surface | Why it hallucinates |
 |---------|---------------------|

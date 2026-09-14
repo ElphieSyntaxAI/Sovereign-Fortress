@@ -7,10 +7,10 @@
 
 | Document | Purpose |
 | :--- | :--- |
-| [`syntax_education_masterdoc.md`](./syntax_education_masterdoc.md) | **What** features must exist (phases, functional spec) |
-| [`syntax_education_pillars.md`](./syntax_education_pillars.md) | **How** they must behave (pillar gates, HALT rules) |
+| [`syntax_education_masterdoc.md`](./technical-specs/syntax_education_masterdoc.md) | **What** features must exist (phases, functional spec) |
+| [`syntax_education_pillars.md`](./technical-specs/syntax_education_pillars.md) | **How** they must behave (pillar gates, HALT rules) |
 | [`DOCS_E2E_CHECKLIST.md`](./DOCS_E2E_CHECKLIST.md) | Live Docs / Classroom / tutor soak checklist |
-| [`../MSGF_PILLAR_MAPPING_SSOT.md`](../MSGF_PILLAR_MAPPING_SSOT.md) | Engineering pillar numbers & code entry points |
+| [`../MSGF_PILLAR_MAPPING_SSOT.md`](../msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md) | Engineering pillar numbers & code entry points |
 | [`../MONOREPO_PRODUCTS.md`](../MONOREPO_PRODUCTS.md) | Monorepo surfaces & URLs |
 
 **Production URL (target):** https://syntaxeducates.elphiesyntax.com  
@@ -186,7 +186,7 @@ Legend: **Primary** = owning pillar · **Also** = read/write or enforcement depe
 
 ## 4. Pillar delivery checklist (Syntax Education)
 
-Use this with [`syntax_education_pillars.md`](./syntax_education_pillars.md) for acceptance criteria.
+Use this with [`syntax_education_pillars.md`](./technical-specs/syntax_education_pillars.md) for acceptance criteria.
 
 | Pillar | Education capability | Phase | Delivery |
 | :--- | :--- | :---: | :---: |

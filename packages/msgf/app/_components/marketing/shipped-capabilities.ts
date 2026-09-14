@@ -12,7 +12,7 @@
  */
 /**
  * Shipped MSGF capabilities — single source for marketing + dashboard copy.
- * Keep in sync with docs/MSGF_PRODUCT_OVERVIEW.md §2–§4.
+ * Keep in sync with docs/msgf/marketing/MSGF_PRODUCT_OVERVIEW.md §2–§4.
  */
 
 export type ShippedFeature = {

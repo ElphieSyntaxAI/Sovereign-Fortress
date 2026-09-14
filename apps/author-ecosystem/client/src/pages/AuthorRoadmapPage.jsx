@@ -98,7 +98,7 @@ export default function AuthorRoadmapPage() {
       </main>
 
       <footer className="border-t border-violet-500/10 py-8 text-center text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} Elphie Syntax LLC · SSOT docs/AUTHOR_ECOSYSTEM_ROADMAP.md</p>
+        <p>© {new Date().getFullYear()} Elphie Syntax LLC · SSOT docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md</p>
       </footer>
     </div>
   );

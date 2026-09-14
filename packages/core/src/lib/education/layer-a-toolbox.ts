@@ -1,6 +1,6 @@
 /**
  * Layer A — grade-appropriate toolbox (P5 structural layer).
- * SSOT: docs/syntax-education/syntax_education_pillars.md §2.1.2
+ * SSOT: docs/syntax-education/technical-specs/syntax_education_pillars.md §2.1.2
  */
 
 export const GRADE_COHORTS = ["k3", "4_6", "7_9", "10_12", "12_plus"] as const;

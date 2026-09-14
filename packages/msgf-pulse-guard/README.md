@@ -74,7 +74,7 @@ On first activation, the extension creates **`.msgf/`** in your workspace root:
 - **`USER-GUIDE.md`** — Command Palette commands and Pulse troubleshooting
 - **`README.md`** + **`dev/`** — integrator API cookbook, curl fixtures, PowerShell/bash scripts, and VS Code task snippets
 
-Run **MSGF: Open developer kit** or **MSGF: Sync developer kit** from the Command Palette. See [`docs/MSGF_INTEGRATOR_DEV_KIT.md`](../../docs/MSGF_INTEGRATOR_DEV_KIT.md) in the monorepo.
+Run **MSGF: Open developer kit** or **MSGF: Sync developer kit** from the Command Palette. See [`docs/integrations/technical-specs/MSGF_INTEGRATOR_DEV_KIT.md`](../../docs/integrations/technical-specs/MSGF_INTEGRATOR_DEV_KIT.md) in the monorepo.
 
 Run **MSGF: Open quick reference** from the Command Palette to open it anytime.
 
@@ -195,5 +195,5 @@ Source lives under `src/`; runtime artifact is `out/extension.js` only.
 
 ## Related monorepo docs
 
-- [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) — V3.2 platform scope and Pulse APIs
+- [`docs/msgf/MSGF_V1_ROADMAP.md`](../../docs/msgf/MSGF_V1_ROADMAP.md) — V3.2 platform scope and Pulse APIs
 - [`packages/msgf/app/api/msgf/pulse/route.ts`](../msgf/app/api/msgf/pulse/route.ts) — server-side Pulse gateway

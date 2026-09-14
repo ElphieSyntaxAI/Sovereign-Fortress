@@ -282,7 +282,7 @@ export function GithubRepoPickerPanel({ projects, onMapped, setError, setMessage
       setError(
         e instanceof Error
           ? e.message
-          : "GitHub OAuth failed. Enable the GitHub provider in Supabase Auth (see docs/MSGF_GITHUB_PROJECTS.md)."
+          : "GitHub OAuth failed. Enable the GitHub provider in Supabase Auth (see docs/integrations/technical-specs/MSGF_GITHUB_PROJECTS.md)."
       );
       setConnecting(false);
     }
@@ -424,7 +424,7 @@ export function GithubRepoPickerPanel({ projects, onMapped, setError, setMessage
       {!loadingStatus && !connected ? (
         <p className="mt-4 text-sm text-slate-500">
           Not connected yet. If Connect fails, enable the GitHub provider in Supabase Auth — see{" "}
-          <code className="text-sky-200">docs/MSGF_GITHUB_PROJECTS.md</code>.
+          <code className="text-sky-200">docs/integrations/technical-specs/MSGF_GITHUB_PROJECTS.md</code>.
         </p>
       ) : null}
 

@@ -4,9 +4,9 @@
 
 **How to update:** Change the **Status** column (`Done` | `Partial` | `Not started` | `N/A`) and add a row under **Changelog** with date + brief note. Optionally add file paths under **Primary evidence**.
 
-**Product SSOT (vision, lexicon, phased roadmap, tiers, MSGF states):** [`docs/AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) — update that file when marketing or scope-of-record changes; keep this tracker aligned when implementation status shifts.
+**Product SSOT (vision, lexicon, phased roadmap, tiers, MSGF states):** [`docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) — update that file when marketing or scope-of-record changes; keep this tracker aligned when implementation status shifts.
 
-**MSGF platform SSOT (1.0 release, V3 master spec, three production domains):** [`docs/MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md)
+**MSGF platform SSOT (1.0 release, V3 master spec, three production domains):** [`docs/msgf/MSGF_V1_ROADMAP.md`](./msgf/MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCTS.md)
 
 **Last reviewed:** 2026-07-13
 
@@ -14,7 +14,7 @@
 
 ## Vision summary
 
-Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) (HAL Ledger, Vault Seal, Cool Down Lock, Bicameral Audit, Publisher Hub, Active Project, Series RAG share).
+Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) (HAL Ledger, Vault Seal, Cool Down Lock, Bicameral Audit, Publisher Hub, Active Project, Series RAG share).
 
 | Pillar | Goal |
 |--------|------|
@@ -32,7 +32,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 | Pillar | Status | Primary evidence (examples) |
 |--------|--------|-------------------------------|
 | HAL | Partial | `apps/author-ecosystem/extension/src/content.js`, `packages/msgf/lib/P4.ts`, pulse route, `p4_hal_ledger` migrations |
-| MSGF | **Partial (~75% toward RC)** | [`MSGF_V1_ROADMAP.md` §10](./MSGF_V1_ROADMAP.md#10-whats-left--recommended-next-steps): engine ~85%; Stripe **deferred post-test**; HAL bridge **done** |
+| MSGF | **Partial (~75% toward RC)** | [`MSGF_V1_ROADMAP.md` §10](./msgf/MSGF_V1_ROADMAP.md#10-whats-left--recommended-next-steps): engine ~85%; Stripe **deferred post-test**; HAL bridge **done** |
 | Stylometric fingerprint | Partial | `packages/msgf/supabase/migrations/*hal_ledger*rolling*`, `apps/author-ecosystem/server/src/lib/forensics/`, `packages/core/src/lib/forensics/` |
 | Revision gates | Partial → strong | `apps/author-ecosystem/server/src/lib/RevisionLockService.ts`, `20260515180000_p4_manuscripts_revision_p4_revision_reports.sql` |
 | Immutable audit | Partial | `p4_narrative_logs`, `packages/msgf/lib/pov-logger.ts`, `ContractAutomationService.ts`, `p4_legal_contracts` migration |
@@ -46,7 +46,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 |------|-------------|--------|------------------|-------|
 | AUTH-7 | MSGF root + six pillar **markdown** guides for AI development | Partial | `packages/msgf/.msgf/P1` … `P6` (currently **empty** stubs), `msgf-ingest.ts`, `identity-violations.ndjson` | Replace 0-byte `P*` files with real pillar docs when ready |
 | AUTH-8 | Google Docs extension: trusted typing vs programmatic paste | Partial | `apps/author-ecosystem/extension/src/content.js`, extension README | Paste flagged `isSystemEvent`; full Docs API + OAuth still scaffold |
-| AUTH-9 | DB schema for **5** subscription tiers (Free → **$199.99**) | Partial | `msgf_legacy_tiers` in `20260516900000_msgf_legacy_express_tables_and_rules.sql` (seed has **3** tiers today); product prices in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) | Align seed + `msgf_rules` / BFF defaults to SSOT ($29.99 … $199.99) |
+| AUTH-9 | DB schema for **5** subscription tiers (Free → **$199.99**) | Partial | `msgf_legacy_tiers` in `20260516900000_msgf_legacy_express_tables_and_rules.sql` (seed has **3** tiers today); product prices in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) | Align seed + `msgf_rules` / BFF defaults to SSOT ($29.99 … $199.99) |
 | AUTH-10 | **4-level** asymmetric encryption for publisher-safe report sharing | Partial | `packages/core/src/lib/forensics/calibration-node.ts` (school / FERPA encryption path) | Core has calibration encryption; full **4-level publisher** design not fully reflected here |
 
 ---
@@ -93,7 +93,7 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 | PERSIST (scheduled purge) | **Partial** |
 | Stripe / entitlements | **Deferred (post-test signoff)** |
 
-**Hallucination-risk surfaces:** see [`MSGF_V1_ROADMAP.md` §7.1](./MSGF_V1_ROADMAP.md#71-mock--dead-end-apis-hallucination-risk).
+**Hallucination-risk surfaces:** see [`MSGF_V1_ROADMAP.md` §7.1](./msgf/MSGF_V1_ROADMAP.md#71-mock--dead-end-apis-hallucination-risk).
 
 ---
 
@@ -109,13 +109,13 @@ Aligned with **Creative Integrity Flywheel** and the **Sovereign Lexicon** in [`
 
 | Date | Change |
 |------|--------|
-| 2026-07-13 | **Author project switcher (plan 100%):** nav `MS:` dropdown + hub selection identity (`tenantId`/`seriesId`); per-book outline/wiki remount. Tracked in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) §0 (~72% Phase 1). |
+| 2026-07-13 | **Author project switcher (plan 100%):** nav `MS:` dropdown + hub selection identity (`tenantId`/`seriesId`); per-book outline/wiki remount. Tracked in [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) §0 (~72% Phase 1). |
 | 2026-05-22 | Strict Zod ingest + Vault/Hall metadata (`ingest-metadata.ts`, genealogical root coherence); `POST /api/msgf/ingest` returns `INGEST_VALIDATION_ERROR` before Postgres. |
 | 2026-05-22 | Roadmap §2.6/§7 refresh; AUTH-23 **Done** for MSGF ingest; MSGF V3.2 table + §7.1 dead-end API registry in `MSGF_V1_ROADMAP.md`. |
 | 2026-05-21 | **V3.2-ULTRA §2.6 closure:** `v32_directive` on Pulse responses; `MSGF_REQUIRE_REDIS` + `/health` SHARD probe; ingest DEFEND (`preFlightCheck`); signed-in dashboard Human Arbitrate; `POST /api/msgf/ops/v32-heartbeat` (tier batches + 30d Hall purge); live checklist on `/status`. |
 | 2026-05-15 | **MSGF V3.2-ULTRA:** `docs/references/MSGF_v3_2_masterdoc.pdf` + roadmap §2.0–2.6 (hot/cold, Vault/Hall, SWEEP→PERSIST acceptance). |
-| 2026-05-15 | **MSGF 1.0 SSOT:** Added `docs/MSGF_V1_ROADMAP.md` (V3 master spec → 1.0 plan) and `docs/MONOREPO_PRODUCTS.md` (three domains: elphiesyntax.com, elphiesgatedai.elphiesyntax.com, syntaxeducation.elphiesyntax.com). |
-| 2026-05-13 | **Author Ecosystem SSOT:** Added `docs/AUTHOR_ECOSYSTEM_ROADMAP.md` (vision, lexicon, phases 1–3, five tiers + publisher key levels, MSGF `STATE_*` targets); linked from this tracker and Vision summary. |
+| 2026-05-15 | **MSGF 1.0 SSOT:** Added `docs/msgf/MSGF_V1_ROADMAP.md` (V3 master spec → 1.0 plan) and `docs/MONOREPO_PRODUCTS.md` (three domains: elphiesyntax.com, elphiesgatedai.elphiesyntax.com, syntaxeducation.elphiesyntax.com). |
+| 2026-05-13 | **Author Ecosystem SSOT:** Added `docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md` (vision, lexicon, phases 1–3, five tiers + publisher key levels, MSGF `STATE_*` targets); linked from this tracker and Vision summary. |
 | 2026-05-13 | **Prancer pillars (MSGF):** `.github/workflows/security-prancer-pillars.yml` runs static migration + embedded-key scan on PR/push; `npm run security:prancer-pillars` at repo root; optional `workflow_dispatch` + `run_db_verify` + `SUPABASE_DATABASE_URL` for `verify:supabase-schema`. |
 | 2026-05-13 | **BFF security:** CORS whitelist + credentials; `author_bff_jwt` → **httpOnly** cookie via `/api/auth` bridge; `/api/rag` + `/api/lore-git` proxied to legacy **internal** loopback only. **Data plane purge:** removed local `schema.sql` / `dbConfig.js` / `initDb`; legacy stack uses `DATABASE_URL` + `msgf_legacy_*` + **`msgf_rules`** (RAG allowlists); `supabase db push` applied `20260516900000_*`. Removed duplicate legacy `halRoutes` (HAL lives on TS BFF). |
 | 2026-05-08 | Initial tracker: imported 6-pillar rundown + AUTH phases 1–4 with statuses from codebase review. |

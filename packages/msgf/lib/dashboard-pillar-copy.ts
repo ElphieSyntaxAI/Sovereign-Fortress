@@ -10,7 +10,7 @@
  *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
-/** V3.0 / V3.2 governance pillar labels for the SaaS dashboard (see docs/MSGF_PILLAR_MAPPING_SSOT.md). */
+/** V3.0 / V3.2 governance pillar labels for the SaaS dashboard (see docs/msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md). */
 
 import type { MsgfGovernancePillar } from "@/lib/services/pillar-baseline";
 

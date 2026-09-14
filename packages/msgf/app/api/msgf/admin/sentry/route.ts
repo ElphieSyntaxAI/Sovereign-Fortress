@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
           ok: false,
           ...status,
           error:
-            "Sentry is unconfigured. Set SENTRY_AUTH_TOKEN and SENTRY_ORG_SLUG (docs/MSGF_SENTRY.md).",
+            "Sentry is unconfigured. Set SENTRY_AUTH_TOKEN and SENTRY_ORG_SLUG (docs/integrations/technical-specs/MSGF_SENTRY.md).",
           code: "SENTRY_UNCONFIGURED",
         },
         { status: 400 }

@@ -1,6 +1,6 @@
 /**
  * Platform chooser ("picker") copy — SSOT for apex hub + MSGF `/hub` landing.
- * Roadmap sources: docs/MSGF_V1_ROADMAP.md, docs/AUTHOR_ECOSYSTEM_ROADMAP.md,
+ * Roadmap sources: docs/msgf/MSGF_V1_ROADMAP.md, docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md,
  * docs/syntax-education/ROADMAP.md. Update when shipping milestones change.
  */
 
@@ -488,7 +488,7 @@ export const PLATFORM_HUB_ENTRIES: readonly PlatformHubEntry[] = [
     availability: "foundational_testing",
     roadmapHeadline: "Creative Integrity Flywheel · Phase 1 ~78% · foundational testing",
     productionHost: ELPHIE_PRODUCT_HOSTS.author,
-    roadmapDoc: "docs/AUTHOR_ECOSYSTEM_ROADMAP.md",
+    roadmapDoc: "docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md",
     phases: AUTHOR_PHASES,
     hypeFeatures: AUTHOR_HYPE,
     prelaunch: false,
@@ -532,7 +532,7 @@ export const PLATFORM_HUB_ENTRIES: readonly PlatformHubEntry[] = [
     availability: "beta_testing",
     roadmapHeadline: "MSGF 1.0 · Beta testing on elphiesgatedai",
     productionHost: ELPHIE_PRODUCT_HOSTS.msgf,
-    roadmapDoc: "docs/MSGF_V1_ROADMAP.md",
+    roadmapDoc: "docs/msgf/MSGF_V1_ROADMAP.md",
     phases: MSGF_PHASES,
     hypeFeatures: MSGF_HYPE,
     prelaunch: false,

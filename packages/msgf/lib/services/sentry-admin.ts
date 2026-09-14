@@ -151,7 +151,7 @@ export async function listSentryIssues(
 ): Promise<SentryIssueSummary[]> {
   if (!config.configured || !config.orgSlug) {
     throw new Error(
-      "Sentry is not configured. Set SENTRY_AUTH_TOKEN and SENTRY_ORG_SLUG (see docs/MSGF_SENTRY.md)."
+      "Sentry is not configured. Set SENTRY_AUTH_TOKEN and SENTRY_ORG_SLUG (see docs/integrations/technical-specs/MSGF_SENTRY.md)."
     );
   }
 

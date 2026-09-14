@@ -12,7 +12,7 @@
  */
 /**
  * MSGF V3.2-ULTRA master directive — runtime labels for Pulse, health, and ops.
- * @see docs/MSGF_V1_ROADMAP.md §2.6
+ * @see docs/msgf/MSGF_V1_ROADMAP.md §2.6
  */
 
 import {

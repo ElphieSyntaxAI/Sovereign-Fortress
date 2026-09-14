@@ -4,12 +4,12 @@
 
 **Companion docs:**
 
-- MSGF 1.0 vision & release plan: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md)
-- MSGF testing (admin vs users): [`MSGF_TESTING.md`](./MSGF_TESTING.md)
-- Cross-repo MSGF telemetry soak: [`MSGF_CROSS_REPO_TESTING.md`](./MSGF_CROSS_REPO_TESTING.md)
-- Small Brain / Big Brain + workspaces: [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)
-- Author product roadmap: [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md)
-- Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/syntax_education_pillars.md)
+- MSGF 1.0 vision & release plan: [`MSGF_V1_ROADMAP.md`](./msgf/MSGF_V1_ROADMAP.md)
+- MSGF testing (admin vs users): [`MSGF_TESTING.md`](./msgf/technical-specs/MSGF_TESTING.md)
+- Cross-repo MSGF telemetry soak: [`MSGF_CROSS_REPO_TESTING.md`](./msgf/build-plans/MSGF_CROSS_REPO_TESTING.md)
+- Small Brain / Big Brain + workspaces: [`MSGF_BRAIN_ROUTING.md`](./msgf/technical-specs/MSGF_BRAIN_ROUTING.md)
+- Author product roadmap: [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md)
+- Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/technical-specs/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/technical-specs/syntax_education_pillars.md)
 - Implementation tracker (pillars + AUTH): [`PILLAR_PROGRESS.md`](./PILLAR_PROGRESS.md)
 
 **Last updated:** 2026-08-06
@@ -25,7 +25,7 @@
 
 Author and education apps **embed or call MSGF**; they do not reimplement guardrail logic in silos.
 
-**MSGF product map (capabilities + sales):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) · gateway: [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md) · live `/features` on gatedai.
+**MSGF product map (capabilities + sales):** [`MSGF_PRODUCT_OVERVIEW.md`](./msgf/marketing/MSGF_PRODUCT_OVERVIEW.md) · gateway: [`MSGF_SHADOW_PROXY.md`](./msgf/technical-specs/MSGF_SHADOW_PROXY.md) · live `/features` on gatedai.
 
 ---
 
@@ -72,7 +72,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 - **Deploy gap:** apex DNS must map to **author-client** via `AUTHOR_APEX_DOMAIN` in `map-product-domains.sh` — until then, `elphiesyntax.com` may still show Squarespace parking instead of the picker. See [`DEPLOY_PRODUCT_DOMAINS.md`](./DEPLOY_PRODUCT_DOMAINS.md#apex-hub-elphiesyntaxcom-picker).
 - **authorecosystem** host skips the hub and goes straight to `/sign-in`.
 - Product CTAs already point at the correct production subdomains via `VITE_MSGF_APP_URL`, `VITE_AUTHOR_APP_URL`, `VITE_EDUCATION_APP_URL`.
-- Email confirm / PKCE should complete on **Gated AI** for MSGF admin, or use Author `/auth/callback` → forward to MSGF (see [`AUTHOR_MSGF_WIRING.md`](./AUTHOR_MSGF_WIRING.md)).
+- Email confirm / PKCE should complete on **Gated AI** for MSGF admin, or use Author `/auth/callback` → forward to MSGF (see [`AUTHOR_MSGF_WIRING.md`](./integrations/technical-specs/AUTHOR_MSGF_WIRING.md)).
 
 **Later refactor (no new product logic):** extract the hub into a small deployable under `apps/` or `packages/ui` so apex DNS does not depend on the Author Vite bundle; keep `platform-persona-auth.ts` and cookie domain rules as the single routing SSOT.
 
@@ -88,9 +88,9 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | Supabase schema | `packages/msgf/supabase/migrations/` | Shared Postgres for P4/MSGF tables |
 | Tenant silo policy | `packages/msgf/config/tenant-manifest.json` | CI / `enforce-silo` tooling |
 
-**Integration pattern (Author ↔ MSGF):** Author BFF proxies or calls MSGF routes (e.g. `/api/msgf/pulse`, `/api/msgf/ingest`); shared Supabase auth/cookies when `MSGF_AUTH_COOKIE_DOMAIN` is aligned. Ops guide: [`AUTHOR_MSGF_WIRING.md`](./AUTHOR_MSGF_WIRING.md). Probe: `packages/msgf/scripts/probe-author-ecosystem.mjs`.
+**Integration pattern (Author ↔ MSGF):** Author BFF proxies or calls MSGF routes (e.g. `/api/msgf/pulse`, `/api/msgf/ingest`); shared Supabase auth/cookies when `MSGF_AUTH_COOKIE_DOMAIN` is aligned. Ops guide: [`AUTHOR_MSGF_WIRING.md`](./integrations/technical-specs/AUTHOR_MSGF_WIRING.md). Probe: `packages/msgf/scripts/probe-author-ecosystem.mjs`.
 
-**Workspace mapping (Small Brain per app):** On MSGF, users register **one `msgf_user_projects` row per monorepo app** (not only the git root) via `/setup/projects` or presets from `GET /api/workspace/monorepo-presets`. Each row’s `project_origin` scopes personal dashboard health, daily reports, Pulse telemetry, and ingest metadata for that silo. **Big Brain** (global CONVERGE, human arbitration, rule promotion) is **admin-only** on `/admin/dashboard` — see [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md).
+**Workspace mapping (Small Brain per app):** On MSGF, users register **one `msgf_user_projects` row per monorepo app** (not only the git root) via `/setup/projects` or presets from `GET /api/workspace/monorepo-presets`. Each row’s `project_origin` scopes personal dashboard health, daily reports, Pulse telemetry, and ingest metadata for that silo. **Big Brain** (global CONVERGE, human arbitration, rule promotion) is **admin-only** on `/admin/dashboard` — see [`MSGF_BRAIN_ROUTING.md`](./msgf/technical-specs/MSGF_BRAIN_ROUTING.md).
 
 | App | `project_origin` (use as `msgf.tenantKey` in IDE) | Local folder to register |
 | :--- | :--- | :--- |
@@ -124,8 +124,8 @@ SSoT for preset bodies: `packages/msgf/lib/services/monorepo-workspace-presets.t
 
 | Product | 1.0 intent (summary) | Detailed plan |
 | :--- | :--- | :--- |
-| **MSGF** | Standalone gated-AI product: V3 architecture operational, multi-tenant API, Stripe entitlements, public site on gatedai subdomain | [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) |
-| **Author Ecosystem** | Creative Integrity Flywheel for authors (Phase 1–2 SSOT) | [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./AUTHOR_ECOSYSTEM_ROADMAP.md) |
+| **MSGF** | Standalone gated-AI product: V3 architecture operational, multi-tenant API, Stripe entitlements, public site on gatedai subdomain | [`MSGF_V1_ROADMAP.md`](./msgf/MSGF_V1_ROADMAP.md) |
+| **Author Ecosystem** | Creative Integrity Flywheel for authors (Phase 1–2 SSOT) | [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) |
 | **Syntax Education** | Education UX on top of shared auth/MSGF policies | TBD — track under `tenant_education` |
 
 ---
@@ -137,7 +137,7 @@ SSoT for preset bodies: `packages/msgf/lib/services/monorepo-workspace-presets.t
 | **MSGF V3.2-ULTRA** (primary for 1.0) | [`docs/references/MSGF_v3_2_masterdoc.pdf`](./references/MSGF_v3_2_masterdoc.pdf) |
 | MSGF V3.0 (historical) | Maintainer copy: `MSGF_v3_masterdoc.pdf` |
 
-Engineering SSOT: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md). When the PDF and repo docs diverge, update the repo SSOT and note the change in both changelogs.
+Engineering SSOT: [`MSGF_V1_ROADMAP.md`](./msgf/MSGF_V1_ROADMAP.md). When the PDF and repo docs diverge, update the repo SSOT and note the change in both changelogs.
 
 ---
 
@@ -145,8 +145,8 @@ Engineering SSOT: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md). When the PDF and
 
 | Date | Change |
 | :--- | :--- |
-| 2026-09-14 | MSGF governance audit platform noted on product map; ops SSOT remains [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md). Pricing SSOT: **$0 / $99 / $49** (`pricing-tiers.ts`). |
-| 2026-08-11 | MSGF ops bug inbox closed loop (FAB → `/admin/ops#bug-inbox`); see [`MSGF_ADMIN_HUB.md`](./MSGF_ADMIN_HUB.md). |
+| 2026-09-14 | MSGF governance audit platform noted on product map; ops SSOT remains [`MSGF_ADMIN_HUB.md`](./msgf/technical-specs/MSGF_ADMIN_HUB.md). Pricing SSOT: **$0 / $99 / $49** (`pricing-tiers.ts`). |
+| 2026-08-11 | MSGF ops bug inbox closed loop (FAB → `/admin/ops#bug-inbox`); see [`MSGF_ADMIN_HUB.md`](./msgf/technical-specs/MSGF_ADMIN_HUB.md). |
 | 2026-05-15 | Linked V3.2-ULTRA PDF in `docs/references/`; MSGF 1.0 plan uses V3.2 as primary spec. |
 | 2026-05-15 | Initial SSoT: three production domains, MSGF dual role (engine + standalone), monorepo mapping. |
 | 2026-05-20 | Workspace preset table; link to `MSGF_BRAIN_ROUTING.md` (per-app workspaces vs admin Big Brain). |

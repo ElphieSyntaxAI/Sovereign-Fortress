@@ -13,7 +13,7 @@
 /**
  * Tenant silo filters for `pillar_vectors` and `msgf_rules` — prevents cross-project leakage.
  * A4: optional compound scope company_id + project_origin + subpath_hash (app-layer mandatory
- * on service_role Pulse paths — see docs/MSGF_TENANT_ISOLATION.md).
+ * on service_role Pulse paths — see docs/msgf/technical-specs/MSGF_TENANT_ISOLATION.md).
  */
 
 import { SovereignViolationError } from "@/lib/errors/sovereign-violation";

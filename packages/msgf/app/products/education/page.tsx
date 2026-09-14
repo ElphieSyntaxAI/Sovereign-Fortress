@@ -12,7 +12,7 @@
  */
 /**
  * /products/education — "Find out more" detail page for Syntax Education.
- * Source of truth: docs/syntax-education/ROADMAP.md + syntax_education_pillars.md.
+ * Source of truth: docs/syntax-education/ROADMAP.md + docs/syntax-education/technical-specs/syntax_education_pillars.md.
  */
 import type { Metadata } from "next";
 
@@ -96,7 +96,7 @@ export default async function Page() {
         { pillar: "P6", capability: "Curriculum shards + Citation Hall", notes: "match_education_curriculum_shards (resource scope)" },
       ]}
       footnotes={[
-        "Source: docs/syntax-education/ROADMAP.md · pillars: syntax_education_pillars.md · masterdoc §4 + §3",
+        "Source: docs/syntax-education/ROADMAP.md · pillars: docs/syntax-education/technical-specs/syntax_education_pillars.md · masterdoc §4 + §3",
         "Tenant: tenant_education / syntax_education · MSGF brain shared with Author Ecosystem.",
       ]}
     />

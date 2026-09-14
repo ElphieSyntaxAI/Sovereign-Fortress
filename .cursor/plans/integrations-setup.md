@@ -101,7 +101,7 @@ flowchart TB
 
 ## Milestone I2 — SigningProvider abstraction + Dropbox Sign adapter (testable) — **DONE (code)**
 
-**Applied:** `lib/services/signing/*`, invite path via `createSigningEnvelopeForInvite`, webhooks `signing-webhook` + `dropbox-sign-webhook`, mock-complete + `docs/MSGF_SIGNING.md`.  
+**Applied:** `lib/services/signing/*`, invite path via `createSigningEnvelopeForInvite`, webhooks `signing-webhook` + `dropbox-sign-webhook`, mock-complete + `docs/integrations/technical-specs/MSGF_SIGNING.md`.  
 **Ops still required:** configure Dropbox Sign / DocuSign secrets; apply I1 migration if not already.
 
 **Goal:** Invites call an interface; DocuSign remains default; Dropbox Sign is selectable.
@@ -118,7 +118,7 @@ flowchart TB
 | Add | `app/api/msgf/ops/signing-webhook/route.ts` — multi-provider entry **or** keep DocuSign route + add `dropbox-sign-webhook` |
 | Add | Admin UI toggle on team settings (COMPANY_ADMIN) |
 
-### Env (document in `.env.example` + `docs/MSGF_SIGNING.md`)
+### Env (document in `.env.example` + `docs/integrations/technical-specs/MSGF_SIGNING.md`)
 ```
 SIGNING_PROVIDER=docusign|dropbox_sign
 DROPBOX_SIGN_API_KEY=
@@ -147,7 +147,7 @@ DROPBOX_ARCHIVE_ROOT=/MSGF-Audit
 
 ## Milestone I3 — Google Workspace SSO + invite-only gate (testable) — **DONE (code)**
 
-**Applied:** `workspace-sso.ts`, `google-sso-circuit.ts`, AuthForm Workspace CTA, callback complete, `/invite-only`, domain CRUD API, `docs/MSGF_GOOGLE_WORKSPACE_SSO.md`.  
+**Applied:** `workspace-sso.ts`, `google-sso-circuit.ts`, AuthForm Workspace CTA, callback complete, `/invite-only`, domain CRUD API, `docs/integrations/technical-specs/MSGF_GOOGLE_WORKSPACE_SSO.md`.  
 **Ops still required:** enable Google provider in Supabase; seed `msgf_company_domains`.
 
 
@@ -178,7 +178,7 @@ DROPBOX_ARCHIVE_ROOT=/MSGF-Audit
 | Add | `lib/services/google-sso-circuit.ts` |
 | Change | `AuthForm.tsx`, admin `sign-in` |
 | Change | callback page post-session branch |
-| Docs | `docs/MSGF_GOOGLE_WORKSPACE_SSO.md` |
+| Docs | `docs/integrations/technical-specs/MSGF_GOOGLE_WORKSPACE_SSO.md` |
 
 ### Mock / fallback criteria
 - Unit: `hd` missing + email `@allowed.com` still passes domain table check.

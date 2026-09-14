@@ -101,7 +101,7 @@ Keystroke batch from the extension. In **dev session**, prefer flush on save wit
 
 ## MCP (Cursor)
 
-See repo doc `docs/MSGF_IDE_MCP.md` and `packages/msgf/scripts/msgf-ide-mcp-server.mjs`.
+See repo doc `docs/integrations/technical-specs/MSGF_IDE_MCP.md` and `packages/msgf/scripts/msgf-ide-mcp-server.mjs`.
 
 Tools: `msgf_test_connection`, `msgf_get_context_pack`, `msgf_start_dev_heal_cycle`.
 

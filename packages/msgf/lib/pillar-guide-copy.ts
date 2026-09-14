@@ -12,7 +12,7 @@
  */
 /**
  * Educational copy for the six MSGF governance pillars (getting-started / integrators).
- * Canonical mapping: docs/MSGF_PILLAR_MAPPING_SSOT.md
+ * Canonical mapping: docs/msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md
  */
 
 import type { MsgfGovernancePillar } from "@/lib/services/pillar-baseline";

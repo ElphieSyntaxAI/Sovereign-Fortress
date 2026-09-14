@@ -50,7 +50,7 @@ export default async function Page() {
       vision="ElphieSyntax is sovereign narrative infrastructure: document ingest maps planning docs into wiki, outline, and world bible; HAL Ledger captures biometric authorship proof; the Vault Pact enforces zero-training and no-human-browsing; MSGF Gated AI powers Pulse routing and token-savings visibility; Cool Down locks and bicameral audit (Librarian + Critic) are the Phase 2 professionalization path."
       liveUrl={liveUrl}
       liveLabel={canOpenPrelaunch ? "Open Author dashboard" : "Author roadmap on authorecosystem"}
-      roadmapDocPath="docs/AUTHOR_ECOSYSTEM_ROADMAP.md"
+      roadmapDocPath="docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md"
       metrics={[
         { label: "Phase 1", value: "~78%", hint: "Foundation · foundational testing" },
         { label: "Overall", value: "~48%", hint: "Phases 1–3 weighted" },
@@ -65,7 +65,7 @@ export default async function Page() {
         { pillar: "MSGF P6", capability: "Lore-Git Vault + Librarian RAG", notes: "Bicameral audit (Librarian + Critic)" },
       ]}
       footnotes={[
-        "Source: docs/AUTHOR_ECOSYSTEM_ROADMAP.md · SSOT UI: packages/core/src/lib/author-roadmap-content.ts",
+        "Source: docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md · SSOT UI: packages/core/src/lib/author-roadmap-content.ts",
         "Public roadmap: authorecosystem.elphiesyntax.com/roadmap · elphiesgatedai …/roadmap?product=author",
       ]}
     />

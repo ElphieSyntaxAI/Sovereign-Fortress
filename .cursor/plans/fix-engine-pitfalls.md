@@ -98,7 +98,7 @@ Tests: `packages/msgf/tests/converge-tier-*.test.ts` (not `__tests__/engine/` �
 
 ### Task A4 — Dual-key tenant isolation (`company_id` + `project_origin` + `subpath_hash`) (1–2 diffs) — **DONE (code)**
 
-**Applied:** `vector-scope-key.ts`, `withMsgfMetadataScope` stamps, `applyPillarVectorsCompoundScopeFilter` / post-read filter, ingest + msgf-index + vault-lineage wiring, migration `20260724030000_pillar_vectors_compound_scope.sql`, `docs/MSGF_TENANT_ISOLATION.md`.  
+**Applied:** `vector-scope-key.ts`, `withMsgfMetadataScope` stamps, `applyPillarVectorsCompoundScopeFilter` / post-read filter, ingest + msgf-index + vault-lineage wiring, migration `20260724030000_pillar_vectors_compound_scope.sql`, `docs/msgf/technical-specs/MSGF_TENANT_ISOLATION.md`.  
 **Ops still required:** `npm run db:push` for the new index migration.
 
 
@@ -121,7 +121,7 @@ Tests: `packages/msgf/tests/converge-tier-*.test.ts` (not `__tests__/engine/` �
 - Query with wrong `project_origin` returns empty.
 - Perf smoke: index used (EXPLAIN on staging).
 
-**Risk note:** service_role Pulse paths bypass RLS — keep **mandatory** app-layer compound filter on those paths (document as invariant in `docs/MSGF_TENANT_ISOLATION.md`).
+**Risk note:** service_role Pulse paths bypass RLS — keep **mandatory** app-layer compound filter on those paths (document as invariant in `docs/msgf/technical-specs/MSGF_TENANT_ISOLATION.md`).
 
 ---
 

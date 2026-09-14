@@ -1,6 +1,6 @@
 # External specifications (references)
 
-Canonical proprietary PDFs for MSGF engineering. Repo SSOT that maps these into release criteria: [`../MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md).
+Canonical proprietary PDFs for MSGF engineering. Repo SSOT that maps these into release criteria: [`../MSGF_V1_ROADMAP.md`](../msgf/MSGF_V1_ROADMAP.md).
 
 | Document | File | Role |
 | :--- | :--- | :--- |

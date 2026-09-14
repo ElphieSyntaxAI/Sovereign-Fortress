@@ -1,6 +1,6 @@
 /**
  * Author Ecosystem roadmap deep content — SSOT for public roadmap pages.
- * Companion: docs/AUTHOR_ECOSYSTEM_ROADMAP.md · picker: platform-hub-content.ts
+ * Companion: docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md · picker: platform-hub-content.ts
  */
 
 export const AUTHOR_ROADMAP_AS_OF = "2026-08-12";
@@ -45,7 +45,7 @@ export type AuthorMsgfState = {
   meaning: string;
 };
 
-/** Weighted progress from docs/AUTHOR_ECOSYSTEM_ROADMAP.md §0 */
+/** Weighted progress from docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md §0 */
 export const AUTHOR_PROGRESS_PULSE: readonly AuthorProgressPulse[] = [
   {
     label: "Phase 1 — Foundation",

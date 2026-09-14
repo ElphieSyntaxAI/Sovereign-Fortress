@@ -8,18 +8,18 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 
 | Doc | Purpose |
 | :--- | :--- |
-| [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) | **1.0 vision & release plan** (MSGF V3.2-ULTRA) |
-| [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) | **Product map, full features & sales angles** |
-| [`docs/MSGF_CONVERGE_TIER.md`](../../docs/MSGF_CONVERGE_TIER.md) | **Part B** — 3-tier CONVERGE + T3 quarantine |
-| [`docs/MSGF_ADMIN_HUB.md`](../../docs/MSGF_ADMIN_HUB.md) | **Ops console** — bug inbox, provenance, ARBITRATE, quarantine, audits |
-| [`docs/MSGF_LEARNING_AND_BIG_BRAIN.md`](../../docs/MSGF_LEARNING_AND_BIG_BRAIN.md) | **Learning loop** — Vault without Big Brain; `smoke:pulse-converge` |
-| [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
-| [`docs/MSGF_SOLO_INTEGRATION.md`](../../docs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |
-| [`docs/MSGF_SHADOW_PROXY.md`](../../docs/MSGF_SHADOW_PROXY.md) | **Shadow Proxy + Active Governance** — `/api/v1` OpenAI/Anthropic gateway |
-| [`docs/MSGF_BUYER_WALKTHROUGH.md`](../../docs/MSGF_BUYER_WALKTHROUGH.md) | **Buyer / SaaS** — new user sign-up, pricing, session Pulse (not integrator license) |
+| [`docs/msgf/MSGF_V1_ROADMAP.md`](../../docs/msgf/MSGF_V1_ROADMAP.md) | **1.0 vision & release plan** (MSGF V3.2-ULTRA) |
+| [`docs/msgf/marketing/MSGF_PRODUCT_OVERVIEW.md`](../../docs/msgf/marketing/MSGF_PRODUCT_OVERVIEW.md) | **Product map, full features & sales angles** |
+| [`docs/msgf/technical-specs/MSGF_CONVERGE_TIER.md`](../../docs/msgf/technical-specs/MSGF_CONVERGE_TIER.md) | **Part B** — 3-tier CONVERGE + T3 quarantine |
+| [`docs/msgf/technical-specs/MSGF_ADMIN_HUB.md`](../../docs/msgf/technical-specs/MSGF_ADMIN_HUB.md) | **Ops console** — bug inbox, provenance, ARBITRATE, quarantine, audits |
+| [`docs/msgf/technical-specs/MSGF_LEARNING_AND_BIG_BRAIN.md`](../../docs/msgf/technical-specs/MSGF_LEARNING_AND_BIG_BRAIN.md) | **Learning loop** — Vault without Big Brain; `smoke:pulse-converge` |
+| [`docs/msgf/technical-specs/MSGF_TESTING.md`](../../docs/msgf/technical-specs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
+| [`docs/integrations/technical-specs/MSGF_SOLO_INTEGRATION.md`](../../docs/integrations/technical-specs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |
+| [`docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md`](../../docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md) | **Shadow Proxy + Active Governance** — `/api/v1` OpenAI/Anthropic gateway |
+| [`docs/msgf/marketing/MSGF_BUYER_WALKTHROUGH.md`](../../docs/msgf/marketing/MSGF_BUYER_WALKTHROUGH.md) | **Buyer / SaaS** — new user sign-up, pricing, session Pulse (not integrator license) |
 | [`docs/MONOREPO_PRODUCTS.md`](../../docs/MONOREPO_PRODUCTS.md) | Three web apps & domains |
-| [`docs/MSGF_BRAIN_ROUTING.md`](../../docs/MSGF_BRAIN_ROUTING.md) | **Small Brain / Big Brain** — audience routing, heal queue, monorepo workspaces |
-| [`docs/MSGF_RC_CHECKLIST.md`](../../docs/MSGF_RC_CHECKLIST.md) | **MSGF 1.0 RC** — MSGF-only completion checklist (Stripe excluded) |
+| [`docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md`](../../docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md) | **Small Brain / Big Brain** — audience routing, heal queue, monorepo workspaces |
+| [`docs/msgf/MSGF_RC_CHECKLIST.md`](../../docs/msgf/MSGF_RC_CHECKLIST.md) | **MSGF 1.0 RC** — MSGF-only completion checklist (Stripe excluded) |
 | [`supabase/email-templates/README.md`](./supabase/email-templates/README.md) | **Branded auth emails** — logo + jewel aesthetic; `npm run email:templates:build -w msgf` |
 | [`pre_ingestion_audit.md`](./pre_ingestion_audit.md) | Day-zero audit (SWEEP) & CONVERGE backlog |
 | [`docs/PILLAR_PROGRESS.md`](../../docs/PILLAR_PROGRESS.md) | Pillar/AUTH implementation tracker |
@@ -49,7 +49,7 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | `MSGF_ACTIVE_AGGRESSIVENESS` | Active gateway: `cache-only` · `shard-and-route` (default) · `full-consensus` |
 | `MSGF_ACTIVE_PASSTHROUGH_FALLBACK` | Default on — Active orchestrator errors fall back to pass-through |
 | `ALLOW_DEMO_TENANT` / `MSGF_SHADOW_ALLOW_DEMO_TENANT` | Non-prod only — demo gateway tenant when key missing |
-| `POST /api/v1/chat/completions` · `POST /api/v1/messages` | Shadow Proxy / Active Governance (see [`MSGF_SHADOW_PROXY.md`](../../docs/MSGF_SHADOW_PROXY.md)) |
+| `POST /api/v1/chat/completions` · `POST /api/v1/messages` | Shadow Proxy / Active Governance (see [`MSGF_SHADOW_PROXY.md`](../../docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md)) |
 | `MSGF_CREDIT_RESERVATION_ENABLED` / `MSGF_CREDIT_RESERVATION_PROD_DEFAULT` | Reserve credits before Pulse/ingest; prod defaults on unless disabled |
 | `MSGF_PULSE_LOCAL_RESERVE_CHUNK` / `MSGF_INGEST_LIGHT_RESERVE_CHUNK` | Smaller reserves for Author HAL / hash-skipped ingest |
 | `MSGF_INGEST_HASH_SKIP` / `MSGF_INGEST_SKIP_AUDIT_ON_HASH_HIT` | Skip SWEEP/audit when file content hash unchanged |
@@ -72,7 +72,7 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | **Small Brain** | Tenant-local — Vault, `state_beats`, Redis hot layer, Heal Cheap / bypass, dev-event, cache replay. No global DNA without admin. | **Users** — `/dashboard`, user-scoped heal queue, user savings API |
 | **Big Brain** | Platform global CONVERGE + operator paths. Promotions to `msgf_rules` / `vault_core` need approval. | **Admins** — `/admin/dashboard#big-brain-issues`, human arbitration, admin savings API |
 
-Full internal reference: [`docs/MSGF_BRAIN_ROUTING.md`](../../docs/MSGF_BRAIN_ROUTING.md).
+Full internal reference: [`docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md`](../../docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md).
 
 | Module | Role |
 | :--- | :--- |
@@ -105,7 +105,7 @@ The **Token savings layer** panel lists 24h Redis counters and a feature catalog
 
 **Provider gateway:** Point OpenAI/Anthropic SDKs at `/api/v1` with `x-msgf-key` (`msgf_live_*` / `msgf_ide_*`). Default `x-msgf-mode: shadow` (zero-latency projected eval). `active` runs cache + state-gate + sharded upstream. Tenant is never taken from client `x-msgf-tenant-id`.
 
-**IDE Command Center (extension v0.2.3):** Prompt optimizer → `.msgf/run-scripts.json` → **Run Scripts** / **Safe Build** → `verify-result` / `dev-event` → savings counters (`verify_result_*`, `run_script_rerun`). See [`docs/MSGF_PRODUCT_OVERVIEW.md`](../../docs/MSGF_PRODUCT_OVERVIEW.md) §3.
+**IDE Command Center (extension v0.2.3):** Prompt optimizer → `.msgf/run-scripts.json` → **Run Scripts** / **Safe Build** → `verify-result` / `dev-event` → savings counters (`verify_result_*`, `run_script_rerun`). See [`docs/msgf/marketing/MSGF_PRODUCT_OVERVIEW.md`](../../docs/msgf/marketing/MSGF_PRODUCT_OVERVIEW.md) §3.
 
 **Heal queue:** Session users get Small Brain tasks only; `big_brain_escalations_pending` counts items waiting on admin. **API key** callers receive the full queue. Human arbitration UI and `POST .../human-arbitration` require an operator session on the admin dashboard.
 
@@ -269,7 +269,7 @@ npm run test:lom-disagreement -w msgf
 | Pledge + Pulse | Steps B–E (no 403 pledge / baseline cleared) |
 | LOM | `npm run test:lom-disagreement -w msgf` |
 
-When all pass, Phase 0 is complete — proceed to Phase 1 (SHARD/DEFEND) in [`docs/MSGF_V1_ROADMAP.md`](../../docs/MSGF_V1_ROADMAP.md) before Author Ecosystem integration.
+When all pass, Phase 0 is complete — proceed to Phase 1 (SHARD/DEFEND) in [`docs/msgf/MSGF_V1_ROADMAP.md`](../../docs/msgf/MSGF_V1_ROADMAP.md) before Author Ecosystem integration.
 
 Add **`npm run test:unit -w msgf`** to the checklist for a fast offline regression pass (see [Testing](#testing-admin-vs-end-users)).
 
@@ -277,7 +277,7 @@ Add **`npm run test:unit -w msgf`** to the checklist for a fast offline regressi
 
 ## Testing (admin vs end users)
 
-Full reference: [`docs/MSGF_TESTING.md`](../../docs/MSGF_TESTING.md).
+Full reference: [`docs/msgf/technical-specs/MSGF_TESTING.md`](../../docs/msgf/technical-specs/MSGF_TESTING.md).
 
 **Operators (you)** run npm scripts from the repo root on **Windows, macOS, or Linux**:
 

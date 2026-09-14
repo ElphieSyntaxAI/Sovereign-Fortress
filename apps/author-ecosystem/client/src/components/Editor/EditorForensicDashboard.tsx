@@ -1,6 +1,6 @@
 /**
  * Editor pre-flight briefing: HAL struggle map + latest Librarian / Critic snapshot.
- * Roadmap: `docs/AUTHOR_ROADMAP.md` → canonical `docs/AUTHOR_ECOSYSTEM_ROADMAP.md` (bicameral cooldown + forensic transparency).
+ * Roadmap: `docs/author-ecosystem/AUTHOR_ROADMAP.md` → canonical `docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md` (bicameral cooldown + forensic transparency).
  */
 
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
@@ -200,7 +200,7 @@ export function EditorForensicDashboard(props: EditorForensicDashboardProps) {
           </h2>
           <p className="mt-1 max-w-prose text-xs leading-relaxed text-zinc-500">
             HAL cadence friction vs. last cooldown Librarian logic and Critic sensitivity — where discipline and
-            continuity wavered before polish (see docs/AUTHOR_ECOSYSTEM_ROADMAP.md).
+            continuity wavered before polish (see docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md).
           </p>
         </div>
         {phase === "error" ? (

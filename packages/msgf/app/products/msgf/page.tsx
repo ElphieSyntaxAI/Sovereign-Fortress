@@ -12,7 +12,7 @@
  */
 /**
  * /products/msgf — "Find out more" detail page for the MSGF (Gated AI) surface.
- * Source of truth: docs/MSGF_V1_ROADMAP.md (V3.2-ULTRA master directive).
+ * Source of truth: docs/msgf/MSGF_V1_ROADMAP.md (V3.2-ULTRA master directive).
  */
 import type { Metadata } from "next";
 
@@ -40,7 +40,7 @@ export default function Page() {
       vision="MSGF 1.0 delivers a stateful, self-defending AI orchestration layer that any application can adopt. For Elphie Syntax products it is the brain behind the Author Ecosystem and Syntax Education. For the market, MSGF at elphiesgatedai.elphiesyntax.com is a standalone gated-AI product — subscribe, send keystroke or logic deltas through Pulse, ingest knowledge into pillars, and receive tiered audits without running your own consensus stack."
       liveUrl={liveUrl}
       liveLabel="Open MSGF console"
-      roadmapDocPath="docs/MSGF_V1_ROADMAP.md"
+      roadmapDocPath="docs/msgf/MSGF_V1_ROADMAP.md"
       metrics={[
         { label: "Master directive", value: "V3.2-ULTRA", hint: "SWEEP → PERSIST (7 steps)" },
         { label: "Consensus", value: "TRI + Grok", hint: "Claude · Gemini · Grok" },
@@ -121,7 +121,7 @@ export default function Page() {
         { pillar: "P6", capability: "Constraint Ledger · Vault vs Hall", notes: "Sentry quarantine, hybrid PQ envelopes" },
       ]}
       footnotes={[
-        "Source: docs/MSGF_V1_ROADMAP.md · MSGF_SENTRY.md · MSGF_SIGNING.md · MSGF_PQC_CRYPTO_AUDIT.md",
+        "Source: docs/msgf/MSGF_V1_ROADMAP.md · docs/integrations/technical-specs/MSGF_SENTRY.md · docs/integrations/technical-specs/MSGF_SIGNING.md · docs/msgf/technical-specs/MSGF_PQC_CRYPTO_AUDIT.md",
         "Primary spec: docs/references/MSGF_v3_2_masterdoc.pdf (V3.2-ULTRA)",
       ]}
     />

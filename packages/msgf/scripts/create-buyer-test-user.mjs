@@ -509,7 +509,7 @@ async function main() {
   console.log("  4. Open /dashboard once (onboarding: pledge + pillars + p4_profiles)");
   console.log("  5. Optional: /pricing → Stripe test checkout");
   console.log("  6. Copy session cookie → MSGF_PULSE_COOKIE → npm run probe:buyer -w msgf");
-  console.log("\nDocs: docs/MSGF_BUYER_WALKTHROUGH.md\n");
+  console.log("\nDocs: docs/msgf/marketing/MSGF_BUYER_WALKTHROUGH.md\n");
 }
 
 main();

@@ -16,7 +16,7 @@
  * Node test runner with Jest-style assertions (`node:assert/strict`) so the
  * suite is dependency-light and executable in CI, local Windows, and Cloud Run
  * build contexts. The checkpoints map directly to the canonical SSoT:
- * `docs/MSGF_PILLAR_MAPPING_SSOT.md`.
+ * `docs/msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md`.
  */
 
 import assert from "node:assert/strict";
@@ -419,7 +419,7 @@ describe("MSGF V3.2-ULTRA 16-point architecture suite", () => {
   });
 
   test("12. HAL telemetry is P4 State Ledger scope and never pollutes P1 Static Ledger", () => {
-    const mapping = readRepo("docs/MSGF_PILLAR_MAPPING_SSOT.md");
+    const mapping = readRepo("docs/msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md");
     assert.match(mapping, /\*\*HAL\*\* is keystroke\/rhythm telemetry/);
     assert.match(mapping, /P4 State Ledger/);
     assert.match(mapping, /not P1/i);

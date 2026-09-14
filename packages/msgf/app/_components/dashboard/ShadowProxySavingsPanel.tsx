@@ -254,7 +254,7 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
           No shadow evaluations yet. Point SDKs at{" "}
           <code className="text-slate-400">/api/v1</code> with{" "}
           <code className="text-slate-400">x-msgf-mode: shadow</code> — see{" "}
-          <code className="text-slate-400">docs/MSGF_SHADOW_PROXY.md</code>.
+          <code className="text-slate-400">docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md</code>.
         </p>
       )}
     </section>

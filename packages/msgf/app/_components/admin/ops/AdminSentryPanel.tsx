@@ -300,7 +300,7 @@ export function AdminSentryPanel() {
           Sentry is <strong>unconfigured</strong>. Set{" "}
           <code className="text-amber-50">SENTRY_AUTH_TOKEN</code> and{" "}
           <code className="text-amber-50">SENTRY_ORG_SLUG</code> on the MSGF host — see{" "}
-          <code className="text-amber-50">docs/MSGF_SENTRY.md</code>.
+          <code className="text-amber-50">docs/integrations/technical-specs/MSGF_SENTRY.md</code>.
         </p>
       ) : null}
 

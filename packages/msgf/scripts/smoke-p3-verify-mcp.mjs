@@ -294,4 +294,4 @@ run(
 run("npm", ["run", "compile"], pulseGuard, "msgf-pulse-guard compile");
 
 console.log("\n[smoke-p3] All P3 smoke checks passed.");
-console.log("[smoke-p3] Optional: configure MCP per docs/MSGF_IDE_MCP.md");
+console.log("[smoke-p3] Optional: configure MCP per docs/integrations/technical-specs/MSGF_IDE_MCP.md");

@@ -490,7 +490,7 @@ manuscriptController.post("/api/manuscripts/:id/editor-ledger/security-flag", as
 /**
  * POST /api/manuscripts/:id/unlock
  *
- * SSOT: docs/AUTHOR_ECOSYSTEM_ROADMAP.md — when vault cooldown (`cooldown_revision_status = LOCKED`) has
+ * SSOT: docs/author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md — when vault cooldown (`cooldown_revision_status = LOCKED`) has
  * `locked_until <= now()`, call `public.check_cooldown_expiry()` then return the Librarian logic JSON
  * (`revision_reports`) for that lock session plus fresh manuscript fields for `CoolDownLock.tsx`.
  */

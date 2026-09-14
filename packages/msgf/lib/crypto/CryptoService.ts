@@ -30,7 +30,7 @@ import {
 const FORMAT_LOCAL = 0x01;
 /** KMS wraps a random DEK; payload ciphertext uses AES-GCM with that DEK (fresh IV + tag per encrypt). */
 const FORMAT_KMS = 0x02;
-/** Hybrid KEM (X25519 + ML-KEM-768) + AES-256-GCM — see docs/MSGF_PQC_CRYPTO_AUDIT.md */
+/** Hybrid KEM (X25519 + ML-KEM-768) + AES-256-GCM — see docs/msgf/technical-specs/MSGF_PQC_CRYPTO_AUDIT.md */
 const FORMAT_HYBRID = 0x03;
 
 const IV_LENGTH = 12;

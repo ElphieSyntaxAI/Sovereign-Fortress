@@ -2,7 +2,7 @@
 
 **Production host:** **https://elphiesgatedai.elphiesyntax.com** (with the Next runtime in `packages/msgf/`).
 
-**SSoT:** [`docs/MSGF_V1_ROADMAP.md`](../../../../docs/MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](../../../../docs/MONOREPO_PRODUCTS.md)
+**SSoT:** [`docs/msgf/MSGF_V1_ROADMAP.md`](../../../../docs/msgf/MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](../../../../docs/MONOREPO_PRODUCTS.md)
 
 ## Intended scope (MSGF 1.0 — M2)
 

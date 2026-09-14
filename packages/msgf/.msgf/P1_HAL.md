@@ -1,7 +1,7 @@
 # P4 Telemetry Extension — HAL (Human Authorship Ledger)  
 **MSGF v3.2 · Human input rhythm layer (State Ledger scope)**
 
-> **Naming note (read first):** The filename `P1_HAL.md` is **legacy** and does **not** denote V3.0/V3.2 **P1 — Static Ledger** (security constants, init guards, immutable global rules, legal versions that **HALT** on violation). Per the master specifications, that role belongs to **P1 Static Security** — see [`docs/MSGF_PILLAR_MAPPING_SSOT.md`](../../../docs/MSGF_PILLAR_MAPPING_SSOT.md) and `lib/msgf-legal.ts`.
+> **Naming note (read first):** The filename `P1_HAL.md` is **legacy** and does **not** denote V3.0/V3.2 **P1 — Static Ledger** (security constants, init guards, immutable global rules, legal versions that **HALT** on violation). Per the master specifications, that role belongs to **P1 Static Security** — see [`docs/msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md`](../../../docs/msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md) and `lib/msgf-legal.ts`.
 >
 > **This file** represents the **P4 Telemetry Extension: Human Authorship Ledger (HAL)**, capturing keystroke dynamics (rhythm, dwell, flight, paste/system-event markers). It is governed operationally under the **State Ledger** infrastructure (`lib/P4.ts`, `p4_hal_ledger`, `state_beats`, hot active slices) and the Author Ecosystem to avoid naming collisions with P1 Static Security.
 

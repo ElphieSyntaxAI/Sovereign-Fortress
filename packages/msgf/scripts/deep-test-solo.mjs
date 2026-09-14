@@ -498,4 +498,4 @@ if (live) {
 
 console.log("\n[deep-test:solo] Passed.", live ? "(live probes included)" : "");
 console.log("For full DB + license bootstrap: npm run bootstrap:solo -w msgf");
-console.log("Docs: docs/MSGF_SOLO_INTEGRATION.md");
+console.log("Docs: docs/integrations/technical-specs/MSGF_SOLO_INTEGRATION.md");
