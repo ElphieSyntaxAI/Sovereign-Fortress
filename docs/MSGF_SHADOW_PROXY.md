@@ -88,8 +88,9 @@ Audit response headers: `x-msgf-routing`, `x-msgf-tokens-saved`, `x-msgf-cache-h
 
 ## What you see
 
-- **Free 24h trial:** `/shadow-trial` — email signup mints `msgf_test_*` key + live savings dashboard; end-of-trial report emailed (Resend). Cron: `POST /api/msgf/ops/shadow-trial-reports` (same auth as v32-heartbeat).
-- Reports → **Shadow Proxy** panel: 24h eval count, actual pass-through $, **projected savings $**
+- **Free 7-day trial:** `/shadow-trial` — email signup mints `msgf_test_*` key. The 7-day Shadow clock starts on first eval (unused keys expire after 14 days with no empty report). End-of-window proof email includes **Start 3-day full access** (Individual Pro for 72h on the same tenant). Cron: `POST /api/msgf/ops/shadow-trial-reports`.
+- Trial keys force `x-msgf-mode: shadow` until the 3-day full-access window is live.
+- Reports → **Shadow Proxy** panel: eval count, actual pass-through $, **projected savings $** (footnote) plus the proof ledger
 - Weekly / monthly tables + PDF: **Shadow projected $** column (not proven eco)
 - Active proven tokens → Redis + `msgf_proven_avoidance_events` (public eco when proven-only)
 - Table: `msgf_shadow_evaluation_logs`

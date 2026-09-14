@@ -3,7 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * Persist Shadow Proxy evaluation rows (projected savings — never proven eco).
@@ -125,6 +130,31 @@ export async function listRecentShadowEvaluations(
     .limit(Math.min(Math.max(limit, 1), 100));
   if (error) {
     console.warn("[shadow-ledger] list failed:", error.message);
+    return [];
+  }
+  return (data ?? []) as Record<string, unknown>[];
+}
+
+export async function listShadowEvaluationsForProof(
+  admin: SupabaseClient,
+  tenantId: string,
+  sinceIso?: string,
+  limit = 2000
+): Promise<Record<string, unknown>[]> {
+  let query = admin
+    .from("msgf_shadow_evaluation_logs")
+    .select(
+      "prompt_hash, actual_cost_usd, recommended_action, actual_tokens, observed_at"
+    )
+    .eq("tenant_id", tenantId.trim())
+    .order("observed_at", { ascending: true })
+    .limit(Math.min(Math.max(limit, 1), 5000));
+  if (sinceIso?.trim()) {
+    query = query.gte("observed_at", sinceIso.trim());
+  }
+  const { data, error } = await query;
+  if (error) {
+    console.warn("[shadow-ledger] proof list failed:", error.message);
     return [];
   }
   return (data ?? []) as Record<string, unknown>[];

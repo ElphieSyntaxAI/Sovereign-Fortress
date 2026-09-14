@@ -42,7 +42,7 @@ import { groundProposedWikiToSource } from "../src/lib/documentIngestMsgfPipelin
 import { buildAuthorDocumentSweepFiles } from "../src/lib/documentIngestMsgfSweep.js";
 import { isAutoWikiBuildEnabled } from "../src/lib/documentIngestSessionCommit.js";
 import { isDisplayableAuthorWikiChunk } from "../src/lib/wikiEntryHelpers.js";
-import { isPlatformOperatorEmail, parseGlobalAdminEmails } from "../src/lib/isPlatformOperator.js";
+import { isPlatformOperatorEmail, parseGlobalAdminEmails, resolvePlatformOperatorAccess } from "../src/lib/isPlatformOperator.js";
 import { parseSemanticRegions } from "../src/lib/documentIngestLlmParse.js";
 import {
   buildBoundaryHintsForIngest,
@@ -490,6 +490,42 @@ describe("platform operator", () => {
     assert.equal(isPlatformOperatorEmail("other@test.com"), false);
     if (prev === undefined) delete process.env.MSGF_GLOBAL_ADMIN_EMAILS;
     else process.env.MSGF_GLOBAL_ADMIN_EMAILS = prev;
+  });
+
+  test("individual-admin emails are not Author platform operators", async () => {
+    const prevGlobal = process.env.MSGF_GLOBAL_ADMIN_EMAILS;
+    const prevIndividual = process.env.MSGF_INDIVIDUAL_ADMIN_EMAILS;
+    process.env.MSGF_GLOBAL_ADMIN_EMAILS = "jessicapickens@elphiesyntax.com";
+    process.env.MSGF_INDIVIDUAL_ADMIN_EMAILS = "jessica@dealstar.io";
+    assert.equal(isPlatformOperatorEmail("jessica@dealstar.io"), false);
+    assert.equal(isPlatformOperatorEmail("jessicapickens@elphiesyntax.com"), true);
+    const fakeAdmin = {
+      from() {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  maybeSingle: async () => ({
+                    data: { msgf_access_role: "GLOBAL_ADMIN" },
+                    error: null,
+                  }),
+                };
+              },
+            };
+          },
+        };
+      },
+    };
+    const allowed = await resolvePlatformOperatorAccess(fakeAdmin as never, {
+      email: "jessica@dealstar.io",
+      userId: "00000000-0000-0000-0000-000000000001",
+    });
+    assert.equal(allowed, false);
+    if (prevGlobal === undefined) delete process.env.MSGF_GLOBAL_ADMIN_EMAILS;
+    else process.env.MSGF_GLOBAL_ADMIN_EMAILS = prevGlobal;
+    if (prevIndividual === undefined) delete process.env.MSGF_INDIVIDUAL_ADMIN_EMAILS;
+    else process.env.MSGF_INDIVIDUAL_ADMIN_EMAILS = prevIndividual;
   });
 });
 

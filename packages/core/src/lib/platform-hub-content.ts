@@ -125,7 +125,7 @@ const MSGF_PHASES: readonly PlatformHubRoadmapPhase[] = [
     highlights: [
       "TRI majority (Claude + Gemini + Grok when enabled)",
       "Heal-queue human arbitration + Sentinel bug FAB",
-      "Free 24h Shadow Proxy trial + email savings report",
+      "Free 7-day Shadow Proxy trial + email savings report",
     ],
   },
   {
@@ -310,10 +310,10 @@ const AUTHOR_HYPE: readonly PlatformHypeFeature[] = [
 
 const MSGF_HYPE: readonly PlatformHypeFeature[] = [
   {
-    id: "shadow-trial-24h",
-    title: "Free 24h Shadow Proxy trial",
+    id: "shadow-trial-7d",
+    title: "Free 7-day Shadow Proxy trial",
     tagline:
-      "Live token savings on your stack — email report at expiry proves MSGF governance ROI before you subscribe.",
+      "Up to 7 days of live proof — clock starts on first call. Then start 3-day Individual Pro full access before you buy.",
     stage: "beta_live",
     category: "Try it now",
     ctaPath: "/shadow-trial",
@@ -513,7 +513,7 @@ export const PLATFORM_HUB_ENTRIES: readonly PlatformHubEntry[] = [
       "Prefrontal cortex for AI — MSGF V3.2-ULTRA on elphiesgatedai. Six pillars, Shadow Proxy proof mode, TRI consensus, bug inbox, and operator ops — beta testing now with waitlist for console seats.",
     bullets: [
       "Shadow Proxy / Active Governance — /api/v1 OpenAI + Anthropic gateway",
-      "Free 24h Shadow Proxy trial — live savings + email report",
+      "Free 7-day Shadow Proxy trial — live savings + email report, then 3-day Pro",
       "Beta console — Pulse Guard, dashboard, admin ops on elphiesgatedai",
     ],
     tone: "emerald",

@@ -3,10 +3,16 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
- * POST /api/shadow-trial/start — mint free 24h Shadow Proxy trial key.
+ * POST /api/shadow-trial/start — mint free 7-day Shadow Proxy trial key
+ * (clock starts on first eval; unused keys expire in 14 days).
  */
 
 import { NextRequest, NextResponse } from "next/server";

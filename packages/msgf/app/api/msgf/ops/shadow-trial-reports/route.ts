@@ -3,7 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * POST /api/msgf/ops/shadow-trial-reports
@@ -15,6 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { MsgfAdminAuthError, assertMsgfOpsCron } from "@/lib/msgf-admin-auth";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
 import { processDueShadowTrialReports } from "@/lib/services/shadow-trial";
+import { processDueShadowTrialFullAccessExpiries } from "@/lib/services/shadow-trial-full-access";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 function adminJson(req: NextRequest, data: unknown, init?: ResponseInit) {
@@ -30,8 +36,14 @@ export async function POST(req: NextRequest) {
   try {
     assertMsgfOpsCron(req);
     const admin = createAdminClient();
-    const result = await processDueShadowTrialReports(admin);
-    return adminJson(req, { ok: true, ...result });
+    const reports = await processDueShadowTrialReports(admin);
+    const fullAccess = await processDueShadowTrialFullAccessExpiries(admin);
+    return adminJson(req, {
+      ok: true,
+      ...reports,
+      full_access_expired: fullAccess.expired,
+      errors: [...reports.errors, ...fullAccess.errors],
+    });
   } catch (e) {
     if (e instanceof MsgfAdminAuthError) {
       return adminJson(req, { ok: false, error: e.message }, { status: e.status });

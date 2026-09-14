@@ -3,10 +3,15 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
- * Free 24h Shadow Proxy trials — mint keys, status tokens, end-of-trial reports.
+ * Free 7-day Shadow Proxy trials — mint keys, start clock on first eval, end-of-window reports.
  */
 
 import { createHash, randomBytes } from "crypto";
@@ -16,8 +21,27 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getShadowEvalSummary24h,
   listRecentShadowEvaluations,
+  listShadowEvaluationsForProof,
   type ShadowEvalSummary24h,
 } from "@/lib/shadow-eval/shadow-ledger";
+import {
+  computeShadowProof,
+  EMPTY_SHADOW_PROOF,
+  SHADOW_PROOF_SCOPE_DISCLAIMER,
+  type ShadowProofLedger,
+} from "@/lib/shadow-eval/shadow-proof";
+import {
+  computeShadowTrialActivationExpiresAt,
+  computeShadowTrialWindowExpiresAt,
+  evaluateShadowTrialClock,
+  isShadowTrialFullAccessLive,
+  isShadowTrialTenantId,
+  SHADOW_TRIAL_ACTIVATION_DAYS,
+  SHADOW_TRIAL_CREDITS,
+  SHADOW_TRIAL_TIER,
+  shouldExpireUnusedShadowTrial,
+  shouldSendShadowTrialProofReport,
+} from "@/lib/services/shadow-trial-clock";
 import {
   isTransactionalEmailConfigured,
   parseGlobalAdminEmails,
@@ -25,9 +49,21 @@ import {
 } from "@/lib/services/transactional-email";
 import { resolveMsgfAppOrigin } from "@elphie-syntax/core";
 
-export const SHADOW_TRIAL_HOURS = 24;
-export const SHADOW_TRIAL_TIER = "shadow_trial_24h";
-export const SHADOW_TRIAL_CREDITS = 50_000;
+export {
+  computeShadowTrialActivationExpiresAt,
+  computeShadowTrialWindowExpiresAt,
+  evaluateShadowTrialClock,
+  isShadowTrialFullAccessLive,
+  isShadowTrialLicenseTier,
+  isShadowTrialTenantId,
+  resolveEffectiveGatewayMode,
+  SHADOW_TRIAL_ACTIVATION_DAYS,
+  SHADOW_TRIAL_CREDITS,
+  SHADOW_TRIAL_HOURS,
+  SHADOW_TRIAL_TIER,
+  shouldExpireUnusedShadowTrial,
+  shouldSendShadowTrialProofReport,
+} from "@/lib/services/shadow-trial-clock";
 
 export type ShadowTrialRow = {
   id: string;
@@ -39,6 +75,11 @@ export type ShadowTrialRow = {
   expires_at: string;
   report_sent_at: string | null;
   welcome_sent_at: string | null;
+  first_eval_at: string | null;
+  activation_expires_at: string | null;
+  full_access_started_at: string | null;
+  full_access_expires_at: string | null;
+  full_access_user_id: string | null;
 };
 
 function sha256HexUtf8(value: string): string {
@@ -61,6 +102,10 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function optionalIso(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function mapTrialRow(row: Record<string, unknown>): ShadowTrialRow {
   return {
     id: String(row.id ?? ""),
@@ -74,11 +119,16 @@ function mapTrialRow(row: Record<string, unknown>): ShadowTrialRow {
       typeof row.report_sent_at === "string" ? row.report_sent_at : null,
     welcome_sent_at:
       typeof row.welcome_sent_at === "string" ? row.welcome_sent_at : null,
+    first_eval_at: optionalIso(row.first_eval_at),
+    activation_expires_at: optionalIso(row.activation_expires_at),
+    full_access_started_at: optionalIso(row.full_access_started_at),
+    full_access_expires_at: optionalIso(row.full_access_expires_at),
+    full_access_user_id: optionalIso(row.full_access_user_id),
   };
 }
 
 export function buildShadowTrialStatusUrl(statusToken: string): string {
-  const origin = resolveMsgfAppOrigin("msgf").replace(/\/$/, "");
+  const origin = resolveMsgfAppOrigin().replace(/\/$/, "");
   return `${origin}/shadow-trial?t=${encodeURIComponent(statusToken)}`;
 }
 
@@ -92,19 +142,24 @@ export type ShadowTrialSummary = ShadowEvalSummary24h & {
   started_at: string;
   email: string;
   report_sent: boolean;
+  proof: ShadowProofLedger;
+  awaiting_first_eval: boolean;
+  first_eval_at: string | null;
+  activation_expires_at: string | null;
+  full_access_started: boolean;
+  full_access_live: boolean;
+  full_access_expires_at: string | null;
 };
 
-export async function findActiveTrialByEmail(
+export async function findTrialByEmail(
   admin: SupabaseClient,
   email: string
 ): Promise<ShadowTrialRow | null> {
   const normalized = normalizeEmail(email);
-  const now = new Date().toISOString();
   const { data, error } = await admin
     .from("msgf_shadow_trials")
     .select("*")
     .ilike("email", normalized)
-    .gt("expires_at", now)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -113,6 +168,19 @@ export async function findActiveTrialByEmail(
     throw new Error(error.message);
   }
   return data ? mapTrialRow(data as Record<string, unknown>) : null;
+}
+
+export async function findActiveTrialByEmail(
+  admin: SupabaseClient,
+  email: string
+): Promise<ShadowTrialRow | null> {
+  const existing = await findTrialByEmail(admin, email);
+  if (!existing) return null;
+  const clock = evaluateShadowTrialClock(existing);
+  if (clock.expired && !isShadowTrialFullAccessLive(existing.full_access_expires_at)) {
+    return null;
+  }
+  return existing;
 }
 
 export async function getShadowTrialByStatusToken(
@@ -135,10 +203,31 @@ export async function getShadowTrialSummary(
   admin: SupabaseClient,
   trial: ShadowTrialRow
 ): Promise<ShadowTrialSummary> {
-  const [summary, recent] = await Promise.all([
+  const [summary, recent, proofRows] = await Promise.all([
     getShadowEvalSummary24h(trial.tenant_id),
     listRecentShadowEvaluations(admin, trial.tenant_id, 25),
+    listShadowEvaluationsForProof(admin, trial.tenant_id, trial.started_at),
   ]);
+
+  const proof =
+    proofRows.length > 0 ? computeShadowProof(proofRows) : EMPTY_SHADOW_PROOF;
+  const clock = evaluateShadowTrialClock(trial);
+  const fullAccessLive = isShadowTrialFullAccessLive(trial.full_access_expires_at);
+
+  const meta = {
+    expired: clock.expired,
+    expires_at: trial.expires_at,
+    started_at: trial.started_at,
+    email: trial.email,
+    report_sent: Boolean(trial.report_sent_at),
+    proof,
+    awaiting_first_eval: clock.awaitingFirstEval,
+    first_eval_at: trial.first_eval_at,
+    activation_expires_at: trial.activation_expires_at,
+    full_access_started: Boolean(trial.full_access_started_at),
+    full_access_live: fullAccessLive,
+    full_access_expires_at: trial.full_access_expires_at,
+  };
 
   // When Redis window rolled off, fall back to PG for trial lifetime totals.
   if (summary.evaluation_count === 0 && recent.length > 0) {
@@ -164,41 +253,82 @@ export async function getShadowTrialSummary(
       actual_cost_usd: Math.round(actual_cost_usd * 1_000_000) / 1_000_000,
       projected_savings_usd:
         Math.round(projected_savings_usd * 1_000_000) / 1_000_000,
-      expired: new Date(trial.expires_at).getTime() <= Date.now(),
-      expires_at: trial.expires_at,
-      started_at: trial.started_at,
-      email: trial.email,
-      report_sent: Boolean(trial.report_sent_at),
+      ...meta,
     };
   }
 
   return {
     ...summary,
-    expired: new Date(trial.expires_at).getTime() <= Date.now(),
-    expires_at: trial.expires_at,
-    started_at: trial.started_at,
-    email: trial.email,
-    report_sent: Boolean(trial.report_sent_at),
+    ...meta,
   };
+}
+
+export async function markShadowTrialFirstEval(
+  admin: SupabaseClient,
+  tenantId: string,
+  at: Date = new Date()
+): Promise<{ started: boolean; expires_at: string | null }> {
+  const tid = tenantId.trim();
+  if (!isShadowTrialTenantId(tid)) {
+    return { started: false, expires_at: null };
+  }
+
+  const { data, error } = await admin
+    .from("msgf_shadow_trials")
+    .select("id, license_id, first_eval_at, expires_at")
+    .eq("tenant_id", tid)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { started: false, expires_at: null };
+  }
+  if (data.first_eval_at) {
+    return {
+      started: false,
+      expires_at: typeof data.expires_at === "string" ? data.expires_at : null,
+    };
+  }
+
+  const expiresAt = computeShadowTrialWindowExpiresAt(at).toISOString();
+  const nowIso = at.toISOString();
+
+  const { data: updated, error: updateError } = await admin
+    .from("msgf_shadow_trials")
+    .update({ first_eval_at: nowIso, expires_at: expiresAt })
+    .eq("id", data.id)
+    .is("first_eval_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (updateError || !updated) {
+    return { started: false, expires_at: expiresAt };
+  }
+
+  await admin
+    .from("msgf_licenses")
+    .update({ expires_at: expiresAt, status: "active" })
+    .eq("id", data.license_id);
+
+  return { started: true, expires_at: expiresAt };
 }
 
 function buildWelcomeEmailHtml(input: {
   name: string | null;
   msgfKey: string;
   statusUrl: string;
-  expiresAt: string;
+  activationExpiresAt: string;
 }): string {
   const greeting = input.name ? `Hi ${input.name},` : "Hi there,";
-  const expires = new Date(input.expiresAt).toLocaleString("en-US", {
+  const unusedBy = new Date(input.activationExpiresAt).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   });
   return `
 <p>${greeting}</p>
-<p>Your <strong>free 24-hour Shadow Proxy</strong> is live. Point OpenAI or Anthropic SDKs at MSGF with <code>x-msgf-mode: shadow</code> — zero latency pass-through, projected savings recorded in the background.</p>
+<p>Your <strong>free Shadow Proxy trial</strong> is live — up to <strong>7 days</strong>, starting on your first Shadow call (not signup). Point OpenAI or Anthropic SDKs at MSGF with <code>x-msgf-mode: shadow</code> — zero extra latency. We count duplicate calls, retry loops, and policy-risk prompts in the background.</p>
 <p><strong>MSGF key (save this — shown once):</strong><br/><code>${input.msgfKey}</code></p>
 <p><strong>Live savings dashboard:</strong><br/><a href="${input.statusUrl}">${input.statusUrl}</a></p>
-<p>Trial ends ${expires}. We will email your Shadow Proxy savings report when the window closes.</p>
+<p>If the key is unused, it expires ${unusedBy}. After your first call we email a proof report when the 7-day window closes, with a CTA to start 3-day Individual Pro full access.</p>
 <p>— Elphie Syntax · MSGF Gated AI</p>
 `.trim();
 }
@@ -209,16 +339,22 @@ function buildReportEmailHtml(input: {
   statusUrl: string;
 }): string {
   const greeting = input.name ? `Hi ${input.name},` : "Hi there,";
+  const proof = input.summary.proof;
+  const fullCta = `${input.statusUrl}${input.statusUrl.includes("?") ? "&" : "?"}full=1`;
   return `
 <p>${greeting}</p>
-<p>Your <strong>24-hour Shadow Proxy trial</strong> has ended. Here is your projected savings summary (simulated bill drop — not proven eco):</p>
+<p>Your <strong>7-day Shadow Proxy</strong> window has ended.</p>
+<p><strong>${proof.headline}</strong></p>
 <ul>
-  <li><strong>Shadow evaluations:</strong> ${input.summary.evaluation_count.toLocaleString()}</li>
-  <li><strong>Actual pass-through cost:</strong> ${formatUsd(input.summary.actual_cost_usd)}</li>
-  <li><strong>Projected savings:</strong> ${formatUsd(input.summary.projected_savings_usd)}</li>
+  <li><strong>Duplicate calls skipped:</strong> ${proof.duplicate_calls.toLocaleString()} (${formatUsd(proof.duplicate_cost_usd)} you already paid twice)</li>
+  <li><strong>Retry-loop prompts:</strong> ${proof.retry_loop_prompts.toLocaleString()} (Hall would have stopped the known-bad path)</li>
+  <li><strong>Policy-risk prompts:</strong> ${proof.policy_flags.toLocaleString()} (DEFEND would have flagged before the model answered)</li>
+  <li><strong>Oversized context dumps:</strong> ${proof.fat_context_calls.toLocaleString()}</li>
 </ul>
-<p>Review details anytime: <a href="${input.statusUrl}">${input.statusUrl}</a></p>
-<p>Ready for Active Governance or a full MSGF beta seat? Reply to this email or join the beta at <a href="${resolveMsgfAppOrigin("msgf").replace(/\/$/, "")}/sign-up">elphiesgatedai.elphiesyntax.com/sign-up</a>.</p>
+<p>Token projection (footnote — not the headline): ${input.summary.evaluation_count.toLocaleString()} evals · pass-through ${formatUsd(input.summary.actual_cost_usd)} · projected ${formatUsd(input.summary.projected_savings_usd)}. Projected ≠ proven eco. Duplicate $ is what you already spent on identical prompts.</p>
+<p><em>Disclaimer:</em> ${SHADOW_PROOF_SCOPE_DISCLAIMER}</p>
+<p>Review the live ledger: <a href="${input.statusUrl}">${input.statusUrl}</a></p>
+<p><strong>Next:</strong> <a href="${fullCta}">Start 3-day full access</a> — Individual Pro cloud (dashboard, Pulse, IDE token, Active Governance, Vault/Hall) on the same tenant as this proof ledger.</p>
 <p>— Elphie Syntax · MSGF Gated AI</p>
 `.trim();
 }
@@ -227,16 +363,28 @@ function buildReportEmailText(input: {
   summary: ShadowTrialSummary;
   statusUrl: string;
 }): string {
+  const proof = input.summary.proof;
+  const fullCta = `${input.statusUrl}${input.statusUrl.includes("?") ? "&" : "?"}full=1`;
   return [
-    "MSGF Shadow Proxy — 24h trial report",
+    "MSGF Shadow Proxy — trial proof report",
     "",
-    `Evaluations: ${input.summary.evaluation_count}`,
-    `Actual pass-through: ${formatUsd(input.summary.actual_cost_usd)}`,
-    `Projected savings: ${formatUsd(input.summary.projected_savings_usd)}`,
+    proof.headline,
+    "",
+    `Duplicate calls: ${proof.duplicate_calls} (${formatUsd(proof.duplicate_cost_usd)})`,
+    `Retry-loop prompts: ${proof.retry_loop_prompts}`,
+    `Policy-risk prompts: ${proof.policy_flags}`,
+    `Oversized context dumps: ${proof.fat_context_calls}`,
+    "",
+    `Evals: ${input.summary.evaluation_count}`,
+    `Pass-through: ${formatUsd(input.summary.actual_cost_usd)}`,
+    `Projected token savings (footnote): ${formatUsd(input.summary.projected_savings_usd)}`,
+    "",
+    `Disclaimer: ${SHADOW_PROOF_SCOPE_DISCLAIMER}`,
     "",
     `Dashboard: ${input.statusUrl}`,
+    `Start 3-day full access: ${fullCta}`,
     "",
-    "Projected ≠ proven. Flip to Active Governance when ROI is credible.",
+    "Duplicate $ is money already spent on identical prompts. Hall/policy counts are pattern matches — not a hallucination detector.",
   ].join("\n");
 }
 
@@ -252,12 +400,12 @@ export async function notifyAdminsNewShadowTrial(input: {
 
   const subject = `[MSGF] Shadow trial started — ${input.email}`;
   const html = `
-<p>New 24h Shadow Proxy trial:</p>
+<p>New 7-day Shadow Proxy trial (clock starts on first eval; unused key dies in ${SHADOW_TRIAL_ACTIVATION_DAYS} days):</p>
 <ul>
   <li>Email: ${input.email}</li>
   <li>Name: ${input.name ?? "—"}</li>
   <li>Tenant: ${input.tenantId}</li>
-  <li>Expires: ${input.expiresAt}</li>
+  <li>Activation deadline: ${input.expiresAt}</li>
 </ul>
 <p><a href="${input.statusUrl}">Open live savings dashboard</a></p>
 `.trim();
@@ -295,15 +443,24 @@ export async function startShadowTrial(
     return { ok: false, error: "Enter a valid email address." };
   }
 
-  const existing = await findActiveTrialByEmail(admin, email);
+  const existing = await findTrialByEmail(admin, email);
   if (existing) {
+    const clock = evaluateShadowTrialClock(existing);
+    const fallbackStatusUrl = `${resolveMsgfAppOrigin().replace(/\/$/, "")}/shadow-trial`;
+    if (!clock.expired || isShadowTrialFullAccessLive(existing.full_access_expires_at)) {
+      return {
+        ok: true,
+        reused: true,
+        status_url: fallbackStatusUrl,
+        tenant_id: existing.tenant_id,
+        expires_at: existing.expires_at,
+        message:
+          "You already have an active Shadow Proxy trial on this email. Check your inbox for the status link and MSGF key.",
+      };
+    }
     return {
-      ok: true,
-      reused: true,
-      tenant_id: existing.tenant_id,
-      expires_at: existing.expires_at,
-      message:
-        "You already have an active Shadow Proxy trial on this email. Check your inbox for the status link and MSGF key.",
+      ok: false,
+      error: "This email already used the free Shadow Proxy trial (one per email).",
     };
   }
 
@@ -312,7 +469,8 @@ export async function startShadowTrial(
   const statusToken = mintStatusToken();
   const statusTokenHash = sha256HexUtf8(statusToken);
   const tenantId = mintTrialTenantId();
-  const expiresAt = new Date(Date.now() + SHADOW_TRIAL_HOURS * 60 * 60 * 1000);
+  const now = new Date();
+  const activationExpiresAt = computeShadowTrialActivationExpiresAt(now);
 
   const { data: license, error: licenseError } = await admin
     .from("msgf_licenses")
@@ -323,7 +481,7 @@ export async function startShadowTrial(
       credits_total: SHADOW_TRIAL_CREDITS,
       credits_used: 0,
       status: "active",
-      expires_at: expiresAt.toISOString(),
+      expires_at: activationExpiresAt.toISOString(),
     })
     .select("id")
     .single();
@@ -344,7 +502,8 @@ export async function startShadowTrial(
     tenant_id: tenantId,
     license_id: license.id,
     status_token_hash: statusTokenHash,
-    expires_at: expiresAt.toISOString(),
+    expires_at: activationExpiresAt.toISOString(),
+    activation_expires_at: activationExpiresAt.toISOString(),
   });
 
   if (trialError) {
@@ -357,20 +516,20 @@ export async function startShadowTrial(
 
   const welcome = await sendTransactionalEmail({
     to: email,
-    subject: "Your free 24h MSGF Shadow Proxy trial",
+    subject: "Your free 7-day MSGF Shadow Proxy trial",
     html: buildWelcomeEmailHtml({
       name,
       msgfKey: plainKey,
       statusUrl,
-      expiresAt: expiresAt.toISOString(),
+      activationExpiresAt: activationExpiresAt.toISOString(),
     }),
     text: [
-      "Your free 24h Shadow Proxy trial is live.",
+      "Your free Shadow Proxy trial is live — up to 7 days, starting on your first call.",
       "",
       `MSGF key (save this): ${plainKey}`,
       `Live dashboard: ${statusUrl}`,
       "",
-      `Trial ends ${expiresAt.toISOString()}.`,
+      `Unused key expires ${activationExpiresAt.toISOString()} (${SHADOW_TRIAL_ACTIVATION_DAYS} days from signup).`,
     ].join("\n"),
   });
 
@@ -387,7 +546,7 @@ export async function startShadowTrial(
     name,
     tenantId,
     statusUrl,
-    expiresAt: expiresAt.toISOString(),
+    expiresAt: activationExpiresAt.toISOString(),
   });
 
   return {
@@ -397,7 +556,7 @@ export async function startShadowTrial(
     status_token: statusToken,
     status_url: statusUrl,
     tenant_id: tenantId,
-    expires_at: expiresAt.toISOString(),
+    expires_at: activationExpiresAt.toISOString(),
     email_sent: emailSent,
   };
 }
@@ -410,6 +569,9 @@ export async function sendShadowTrialReport(
   if (trial.report_sent_at) {
     return { ok: true, skipped: true };
   }
+  if (!shouldSendShadowTrialProofReport(trial)) {
+    return { ok: true, skipped: true };
+  }
 
   const summary = await getShadowTrialSummary(admin, trial);
   const statusUrl = statusToken
@@ -418,7 +580,7 @@ export async function sendShadowTrialReport(
 
   const result = await sendTransactionalEmail({
     to: trial.email,
-    subject: "Your MSGF Shadow Proxy 24h savings report",
+    subject: "Your MSGF Shadow Proxy proof report",
     html: buildReportEmailHtml({ name: trial.name, summary, statusUrl }),
     text: buildReportEmailText({ summary, statusUrl }),
   });
@@ -435,33 +597,83 @@ export async function sendShadowTrialReport(
     .update({ report_sent_at: new Date().toISOString() })
     .eq("id", trial.id);
 
-  await admin
-    .from("msgf_licenses")
-    .update({ status: "expired" })
-    .eq("id", trial.license_id);
+  if (!isShadowTrialFullAccessLive(trial.full_access_expires_at)) {
+    await admin
+      .from("msgf_licenses")
+      .update({ status: "expired" })
+      .eq("id", trial.license_id);
+  }
 
   return { ok: true };
 }
 
+async function expireUnusedShadowTrials(
+  admin: SupabaseClient
+): Promise<{ expired: number; errors: string[] }> {
+  const now = new Date().toISOString();
+  const { data, error } = await admin
+    .from("msgf_shadow_trials")
+    .select("*")
+    .is("first_eval_at", null)
+    .lte("expires_at", now)
+    .limit(50);
+
+  if (error) {
+    return { expired: 0, errors: [error.message] };
+  }
+
+  const rows = (data ?? []).map((r) => mapTrialRow(r as Record<string, unknown>));
+  let expired = 0;
+  const errors: string[] = [];
+
+  for (const trial of rows) {
+    if (!shouldExpireUnusedShadowTrial(trial)) continue;
+    const { error: licenseError } = await admin
+      .from("msgf_licenses")
+      .update({ status: "expired" })
+      .eq("id", trial.license_id);
+    if (licenseError) {
+      errors.push(`${trial.email}: ${licenseError.message}`);
+      continue;
+    }
+    expired += 1;
+  }
+
+  return { expired, errors };
+}
+
 export async function processDueShadowTrialReports(
   admin: SupabaseClient
-): Promise<{ processed: number; emailed: number; errors: string[] }> {
+): Promise<{
+  processed: number;
+  emailed: number;
+  unused_expired: number;
+  errors: string[];
+}> {
+  const unused = await expireUnusedShadowTrials(admin);
+
   const now = new Date().toISOString();
   const { data, error } = await admin
     .from("msgf_shadow_trials")
     .select("*")
     .is("report_sent_at", null)
+    .not("first_eval_at", "is", null)
     .lte("expires_at", now)
     .order("expires_at", { ascending: true })
     .limit(50);
 
   if (error) {
-    return { processed: 0, emailed: 0, errors: [error.message] };
+    return {
+      processed: 0,
+      emailed: 0,
+      unused_expired: unused.expired,
+      errors: [...unused.errors, error.message],
+    };
   }
 
   const rows = (data ?? []).map((r) => mapTrialRow(r as Record<string, unknown>));
   let emailed = 0;
-  const errors: string[] = [];
+  const errors: string[] = [...unused.errors];
 
   for (const trial of rows) {
     const result = await sendShadowTrialReport(admin, trial);
@@ -471,5 +683,10 @@ export async function processDueShadowTrialReports(
     }
   }
 
-  return { processed: rows.length, emailed, errors };
+  return {
+    processed: rows.length,
+    emailed,
+    unused_expired: unused.expired,
+    errors,
+  };
 }

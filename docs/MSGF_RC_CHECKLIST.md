@@ -6,9 +6,9 @@
 
 **SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-08-11 (bug inbox closed loop)  
-**Focus:** Staging smoke + `validate:deployment` + Stripe Checkout. Migrations + core Cloud Run secrets (`MSGF_OPS_CRON_SECRET`, Sentry, Stripe prices) landed on `msgf-api-00068-v4d`.  
-**Readiness:** Technical soft-RC **~84%** · Paid self-serve **~68%** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
+**Last updated:** 2026-09-11 (live Stripe keys + webhook on `msgf-api-00077-7qx`; identity done; mock still ON)  
+**Focus:** One-tenant staging smoke → technical soft-RC; live Checkout smoke → mock-off.  
+**Readiness:** Technical soft-RC **~90%** · Paid self-serve **~82%** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
 
@@ -22,14 +22,14 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 - [x] `npm run test:hybrid-crypto -w msgf` / `test:hal-pqc` (2026-08-05)
 - [ ] `npm run test:savings -w msgf`
 - [x] **Build typing:** `showDirectoryPicker` fixed via `types/file-system-access.d.ts` (2026-08-02). Re-confirm full `next build` / `validate:deployment`.
-- [ ] `npm run deep-test:solo -w msgf`
-- [ ] `npm run verify:msgf-env -w msgf`
+- [x] `npm run deep-test:solo -w msgf` — 2026-09-11 green
+- [x] `npm run verify:msgf-env -w msgf` — 2026-09-11 green
 - [x] `npm run db:push` applied `20260802010000_p4_profiles_stripe_subscription.sql` (2026-08-02)
 - [x] `npm run db:push` / verify for `20260805010000_tri_consensus_config.sql` (TRI + xAI provider) — 2026-08-06
 - [x] `npm run db:push` for `20260806010000`–`20260806030100` (usage / period / shadow eval) — 2026-08-06
 - [x] `npm run db:push` for `20260806200000_launch_governance_writers.sql` (proven/usage audit columns) — 2026-08-06
 - [x] `npm run db:push:verify -w msgf` — 2026-08-06 green
-- [ ] `npm run validate:deployment` (unit + production `next build`)
+- [x] `npm run validate:deployment` (unit + production `next build`) — 2026-09-11 green
 - [x] Jul 24 pitfall/integration unit suites: `test:a4-compound-scope`, `test:i5-webhook-queue`, `test:i4-dropbox-archive`, `test:a5-skip-audit`, `test:a6-arbitrate-audit`, `test:converge-tier-classifier`, `test:converge-tier-escalation`, `test:converge-tier-quarantine`, `test:hot-layer-fast-read`
 - [x] Migration `20260724030400_msgf_company_tier_rules.sql` applied on remote (2026-07-24 `db:push`)
 - [x] Migration `20260802010000_p4_profiles_stripe_subscription.sql` applied on remote (2026-08-02)
@@ -141,16 +141,16 @@ Full detail: [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b.
 
 **Code (2026-08-02):** Startup Team checkout activation · subscription updated/deleted · `invoice.payment_failed` → `past_due` · entitlement mock/live · env verifier Price IDs when live · `test:stripe-entitlements`.
 
-- [x] Stripe test Price IDs mapped: Pro perpetual `price_1TzvlH45Z9uJcKXAiX8a5IF` → `STRIPE_PRICE_PRO_INDIVIDUAL`; Startup monthly `price_1TzwGGH45Z9uJcKXaWckdzAt` → `STRIPE_PRICE_STARTUP_TEAM` (Solo Pro + yearly kept in Stripe, not in app yet)
-- [x] `STRIPE_SECRET_KEY` (test) + Price IDs in local `.env.local`
-- [x] Price IDs on Cloud Run `msgf-api` (2026-08-06)
-- [~] Local `stripe listen` → `localhost:3000/api/webhooks/stripe` (CLI `whsec_` in `.env.local`); staging Dashboard webhook still open
+- [x] Stripe test Price IDs mapped (historical): Pro perpetual `price_1TzvlH45Z9uJcKXAiX8a5IF`; Startup monthly `price_1TzwGGH45Z9uJcKXaWckdzAt`
+- [x] Live Price IDs on Cloud Run `msgf-api-00077-7qx` (2026-09-11): Pro perpetual `price_1UEN2uQjFFioI1PaY9uZ3XxO`; Startup monthly `price_1UEN30QjFFioI1Pamsh3dVyt`
+- [x] Live `STRIPE_SECRET_KEY` + publishable key in Secret Manager (not plaintext env)
+- [x] Live Dashboard webhook `we_1UENAyQjFFioI1PaFD1qdZgJ` + `STRIPE_WEBHOOK_SECRET` in Secret Manager
 - [x] Startup Team checkout writes seats / `stripe_subscription_status=active` (code)
 - [x] Subscription updated/deleted + payment_failed update profile status (code)
 - [x] Apply `20260802010000_p4_profiles_stripe_subscription.sql` on remote (2026-08-02)
-- [ ] Staging/local smoke (test cards): Pro $99 → perpetual; Startup Team → Pulse with mock off
-- [ ] **Live / paid claims** blocked until Stripe **identity verification** completes
-- [ ] Prod flip (post-identity): live keys + `MSGF_STRIPE_WEBHOOK_LIVE=1` + `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0`
+- [x] Stripe **identity verification** complete (charges + payouts enabled; `details_submitted`)
+- [ ] Live Checkout smoke: Pro $99 → perpetual; Startup Team $49/mo → webhook entitlements
+- [ ] Prod flip: `MSGF_STRIPE_WEBHOOK_LIVE=1` + `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0`
 - [ ] Indie $0 BYOK path still works without Stripe
 
 ---
@@ -169,7 +169,7 @@ Full detail: [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b.
 
 | Item | Track |
 | :--- | :--- |
-| Stripe live keys / mock-off | **Required for paid go-live (P0-M3)** — soft-RC + test-mode checkout OK; live blocked on Stripe identity |
+| Stripe live keys / mock-off | **Required for paid go-live (P0-M3)** — live keys + identity + webhook landed 2026-09-11; soft-RC still OK with mock ON until Checkout smoke + mock-off |
 | Sentry Session Replay / Logging / Profiling | P2 — first-error baseline is errors + tracing only |
 | `packages/msgf/apps/web` split | Optional M2 polish |
 | Author BFF healing popout | Author 1.x |
@@ -192,6 +192,7 @@ MSGF can RC without these; include if your gate requires M5:
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-11 | **P0-M3:** live Stripe keys + webhook + live Price IDs on `msgf-api-00077-7qx`; identity done. Mock still ON. Remaining paid: Checkout smoke + mock-off + BYOK. **P0 automated:** `validate:deployment`, `deep-test:solo`, `verify:msgf-env` green. |
 | 2026-08-06 | Migrations `db:push:verify` green; Cloud Run `msgf-api-00068-v4d` got `MSGF_OPS_CRON_SECRET` + Sentry + Stripe Price IDs. Remaining soft-RC: staging smokes, heartbeat Action, `validate:deployment`. |
 | 2026-08-05 | TRI + PQC unit gates noted; TRI migration still to push; readiness soft-RC ~84% / paid ~68%. |
 | 2026-08-02 | Marked Stripe entitlement **code** + Sentry SDK local wiring done; added build blocker, Stripe migration, Sentry Cloud Run / verify smokes; P0-M3 still blocked on Prices + staging smoke + mock-off. |

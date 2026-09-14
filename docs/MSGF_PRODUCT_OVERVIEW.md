@@ -2,20 +2,20 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-08-11 (Bug inbox closed loop + onscreen FAB)
+**Last updated:** 2026-09-11 (live Stripe keys + identity; mock still ON)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
 **RC / deploy:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md)  
 **Provider gateway:** [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md)
 
-### Launch readiness (2026-08-06)
+### Launch readiness (2026-09-11)
 
 | Gate | ~% | What “100%” means |
 | :--- | :---: | :--- |
-| **Technical soft-RC** (`msgf-v1.0.0` with mock entitlements OK) | **~84%** | Green `validate:deployment` + staging smoke + Cloud Run secrets + `db:push` for usage/shadow/governance migrations |
-| **Paid self-serve launch** | **~68%** | Soft-RC + Stripe Checkout smoke + identity + live keys + mock off |
+| **Technical soft-RC** (`msgf-v1.0.0` with mock entitlements OK) | **~90%** | Green `validate:deployment` + `deep-test:solo` + `verify:msgf-env` (2026-09-11); remaining = one-tenant staging smoke |
+| **Paid self-serve launch** | **~82%** | Soft-RC + live Checkout smoke + mock off (live keys + identity + webhook already on `msgf-api`) |
 
-Largest remaining gap: **verification and secrets**, not feature code. Gateway auth, Active Orchestrator, and dashboard IDOR guards are **code-complete** (2026-08-06). Full bucket table: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
+Largest remaining gap: **verification / staging smoke**, not feature code. Live Stripe keys landed 2026-09-11; mock entitlements still ON. Full bucket table: [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
 

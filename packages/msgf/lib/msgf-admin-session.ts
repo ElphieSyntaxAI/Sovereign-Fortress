@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * Supabase-session admin resolution for MSGF's browser login flow.
@@ -81,16 +81,68 @@ function readMetadataCompanyId(user: User): string | null {
   return typeof raw === "string" ? raw.trim() || null : null;
 }
 
-function adminEmailAllowlist(): Set<string> {
-  const raw =
-    process.env.MSGF_GLOBAL_ADMIN_EMAILS?.trim() ||
-    process.env.NEXT_PUBLIC_MSGF_GLOBAL_ADMIN_EMAILS?.trim() ||
-    "";
+function parseEmailAllowlist(raw: string | undefined): Set<string> {
   return new Set(
-    raw
+    (raw ?? "")
       .split(",")
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean)
+  );
+}
+
+function adminEmailAllowlist(): Set<string> {
+  return parseEmailAllowlist(
+    process.env.MSGF_GLOBAL_ADMIN_EMAILS?.trim() ||
+      process.env.NEXT_PUBLIC_MSGF_GLOBAL_ADMIN_EMAILS?.trim()
+  );
+}
+
+function individualAdminEmailAllowlist(): Set<string> {
+  return parseEmailAllowlist(
+    process.env.MSGF_INDIVIDUAL_ADMIN_EMAILS?.trim() ||
+      process.env.NEXT_PUBLIC_MSGF_INDIVIDUAL_ADMIN_EMAILS?.trim()
+  );
+}
+
+/** True when this email is on `MSGF_GLOBAL_ADMIN_EMAILS` (Elphie Syntax operator). */
+export function isMsgfGlobalAdminEmail(email: string | null | undefined): boolean {
+  const normalized = email?.trim().toLowerCase();
+  if (!normalized) return false;
+  return adminEmailAllowlist().has(normalized);
+}
+
+/**
+ * Individual (non-team) account with admin on their own sandbox.
+ * `MSGF_INDIVIDUAL_ADMIN_EMAILS` — not cross-tenant GLOBAL_ADMIN.
+ */
+export function isMsgfIndividualAdminEmail(email: string | null | undefined): boolean {
+  const normalized = email?.trim().toLowerCase();
+  if (!normalized) return false;
+  if (isMsgfGlobalAdminEmail(normalized)) return false;
+  return individualAdminEmailAllowlist().has(normalized);
+}
+
+function demoteStaleGlobal(role: MsgfDashboardAccessRole): MsgfDashboardAccessRole {
+  return role === "GLOBAL_ADMIN" ? "COMPANY_ADMIN" : role;
+}
+
+/**
+ * Human-session role: env GLOBAL_ADMIN list is the only path to cross-tenant admin.
+ * Individual-admin emails and leftover GLOBAL_ADMIN profile rows become COMPANY_ADMIN.
+ */
+export function resolveHumanSessionAccessRole(input: {
+  email: string | null | undefined;
+  profileRole: MsgfDashboardAccessRole;
+  metadataRole: MsgfDashboardAccessRole;
+}): MsgfDashboardAccessRole {
+  if (isMsgfGlobalAdminEmail(input.email)) return "GLOBAL_ADMIN";
+  const emailRole: MsgfDashboardAccessRole = isMsgfIndividualAdminEmail(input.email)
+    ? "COMPANY_ADMIN"
+    : "DEVELOPER";
+  return strongestRole(
+    emailRole,
+    demoteStaleGlobal(input.profileRole),
+    demoteStaleGlobal(input.metadataRole)
   );
 }
 
@@ -98,31 +150,39 @@ function adminEmailAllowlist(): Set<string> {
  * Resolve a signed-in Supabase user to an MSGF dashboard operator.
  *
  * Sources, strongest wins:
- * - `MSGF_GLOBAL_ADMIN_EMAILS` env allowlist (fast recovery/admin bootstrap)
- * - `p4_profiles.msgf_access_role` + `company_id`
- * - Supabase `app_metadata` / `user_metadata` (`msgf_access_role`, `role`, `persona`)
+ * - `MSGF_GLOBAL_ADMIN_EMAILS` — the only human path to GLOBAL_ADMIN
+ * - `MSGF_INDIVIDUAL_ADMIN_EMAILS` — COMPANY_ADMIN on a personal sandbox (no team)
+ * - `p4_profiles.msgf_access_role` + `company_id` (stale GLOBAL_ADMIN is demoted)
+ * - Supabase `app_metadata` / `user_metadata`
  */
 export async function resolveSessionDashboardOperator(
   admin: SupabaseClient,
   user: User
 ): Promise<DashboardOperatorContext> {
-  const allowedEmails = adminEmailAllowlist();
-  const emailRole =
-    user.email && allowedEmails.has(user.email.toLowerCase()) ? "GLOBAL_ADMIN" : "DEVELOPER";
-
   const profile = await fetchProfileCompanyAndRole(admin, user.id).catch(() => ({
     msgf_access_role: "DEVELOPER" as MsgfDashboardAccessRole,
     company_id: null as string | null,
   }));
 
-  const role = strongestRole(emailRole, profile.msgf_access_role, readMetadataRole(user));
-  const companyId = profile.company_id ?? readMetadataCompanyId(user);
+  const role = resolveHumanSessionAccessRole({
+    email: user.email,
+    profileRole: profile.msgf_access_role,
+    metadataRole: readMetadataRole(user),
+  });
+  const companyId = isMsgfGlobalAdminEmail(user.email)
+    ? profile.company_id ?? readMetadataCompanyId(user)
+    : isMsgfIndividualAdminEmail(user.email)
+      ? null
+      : profile.company_id ?? readMetadataCompanyId(user);
 
   return {
     role,
     companyId,
     operatorUserId: user.id,
-    dashboardView: role === "GLOBAL_ADMIN" ? "tenant_health" : "team_overview",
+    dashboardView:
+      role === "GLOBAL_ADMIN" || (role === "COMPANY_ADMIN" && !companyId)
+        ? "tenant_health"
+        : "team_overview",
     canPromoteToGlobal: role === "GLOBAL_ADMIN",
   };
 }

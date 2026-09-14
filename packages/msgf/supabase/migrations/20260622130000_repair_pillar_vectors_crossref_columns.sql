@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+-- Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
 -- =============================================================================
 -- Repair: pillar_vectors CROSS-REF columns (idempotent).
 -- Some environments recorded 20260523120000 as applied without columns/types present.

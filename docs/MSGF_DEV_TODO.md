@@ -2,11 +2,11 @@
 
 **Audience:** Jessica / MSGF engineering  
 **Status:** Living checklist for **MSGF 1.0 production readiness** (gatedai + Pulse Guard + ops).  
-**Last updated:** 2026-08-11 (bug inbox + FAB closed loop)
+**Last updated:** 2026-09-11 (live Stripe keys + webhook on `msgf-api-00077-7qx`; identity done; mock still ON)
 
-**Priority now:** Staging smoke + green `validate:deployment` → technical soft-RC; then Stripe test Checkout smoke → paid go-live after identity.
+**Priority now:** One-tenant staging smoke → technical soft-RC; then live Checkout smoke → flip `MSGF_STRIPE_WEBHOOK_LIVE=1` + mock off.
 
-**Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~84%** · **paid self-serve ~68%** (secrets gap closed on `msgf-api`; verification still open).
+**Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~90%** · **paid self-serve ~82%** (P0 automated gates green 2026-09-11; remaining RC = live smoke; remaining paid = Checkout + mock-off).
 
 **Related:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md) · [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SENTRY.md`](./MSGF_SENTRY.md)
 
@@ -53,9 +53,9 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [x] `npm run test:tri-consensus -w msgf` (majority vote + presets + notify threshold)
 - [x] `npm run test:hybrid-crypto -w msgf` / `test:hal-pqc` (PQC)
 - [x] Build typing: `showDirectoryPicker` via `types/file-system-access.d.ts`
-- [ ] `npm run validate:deployment` (unit + production `next build`) — confirm after Windows flake
-- [ ] `npm run deep-test:solo -w msgf`
-- [ ] `npm run verify:msgf-env -w msgf`
+- [x] `npm run validate:deployment` (unit + production `next build`) — 2026-09-11 green (Windows `.next` EPERM reuse if OneDrive locks the cache)
+- [x] `npm run deep-test:solo -w msgf` — 2026-09-11 green
+- [x] `npm run verify:msgf-env -w msgf` — 2026-09-11 green (optional: `MSGF_ENABLE_LOM_TEST`, `MSGF_INGEST_API_KEY`)
 
 ### 1.3 Cloud Run / ops secrets
 
@@ -64,7 +64,7 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 | Upstash Redis | Hot layer + gateway completion cache | **Done** on `msgf-api` (REST URL + token) |
 | `MSGF_OPS_CRON_SECRET` | Heartbeat / audits | **Done** — generated + deployed `msgf-api-00068-v4d` (2026-08-06) |
 | Sentry DSN + auth token + org/project | SDK + ops panel | **Done** on Cloud Run (copied from local) |
-| Stripe test keys + Price IDs + webhook secret | Paid path | **Done** secret/webhook on Run; Price IDs deployed 2026-08-06 |
+| Stripe live keys + live Price IDs + webhook secret | Paid path | **Done** Secret Manager on `msgf-api-00077-7qx` (2026-09-11); mock entitlements still ON |
 | `XAI_API_KEY` + `MSGF_TRI_CONSENSUS_ENABLED=1` | Big Brain TRI | Optional until TRI live |
 | `MSGF_HYBRID_KEM_ENABLED=1` | Quantum-ready envelopes | Optional; document when on |
 | `MSGF_ACTIVE_AGGRESSIVENESS` | Active gateway default (`shard-and-route`) | Optional |
@@ -136,15 +136,18 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 
 ## 2b. Stripe / paid entitlements (P0-M3)
 
-**Code Done (2026-08-02):** Startup Team + subscription lifecycle + `past_due` + test Price IDs + migration.
+**Code Done (2026-08-02):** Startup Team + subscription lifecycle + `past_due` + test Price IDs + migration.  
+**Live keys (2026-09-11):** Secret Manager on `msgf-api-00077-7qx`; live webhook `we_1UENAyQjFFioI1PaFD1qdZgJ`; identity submitted (charges + payouts enabled). Mock entitlements still ON until Checkout smoke.
 
 - [x] Test Price IDs mapped; entitlement writers; unit tests
-- [x] Price IDs on Cloud Run `msgf-api` (2026-08-06)
-- [~] Local `stripe listen` webhook secret
-- [ ] Staging Checkout smoke (Pro + Startup) with test cards
-- [ ] Stripe **identity verification** (blocks live keys)
-- [ ] Prod flip: live keys + `MSGF_STRIPE_WEBHOOK_LIVE=1` + mock off
+- [x] Live Price IDs on Cloud Run `msgf-api` — Pro perpetual `price_1UEN2uQjFFioI1PaY9uZ3XxO`; Startup monthly `price_1UEN30QjFFioI1Pamsh3dVyt` (2026-09-11)
+- [x] Live secret + publishable keys in Secret Manager (`stripe-secret-key` / `stripe-publishable-key`)
+- [x] Live Dashboard webhook + `STRIPE_WEBHOOK_SECRET` in Secret Manager
+- [x] Stripe **identity verification** (account `details_submitted`; charges + payouts enabled)
+- [ ] Live Checkout smoke: Pro $99 perpetual + Startup Team $49/mo → webhook writes entitlements
+- [ ] Prod flip: `MSGF_STRIPE_WEBHOOK_LIVE=1` + `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0` (after smoke)
 - [ ] Indie $0 BYOK still works without Stripe
+- [ ] Archive leftover live Stripe product **Test product** ($19.99/mo) if unused
 
 ---
 
@@ -200,6 +203,7 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-11 | **Live Stripe:** identity done; live keys + webhook + live Price IDs on `msgf-api-00077-7qx` via Secret Manager. Mock still ON. Next = live Checkout smoke → mock-off. Supabase project restored from pause; `/health` healthy. **P0 gates:** `validate:deployment`, `deep-test:solo`, `verify:msgf-env` green. |
 | 2026-08-11 | **Bug inbox** + FAB closed loop (migrations applied); account hub + Stripe portal API; provenance search; ops `project_origin` + resolved incidents; prefrontal marketing. |
 | 2026-08-10 | P7 Source Audit shipped (migration + Pulse hooks + dashboard API/panel + unit tests). Apply remote schema via `db:push:verify`. |
 | 2026-08-06 | Cloud Run `msgf-api-00068-v4d`: `MSGF_OPS_CRON_SECRET` + Sentry + Stripe Price IDs deployed; schema already pushed. Next = staging smokes + heartbeat Action + `validate:deployment`. |

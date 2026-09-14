@@ -3,7 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * Beta / foundational testing waitlist — MSGF, Author, Education interest.
@@ -64,7 +69,7 @@ function mapRow(row: Record<string, unknown>): BetaWaitlistRow {
 }
 
 export function betaWaitlistAdminUrl(product?: BetaWaitlistProduct): string {
-  const base = resolveMsgfAppOrigin("msgf").replace(/\/$/, "");
+  const base = resolveMsgfAppOrigin().replace(/\/$/, "");
   const q = product ? `?product=${encodeURIComponent(product)}` : "";
   return `${base}/admin/ops#beta-waitlist${q}`;
 }

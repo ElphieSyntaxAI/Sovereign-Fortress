@@ -8,10 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
+import { isMsgfGlobalAdminEmail, isMsgfIndividualAdminEmail } from "@/lib/msgf-admin-session";
 import {
   emailDomain,
   isBlockedConsumerDomain,
@@ -66,6 +67,29 @@ export async function completeWorkspaceSso(
       reason: "no_email",
       redirect: inviteOnlyRedirect("no_email"),
       message: "Google account has no email.",
+    };
+  }
+
+  const next = opts?.nextPath?.trim();
+  const adminRedirect =
+    next && next.startsWith("/") && !next.startsWith("//")
+      ? next
+      : "/admin/portal";
+
+  // Global / individual operators skip company-domain mapping (not a team tenant).
+  if (isMsgfGlobalAdminEmail(email) || isMsgfIndividualAdminEmail(email)) {
+    const domainFromEmail = emailDomain(email);
+    const hd = extractGoogleHostedDomain(user);
+    const lookupKey = hd || domainFromEmail;
+    const mapped =
+      isMsgfGlobalAdminEmail(email) && lookupKey
+        ? await lookupCompanyIdByEmailDomain(admin, lookupKey)
+        : null;
+    return {
+      ok: true,
+      company_id: mapped?.company_id ?? (isMsgfIndividualAdminEmail(email) ? "individual" : "global_admin"),
+      domain: mapped?.domain ?? lookupKey ?? "global",
+      redirect: adminRedirect,
     };
   }
 
@@ -134,17 +158,11 @@ export async function completeWorkspaceSso(
     console.warn("[workspace-sso] vault log failed:", e);
   }
 
-  const next = opts?.nextPath?.trim();
-  const redirect =
-    next && next.startsWith("/") && !next.startsWith("//")
-      ? next
-      : "/admin/portal";
-
   return {
     ok: true,
     company_id: resolved.company_id,
     domain: resolved.domain,
-    redirect,
+    redirect: adminRedirect,
   };
 }
 

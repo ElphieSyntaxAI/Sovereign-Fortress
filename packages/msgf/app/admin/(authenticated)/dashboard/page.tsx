@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 import { cookies, headers } from "next/headers";
 
@@ -53,13 +53,17 @@ export default async function AdminDashboardPage() {
         dashboardLabel={
           op.role === "GLOBAL_ADMIN"
             ? "Global operator dashboard"
-            : "Team overview dashboard"
+            : op.companyId
+              ? "Team overview dashboard"
+              : "Personal sandbox dashboard"
         }
         canAccessAdminDashboard
         scopeDescription={
           op.role === "GLOBAL_ADMIN"
             ? "all MSGF tenants and operators"
-            : "your company team and assigned repositories"
+            : op.companyId
+              ? "your company team and assigned repositories"
+              : "your individual sandbox only"
         }
         showMasterEcoLeaderboard
         showNetworkStreams

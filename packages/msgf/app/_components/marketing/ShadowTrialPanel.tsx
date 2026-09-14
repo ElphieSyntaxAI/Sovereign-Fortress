@@ -5,14 +5,112 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T160051Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T155844Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T154800Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260812T073711Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260812T072718Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260812T071103Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260812T065535Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
- * Free 24h Shadow Proxy trial — signup + live projected savings dashboard.
+ * Free 7-day Shadow Proxy trial — signup + live projected savings dashboard.
  */
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { SHADOW_PROOF_SCOPE_DISCLAIMER } from "@/lib/shadow-eval/shadow-proof";
 
 const MSGF_HOST =
   typeof window !== "undefined"
@@ -30,6 +128,17 @@ const client = new OpenAI({
   },
 });`;
 
+type TrialProof = {
+  evaluation_count: number;
+  unique_prompts: number;
+  duplicate_calls: number;
+  duplicate_cost_usd: number;
+  retry_loop_prompts: number;
+  policy_flags: number;
+  fat_context_calls: number;
+  headline: string;
+};
+
 type TrialSummary = {
   evaluation_count: number;
   actual_cost_usd: number;
@@ -39,6 +148,12 @@ type TrialSummary = {
   started_at: string;
   email: string;
   report_sent: boolean;
+  proof?: TrialProof;
+  awaiting_first_eval?: boolean;
+  first_eval_at?: string | null;
+  full_access_started?: boolean;
+  full_access_live?: boolean;
+  full_access_expires_at?: string | null;
 };
 
 type StartResponse =
@@ -62,16 +177,38 @@ type StartResponse =
 function formatCountdown(expiresAt: string): string {
   const ms = new Date(expiresAt).getTime() - Date.now();
   if (ms <= 0) return "Trial ended";
-  const h = Math.floor(ms / 3_600_000);
+  const d = Math.floor(ms / 86_400_000);
+  const h = Math.floor((ms % 86_400_000) / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
+  if (d > 0) return `${d}d ${h}h remaining`;
   return `${h}h ${m}m remaining`;
 }
 
-export function ShadowTrialPanel({ statusToken }: { statusToken?: string | null }) {
+function trialBadgeLabel(summary: TrialSummary): string {
+  if (summary.full_access_live && summary.full_access_expires_at) {
+    return `Full access · ${formatCountdown(summary.full_access_expires_at)}`;
+  }
+  if (summary.awaiting_first_eval) return "Waiting for first call";
+  if (summary.expired) {
+    return summary.report_sent ? "Report emailed" : "Report pending";
+  }
+  return formatCountdown(summary.expires_at);
+}
+
+export function ShadowTrialPanel({
+  statusToken,
+  startFullAccess = false,
+}: {
+  statusToken?: string | null;
+  startFullAccess?: boolean;
+}) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fullAccessLoading, setFullAccessLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fullAccessMessage, setFullAccessMessage] = useState<string | null>(null);
+  const [ideToken, setIdeToken] = useState<string | null>(null);
   const [started, setStarted] = useState<StartResponse | null>(null);
   const [summary, setSummary] = useState<TrialSummary | null>(null);
   const [recent, setRecent] = useState<Record<string, unknown>[]>([]);
@@ -112,6 +249,73 @@ export function ShadowTrialPanel({ statusToken }: { statusToken?: string | null 
     const id = window.setInterval(() => void loadStatus(token), 30_000);
     return () => window.clearInterval(id);
   }, [token, loadStatus]);
+
+  const requestFullAccess = useCallback(async () => {
+    if (!token.trim()) return;
+    setFullAccessLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/shadow-trial/full-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ t: token.trim() }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string; message?: string };
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? `HTTP ${res.status}`);
+      }
+      setFullAccessMessage(
+        json.message ?? "Check your trial email for a magic link to unlock 3-day Individual Pro."
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start 3-day full access.");
+    } finally {
+      setFullAccessLoading(false);
+    }
+  }, [token]);
+
+  const activateFullAccess = useCallback(async () => {
+    if (!token.trim()) return;
+    setFullAccessLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/shadow-trial/full-access/activate", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ t: token.trim() }),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        ide_token?: string | null;
+        reused?: boolean;
+      };
+      if (res.status === 401) {
+        await requestFullAccess();
+        return;
+      }
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? `HTTP ${res.status}`);
+      }
+      if (json.ide_token) setIdeToken(json.ide_token);
+      setFullAccessMessage(
+        json.reused
+          ? "3-day Individual Pro is already active on this email."
+          : "3-day Individual Pro is live — Active Governance, Pulse, and your IDE token are unlocked."
+      );
+      await loadStatus(token);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not activate 3-day full access.");
+    } finally {
+      setFullAccessLoading(false);
+    }
+  }, [token, loadStatus, requestFullAccess]);
+
+  useEffect(() => {
+    if (!startFullAccess || !token.trim()) return;
+    void activateFullAccess();
+  }, [startFullAccess, token, activateFullAccess]);
 
   const snippet = useMemo(() => {
     if (!activeKey) return OPENAI_SNIPPET.replace("process.env.MSGF_TRIAL_KEY!", "YOUR_MSGF_KEY");
@@ -156,16 +360,22 @@ export function ShadowTrialPanel({ statusToken }: { statusToken?: string | null 
       {!showDashboard ? (
         <section className="glass-panel glass-panel-emerald mx-auto max-w-lg rounded-3xl p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-            Free · 24 hours
+            Free · up to 7 days
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
             Shadow Proxy trial
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">
-            Point your OpenAI or Anthropic SDK at MSGF in shadow mode — zero latency
-            pass-through, projected bill savings recorded live. We email your 24h report when
-            the window closes.
+            Point your OpenAI or Anthropic SDK at MSGF in shadow mode — zero extra
+            latency. The 7-day clock starts on your first call, not signup. We count
+            duplicate calls you already paid for, retry loops Hall would have stopped,
+            and policy-risk prompts DEFEND would have flagged.
           </p>
+          <ul className="mt-4 space-y-1 text-xs text-slate-400">
+            <li>Duplicate calls + the $ you already paid twice</li>
+            <li>Retry loops ("that didn't work / try again")</li>
+            <li>Policy-risk language DEFEND would flag before the model answers</li>
+          </ul>
 
           <form onSubmit={(e) => void onStart(e)} className="mt-6 space-y-4">
             <label className="block space-y-1.5">
@@ -206,7 +416,7 @@ export function ShadowTrialPanel({ statusToken }: { statusToken?: string | null 
               disabled={loading}
               className="w-full rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
             >
-              {loading ? "Starting trial…" : "Start free 24h Shadow Proxy"}
+              {loading ? "Starting trial…" : "Start free 7-day Shadow Proxy"}
             </button>
           </form>
 
@@ -241,59 +451,139 @@ export function ShadowTrialPanel({ statusToken }: { statusToken?: string | null 
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300/90">
-                  Live Shadow Proxy savings
+                  Live Shadow Proxy proof
                 </p>
                 <h2 className="mt-1 text-xl font-semibold text-slate-50">
-                  {summary.expired ? "Trial complete" : "Trial active"}
+                  {summary.full_access_live
+                    ? "3-day Individual Pro live"
+                    : summary.expired
+                      ? "Trial complete"
+                      : summary.awaiting_first_eval
+                        ? "Waiting for first call"
+                        : "Trial active"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-400">{summary.email}</p>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
+                  {summary.proof?.headline ??
+                    `${summary.evaluation_count.toLocaleString()} call(s) observed.`}
+                </p>
               </div>
               <span
                 className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                  summary.expired
-                    ? "border-slate-600/50 bg-slate-800/50 text-slate-400"
-                    : "border-emerald-500/35 bg-emerald-500/15 text-emerald-200"
+                  summary.full_access_live
+                    ? "border-violet-500/35 bg-violet-500/15 text-violet-100"
+                    : summary.expired
+                      ? "border-slate-600/50 bg-slate-800/50 text-slate-400"
+                      : summary.awaiting_first_eval
+                        ? "border-amber-500/35 bg-amber-500/15 text-amber-100"
+                        : "border-emerald-500/35 bg-emerald-500/15 text-emerald-200"
                 }`}
               >
-                {summary.expired
-                  ? summary.report_sent
-                    ? "Report emailed"
-                    : "Report pending"
-                  : formatCountdown(summary.expires_at)}
+                {trialBadgeLabel(summary)}
               </span>
             </div>
 
-            <dl className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                <dt className="text-[11px] uppercase tracking-wide text-slate-500">
-                  Evaluations
-                </dt>
-                <dd className="mt-1 text-2xl font-semibold text-slate-100">
-                  {summary.evaluation_count.toLocaleString()}
-                </dd>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                <dt className="text-[11px] uppercase tracking-wide text-slate-500">
-                  Pass-through $
-                </dt>
-                <dd className="mt-1 text-2xl font-semibold text-slate-100">
-                  ${summary.actual_cost_usd.toFixed(4)}
-                </dd>
-              </div>
+            <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
                 <dt className="text-[11px] uppercase tracking-wide text-emerald-200/80">
-                  Projected savings $
+                  Duplicate calls
                 </dt>
-                <dd className="mt-1 text-2xl font-semibold text-emerald-200">
-                  ${summary.projected_savings_usd.toFixed(4)}
+                <dd className="mt-1 text-2xl font-semibold text-emerald-100">
+                  {(summary.proof?.duplicate_calls ?? 0).toLocaleString()}
                 </dd>
+                <p className="mt-1 text-[11px] text-emerald-200/70">
+                  ${Number(summary.proof?.duplicate_cost_usd ?? 0).toFixed(4)} already
+                  paid twice
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                <dt className="text-[11px] uppercase tracking-wide text-slate-500">
+                  Retry loops
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold text-slate-100">
+                  {(summary.proof?.retry_loop_prompts ?? 0).toLocaleString()}
+                </dd>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Hall would stop the known-bad path
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                <dt className="text-[11px] uppercase tracking-wide text-slate-500">
+                  Policy-risk flags
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold text-slate-100">
+                  {(summary.proof?.policy_flags ?? 0).toLocaleString()}
+                </dd>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  DEFEND would flag before the model answers
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                <dt className="text-[11px] uppercase tracking-wide text-slate-500">
+                  Fat context dumps
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold text-slate-100">
+                  {(summary.proof?.fat_context_calls ?? 0).toLocaleString()}
+                </dd>
+                <p className="mt-1 text-[11px] text-slate-500">Shards instead of full paste</p>
               </div>
             </dl>
 
             <p className="mt-4 text-xs text-slate-500">
-              Projected ≠ proven eco. When the trial ends we email this summary to{" "}
-              {summary.email}.
+              {summary.email} · {summary.evaluation_count.toLocaleString()} evals ·
+              pass-through ${summary.actual_cost_usd.toFixed(4)} · token projection $
+              {summary.projected_savings_usd.toFixed(4)} (footnote). Duplicate $ is
+              money already spent on identical prompts — not proven eco, and not a
+              hallucination counter.
             </p>
+            <p className="mt-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-100/90">
+              {SHADOW_PROOF_SCOPE_DISCLAIMER}
+            </p>
+            {error ? (
+              <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                {error}
+              </p>
+            ) : null}
+            {fullAccessMessage ? (
+              <p className="mt-3 rounded-xl border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-sm text-violet-100">
+                {fullAccessMessage}
+              </p>
+            ) : null}
+            {ideToken ? (
+              <div className="mt-3 rounded-xl border border-emerald-500/25 bg-slate-950/70 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/85">
+                  Pulse Guard IDE token — shown once
+                </p>
+                <code className="mt-2 block overflow-x-auto text-xs text-emerald-100">
+                  {ideToken}
+                </code>
+              </div>
+            ) : null}
+            {summary.full_access_live ? (
+              <p className="mt-3 text-sm text-slate-300">
+                Active mode is unlocked on your trial key. Cloud CONVERGE is capped at{" "}
+                <strong>200 verification slices</strong> for this 72-hour window.{" "}
+                <Link href="/dashboard" className="font-semibold text-emerald-300 hover:underline">
+                  Open dashboard
+                </Link>
+              </p>
+            ) : (
+              <p className="mt-3 text-sm">
+                <button
+                  type="button"
+                  disabled={fullAccessLoading || !summary.first_eval_at}
+                  onClick={() => void requestFullAccess()}
+                  className="font-semibold text-emerald-300 hover:underline disabled:cursor-not-allowed disabled:text-slate-500"
+                >
+                  {fullAccessLoading ? "Sending magic link…" : "Start 3-day full access"}
+                </button>
+                {" — "}
+                Individual Pro cloud (dashboard, Pulse, IDE token, Active, Vault/Hall) on this
+                same proof tenant.
+                {!summary.first_eval_at
+                  ? " Send a Shadow call first to start the 7-day clock."
+                  : null}
+              </p>
+            )}
           </div>
 
           <figure className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-slate-950/55">

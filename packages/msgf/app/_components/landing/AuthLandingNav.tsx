@@ -8,15 +8,27 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
+import { Suspense } from "react";
 import { cookies, headers } from "next/headers";
 
 import { LandingNav } from "@/app/_components/landing/LandingNav";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
-/** Marketing site header. Signed-in users get the same primary app destinations as DashboardNav. */
-export async function AuthLandingNav() {
+/**
+ * Marketing site header. Cookie/auth lookup is streamed so a click to `/` does not
+ * stall on Supabase before the home page can paint.
+ */
+export function AuthLandingNav() {
+  return (
+    <Suspense fallback={<LandingNav userEmail={null} />}>
+      <AuthLandingNavSession />
+    </Suspense>
+  );
+}
+
+async function AuthLandingNavSession() {
   const cookieStore = await cookies();
   const hdrs = await headers();
   const supabase = createClient(cookieStore, requestHostFromHeaders(hdrs));

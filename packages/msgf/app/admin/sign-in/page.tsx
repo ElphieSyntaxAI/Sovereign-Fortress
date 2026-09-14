@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 import Link from "next/link";
 
@@ -44,9 +44,9 @@ export default async function AdminSignInPage({ searchParams }: Props) {
             here automatically.
           </p>
           <p className="text-xs text-slate-500">
-            Requires <code className="text-violet-300">GLOBAL_ADMIN</code> or{" "}
-            <code className="text-violet-300">MSGF_GLOBAL_ADMIN_EMAILS</code> — see{" "}
-            <code className="text-violet-300">npm run create:platform-admin -w msgf</code>.
+            Elphie Syntax Workspace is the only global admin. Individual operator accounts
+            use <code className="text-violet-300">COMPANY_ADMIN</code> on a personal sandbox
+            (not a team tenant).
           </p>
         </div>
         <AuthForm mode="sign-in" postLoginPath={postLoginPath} variant="admin" />

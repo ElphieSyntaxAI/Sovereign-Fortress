@@ -3,7 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
@@ -166,6 +171,27 @@ describe("shadow pricing + evaluator", () => {
     assert.equal(split.input + split.output, 100);
   });
 
+  test("processShadowEvaluation flags retry-loop prompts", async () => {
+    const log = await processShadowEvaluation({
+      tenantId: "test_tenant_shadow_retry",
+      endpoint: "/v1/chat/completions",
+      provider: "openai",
+      mode: "shadow",
+      stream: false,
+      model: "gpt-4o-mini",
+      promptText: "that didn't work, try again with the same login form",
+      usage: {
+        input_tokens: 40,
+        output_tokens: 20,
+        total_tokens: 60,
+        usage_source: "provider",
+        model: "gpt-4o-mini",
+      },
+      admin: null,
+    });
+    assert.equal(log.recommendedAction, "FLAG_RETRY_LOOP");
+  });
+
   test("processShadowEvaluation projects savings on large prompt", async () => {
     const big = "x".repeat(20_000);
     const log = await processShadowEvaluation({
@@ -189,9 +215,14 @@ describe("shadow pricing + evaluator", () => {
     assert.ok(log.actualTokens === 5500);
     assert.ok(log.projectedTokens <= log.actualTokens);
     assert.ok(
-      ["ENABLE_SEMANTIC_CACHE", "ENABLE_STATE_GATING", "ROUTE_SMALL_BRAIN", "KEEP_AS_IS"].includes(
-        log.recommendedAction
-      )
+      [
+        "ENABLE_SEMANTIC_CACHE",
+        "ENABLE_STATE_GATING",
+        "ROUTE_SMALL_BRAIN",
+        "FLAG_RETRY_LOOP",
+        "FLAG_POLICY_DRIFT",
+        "KEEP_AS_IS",
+      ].includes(log.recommendedAction)
     );
   });
 });

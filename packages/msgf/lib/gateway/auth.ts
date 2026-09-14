@@ -3,7 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * Gateway key authentication — tenant always from DB, never from client headers.
@@ -19,6 +24,11 @@ import {
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
 import { verifyIdeToken } from "@/lib/services/ide-token-service";
+import {
+  isShadowTrialFullAccessLive,
+  isShadowTrialLicenseTier,
+  isShadowTrialTenantId,
+} from "@/lib/services/shadow-trial-clock";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export class GatewayAuthError extends Error {
@@ -35,10 +45,36 @@ export type GatewayKeyAuthResult = {
   tenantId: string;
   msgfKeyPresent: boolean;
   keyKind: "live" | "test" | "ide" | "demo";
+  tierId?: string | null;
+  forceShadowMode?: boolean;
 };
 
 function sha256HexUtf8(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+async function trialForcesShadowMode(
+  admin: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+  tierId?: string | null
+): Promise<boolean> {
+  if (!isShadowTrialLicenseTier(tierId) && !isShadowTrialTenantId(tenantId)) {
+    return false;
+  }
+  try {
+    const { data } = await admin
+      .from("msgf_shadow_trials")
+      .select("full_access_expires_at")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    return !isShadowTrialFullAccessLive(
+      typeof data?.full_access_expires_at === "string"
+        ? data.full_access_expires_at
+        : null
+    );
+  } catch {
+    return true;
+  }
 }
 
 export function isDemoTenantAllowed(): boolean {
@@ -166,7 +202,12 @@ export async function authenticateGatewayKey(
         { hint, tenantId }
       );
     }
-    return { tenantId, msgfKeyPresent: true, keyKind: "ide" };
+    return {
+      tenantId,
+      msgfKeyPresent: true,
+      keyKind: "ide",
+      forceShadowMode: await trialForcesShadowMode(admin, tenantId),
+    };
   }
 
   if (msgfKey.startsWith("msgf_live_") || msgfKey.startsWith("msgf_test_")) {
@@ -186,7 +227,7 @@ export async function authenticateGatewayKey(
     const licenseKeyHash = sha256HexUtf8(msgfKey);
     const { data, error } = await admin
       .from("msgf_licenses")
-      .select("id, tenant_id, status, expires_at")
+      .select("id, tenant_id, status, expires_at, tier_id")
       .eq("license_key_hash", licenseKeyHash)
       .maybeSingle();
 
@@ -224,6 +265,7 @@ export async function authenticateGatewayKey(
     }
 
     const tenantId = String(data.tenant_id);
+    const tierId = typeof data.tier_id === "string" ? data.tier_id : null;
     if (hint && hint !== tenantId) {
       console.warn(
         "[gateway/auth] ignoring spoofed x-msgf-tenant-id for live/test key",
@@ -235,6 +277,8 @@ export async function authenticateGatewayKey(
       tenantId,
       msgfKeyPresent: true,
       keyKind: msgfKey.startsWith("msgf_test_") ? "test" : "live",
+      tierId,
+      forceShadowMode: await trialForcesShadowMode(admin, tenantId, tierId),
     };
   }
 

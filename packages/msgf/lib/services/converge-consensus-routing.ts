@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * Step 5 (CONVERGE) — Individual Free, INDIVIDUAL_PERPETUAL, Corporate routing.
@@ -36,12 +36,15 @@ export { byokSatisfiesConsensusConfig };
 import {
   evaluateManagedCloudWindow,
   isIndividualPerpetualLicenseType,
+  isIndividualTrial3dLicenseType,
   loadIndividualPerpetualProfile,
+  managedCloudWindowMsForLicenseType,
   type ManagedCloudWindowEvaluation,
 } from "@/lib/services/individual-perpetual-license";
 import {
   evaluatePerpetualMonthlySliceUsage,
   MANAGED_CLOUD_EXPIRED_BYPASS_WARNING,
+  MSGF_TRIAL_3D_SLICE_SOFT_CAP,
   PERPETUAL_SOFT_CAP_EXCEEDED_MESSAGE,
   type PerpetualMonthlySliceUsage,
 } from "@/lib/services/paid-individual-usage";
@@ -505,7 +508,11 @@ export async function resolveConvergeConsensusRouting(params: {
   }
 
   if (segment === "individual_perpetual") {
-    const managedWindow = evaluateManagedCloudWindow(perpetualProfile.licensePurchaseDate);
+    const managedWindow = evaluateManagedCloudWindow(
+      perpetualProfile.licensePurchaseDate,
+      new Date(),
+      managedCloudWindowMsForLicenseType(perpetualProfile.licenseType)
+    );
 
     if (managedWindow.managedCloudExpired) {
       if (byokForRouting.bothPresent) {
@@ -536,6 +543,9 @@ export async function resolveConvergeConsensusRouting(params: {
     const monthlyUsage = await evaluatePerpetualMonthlySliceUsage({
       adminSupabase: params.adminSupabase,
       entityId: params.entityId,
+      softCapOverride: isIndividualTrial3dLicenseType(perpetualProfile.licenseType)
+        ? MSGF_TRIAL_3D_SLICE_SOFT_CAP
+        : undefined,
     });
 
     return {

@@ -13,9 +13,9 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-08-12 (picker: **beta testing** on elphiesgatedai; Shadow Proxy trial; beta waitlist + ops inbox)
+**Last updated:** 2026-09-11 (live Stripe keys + identity on `msgf-api-00077-7qx`; mock still ON; picker still **beta testing**)
 
-**Picker status (public):** **Beta testing** — console seats invite-only; free 24h Shadow Proxy at `/shadow-trial`.
+**Picker status (public):** **Beta testing** — console seats invite-only; free 7-day Shadow Proxy at `/shadow-trial` (clock starts on first call; then 3-day Individual Pro full access).
 
 **Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles, **launch readiness %**.
 
@@ -525,7 +525,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Area | Open items |
 | :--- | :--- |
-| **Secrets on Cloud Run** | Ops cron, Redis, Sentry DSN+token, Stripe test keys, optional `XAI_API_KEY` / TRI flags |
+| **Secrets on Cloud Run** | Ops cron, Redis, Sentry, **live Stripe in Secret Manager**; optional `XAI_API_KEY` / TRI flags |
 | **ARBITRATE E2E** | Heal-queue on live Cloud Run; dashboard live data (mocks gated off) |
 | **M7 smokes** | One smoke per **enabled** surface (Sentry panel, signing webhook, GitHub picker) |
 | **M8 flags** | Document TRI + hybrid KEM in runbook; do not claim PQ-TLS until LB supports it |
@@ -537,9 +537,10 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | :---: | :--- | :--- |
 | 1 | Products + Price IDs in test mode | **Done** |
 | 2 | Webhook entitlement writers | **Done** (code) |
-| 3 | Local/staging Checkout smoke (test cards) | **Open** |
-| 4 | Stripe identity verification | **Blocks live keys** |
-| 5 | Prod flip: live keys + mock off | **After identity** |
+| 3 | Live Checkout smoke (Pro $99 + Startup $49/mo) | **Open** |
+| 4 | Stripe identity verification | **Done** (2026-09-11) |
+| 5 | Live keys on Cloud Run (Secret Manager) | **Done** (`msgf-api-00077-7qx`) |
+| 6 | Prod flip: `MSGF_STRIPE_WEBHOOK_LIVE=1` + mock off | **After Checkout smoke** |
 
 ### D. Post–1.0
 
@@ -555,11 +556,11 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | **PQC (app layer)** | **~85%** | Hybrid KEM + ML-DSA code; flag off by default; PQ-TLS → infra |
 | **Solo / BYOK** | **~70%** | Bootstrap tools; prod probe open |
 | **Ecosystem (Author/Edu)** | **~55%** | Not blocking MSGF-only soft-RC |
-| **Commercial (Stripe)** | **~55%** | Code + test Prices done; smoke + identity open |
-| **Verification / staging** | **~40%** | Largest remaining gap |
+| **Commercial (Stripe)** | **~80%** | Live keys + identity + webhook + live Prices done; Checkout smoke + mock-off open |
+| **Verification / staging** | **~55%** | Local P0 gates green 2026-09-11; live tenant smoke still open |
 | **Marketing / docs** | **~98%** | Overview + features + Shadow Proxy refreshed 2026-08-06 |
-| **Technical soft-RC** | **~84%** | Tag-ready after validate + staging smoke (mock OK) |
-| **Paid self-serve launch** | **~68%** | Soft-RC + Stripe smoke + identity + mock-off |
+| **Technical soft-RC** | **~90%** | Validate + deep-test + env green; remaining = staging smoke (mock OK) |
+| **Paid self-serve launch** | **~82%** | Soft-RC + live Checkout smoke + mock-off |
 
 ---
 
@@ -567,6 +568,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-11 | **Stripe live:** identity done; live keys + webhook + Price IDs on `msgf-api-00077-7qx` via Secret Manager. Paid ~82%. Mock still ON until Checkout smoke. Supabase restored from pause. |
 | 2026-08-11 | **Bug inbox** closed loop: operator triage for FAB / report-issue / self-heal → promote to ARBITRATE or dismiss; `/account` portal + provenance search (same day nav/ops pass). |
 | 2026-08-10 | **P7 Source Audit & Resource Reputation:** content-hash provenance, reputation prune/boost, `attribution_class` auto-GREEN gate, reverse impact table; DEFEND §2.6 note. |
 | 2026-08-06 | **Launch hardening:** gateway license auth (no tenant spoof), header allowlist, dashboard IDOR guard, Active Governance Orchestrator (`PromptIR` + cache + state-gate), durable proven/usage PG writers. See [`MSGF_SHADOW_PROXY.md`](./MSGF_SHADOW_PROXY.md). |

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 import Link from "next/link";
 
@@ -40,9 +40,9 @@ const client = new Anthropic({
 });`;
 
 const STEPS = [
-  "Start a free 24h trial — we mint your Shadow Proxy key and email a live savings link.",
+  "Start a free trial — we mint your Shadow Proxy key. The 7-day clock starts on your first call (unused keys expire in 14 days).",
   "Point OpenAI or Anthropic SDK baseURL at MSGF with x-msgf-mode: shadow.",
-  "Watch projected bill drop on your trial dashboard; get the 24h report by email when it ends.",
+  "Watch the proof ledger on your trial dashboard; get the email report when the window ends, then start 3-day Individual Pro full access.",
 ] as const;
 
 export function ShadowSavingsHowTo() {
@@ -88,7 +88,7 @@ export function ShadowSavingsHowTo() {
           href="/shadow-trial"
           className="font-medium text-emerald-400 underline-offset-4 hover:underline"
         >
-          Start free 24h trial
+          Start free 7-day trial
         </Link>
         <span className="text-slate-600" aria-hidden>
           ·

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 import Link from "next/link";
 
@@ -128,7 +128,7 @@ export function HomeLanding() {
                 href="/shadow-trial"
                 className="w-full rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-violet-600 px-8 py-3.5 text-center text-sm font-semibold text-white shadow-xl shadow-emerald-900/25 transition hover:brightness-110 sm:w-auto"
               >
-                Try free 24h Shadow Proxy
+                Try free 7-day Shadow Proxy
               </Link>
               <Link
                 href="/sign-up"
@@ -318,7 +318,7 @@ export function HomeLanding() {
                 href="/shadow-trial"
                 className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-10 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:brightness-110"
               >
-                Try free 24h Shadow Proxy
+                Try free 7-day Shadow Proxy
               </Link>
               <Link
                 href="/sign-in?next=/dashboard"

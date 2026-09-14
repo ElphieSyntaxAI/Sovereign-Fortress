@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
@@ -38,8 +38,8 @@ describe("shouldShowMonorepoWorkspacePresets", () => {
 
   it("shows presets for MSGF_GLOBAL_ADMIN_EMAILS allowlist", () => {
     delete process.env.MSGF_SHOW_MONOREPO_PRESETS;
-    process.env.MSGF_GLOBAL_ADMIN_EMAILS = "jessica@dealstar.io";
-    assert.equal(shouldShowMonorepoWorkspacePresets("jessica@dealstar.io"), true);
+    process.env.MSGF_GLOBAL_ADMIN_EMAILS = "ops@example.com";
+    assert.equal(shouldShowMonorepoWorkspacePresets("ops@example.com"), true);
   });
 
   it("respects MSGF_MONOREPO_PRESET_EMAIL_SUFFIXES override", () => {

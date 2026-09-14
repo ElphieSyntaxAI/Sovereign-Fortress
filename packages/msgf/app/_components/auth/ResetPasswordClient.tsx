@@ -10,6 +10,102 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T160051Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T155844Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T154800Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260812T073711Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260812T072718Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260812T071103Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260812T065535Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
  */
 /**
@@ -145,33 +241,157 @@ type SuccessState = {
   onboarding_pack_count: number;
 };
 
+type RecoveryOtpType =
+  | "signup"
+  | "invite"
+  | "magiclink"
+  | "recovery"
+  | "email_change"
+  | "email";
+
+const VERIFY_MS = 12_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`${label} timed out. Request a new reset link.`));
+    }, ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (err: unknown) => {
+        window.clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+function friendlyResetError(message: string): string {
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("code verifier") ||
+    lower.includes("pkce") ||
+    lower.includes("expired") ||
+    lower.includes("invalid") ||
+    lower.includes("timed out")
+  ) {
+    return "This reset link is invalid or has expired. Request a new one, and open it in the same browser you used to ask for the reset.";
+  }
+  return message;
+}
+
+function otpTypeFromParam(type: string | null): RecoveryOtpType {
+  switch (type) {
+    case "signup":
+    case "invite":
+    case "magiclink":
+    case "recovery":
+    case "email_change":
+    case "email":
+      return type;
+    default:
+      return "recovery";
+  }
+}
+
 export function ResetPasswordClient() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [canSetPassword, setCanSetPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const [isInvite, setIsInvite] = useState(false);
 
   useEffect(() => {
-    void (async () => {
-      const supabase = createClient();
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
-      const type = params.get("type");
+    let cancelled = false;
 
-      if (code) {
-        const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeErr) {
-          setError(exchangeErr.message);
-          return;
-        }
+    void (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const code = params.get("code");
+      const tokenHash = params.get("token_hash") ?? hashParams.get("token_hash");
+      const type = params.get("type") ?? hashParams.get("type");
+      if (type === "invite" || params.get("invite")) {
+        setIsInvite(true);
       }
 
-      setIsInvite(type === "invite" || Boolean(params.get("invite")));
-      setReady(true);
+      try {
+        const supabase = createClient();
+        const { data: existing } = await withTimeout(
+          supabase.auth.getSession(),
+          VERIFY_MS,
+          "Session check"
+        );
+
+        if (!existing.session) {
+          let verifyErr: string | null = null;
+
+          if (code) {
+            const { error: exchangeErr } = await withTimeout(
+              supabase.auth.exchangeCodeForSession(code),
+              VERIFY_MS,
+              "Reset link verification"
+            );
+            if (exchangeErr) {
+              const { error: otpErr } = await supabase.auth.verifyOtp({
+                token_hash: code,
+                type: otpTypeFromParam(type),
+              });
+              verifyErr = otpErr?.message ?? exchangeErr.message;
+            }
+          } else if (tokenHash) {
+            const { error: otpErr } = await supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: otpTypeFromParam(type),
+            });
+            if (otpErr) verifyErr = otpErr.message;
+          }
+
+          const { data: after } = await supabase.auth.getSession();
+          if (!after.session) {
+            const hadRecoveryToken = Boolean(
+              code || tokenHash || hashParams.get("access_token")
+            );
+            if (!cancelled) {
+              setCanSetPassword(!hadRecoveryToken);
+              setError(
+                verifyErr
+                  ? friendlyResetError(verifyErr)
+                  : hadRecoveryToken
+                    ? "This reset link is invalid or has expired. Request a new one."
+                    : null
+              );
+            }
+            return;
+          }
+        }
+
+        if (!cancelled) {
+          setCanSetPassword(true);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCanSetPassword(false);
+          setError(
+            friendlyResetError(
+              err instanceof Error ? err.message : "Could not verify this reset link."
+            )
+          );
+        }
+      } finally {
+        if (!cancelled) setReady(true);
+      }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -239,7 +459,7 @@ export function ResetPasswordClient() {
 
       {!ready ? (
         <p className="text-center text-sm text-slate-500">Verifying link…</p>
-      ) : (
+      ) : canSetPassword ? (
         <form
           onSubmit={(e) => void submit(e)}
           className="glass-panel space-y-4 rounded-2xl p-6 sm:p-8"
@@ -279,6 +499,18 @@ export function ResetPasswordClient() {
             {loading ? "Saving…" : "Save password"}
           </button>
         </form>
+      ) : (
+        <div className="glass-panel space-y-4 rounded-2xl p-6 text-center sm:p-8">
+          <p className="text-sm text-amber-200" role="alert">
+            {error ?? "This reset link could not be verified."}
+          </p>
+          <Link
+            href="/forgot-password"
+            className="inline-flex w-full justify-center rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 py-3 text-sm font-semibold text-white"
+          >
+            Request a new reset link
+          </Link>
+        </div>
       )}
 
       <p className="text-center text-sm text-slate-500">

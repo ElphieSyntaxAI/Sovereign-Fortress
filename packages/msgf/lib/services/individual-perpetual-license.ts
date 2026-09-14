@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * INDIVIDUAL_PERPETUAL — 365-day managed cloud window + profile activation.
@@ -17,12 +17,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const INDIVIDUAL_PERPETUAL_LICENSE_TYPE = "INDIVIDUAL_PERPETUAL" as const;
+export const INDIVIDUAL_TRIAL_3D_LICENSE_TYPE = "INDIVIDUAL_TRIAL_3D" as const;
 
 /** Managed cloud consensus coverage window (ms). */
 export const INDIVIDUAL_PERPETUAL_MANAGED_CLOUD_DAYS = 365;
+export const INDIVIDUAL_TRIAL_3D_HOURS = 72;
 
 export const MSGF_PERPETUAL_MANAGED_CLOUD_MS =
   INDIVIDUAL_PERPETUAL_MANAGED_CLOUD_DAYS * 24 * 60 * 60 * 1000;
+
+export const INDIVIDUAL_TRIAL_3D_MANAGED_CLOUD_MS =
+  INDIVIDUAL_TRIAL_3D_HOURS * 60 * 60 * 1000;
 
 export type IndividualPerpetualProfile = {
   licenseType: string | null;
@@ -39,17 +44,34 @@ export type ManagedCloudWindowEvaluation = {
   purchaseDateIso: string | null;
 };
 
+export function isIndividualTrial3dLicenseType(
+  licenseType: string | null | undefined
+): boolean {
+  return licenseType?.trim().toUpperCase() === INDIVIDUAL_TRIAL_3D_LICENSE_TYPE;
+}
+
 export function isIndividualPerpetualLicenseType(
   licenseType: string | null | undefined
 ): boolean {
+  const t = licenseType?.trim().toUpperCase();
   return (
-    licenseType?.trim().toUpperCase() === INDIVIDUAL_PERPETUAL_LICENSE_TYPE
+    t === INDIVIDUAL_PERPETUAL_LICENSE_TYPE ||
+    t === INDIVIDUAL_TRIAL_3D_LICENSE_TYPE
   );
+}
+
+export function managedCloudWindowMsForLicenseType(
+  licenseType: string | null | undefined
+): number {
+  return isIndividualTrial3dLicenseType(licenseType)
+    ? INDIVIDUAL_TRIAL_3D_MANAGED_CLOUD_MS
+    : MSGF_PERPETUAL_MANAGED_CLOUD_MS;
 }
 
 export function evaluateManagedCloudWindow(
   purchaseDate: Date | null,
-  now: Date = new Date()
+  now: Date = new Date(),
+  windowMs: number = MSGF_PERPETUAL_MANAGED_CLOUD_MS
 ): ManagedCloudWindowEvaluation {
   if (!purchaseDate || Number.isNaN(purchaseDate.getTime())) {
     return {
@@ -62,7 +84,11 @@ export function evaluateManagedCloudWindow(
 
   const elapsedMs = now.getTime() - purchaseDate.getTime();
   const daysSincePurchase = Math.max(0, Math.floor(elapsedMs / (24 * 60 * 60 * 1000)));
-  const withinManagedCloudYear = elapsedMs >= 0 && elapsedMs < MSGF_PERPETUAL_MANAGED_CLOUD_MS;
+  const coverageMs =
+    Number.isFinite(windowMs) && windowMs > 0
+      ? windowMs
+      : MSGF_PERPETUAL_MANAGED_CLOUD_MS;
+  const withinManagedCloudYear = elapsedMs >= 0 && elapsedMs < coverageMs;
 
   return {
     withinManagedCloudYear,

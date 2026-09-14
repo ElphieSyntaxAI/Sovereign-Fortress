@@ -3,7 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * Async Shadow Eval — simulate MSGF optimization without blocking the live provider path.
@@ -16,17 +21,22 @@ import {
   buildConvergeCacheRedisKey,
   computeConvergeContentHash,
 } from "@/lib/services/converge-cache";
-import { redisGet } from "@/lib/redis";
+import { redisGet, redisSet } from "@/lib/redis";
 import { getRollingConvergeBaselineTokens } from "@/lib/services/provider-usage-meter";
 import {
   MSGF_LOCAL_GATEWAY_BASE_TOKENS,
   MSGF_NAIVE_DUAL_CONVERGE_TOKENS,
 } from "@/lib/services/token-usage-estimate";
 import { writeShadowEvaluationLog } from "@/lib/shadow-eval/shadow-ledger";
+import { markShadowTrialFirstEval } from "@/lib/services/shadow-trial";
 import {
   estimateCostUsd,
   splitTotalTokens,
 } from "@/lib/shadow-eval/shadow-pricing";
+import {
+  classifyShadowPromptSignals,
+  pickShadowRecommendedAction,
+} from "@/lib/shadow-eval/shadow-proof";
 import type {
   CapturedProviderUsage,
   MsgfGatewayMode,
@@ -70,17 +80,29 @@ function wouldPreferSmallBrain(promptChars: number, promptText: string): boolean
   return promptChars < 12_000;
 }
 
+function shadowSimCacheKey(tenantId: string, promptText: string): string {
+  const contentHash = computeConvergeContentHash({ pulseText: promptText });
+  return buildConvergeCacheRedisKey(tenantId, contentHash, "shadow_proxy:sim");
+}
+
 async function probeSemanticCacheHit(
   tenantId: string,
   promptText: string
 ): Promise<boolean> {
   try {
-    const contentHash = computeConvergeContentHash({ pulseText: promptText });
-    const key = buildConvergeCacheRedisKey(tenantId, contentHash, "shadow_proxy:sim");
-    const hit = await redisGet(key);
+    const hit = await redisGet(shadowSimCacheKey(tenantId, promptText));
     return Boolean(hit?.trim());
   } catch {
     return false;
+  }
+}
+
+/** Warm the sim cache so the next identical prompt is a counted duplicate / cache hit. */
+async function warmSemanticCache(tenantId: string, promptText: string): Promise<void> {
+  try {
+    await redisSet(shadowSimCacheKey(tenantId, promptText), "1", 86_400);
+  } catch {
+    /* shadow eval must never throw */
   }
 }
 
@@ -103,15 +125,16 @@ export async function processShadowEvaluation(
   });
 
   const cacheHit = await probeSemanticCacheHit(input.tenantId, promptText);
+  const signals = classifyShadowPromptSignals(promptText);
   const stateGateReduction = estimateStateGatingReduction(promptChars);
   const smallBrain = wouldPreferSmallBrain(promptChars, promptText);
 
   let projectedTokens = actualTokens;
-  let recommendedAction: ShadowRecommendedAction = "KEEP_AS_IS";
+  let fallbackAction: ShadowRecommendedAction = "KEEP_AS_IS";
 
   if (cacheHit) {
     projectedTokens = Math.max(0, Math.floor(actualTokens * 0.02));
-    recommendedAction = "ENABLE_SEMANTIC_CACHE";
+    fallbackAction = "ENABLE_SEMANTIC_CACHE";
   } else if (smallBrain) {
     const baseline = await getRollingConvergeBaselineTokens(input.tenantId, 2);
     const convergeCost =
@@ -121,19 +144,25 @@ export async function processShadowEvaluation(
     // If unoptimized path looks like full CONVERGE-class spend, project local.
     if (actualTokens >= convergeCost * 0.5 || actualTokens > localCost * 2) {
       projectedTokens = Math.max(1, Math.floor(localCost));
-      recommendedAction =
+      fallbackAction =
         stateGateReduction >= 0.18 ? "ENABLE_STATE_GATING" : "ROUTE_SMALL_BRAIN";
     } else if (stateGateReduction >= 0.18) {
       projectedTokens = Math.max(
         1,
         Math.floor(actualTokens * (1 - stateGateReduction))
       );
-      recommendedAction = "ENABLE_STATE_GATING";
+      fallbackAction = "ENABLE_STATE_GATING";
     }
   } else if (stateGateReduction >= 0.18) {
     projectedTokens = Math.max(1, Math.floor(actualTokens * (1 - stateGateReduction)));
-    recommendedAction = "ENABLE_STATE_GATING";
+    fallbackAction = "ENABLE_STATE_GATING";
   }
+
+  const recommendedAction = pickShadowRecommendedAction({
+    cacheHit,
+    signals,
+    fallback: fallbackAction,
+  });
 
   const projSplit = splitTotalTokens(projectedTokens);
   const projectedCostUSD = estimateCostUsd({
@@ -167,5 +196,13 @@ export async function processShadowEvaluation(
   };
 
   await writeShadowEvaluationLog(input.admin ?? null, log);
+  if (input.admin) {
+    try {
+      await markShadowTrialFirstEval(input.admin, log.tenantId);
+    } catch (e) {
+      console.warn("[shadow-eval] first-eval clock failed:", e);
+    }
+  }
+  await warmSemanticCache(input.tenantId, promptText);
   return log;
 }

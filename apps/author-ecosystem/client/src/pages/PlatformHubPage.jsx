@@ -431,7 +431,7 @@ export default function PlatformHubPage() {
                 href={`${GATED_AI_HOST}/shadow-trial`}
                 className="text-emerald-200 underline-offset-4 hover:underline"
               >
-                free 24h Shadow Proxy ↗
+                free 7-day Shadow Proxy ↗
               </a>
               {" · "}
               <a

@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+-- Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
 -- =============================================================================
 -- Align p4_narrative_logs.tenant_id from TEXT to UUID.
 -- Non-UUID labels (e.g. system-test, unknown-tenant) are mapped to a sentinel UUID before cast.

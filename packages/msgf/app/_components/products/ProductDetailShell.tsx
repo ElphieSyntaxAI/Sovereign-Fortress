@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * Reusable "Find out more" detail shell for the three customer-facing surfaces
@@ -198,27 +198,27 @@ export function ProductDetailShell(props: ProductDetailProps) {
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
       <main className="mx-auto max-w-5xl space-y-10 px-5 py-10 sm:py-14">
-        <nav className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          <Link
+        <nav className="relative z-10 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <a
             href="/"
             className="rounded-full border border-slate-700/70 px-3 py-1 font-medium text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
           >
             ← MSGF home
-          </Link>
+          </a>
           <span className="text-slate-700">·</span>
-          <Link
+          <a
             href="/hub"
             className="rounded-full border border-slate-700/70 px-3 py-1 font-medium text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
           >
             Platform picker
-          </Link>
+          </a>
           <span className="text-slate-700">·</span>
-          <Link
+          <a
             href="/roadmap"
             className={`rounded-full border px-3 py-1 font-medium transition ${tone.secondary}`}
           >
             Roadmap explorer
-          </Link>
+          </a>
           <span className="text-slate-700">·</span>
           <span className="uppercase tracking-[0.2em]">Product detail</span>
         </nav>

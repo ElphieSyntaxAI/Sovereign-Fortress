@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+-- Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
 -- =============================================================================
 -- Canonical app profile keyed by Supabase Auth, with optional legacy UUID mapping (post-migration).
 create table if not exists public.p4_profiles (

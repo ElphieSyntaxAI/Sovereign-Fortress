@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * INDIVIDUAL_PERPETUAL — monthly verification-slice metering (Postgres + Redis) and ledger debits.
@@ -24,6 +24,11 @@ export const MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP = Number(
   process.env.MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP?.trim() ||
     process.env.MSGF_PAID_INDIVIDUAL_MONTHLY_TOKEN_SOFT_CAP?.trim() ||
     "1200"
+);
+
+/** 3-day Individual Pro trial — keep Pro routing, cap cloud CONVERGE slices. */
+export const MSGF_TRIAL_3D_SLICE_SOFT_CAP = Number(
+  process.env.MSGF_TRIAL_3D_SLICE_SOFT_CAP?.trim() || "200"
 );
 
 /** @deprecated Use {@link MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP}. */
@@ -107,14 +112,18 @@ async function fetchMonthlyUsageFromDatabase(
 export async function evaluatePerpetualMonthlySliceUsage(params: {
   adminSupabase: SupabaseClient;
   entityId: string;
+  softCapOverride?: number;
 }): Promise<PerpetualMonthlySliceUsage> {
   const entityId = params.entityId.trim();
   const billingPeriod = currentBillingPeriod();
+  const override = params.softCapOverride;
   const softCap =
-    Number.isFinite(MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP) &&
-    MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP > 0
-      ? Math.floor(MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP)
-      : 1200;
+    typeof override === "number" && Number.isFinite(override) && override > 0
+      ? Math.floor(override)
+      : Number.isFinite(MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP) &&
+          MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP > 0
+        ? Math.floor(MSGF_PERPETUAL_MONTHLY_SLICE_SOFT_CAP)
+        : 1200;
 
   const redisKey = paidIndividualRedisUsageKey(entityId, billingPeriod);
   const redisRaw = await redisGet(redisKey);

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * M3 — commercial entitlement gate for MSGF Brain (`POST /api/msgf/pulse`).
@@ -26,6 +26,12 @@ import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  evaluateManagedCloudWindow,
+  isIndividualTrial3dLicenseType,
+  managedCloudWindowMsForLicenseType,
+} from "@/lib/services/individual-perpetual-license";
+
 export const ERR_CREDIT_GUARD_EXHAUSTED = "ERR_CREDIT_GUARD_EXHAUSTED" as const;
 
 export type BillingLicenseType = "free" | "monthly" | "lifetime";
@@ -36,6 +42,8 @@ export type P4ProfileEntitlementRow = {
   current_credits: number;
   stripe_subscription_status: string | null;
   billing_license_type: BillingLicenseType;
+  license_type?: string | null;
+  license_purchase_date?: string | null;
 };
 
 export type EntitlementEvaluation = {
@@ -116,7 +124,9 @@ async function fetchProfileEntitlements(
 ): Promise<P4ProfileEntitlementRow | null> {
   const { data, error } = await admin
     .from("p4_profiles")
-    .select("user_id, tier_id, current_credits, stripe_subscription_status, billing_license_type")
+    .select(
+      "user_id, tier_id, current_credits, stripe_subscription_status, billing_license_type, license_type, license_purchase_date"
+    )
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -138,6 +148,12 @@ async function fetchProfileEntitlements(
       ? String(data.stripe_subscription_status)
       : null,
     billing_license_type,
+    license_type:
+      typeof data.license_type === "string" ? data.license_type : null,
+    license_purchase_date:
+      typeof data.license_purchase_date === "string"
+        ? data.license_purchase_date
+        : null,
   };
 }
 
@@ -156,10 +172,37 @@ function isStripeSubscriptionActive(status: string | null, mock: boolean): boole
  */
 export function evaluatePulseEntitlement(
   profile: P4ProfileEntitlementRow,
-  opts?: { mockStripeActive?: boolean }
+  opts?: { mockStripeActive?: boolean; now?: Date }
 ): EntitlementEvaluation {
   const mock = opts?.mockStripeActive ?? mockStripeSubscriptionActive();
   const credits = Number.isFinite(profile.current_credits) ? profile.current_credits : 0;
+  const now = opts?.now ?? new Date();
+
+  if (isIndividualTrial3dLicenseType(profile.license_type)) {
+    const purchase = profile.license_purchase_date
+      ? new Date(profile.license_purchase_date)
+      : null;
+    const window = evaluateManagedCloudWindow(
+      purchase && !Number.isNaN(purchase.getTime()) ? purchase : null,
+      now,
+      managedCloudWindowMsForLicenseType(profile.license_type)
+    );
+    if (window.managedCloudExpired) {
+      return {
+        allowed: false,
+        reason: "3-day Individual Pro trial has ended.",
+        profile,
+      };
+    }
+    if (credits <= 0) {
+      return {
+        allowed: false,
+        reason: "Lifetime license has no update credits remaining.",
+        profile,
+      };
+    }
+    return { allowed: true, profile };
+  }
 
   if (profile.billing_license_type === "lifetime") {
     if (credits <= 0) {

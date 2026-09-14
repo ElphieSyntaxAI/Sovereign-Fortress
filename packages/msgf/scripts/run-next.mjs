@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * Resolve `next` CLI for npm workspaces: hoisted to monorepo root (Docker / npm ci)
@@ -19,7 +19,7 @@
  * `next/dist/bin/next` can fail under some workspace / Node resolution paths.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, renameSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,11 +62,40 @@ function resolveNextBin() {
 const nextBin = resolveNextBin();
 const args = process.argv.slice(2);
 
+function sleepMs(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function removeNextOutputDir() {
+  const dir = path.join(pkgRoot, ".next");
+  if (!existsSync(dir)) return;
+  let lastErr;
+  for (let attempt = 1; attempt <= 6; attempt += 1) {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch (err) {
+      lastErr = err;
+      const code = err && typeof err === "object" && "code" in err ? err.code : "";
+      if (code !== "EPERM" && code !== "EBUSY" && code !== "ENOTEMPTY") throw err;
+      sleepMs(400 * attempt);
+    }
+  }
+  try {
+    renameSync(dir, `${dir}.stale-${Date.now()}`);
+    return;
+  } catch {
+    console.warn(
+      "[run-next] Could not clear .next (Windows/OneDrive lock). Reusing the existing output directory."
+    );
+  }
+}
+
 if (args[0] === "build") {
   // Next can leave generated server files that Windows/OneDrive later reports
   // as invalid readlinks. Start each production build from a clean generated
   // output directory; source, dist, and node_modules are untouched.
-  rmSync(path.join(pkgRoot, ".next"), { recursive: true, force: true });
+  removeNextOutputDir();
 }
 
 const child = spawnSync(process.execPath, [nextBin, ...args], {

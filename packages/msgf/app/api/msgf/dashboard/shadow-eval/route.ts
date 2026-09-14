@@ -3,7 +3,12 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Distribution Build ID: MSGF-1b90a4ac-20260802T111608Z-internal
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
  * GET /api/msgf/dashboard/shadow-eval?tenant_id=
@@ -20,7 +25,9 @@ import {
 import {
   getShadowEvalSummary24h,
   listRecentShadowEvaluations,
+  listShadowEvaluationsForProof,
 } from "@/lib/shadow-eval/shadow-ledger";
+import { computeShadowProof, EMPTY_SHADOW_PROOF } from "@/lib/shadow-eval/shadow-proof";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
@@ -60,16 +67,20 @@ export async function GET(req: NextRequest) {
       throw e;
     }
 
-    const [summary, recent] = await Promise.all([
+    const [summary, recent, proofRows] = await Promise.all([
       getShadowEvalSummary24h(tenantId),
       listRecentShadowEvaluations(admin, tenantId, 15).catch(() => []),
+      listShadowEvaluationsForProof(admin, tenantId).catch(() => []),
     ]);
+
+    const proof =
+      proofRows.length > 0 ? computeShadowProof(proofRows) : EMPTY_SHADOW_PROOF;
 
     return NextResponse.json({
       ok: true,
-      summary,
+      summary: { ...summary, proof },
       recent,
-      note: "Shadow projected USD is simulated savings from pass-through traffic — not proven eco.",
+      note: "Shadow proof counts duplicate calls and risk flags. Token USD is projected — not proven eco.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "shadow-eval failed";
