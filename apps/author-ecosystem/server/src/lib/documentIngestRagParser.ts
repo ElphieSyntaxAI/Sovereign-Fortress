@@ -21,6 +21,12 @@ import {
 
 export type RagTag = { name: string; value: string };
 
+export type LoreLinkRef = {
+  sheet: string;
+  field?: string;
+  raw: string;
+};
+
 export type IngestPairingDiagnostic = {
   section_path: string;
   heading: string;
@@ -30,19 +36,30 @@ export type IngestPairingDiagnostic = {
   ledger: "static" | "state" | "instruction";
 };
 
+/** Canonical: `[RAG TAG: …]` / `RAG TAG: […]`. Alias: `[TAG: …]` (README legacy). */
 const RAG_TAG_BRACKET_RE = /\[RAG\s+TAG:\s*([^\]]+)\]/gi;
 const RAG_TAG_INLINE_RE = /RAG\s+TAG:\s*\[([^\]]+)\]/gi;
+const TAG_ALIAS_BRACKET_RE = /\[TAG:\s*([^\]]+)\]/gi;
+
+/** `[Link: Character_Sheet | Field: Era_Beginning_Hook]` */
+const LINK_BRACKET_RE = /\[Link:\s*([^\]]+)\]/gi;
+/** `Domains: government, religion` */
+const DOMAINS_LINE_RE = /\bDomains:\s*([a-z0-9_,\s/-]+)/gi;
 
 const CAPS_HEADER_RE = /^[A-Z][A-Z0-9\s/&\-—–.:]{3,}$/;
 const SECTION_BREAK_RE = /^---+\s*(?:SECTION|TAB)?\s*---+\s*$/i;
 const DOMAIN_LINE_RE =
-  /^(technology|government|politics|species|history|timeline|chronology|magic|religion|geography|economy|culture|military|biology|physics|propulsion|climate|language|fauna|flora|ecosystem|geology|prophecy|era|dynasty|ancestry|xenobiology|law|food|theme|genre|trope|spoiler|character|planet|solar.?system|spatial|senses|parallel.?arc|sensitivity)\b/i;
+  /^(technology|government|politics|species|history|timeline|chronology|magic|religion|geography|economy|culture|military|biology|physics|propulsion|climate|language|fauna|flora|ecosystem|geology|prophecy|era|dynasty|ancestry|xenobiology|law|food|theme|genre|trope|spoiler|character|planet|galaxy|solar.?system|spatial|senses|parallel.?arc|sensitivity|creature)\b/i;
 
 export function parseRagTagsFromText(text: string): RagTag[] {
   const tags: RagTag[] = [];
+  const seen = new Set<string>();
   const pushTag = (raw: string) => {
     const trimmed = raw.trim();
     if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
     const pipe = trimmed.indexOf("|");
     if (pipe >= 0) {
       tags.push({
@@ -59,7 +76,43 @@ export function parseRagTagsFromText(text: string): RagTag[] {
   for (const m of text.matchAll(RAG_TAG_INLINE_RE)) {
     pushTag(String(m[1] ?? ""));
   }
+  for (const m of text.matchAll(TAG_ALIAS_BRACKET_RE)) {
+    pushTag(String(m[1] ?? ""));
+  }
   return tags;
+}
+
+export function parseLoreLinksFromText(text: string): LoreLinkRef[] {
+  const out: LoreLinkRef[] = [];
+  const seen = new Set<string>();
+  for (const m of text.matchAll(LINK_BRACKET_RE)) {
+    const raw = String(m[1] ?? "").trim();
+    if (!raw) continue;
+    const key = raw.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const parts = raw.split("|").map((p) => p.trim()).filter(Boolean);
+    const sheet = parts[0] ?? raw;
+    let field: string | undefined;
+    for (const p of parts.slice(1)) {
+      const fm = /^Field:\s*(.+)$/i.exec(p);
+      if (fm?.[1]) field = fm[1].trim();
+    }
+    out.push({ sheet, field, raw });
+  }
+  return out;
+}
+
+export function parseSecondaryDomainsFromText(text: string): string[] {
+  const domains = new Set<string>();
+  for (const m of text.matchAll(DOMAINS_LINE_RE)) {
+    const raw = String(m[1] ?? "");
+    for (const part of raw.split(/[,/]/)) {
+      const d = part.trim().toLowerCase().replace(/\s+/g, "_");
+      if (d.length >= 2 && d.length <= 40) domains.add(d);
+    }
+  }
+  return [...domains];
 }
 
 export function inferDomainFromHeading(heading: string): {
@@ -95,11 +148,34 @@ function foundationToInferred(inf: FoundationInference) {
   };
 }
 
+function enrichWikiMetaWithCrossDomain(
+  meta: Record<string, unknown>,
+  opts: {
+    primaryDomain: string;
+    secondaryDomains?: string[];
+    relatedTo?: LoreLinkRef[];
+  }
+): Record<string, unknown> {
+  const secondary = (opts.secondaryDomains ?? []).filter(
+    (d) => d && d !== opts.primaryDomain && d !== "other"
+  );
+  const related_to = (opts.relatedTo ?? []).map((l) => ({
+    sheet: l.sheet,
+    ...(l.field ? { field: l.field } : {}),
+  }));
+  return {
+    ...meta,
+    ...(secondary.length ? { secondary_domains: secondary } : {}),
+    ...(related_to.length ? { related_to } : {}),
+  };
+}
+
 /** Emit one fact card per RAG TAG — these are the World Bible / Outline foundation atoms. */
 export function factCardsFromRagTags(
   tags: RagTag[],
   sectionPath: string,
-  baseMeta: Record<string, unknown>
+  baseMeta: Record<string, unknown>,
+  cross?: { secondaryDomains?: string[]; relatedTo?: LoreLinkRef[] }
 ): ProposedWikiEntry[] {
   const out: ProposedWikiEntry[] = [];
   for (const tag of tags) {
@@ -109,6 +185,10 @@ export function factCardsFromRagTags(
     const inferred = foundationToInferred(inferFoundationFromRagTagName(tag.name));
     const excerpt = `${label}.`.slice(0, MAX_RAG_WIKI_EXCERPT);
     if (excerpt.length < 24) continue;
+    const tagList = ["file_import", "rag_tag", "fact_card", inferred.domain];
+    for (const d of cross?.secondaryDomains ?? []) {
+      if (d && d !== inferred.domain && !tagList.includes(d)) tagList.push(d);
+    }
     out.push({
       title,
       excerpt,
@@ -120,23 +200,30 @@ export function factCardsFromRagTags(
             : inferred.kind === "theme" || inferred.kind === "genre"
               ? "theme"
               : "location",
-      tags: ["file_import", "rag_tag", "fact_card", inferred.domain],
-      wiki_metadata: {
-        ...baseMeta,
-        outline_entity_kind: inferred.kind,
-        semantic_domain: inferred.domain,
-        stack_layer: inferred.stack_layer,
-        location_kind: inferred.location_kind,
-        source_type: inferred.source_type ?? baseMeta.source_type ?? "world_bible",
-        section_path: `${sectionPath} › RAG:${title}`,
-        rag_canon: false,
-        fact_card: true,
-        lore_fact_distill: true,
-        foundation: true,
-        rag_tag: tag,
-        wiki_author_entry: true,
-        lore_extraction: true,
-      },
+      tags: tagList,
+      wiki_metadata: enrichWikiMetaWithCrossDomain(
+        {
+          ...baseMeta,
+          outline_entity_kind: inferred.kind,
+          semantic_domain: inferred.domain,
+          stack_layer: inferred.stack_layer,
+          location_kind: inferred.location_kind,
+          source_type: inferred.source_type ?? baseMeta.source_type ?? "world_bible",
+          section_path: `${sectionPath} › RAG:${title}`,
+          rag_canon: false,
+          fact_card: true,
+          lore_fact_distill: true,
+          foundation: true,
+          rag_tag: tag,
+          wiki_author_entry: true,
+          lore_extraction: true,
+        },
+        {
+          primaryDomain: inferred.domain,
+          secondaryDomains: cross?.secondaryDomains,
+          relatedTo: cross?.relatedTo,
+        }
+      ),
     });
   }
   return out;
@@ -397,6 +484,8 @@ export function parseDocumentToRagSections(
       if (sub.text.length < 20) continue;
 
       const tags = parseRagTagsFromText(sub.text);
+      const relatedTo = parseLoreLinksFromText(sub.text);
+      const secondaryDomains = parseSecondaryDomainsFromText(sub.text);
       const inferred = inferDomainFromHeading(sub.heading);
       const kind = kindForTabLayer(tab.layer, sub.heading, layerKind);
       const ledger = detectLedger(sub.text);
@@ -428,14 +517,26 @@ export function parseDocumentToRagSections(
         foundation: true,
       };
 
+      const cross = { secondaryDomains, relatedTo };
+
       // RAG TAG atoms from World Bible / Outline templates — always foundation cards.
-      for (const tagCard of factCardsFromRagTags(tags, sub.path, sectionBase)) {
+      for (const tagCard of factCardsFromRagTags(tags, sub.path, sectionBase, cross)) {
         pushWikiRow(tagCard);
       }
 
       // Markdown tables (e.g. Interplanetary Data planet list) → one card per row.
       for (const tableCard of factCardsFromMarkdownTables(sub.text, sub.path, inferred, sectionBase)) {
-        pushWikiRow(tableCard);
+        pushWikiRow({
+          ...tableCard,
+          wiki_metadata: enrichWikiMetaWithCrossDomain(
+            { ...(tableCard.wiki_metadata ?? {}) },
+            {
+              primaryDomain: String(tableCard.wiki_metadata?.semantic_domain ?? inferred.domain),
+              secondaryDomains,
+              relatedTo,
+            }
+          ),
+        });
       }
 
       const shouldDistill =
@@ -485,14 +586,29 @@ export function parseDocumentToRagSections(
                   : inferred.kind === "theme" || inferred.kind === "genre"
                     ? "theme"
                     : "location",
-            tags: ["file_import", "fact_card", "foundation", source_type, inferred.domain].filter(
-              Boolean
+            tags: [
+              "file_import",
+              "fact_card",
+              "foundation",
+              source_type,
+              inferred.domain,
+              ...secondaryDomains.filter((d) => d !== inferred.domain),
+            ].filter(Boolean),
+            wiki_metadata: enrichWikiMetaWithCrossDomain(
+              {
+                ...sectionBase,
+                ...card.metadata,
+                outline_entity_kind: card.metadata.outline_entity_kind ?? kind,
+                source_type: inferred.source_type ?? source_type,
+                plot_engine_panel: inferred.panel,
+                rag_canon: false,
+              },
+              {
+                primaryDomain: String(card.metadata.semantic_domain ?? inferred.domain),
+                secondaryDomains,
+                relatedTo,
+              }
             ),
-            wiki_metadata: {
-              ...sectionBase,
-              ...card.metadata,
-              source_type: inferred.source_type ?? source_type,
-            },
           });
         }
         continue;

@@ -126,6 +126,25 @@ export function WikiIngestReviewModal(props: {
                   No species/history/technology domains detected — add section headers (TECHNOLOGY, Species, Timeline) or RAG TAG lines.
                 </li>
               )}
+              {props.proposed.some(
+                (r) =>
+                  Array.isArray(r.wiki_metadata?.secondary_domains) ||
+                  Array.isArray(r.wiki_metadata?.related_to) ||
+                  r.wiki_metadata?.provenance != null
+              ) ? (
+                <li>
+                  Cross-domain / Ref:{" "}
+                  {
+                    props.proposed.filter(
+                      (r) =>
+                        Array.isArray(r.wiki_metadata?.secondary_domains) ||
+                        Array.isArray(r.wiki_metadata?.related_to) ||
+                        r.wiki_metadata?.provenance != null
+                    ).length
+                  }{" "}
+                  card(s) with Domains, Link, or provenance Ref
+                </li>
+              ) : null}
               {props.parseCoverage.capped ? (
                 <li className="text-amber-300/80">Preview capped — canon sections kept first.</li>
               ) : null}

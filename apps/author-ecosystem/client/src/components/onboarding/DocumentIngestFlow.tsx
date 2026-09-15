@@ -536,9 +536,12 @@ export function DocumentIngestFlow(props: {
       <h3 className="text-sm font-semibold text-zinc-100">{meta.label}</h3>
       <p className="mt-1 text-xs text-zinc-500">{meta.hint}</p>
       <p className="mt-1 text-[10px] text-zinc-600">
-        Any format — scene cards, outlines, character sheets, chapter breakdowns, notes. We map content to wiki
-        and plot sandbox, not the file type. Large files may require authorship proof; mixed WIPs trigger
-        clarifying questions.
+        {props.slot === "current_draft"
+          ? "Full manuscript / draft — we index the whole text for RAG continuity; wiki/outline are chapter-scoped summaries."
+          : props.slot === "character_sheet"
+            ? "Character sheets — use RAG TAG / Domains / Link lines from the RAG-ready Character Sheet for clean cast cards."
+            : "World bible / outline / themes — prefer RAG-ready headings + [RAG TAG: …], Domains:, and [Link: …] so history, species, galaxies, and entwined gov/religion extract as separate cards."}{" "}
+        Large files may require authorship proof; mixed WIPs trigger clarifying questions.
       </p>
 
       {phase === "idle" ? (

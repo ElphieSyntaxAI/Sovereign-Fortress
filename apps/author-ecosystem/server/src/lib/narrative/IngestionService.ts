@@ -72,23 +72,66 @@ function extensionOf(filename: string): string {
 
 /**
  * Extract plain text from manuscript uploads (.docx, .pdf, .txt / fallback utf-8).
+ * DOCX prefers HTML→structured text so headings/tables survive better than raw extract.
  */
 export async function parseManuscriptToText(buffer: Buffer, filename: string): Promise<string> {
   const ext = extensionOf(filename);
   if (ext === "docx" || ext === "doc") {
+    try {
+      const htmlResult = await mammoth.convertToHtml({ buffer });
+      const structured = htmlToStructuredPlainText(htmlResult.value ?? "");
+      if (structured.replace(/\s+/g, " ").trim().length >= 40) {
+        return normalizeWhitespace(structured);
+      }
+    } catch {
+      /* fall through to raw extract */
+    }
     const { value } = await mammoth.extractRawText({ buffer });
-    return normalizeWhitespace(value);
+    const plain = normalizeWhitespace(value);
+    if (!plain.trim()) {
+      throw new Error(
+        ext === "doc"
+          ? "Could not extract text from .doc — save as .docx or Google Doc and retry"
+          : "Document is empty (no extractable text)"
+      );
+    }
+    return plain;
   }
   if (ext === "pdf") {
     const parser = new PDFParse({ data: buffer });
     try {
       const { text } = await parser.getText();
-      return normalizeWhitespace(text ?? "");
+      const plain = normalizeWhitespace(text ?? "");
+      if (!plain.trim()) {
+        throw new Error("PDF has no extractable text (scanned image?) — use DOCX or Google Doc");
+      }
+      return plain;
     } finally {
       await parser.destroy();
     }
   }
   return normalizeWhitespace(buffer.toString("utf8"));
+}
+
+/** Convert mammoth HTML into plain text that keeps heading/list structure for ingest. */
+export function htmlToStructuredPlainText(html: string): string {
+  let s = String(html ?? "");
+  s = s.replace(/<\/(h[1-6]|p|div|tr|li|br)\s*>/gi, "\n");
+  s = s.replace(/<(h[1-6])[^>]*>/gi, (_, tag) => {
+    const level = Number(String(tag).slice(1));
+    return `\n${"#".repeat(Math.min(Math.max(level, 1), 6))} `;
+  });
+  s = s.replace(/<li[^>]*>/gi, "\n- ");
+  s = s.replace(/<\/?t[dh][^>]*>/gi, " | ");
+  s = s.replace(/<[^>]+>/g, "");
+  s = s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return s;
 }
 
 /**

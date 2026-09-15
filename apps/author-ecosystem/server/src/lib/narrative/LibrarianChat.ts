@@ -501,7 +501,7 @@ export class LibrarianChat {
       languageDetection: detectionOverride,
       tenantScope = "author",
       manuscriptId,
-      includeWikiDrafts = false,
+      includeWikiDrafts = audience === "author",
     } = input;
 
     const q = String(question ?? "").trim();

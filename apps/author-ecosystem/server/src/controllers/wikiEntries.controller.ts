@@ -14,6 +14,12 @@ import {
   type HumanEffortPayload,
 } from "../lib/wikiEntryHelpers.js";
 import { markUserOverride, mergeChunkMetadata } from "../lib/chunkLifecycle.js";
+import {
+  mergeProvenanceOnManualEdit,
+  withProvenanceMeta,
+} from "../lib/wikiProvenance.js";
+import { provenanceForManual } from "../lib/wikiWriteGate.js";
+import { openLoreMergeIfConflict } from "../lib/wikiLoreMerges.js";
 
 export const wikiEntriesController = Router();
 
@@ -99,18 +105,40 @@ wikiEntriesController.post("/api/wiki/:manuscriptId/entries", async (req: Reques
   }
 
   try {
+    const provenance = provenanceForManual(manuscriptId);
+    const conflict = await openLoreMergeIfConflict(supabase, {
+      tenantId: user.userId,
+      manuscriptId,
+      title,
+      excerpt,
+      chunk_type: chunk_type_raw,
+      outline_entity_kind: outline_entity_kind || chunk_type_raw,
+      provenance,
+    });
+    if (conflict) {
+      return res.status(202).json({
+        success: true,
+        merge_opened: true,
+        merge: conflict,
+        message: "Conflicts with existing lore — opened Lore Merge for review.",
+      });
+    }
+
     const embedding = await embedWikiExcerpt(excerpt);
     const p4Type = toP4ChunkType(chunk_type_raw);
     const sourceDocument = newWikiSourceDocument(manuscriptId);
     const content = buildWikiSnapshotBody({ title, excerpt, chunk_type_raw, tags });
-    const metadata = buildMetadata({
-      manuscriptId,
-      title,
-      chunk_type_raw,
-      tags,
-      wiki_metadata,
-      committed: true,
-    });
+    const metadata = withProvenanceMeta(
+      buildMetadata({
+        manuscriptId,
+        title,
+        chunk_type_raw,
+        tags,
+        wiki_metadata,
+        committed: true,
+      }),
+      provenance
+    );
 
     const { data: ins, error: insErr } = await supabase
       .from("p4_narrative_library_chunks")
@@ -141,7 +169,7 @@ wikiEntriesController.post("/api/wiki/:manuscriptId/entries", async (req: Reques
       humanEffort: human_effort,
     });
 
-    return res.status(201).json({ success: true, chunk: ins });
+    return res.status(201).json({ success: true, chunk: ins, merge_opened: false });
   } catch (e) {
     return res.status(500).json({ error: e instanceof Error ? e.message : "Commit failed" });
   }
@@ -194,16 +222,20 @@ wikiEntriesController.patch(
       const embedding = await embedWikiExcerpt(excerpt);
       const p4Type = toP4ChunkType(chunk_type_raw);
       const content = buildWikiSnapshotBody({ title, excerpt, chunk_type_raw, tags });
+      const provenance = mergeProvenanceOnManualEdit(prevMeta);
       const metadata = markUserOverride(
         mergeChunkMetadata(prevMeta, {
-          ...buildMetadata({
-            manuscriptId,
-            title,
-            chunk_type_raw,
-            tags,
-            wiki_metadata,
-            committed: true,
-          }),
+          ...withProvenanceMeta(
+            buildMetadata({
+              manuscriptId,
+              title,
+              chunk_type_raw,
+              tags,
+              wiki_metadata,
+              committed: true,
+            }),
+            provenance
+          ),
           source_document: prevMeta.source_document ?? existing.source_document,
         }),
         user.userId

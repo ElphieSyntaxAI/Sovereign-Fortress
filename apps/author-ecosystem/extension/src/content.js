@@ -116,6 +116,17 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       text_sample: "",
       surface: surfaceLabel,
     });
+    return undefined;
+  }
+  if (msg?.type === "GET_SELECTION") {
+    let text = "";
+    try {
+      text = String(window.getSelection?.()?.toString?.() ?? "").trim();
+    } catch {
+      text = "";
+    }
+    sendResponse({ text, surface: surfaceLabel });
+    return undefined;
   }
   return undefined;
 });

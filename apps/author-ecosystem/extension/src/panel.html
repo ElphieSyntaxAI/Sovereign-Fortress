@@ -86,6 +86,40 @@
 
     <section class="panel-section panel-section--hal" aria-label="HAL session">
       <button type="button" id="pushSession" class="btn btn-secondary btn-block">Push HAL session</button>
+      <p class="field-hint">Biometrics + linguistic score vs rolling 5-session average — unchanged by chapter facts.</p>
+    </section>
+
+    <section class="panel-section" aria-label="Chapter facts">
+      <span class="field-label">Chapter facts → wiki</span>
+      <p class="field-hint">
+        Paste a chapter (or use Doc selection). Extract major events only — review, then save to draft wiki.
+        Conflicts open Lore Merges on the site.
+      </p>
+      <div id="loreMergesBadge" class="field-hint" role="status"></div>
+      <label class="field-label" for="chapterNumber">Chapter # (optional)</label>
+      <input id="chapterNumber" class="field-input" type="number" min="1" placeholder="12" />
+      <label class="field-label" for="chapterPaste">Chapter text / selection</label>
+      <textarea
+        id="chapterPaste"
+        class="field-input field-input--question"
+        rows="5"
+        placeholder="Paste chapter prose here, or click Use selection…"
+      ></textarea>
+      <div class="btn-row">
+        <button type="button" id="useSelection" class="btn btn-ghost">Use selection</button>
+        <button type="button" id="extractChapterFacts" class="btn btn-secondary">Extract facts</button>
+      </div>
+      <div id="chapterFactsList" class="field-hint"></div>
+      <button type="button" id="commitChapterFacts" class="btn btn-primary btn-block" disabled>
+        Save approved facts to wiki
+      </button>
+      <span class="field-label">Tag selection</span>
+      <div class="btn-row">
+        <button type="button" id="tagBreadcrumb" class="btn btn-ghost">Breadcrumb</button>
+        <button type="button" id="tagMajorEvent" class="btn btn-ghost">Major event</button>
+        <button type="button" id="tagCharacter" class="btn btn-ghost">Character</button>
+        <button type="button" id="tagContinuity" class="btn btn-ghost">Continuity</button>
+      </div>
     </section>
 
     <section class="panel-section panel-section--chat" aria-label="Librarian chat">

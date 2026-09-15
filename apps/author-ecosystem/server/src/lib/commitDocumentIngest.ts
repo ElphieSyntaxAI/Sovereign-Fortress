@@ -25,12 +25,13 @@ import { IngestionService } from "./narrative/IngestionService.js";
 import {
   addConvergenceStats,
   convergeUpsertPlotBeats,
-  convergeUpsertWikiEntries,
   type ConvergenceStats,
 } from "./ingestConverge.js";
 import { buildAuthorDocumentSweepFiles } from "./documentIngestMsgfSweep.js";
 import { pipeToMsgfIngestService } from "./fetchManuscript.js";
 import type { DocumentIngestCompilerState } from "./documentIngestMultiPassCompiler.js";
+import { writeWikiEntryWithMergeGate, provenanceForIngestSlot } from "./wikiWriteGate.js";
+import type { LoreMergeRecord } from "./wikiLoreMerges.js";
 
 export type PlanningIngestSnapshot = {
   manuscript_outline: string;
@@ -53,6 +54,8 @@ export type PlanningIngestSnapshot = {
     source_chars_after?: number;
   };
   convergence?: { lore: ConvergenceStats; plot: ConvergenceStats };
+  lore_merges_opened?: number;
+  lore_merge_ids?: string[];
 };
 
 export async function commitDocumentIngestToBackend(params: {
@@ -73,6 +76,7 @@ export async function commitDocumentIngestToBackend(params: {
   wiki_chunk_ids: string[];
   msgf_ingest: unknown;
   planning: PlanningIngestSnapshot;
+  lore_merges?: LoreMergeRecord[];
 }> {
   const { supabase, tenantId, manuscriptId, slot, filename } = params;
   const compiled = compileDocumentIngest({
@@ -118,7 +122,14 @@ export async function commitDocumentIngestToBackend(params: {
       },
     });
   } catch (e) {
-    console.warn("[commitDocumentIngest] lore vector", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`Document ingest failed: narrative library (lore) embed — ${msg}`);
+  }
+
+  if (!lore_ingest || lore_ingest.chunksInserted <= 0) {
+    throw new Error(
+      "Document ingest failed: narrative library wrote 0 lore chunks — check embeddings / source text"
+    );
   }
 
   const outlineText = buildManuscriptOutlineFromBeats(beats);
@@ -210,24 +221,67 @@ export async function commitDocumentIngestToBackend(params: {
   }
 
   const wiki_chunk_ids: string[] = [];
-  try {
-    const wikiResult = await convergeUpsertWikiEntries(supabase, {
-      tenantId,
-      manuscriptId,
-      entries: normalized,
-      extraMeta: {
-        ingest_slot: slot,
-        file_import: true,
-        ledger: "wiki_snapshot",
-        wiki_visibility: "draft",
-        lore_extraction: true,
-      },
-      sourcePrefix: "file-import-wiki",
-    });
-    convergence.lore = addConvergenceStats(convergence.lore, wikiResult.stats);
-    wiki_chunk_ids.push(...wikiResult.chunkIds);
-  } catch (wikiErr) {
-    console.warn("[commitDocumentIngest] wiki converge", wikiErr);
+  const lore_merges: LoreMergeRecord[] = [];
+  const ingestProvenance = provenanceForIngestSlot(manuscriptId, slot, filename);
+
+  if (normalized.length > 0) {
+    try {
+      for (const entry of normalized) {
+        const gate = await writeWikiEntryWithMergeGate(supabase, {
+          tenantId,
+          manuscriptId,
+          entry,
+          provenance: ingestProvenance,
+          sourcePrefix: "file-import-wiki",
+          extraMeta: {
+            ingest_slot: slot,
+            file_import: true,
+            ledger: "wiki_snapshot",
+            wiki_visibility: "draft",
+            lore_extraction: true,
+          },
+        });
+        if (gate.kind === "merge_opened") {
+          lore_merges.push(gate.merge);
+        } else if (gate.result.id) {
+          wiki_chunk_ids.push(gate.result.id);
+          if (gate.result.action === "inserted") {
+            convergence.lore = addConvergenceStats(convergence.lore, {
+              inserted: 1,
+              updated: 0,
+              skipped: 0,
+              skipped_user_override: 0,
+            });
+          } else if (gate.result.action === "updated") {
+            convergence.lore = addConvergenceStats(convergence.lore, {
+              inserted: 0,
+              updated: 1,
+              skipped: 0,
+              skipped_user_override: 0,
+            });
+          } else {
+            convergence.lore = addConvergenceStats(convergence.lore, {
+              inserted: 0,
+              updated: 0,
+              skipped: 1,
+              skipped_user_override: gate.result.userOverride ? 1 : 0,
+            });
+          }
+        }
+      }
+    } catch (wikiErr) {
+      const msg = wikiErr instanceof Error ? wikiErr.message : String(wikiErr);
+      throw new Error(`Document ingest failed: wiki upsert — ${msg}`);
+    }
+    if (wiki_chunk_ids.length === 0 && lore_merges.length === 0) {
+      throw new Error(
+        `Document ingest failed: ${normalized.length} proposed wiki rows produced 0 persisted entries`
+      );
+    }
+  } else if (slot !== "current_draft") {
+    throw new Error(
+      "Document ingest failed: no grounded wiki rows to commit (scan dropped all excerpts — check parse / structure)"
+    );
   }
 
   let msgf_ingest: unknown = null;
@@ -262,7 +316,9 @@ export async function commitDocumentIngestToBackend(params: {
     wiki_entry_count: wiki_chunk_ids.length,
     compile_stats: compiled.stats,
     convergence,
+    lore_merges_opened: lore_merges.length,
+    lore_merge_ids: lore_merges.map((m) => m.id),
   };
 
-  return { lore_ingest, plot_ingest, wiki_chunk_ids, msgf_ingest, planning };
+  return { lore_ingest, plot_ingest, wiki_chunk_ids, msgf_ingest, planning, lore_merges };
 }

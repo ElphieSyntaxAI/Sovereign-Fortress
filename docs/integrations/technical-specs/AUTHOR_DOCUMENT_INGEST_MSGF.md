@@ -2,6 +2,8 @@
 
 Author Ecosystem document import (file upload + Google Docs) follows **MSGF V3.2** phases for mapping planning docs into wiki + outline data.
 
+**Authoring contract:** [`apps/author-ecosystem/docs/rag/README.md`](../../../apps/author-ecosystem/docs/rag/README.md) — RAG TAG / Link / Domains grammar must match the live parser.
+
 ## Flow
 
 | Phase | Where | What |
@@ -9,10 +11,11 @@ Author Ecosystem document import (file upload + Google Docs) follows **MSGF V3.2
 | **SWEEP** | `documentIngestSignals.ts` | Tab/table/chapter/scene signals; optional keyword hits (hints only) |
 | **CROSS-REF** | `documentIngestMsgfPipeline.ts` | `getLogicLineage` (1.1.1 Vault) for ingest mapping reinforcement |
 | **CONVERGE** | `documentIngestMsgfPipeline.ts` | Gemini JSON extract → `proposed_wiki` + `outline_beats` |
+| **RAG parse** | `documentIngestRagParser.ts` | Section/RAG TAG/table → entity fact cards; Links → `related_to`; Domains → `secondary_domains` |
 | **Accuracy** | `groundProposedWikiToSource` | Drops excerpts not found in source text |
 | **Compile** | `documentIngestCompile.ts` | Dedupe beats/wiki, prune duplicate macro sections |
 | **DEFEND** | `documentIngestMsgfGuard.ts` | Shadow preflight, structure-merge risk, dual review on commit |
-| **PERSIST** | `commitDocumentIngest.ts` | `p4_narrative_library_chunks`, plot/lore vectors, MSGF SWEEP shards |
+| **PERSIST** | `commitDocumentIngest.ts` | `p4_narrative_library_chunks`, plot/lore vectors, wiki upsert (fails loud if lore/wiki empty), MSGF SWEEP shards |
 
 ## Environment (BFF / `packages/msgf/.env.local`)
 
@@ -24,6 +27,23 @@ Author Ecosystem document import (file upload + Google Docs) follows **MSGF V3.2
 | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | — | Required for CONVERGE (heuristic-only if unset) |
 | `MSGF_APP_URL` | `http://127.0.0.1:3001` | SWEEP ingest on commit |
 | `MSGF_INGEST_API_KEY` | — | Optional tenant ingest auth |
+
+## Source size ceilings
+
+| Slot | Cap | Notes |
+|------|-----|--------|
+| `world_bible` / `character_sheet` | 400k chars | Planning sheets |
+| `current_draft` | 1.2M chars | ~80k+ word manuscripts; narrative library is primary success; wiki is chapter-scoped |
+
+## Tag / Link grammar (must match templates)
+
+```text
+[RAG TAG: History: The Collapse | Spoiler Level: Medium]
+RAG TAG: [Spatial_Bio: Glowmoth]
+[TAG: Religion: Twin Choir]                    ← alias
+[Link: World_Bible | Field: Religion:Twin_Choir]
+Domains: government, religion                  ← secondary_domains
+```
 
 ## 1.1.1 lineage (commit SWEEP)
 
@@ -58,6 +78,15 @@ Scan responses include `msgf_meta`:
 1. **Keywords are hints**, not matchers — the model must not invent content to satisfy a keyword.
 2. **Heuristics are fallback** — table/chapter parsers fill gaps when LLM is off or in `hybrid` mode.
 3. **Works for any doc layout** — no author-specific regex lists in the CONVERGE path; structure comes from content + signals.
+4. **Entwined domains stay linked** — do not force a theocratic empire into only `government` or only `religion`; keep `secondary_domains` + `related_to`.
+5. **Commit honesty** — lore embed / wiki upsert failures fail the commit (not silent warn) when those rows were expected.
+6. **Provenance Ref** — every wiki fact stamps `provenance.source`: `planning_upload` | `planning_manual` | `live_manuscript`.
+7. **Lore Merges** — conflicting same/similar lore opens an MR (`p4` chunk ledger `lore_merge`) instead of overwrite; author resolves on Lore Wiki.
+
+## Chapter facts (live manuscript)
+
+- `POST /api/chapter-facts/propose` / `commit` / `tag` — extension-driven major-event extract + wiki backfill
+- Conflicts → Lore Merges notifications (`GET /api/wiki/merges/notifications`)
 
 ## POV detection (heuristic layer)
 
@@ -77,3 +106,4 @@ Numbered bullets (`1. Acina on Earth…`) become titles from the bullet text (e.
 
 - [`MSGF_V1_ROADMAP.md`](../../msgf/MSGF_V1_ROADMAP.md) — engine phases
 - [`packages/msgf/pre_ingestion_audit.md`](../../../packages/msgf/pre_ingestion_audit.md) — SWEEP audit SSOT
+- [`apps/author-ecosystem/docs/rag/README.md`](../../../apps/author-ecosystem/docs/rag/README.md) — template SSOT

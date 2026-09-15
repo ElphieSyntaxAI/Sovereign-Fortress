@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { CreativeManuscriptShell } from "../components/CreativeManuscriptShell";
 import { WikiAuthorView } from "../components/WikiAuthorView";
+import { WikiLoreMergesPanel } from "../components/wiki/WikiLoreMergesPanel";
 import { WikiDraftProvider } from "../context/WikiDraftContext";
 import { useNarrative } from "../context/NarrativeContext";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
@@ -109,6 +110,7 @@ export default function WikiPage() {
 
       {selection ? (
         <WikiDraftProvider key={selection.manuscriptId} manuscriptId={selection.manuscriptId}>
+          <WikiLoreMergesPanel manuscriptId={selection.manuscriptId} />
           <WikiAuthorView
             manuscriptId={selection.manuscriptId}
             tenantId={selection.tenantId}

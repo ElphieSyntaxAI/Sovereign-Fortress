@@ -7,11 +7,14 @@ Lightweight Chrome extension for **Google Docs** and **Microsoft Word Online** (
 ### Features
 
 - HAL keystroke / paste capture (rolling buffer, no full-doc scrape)
-- ✎ FAB opens the side panel (HAL + Lore Librarian)
-- BFF session via httpOnly cookies (sign in on `http://127.0.0.1:5173` — use the same host as the BFF, not `localhost`) or pasted Bearer JWT
-- Push HAL → `POST /api/hal/session`
-- Ask Librarian → `POST /api/rag/chat` with HUD spoiler/plot filters
-- Active manuscript from `GET /api/manuscripts/active` (set in web dashboard first)
+- Biometrics + linguistic analysis vs **rolling 5-session average** (`POST /api/hal/session`) — unchanged by lore features
+- ✎ FAB opens the side panel (HAL + Lore Librarian + chapter facts)
+- **Chapter facts:** paste/selection → extract major events → save to draft wiki (`/api/chapter-facts/*`)
+- **Author tags:** selection → breadcrumb / major event / character / continuity note
+- **Lore Merges badge:** open conflict count; resolve on Lore Wiki
+- Librarian asks with `include_wiki_drafts: true` so fresh draft lore is visible
+- BFF session via httpOnly cookies or pasted Bearer JWT
+- Active manuscript from `GET /api/manuscripts/active`
 
 ### Load unpacked (Chrome)
 

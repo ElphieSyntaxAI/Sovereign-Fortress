@@ -6,7 +6,9 @@ import {
   inferDomainFromHeading,
   mergeRagProposedWiki,
   parseDocumentToRagSections,
+  parseLoreLinksFromText,
   parseRagTagsFromText,
+  parseSecondaryDomainsFromText,
   splitBodyIntoRagSections,
 } from "../src/lib/documentIngestRagParser.js";
 
@@ -19,7 +21,75 @@ describe("documentIngestRagParser", () => {
     assert.equal(tags[0]?.name, "Physics Law: Low Gravity");
   });
 
-  test("inferDomainFromHeading maps technology, planet, religion, fauna, physics", () => {
+  test("parseRagTagsFromText accepts [TAG:] alias and [RAG TAG:]", () => {
+    const tags = parseRagTagsFromText(
+      "[TAG: Religion: Twin Choir] and [RAG TAG: History: The Collapse | Spoiler Level: Medium]"
+    );
+    assert.ok(tags.some((t) => /twin choir|religion/i.test(t.name)));
+    assert.ok(tags.some((t) => /collapse|history/i.test(t.name)));
+  });
+
+  test("parseLoreLinksFromText and Domains attach related_to + secondary_domains", () => {
+    const doc = [
+      "--- TAB: World Bible ---",
+      "",
+      "GOVERNMENT",
+      "The Twin Choir Concordat seats clergy on the planetary council for ritual law.",
+      "RAG TAG: [System_Law: Government]",
+      "Domains: government, religion",
+      "[Link: World_Bible | Field: Religion:Twin_Choir]",
+      "",
+      "GALAXIES",
+      "Veil Arm is a barred spiral rimward of the Core with sparse jump beacons.",
+      "RAG TAG: [Galaxy: Veil Arm]",
+      "",
+      "SPECIES",
+      "Glowmoth: bioluminescent pollinator native to Kestrel Reach ice caves.",
+      "RAG TAG: [Spatial_Bio: Glowmoth]",
+      "Domains: species, fauna",
+      "[Link: World_Bible | Field: Planet:Kestrel_Reach]",
+    ].join("\n");
+
+    const { proposedWiki } = parseDocumentToRagSections(doc, "world_bible", "ms-cross-domain");
+
+    const gov = proposedWiki.find(
+      (r) =>
+        /government|concordat|system_law/i.test(r.title) ||
+        /concordat|clergy/i.test(r.excerpt) ||
+        Boolean(r.wiki_metadata?.rag_tag)
+    );
+    assert.ok(
+      proposedWiki.some((r) => {
+        const secondary = r.wiki_metadata?.secondary_domains;
+        return Array.isArray(secondary) && secondary.includes("religion");
+      }),
+      "gov section keeps secondary religion domain"
+    );
+    assert.ok(
+      proposedWiki.some((r) => {
+        const related = r.wiki_metadata?.related_to;
+        return Array.isArray(related) && related.some((x) => /world_bible|religion/i.test(JSON.stringify(x)));
+      }),
+      "Link lines become related_to"
+    );
+    assert.ok(
+      proposedWiki.some(
+        (r) =>
+          /veil arm|galaxy/i.test(r.title) ||
+          String(r.wiki_metadata?.semantic_domain) === "galaxy"
+      ),
+      "galaxy entity card"
+    );
+    assert.ok(
+      proposedWiki.some(
+        (r) => /glowmoth/i.test(r.title) || /glowmoth/i.test(r.excerpt)
+      ),
+      "species / spatial_bio card"
+    );
+    void gov;
+  });
+
+  test("inferDomainFromHeading maps technology, planet, religion, fauna, physics, galaxy", () => {
     assert.equal(inferDomainFromHeading("TECHNOLOGY & PROPULSION").domain, "technology");
     assert.equal(inferDomainFromHeading("TECHNOLOGY & PROPULSION").stack_layer, "science");
     assert.equal(inferDomainFromHeading("PLANETS").domain, "planet");
@@ -30,6 +100,20 @@ describe("documentIngestRagParser", () => {
     assert.equal(inferDomainFromHeading("Ancient History").domain, "history");
     assert.equal(inferDomainFromHeading("PHYSICS LAWS").domain, "physics");
     assert.equal(inferDomainFromHeading("Themes & Motifs").domain, "theme");
+    assert.equal(inferDomainFromHeading("Galaxies of the Rim").domain, "galaxy");
+  });
+
+  test("parseLoreLinksFromText extracts sheet + field", () => {
+    const links = parseLoreLinksFromText(
+      "[Link: Character_Sheet | Field: Era_Beginning_Hook] see also [Link: Outline | Field: Hook]"
+    );
+    assert.equal(links.length, 2);
+    assert.equal(links[0]?.sheet, "Character_Sheet");
+    assert.equal(links[0]?.field, "Era_Beginning_Hook");
+    assert.deepEqual(parseSecondaryDomainsFromText("Domains: government, religion"), [
+      "government",
+      "religion",
+    ]);
   });
 
   test("parseDocumentToRagSections emits RAG TAG and markdown table foundation cards", () => {

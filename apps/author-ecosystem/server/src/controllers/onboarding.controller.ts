@@ -52,6 +52,10 @@ import { buildIngestTabDiagnostics } from "../lib/documentIngestRagParser.js";
 import { getGoogleOAuthClientForTenant } from "../lib/googleOAuthTokens.js";
 import { parseManuscriptToText } from "../lib/narrative/IngestionService.js";
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
+import {
+  MAX_DRAFT_SOURCE_CHARS,
+  MAX_SOURCE_CHARS,
+} from "../lib/documentIngestLimits.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 export const onboardingController = Router();
@@ -61,7 +65,9 @@ const upload = multer({
   limits: { fileSize: 18 * 1024 * 1024, files: 1 },
 });
 
-const MAX_SOURCE_CHARS = 400_000;
+function maxSourceCharsForSlot(slot: string): number {
+  return slot === "current_draft" ? MAX_DRAFT_SOURCE_CHARS : MAX_SOURCE_CHARS;
+}
 
 function compileScanPayload(params: {
   sourceText: string;
@@ -304,7 +310,7 @@ onboardingController.post(
 
       const plain = await parseManuscriptToText(f.buffer, f.originalname || "upload.txt");
       if (!plain.trim()) return res.status(400).json({ error: "Document is empty" });
-      const sourceText = structureDocumentText(plain).slice(0, MAX_SOURCE_CHARS);
+      const sourceText = structureDocumentText(plain).slice(0, maxSourceCharsForSlot(slot));
       const wordCount = countWords(sourceText);
       const pageEstimate = estimatePages(wordCount);
       const gate = requiresAuthorshipGate(wordCount, pageEstimate);
@@ -449,7 +455,7 @@ onboardingController.post("/api/onboarding/document/scan-google", async (req: Re
     const tabSections = splitTabSections(plain);
 
     if (!plain.trim()) return res.status(400).json({ error: "Google Doc is empty" });
-    const sourceText = structureDocumentText(plain).slice(0, MAX_SOURCE_CHARS);
+    const sourceText = structureDocumentText(plain).slice(0, maxSourceCharsForSlot(slot));
     const wordCount = countWords(sourceText);
     const pageEstimate = estimatePages(wordCount);
     const gate = requiresAuthorshipGate(wordCount, pageEstimate);

@@ -1,5 +1,7 @@
 # RAG READY WORLD BIBLE
 
+> **Ingest contract** (see [README.md](./README.md)): use `[RAG TAG: …]` or `RAG TAG: […]`; cross-links as `[Link: Sheet | Field: …]`; entwined domains as `Domains: government, religion`. Prefer clear `#` / `##` headings for History, Species, Galaxies, Government, Religion so each entity becomes its own wiki fact card.
+
 ## Story Guardrails: \[ \] Local-story takes place in one place,town, or city \[ \] Global-Story takes place in world or solar system \[X\]Universe-Story take place over one universe
 
 ## 1.0 THE STATIC LEDGER (The Immutable Laws)

@@ -786,6 +786,7 @@ async function askLibrarian() {
       audience: "author",
       question,
       project_id: projectId || null,
+      include_wiki_drafts: true,
       hud_state,
       scientific_cross_check: scientificCrossCheckBodyValue(),
     },
@@ -804,18 +805,186 @@ async function askLibrarian() {
   }
 }
 
+/** Chapter facts session (lightweight — BFF does heavy work). */
+let chapterFactSession = { sessionId: null, cards: [], approved: new Set() };
+
+async function readSelectionFromWritingTab() {
+  const tabId = await resolveWritingTabId();
+  if (tabId == null) return "";
+  try {
+    const resp = await chrome.tabs.sendMessage(tabId, { type: "GET_SELECTION" });
+    return String(resp?.text ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+async function refreshLoreMergesBadge() {
+  const el = $("loreMergesBadge");
+  if (!el) return;
+  const mid = sessionContext.activeManuscript?.id;
+  if (!mid) {
+    el.textContent = "";
+    return;
+  }
+  try {
+    const result = await apiFetch(
+      `/api/wiki/merges/notifications?manuscript_id=${encodeURIComponent(mid)}`
+    );
+    const open = Number(result?.open ?? 0);
+    const unread = Number(result?.unread ?? 0);
+    el.textContent =
+      open > 0
+        ? `Lore Merges: ${open} open${unread > 0 ? ` (${unread} new)` : ""} — review on Lore Wiki`
+        : "Lore Merges: none open";
+  } catch {
+    el.textContent = "";
+  }
+}
+
+function renderChapterFactsList() {
+  const host = $("chapterFactsList");
+  const btn = $("commitChapterFacts");
+  if (!host) return;
+  if (!chapterFactSession.cards.length) {
+    host.innerHTML = "";
+    if (btn) btn.disabled = true;
+    return;
+  }
+  host.innerHTML = chapterFactSession.cards
+    .map((c, i) => {
+      const checked = chapterFactSession.approved.has(i) ? "checked" : "";
+      const cont = c.continuity_flags?.status || "";
+      const ref = c.ref_label || "Ref: Live manuscript";
+      return `<label style="display:block;margin:0.35rem 0;font-size:11px">
+        <input type="checkbox" data-fact-idx="${i}" ${checked}/> 
+        <strong>${escapeHtml(c.title || "Fact")}</strong>
+        <span style="opacity:0.7"> · ${escapeHtml(cont)} · ${escapeHtml(ref)}</span>
+        <div style="opacity:0.8;margin-left:1.2rem">${escapeHtml((c.excerpt || "").slice(0, 160))}</div>
+      </label>`;
+    })
+    .join("");
+  host.querySelectorAll("input[data-fact-idx]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const idx = Number(input.getAttribute("data-fact-idx"));
+      if (input.checked) chapterFactSession.approved.add(idx);
+      else chapterFactSession.approved.delete(idx);
+      if (btn) btn.disabled = chapterFactSession.approved.size === 0;
+    });
+  });
+  if (btn) btn.disabled = chapterFactSession.approved.size === 0;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function useSelectionIntoPaste() {
+  const text = await readSelectionFromWritingTab();
+  if (!text) return setOutput("No selection in the Docs/Word tab — select text or paste into the box.");
+  $("chapterPaste").value = text;
+  setOutput(`Loaded selection (${text.length} chars).`);
+}
+
+async function extractChapterFacts() {
+  await refreshSessionContext();
+  const mid = sessionContext.activeManuscript?.id;
+  if (!mid) return setOutput("Sync session first (active manuscript required).");
+  let text = $("chapterPaste").value.trim();
+  if (!text) {
+    text = await readSelectionFromWritingTab();
+    if (text) $("chapterPaste").value = text;
+  }
+  if (text.length < 80) return setOutput("Need at least 80 characters of chapter text.");
+  const chapter_number = Number($("chapterNumber").value);
+  setOutput("Extracting major chapter facts…");
+  const result = await apiFetch("/api/chapter-facts/propose", {
+    method: "POST",
+    body: {
+      manuscript_id: mid,
+      chapter_text: text,
+      chapter_number: Number.isFinite(chapter_number) ? chapter_number : null,
+      source: "paste",
+    },
+  });
+  chapterFactSession = {
+    sessionId: result.session_id || null,
+    cards: Array.isArray(result.cards) ? result.cards : [],
+    approved: new Set((result.cards || []).map((_, i) => i)),
+  };
+  renderChapterFactsList();
+  setOutput({
+    extracted: result.card_count,
+    used_llm: result.used_llm,
+    hint: "Uncheck any cards to skip, then Save approved facts to wiki.",
+  });
+  await refreshLoreMergesBadge();
+}
+
+async function commitChapterFacts() {
+  await refreshSessionContext();
+  const mid = sessionContext.activeManuscript?.id;
+  if (!mid || !chapterFactSession.sessionId) return setOutput("Extract facts first.");
+  const indexes = [...chapterFactSession.approved];
+  if (!indexes.length) return setOutput("Approve at least one fact.");
+  setOutput("Saving to wiki…");
+  const result = await apiFetch("/api/chapter-facts/commit", {
+    method: "POST",
+    body: {
+      session_id: chapterFactSession.sessionId,
+      manuscript_id: mid,
+      approved_indexes: indexes,
+    },
+  });
+  chapterFactSession = { sessionId: null, cards: [], approved: new Set() };
+  renderChapterFactsList();
+  setOutput(result);
+  await refreshLoreMergesBadge();
+}
+
+async function tagSelection(tag_kind) {
+  await refreshSessionContext();
+  const mid = sessionContext.activeManuscript?.id;
+  if (!mid) return setOutput("Sync session first.");
+  let text = await readSelectionFromWritingTab();
+  if (!text) text = $("chapterPaste").value.trim().slice(0, 520);
+  if (text.length < 20) return setOutput("Select at least 20 characters in the Doc (or paste).");
+  const chapter_number = Number($("chapterNumber").value);
+  const result = await apiFetch("/api/chapter-facts/tag", {
+    method: "POST",
+    body: {
+      manuscript_id: mid,
+      selected_text: text,
+      tag_kind,
+      chapter_number: Number.isFinite(chapter_number) ? chapter_number : null,
+    },
+  });
+  setOutput(result);
+  await refreshLoreMergesBadge();
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   connectPanelToBackground();
   wireFocusChatListeners();
   await loadSettings();
   await refreshSessionContext();
+  await refreshLoreMergesBadge();
 
   $("saveAuth").addEventListener("click", () =>
     saveSettings()
       .then(() => refreshSessionContext())
+      .then(() => refreshLoreMergesBadge())
       .catch((e) => setOutput(e.message))
   );
-  $("syncSession").addEventListener("click", () => refreshSessionContext().catch((e) => setOutput(e.message)));
+  $("syncSession").addEventListener("click", () =>
+    refreshSessionContext()
+      .then(() => refreshLoreMergesBadge())
+      .catch((e) => setOutput(e.message))
+  );
   $("addBookDocUrls")?.addEventListener("click", () => addBookDocUrlsFromPaste().catch((e) => setOutput(e.message)));
   $("clearBookDocUrls")?.addEventListener("click", () => {
     const mid = sessionContext.activeManuscript?.id;
@@ -828,4 +997,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("pushSession").addEventListener("click", () => pushHalSession().catch((e) => setOutput(e.message)));
   $("endSessionWrapUp").addEventListener("click", () => endSessionAndWrapUp().catch((e) => setOutput(e.message)));
   $("askLibrarian").addEventListener("click", () => askLibrarian().catch((e) => setOutput(e.message)));
+  $("useSelection")?.addEventListener("click", () => useSelectionIntoPaste().catch((e) => setOutput(e.message)));
+  $("extractChapterFacts")?.addEventListener("click", () => extractChapterFacts().catch((e) => setOutput(e.message)));
+  $("commitChapterFacts")?.addEventListener("click", () => commitChapterFacts().catch((e) => setOutput(e.message)));
+  $("tagBreadcrumb")?.addEventListener("click", () => tagSelection("breadcrumb").catch((e) => setOutput(e.message)));
+  $("tagMajorEvent")?.addEventListener("click", () => tagSelection("major_event").catch((e) => setOutput(e.message)));
+  $("tagCharacter")?.addEventListener("click", () => tagSelection("character_beat").catch((e) => setOutput(e.message)));
+  $("tagContinuity")?.addEventListener("click", () => tagSelection("continuity_note").catch((e) => setOutput(e.message)));
 });

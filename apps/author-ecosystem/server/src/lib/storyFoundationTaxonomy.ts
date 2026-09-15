@@ -51,6 +51,7 @@ export type StoryFoundationDomain =
   | "setting"
   | "environment"
   | "planet"
+  | "galaxy"
   | "solar_system"
   | "geography"
   | "climate"
@@ -302,6 +303,19 @@ export const STORY_FOUNDATION_RULES: FoundationRule[] = [
       domain: "planet",
       stack_layer: "environment",
       location_kind: "planet",
+      panel: "environmental",
+      source_type: "world_bible",
+      distill: true,
+    },
+  },
+  {
+    id: "galaxy",
+    match: /\b(galax(?:y|ies)|star.?cluster|void.?arm|galactic)\b/i,
+    inference: {
+      kind: "environment",
+      domain: "galaxy",
+      stack_layer: "environment",
+      location_kind: "galaxy",
       panel: "environmental",
       source_type: "world_bible",
       distill: true,
@@ -575,10 +589,12 @@ export function inferFoundationFromRagTagName(tagName: string): FoundationInfere
   if (/^planet_|system_geography|system_feature|system_scale/.test(lower)) {
     return inferFoundationFromHeading("planet");
   }
-  if (/^bio\b|planet_bio|spatial_bio|food_chain/.test(lower)) {
-    return inferFoundationFromHeading("biology");
+  if (/^bio\b|planet_bio|spatial_bio|food_chain|species/.test(lower)) {
+    return inferFoundationFromHeading("species");
   }
+  if (/galaxy|galactic/.test(lower)) return inferFoundationFromHeading("galaxy");
   if (/^spatial_/.test(lower)) return inferFoundationFromHeading("spatial");
+  if (/system_law|government/.test(lower)) return inferFoundationFromHeading("government");
   if (/character|link to character/.test(lower)) return inferFoundationFromHeading("character");
   if (/plot[- ]?point|era:/.test(lower)) return inferFoundationFromHeading("plot point");
   if (/spoiler/.test(lower)) return inferFoundationFromHeading("spoiler");

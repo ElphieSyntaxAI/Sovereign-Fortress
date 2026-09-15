@@ -144,7 +144,9 @@ export async function retrieveP4NarrativeChunks(
 
   const k = clampTopK(input.topK);
   const audience = input.audience ?? "author";
-  const includeWikiDrafts = input.includeWikiDrafts === true;
+  // Authors need draft wiki + draft manuscript chunks right after ingest.
+  const includeWikiDrafts =
+    input.includeWikiDrafts === true || (input.includeWikiDrafts !== false && audience === "author");
   const chunkTypes =
     input.chunkTypes && input.chunkTypes.length > 0 ? [...input.chunkTypes] : null;
 
