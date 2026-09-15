@@ -38,6 +38,13 @@ function bumpInactivityWatcher() {
 function push(entry) {
   keystrokes.push(entry);
   if (keystrokes.length > 2000) keystrokes.splice(0, keystrokes.length - 2000);
+  try {
+    chrome.runtime.sendMessage({ type: "HAL_OFFLINE_EVENT", entry }, () => {
+      void chrome.runtime.lastError;
+    });
+  } catch {
+    /* SW may be asleep briefly */
+  }
 }
 
 function registerHalListeners() {
@@ -118,6 +125,17 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     });
     return undefined;
   }
+  if (msg?.type === "HAL_OFFLINE_PAGEHIDE_SEAL") {
+    try {
+      chrome.runtime.sendMessage({ type: "HAL_OFFLINE_FORCE_SEAL" }, () => {
+        void chrome.runtime.lastError;
+      });
+    } catch {
+      /* ignore */
+    }
+    sendResponse?.({ ok: true });
+    return undefined;
+  }
   if (msg?.type === "GET_SELECTION") {
     let text = "";
     try {
@@ -129,6 +147,28 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return undefined;
   }
   return undefined;
+});
+
+window.addEventListener("pagehide", () => {
+  try {
+    chrome.runtime.sendMessage({ type: "HAL_OFFLINE_FORCE_SEAL" }, () => {
+      void chrome.runtime.lastError;
+    });
+  } catch {
+    /* ignore */
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    try {
+      chrome.runtime.sendMessage({ type: "HAL_OFFLINE_FORCE_SEAL" }, () => {
+        void chrome.runtime.lastError;
+      });
+    } catch {
+      /* ignore */
+    }
+  }
 });
 
 function mountAuthorEcosystemFab() {

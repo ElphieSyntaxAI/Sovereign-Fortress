@@ -7,6 +7,8 @@ Lightweight Chrome extension for **Google Docs** and **Microsoft Word Online** (
 ### Features
 
 - HAL keystroke / paste capture (rolling buffer, no full-doc scrape)
+- **Focus / offline sealed HAL:** while online, Sync session issues a lease; keystrokes+pastes hash-chain into IndexedDB; on reconnect, `POST /api/hal/offline-resync` verifies HMAC/chain/tamper and writes a **full-value** `offline_sealed` ledger row (same formulas + rolling-5 weight as live — not a penalty tier)
+- Shared **tamper suite** on live push and offline resync (hard reject for forgeries; soft flags for transparency)
 - Biometrics + linguistic analysis vs **rolling 5-session average** (`POST /api/hal/session`) — unchanged by lore features
 - ✎ FAB opens the side panel (HAL + Lore Librarian + chapter facts)
 - **Chapter facts:** paste/selection → extract major events → save to draft wiki (`/api/chapter-facts/*`)
@@ -15,6 +17,18 @@ Lightweight Chrome extension for **Google Docs** and **Microsoft Word Online** (
 - Librarian asks with `include_wiki_drafts: true` so fresh draft lore is visible
 - BFF session via httpOnly cookies or pasted Bearer JWT
 - Active manuscript from `GET /api/manuscripts/active`
+
+### Offline / focus mode (trust model)
+
+| Mode | Meaning |
+|------|---------|
+| `live` | Online Push HAL / chunk-pulse |
+| `offline_sealed` | Lease-bound sealed batches verified on resync — **equal HAL value** |
+
+- UI: “Focus mode — sealing locally” / “Pending sync (N)” → “Sealed offline — verified”
+- Rejected: broken HMAC, chain gaps, expired lease, robot-flat rhythm, paste-as-typing, replay
+- Soft flags only: high paste ratio, thin text, linguistic anomalies (still scored)
+- Caps: ~48h lease, ~50k events, ~200 batches per lease
 
 ### Load unpacked (Chrome)
 
@@ -44,7 +58,8 @@ Lightweight Chrome extension for **Google Docs** and **Microsoft Word Online** (
 | File | Role |
 |------|------|
 | `manifest.json` | MV3 manifest (required — was missing before) |
-| `src/background.js` | Side panel + FAB messaging |
-| `src/content.js` | HAL capture + FAB (module) |
+| `src/background.js` | Side panel + FAB messaging + offline sealed store bridge |
+| `src/halOfflineStore.js` | IndexedDB hash-chain + HMAC for focus/offline HAL |
+| `src/content.js` | HAL capture + FAB (mirrors events to offline store) |
 | `src/writing-surface.js` | Docs / Word URL detection |
-| `src/panel.html` / `panel.js` | Side panel UI |
+| `src/panel.html` / `panel.js` | Side panel UI (lease + sealed resync) |

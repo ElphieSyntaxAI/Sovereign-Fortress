@@ -80,10 +80,144 @@ function connectPanelToBackground() {
     const port = chrome.runtime.connect({ name: "elphie-panel" });
     port.onMessage.addListener((msg) => {
       if (msg?.type === "FOCUS_CHAT") focusLibrarianQuestionInput();
+      if (msg?.type === "HAL_OFFLINE_STATUS") {
+        updateOfflineHudFromStatus(msg);
+      }
     });
   } catch {
     /* ignore */
   }
+}
+
+function updateOfflineHudFromStatus(status) {
+  const el = $("halOfflineHud");
+  if (!el) return;
+  const pending = Number(status?.pending) || 0;
+  if (!navigator.onLine) {
+    el.textContent =
+      pending > 0
+        ? `Focus mode — sealing locally (${pending} batch${pending === 1 ? "" : "es"} pending sync)`
+        : "Focus mode — sealing locally";
+    return;
+  }
+  if (pending > 0) {
+    el.textContent = `Pending sync (${pending} sealed batch${pending === 1 ? "" : "es"}) — full HAL value on verify`;
+    return;
+  }
+  el.textContent = status?.hasLease
+    ? "Online — offline lease ready (focus writing OK)"
+    : "Online — sync session to enable sealed offline capture";
+}
+
+async function refreshOfflineHud() {
+  try {
+    const status = await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_GET_STATUS" });
+    if (status?.ok) updateOfflineHudFromStatus(status);
+  } catch {
+    const el = $("halOfflineHud");
+    if (el) el.textContent = "HAL connectivity: unavailable";
+  }
+}
+
+async function ensureOfflineLease() {
+  await refreshSessionContext();
+  if (!sessionContext.authOk || !sessionContext.activeManuscript) return null;
+  const active = sessionContext.activeManuscript;
+  const bgLease = await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_EXPORT_LEASE" }).catch(() => null);
+  const existing = bgLease?.lease;
+  if (
+    existing?.lease_id &&
+    existing?.signing_material &&
+    existing?.manuscript_id === active.id &&
+    existing?.expires_at
+  ) {
+    const exp = Date.parse(existing.expires_at);
+    if (Number.isFinite(exp) && exp > Date.now() + 60 * 60 * 1000) {
+      return existing;
+    }
+  }
+  if (!navigator.onLine) return null;
+
+  const instanceId = chrome.runtime.id || "chrome-extension";
+  const lease = await apiFetch("/api/hal/offline-lease", {
+    method: "POST",
+    body: {
+      tenantId: active.tenant_id,
+      manuscriptId: active.id,
+      ...(sessionContext.userId ? { authorUserId: sessionContext.userId } : {}),
+      extensionInstanceId: instanceId,
+    },
+  });
+
+  await chrome.runtime.sendMessage({
+    type: "HAL_OFFLINE_SET_LEASE",
+    lease: {
+      lease_id: lease.lease_id,
+      expires_at: lease.expires_at,
+      signing_material: lease.signing_material,
+      manuscript_id: active.id,
+      tenant_id: active.tenant_id,
+      genesis_prev_hash: lease.genesis_prev_hash,
+    },
+  });
+  await refreshOfflineHud();
+  return lease;
+}
+
+async function drainOfflineSealedBatches() {
+  if (!navigator.onLine) return null;
+  await refreshSessionContext();
+  if (!sessionContext.authOk || !sessionContext.activeManuscript) return null;
+
+  await ensureOfflineLease();
+  await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_FORCE_SEAL" }).catch(() => null);
+
+  const listed = await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_LIST_PENDING" });
+  const batches = listed?.batches || [];
+  if (batches.length === 0) {
+    await refreshOfflineHud();
+    return { ok: true, batches_accepted: 0, message: "No sealed batches pending" };
+  }
+
+  const bgLease = await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_EXPORT_LEASE" });
+  if (!bgLease?.lease?.signing_material || !bgLease?.lease?.lease_id) {
+    throw new Error("No offline lease — Sync session while online first.");
+  }
+
+  const active = sessionContext.activeManuscript;
+  const payloadBatches = batches.map((b) => ({
+    batch_id: b.batch_id,
+    prev_hash: b.prev_hash,
+    batch_hash: b.batch_hash,
+    hmac: b.hmac,
+    started_at: b.started_at,
+    ended_at: b.ended_at,
+    event_count: b.event_count,
+    events: b.events,
+    content_fingerprint: b.content_fingerprint ?? null,
+    word_count_estimate: b.word_count_estimate,
+  }));
+
+  const result = await apiFetch("/api/hal/offline-resync", {
+    method: "POST",
+    body: {
+      tenantId: active.tenant_id,
+      manuscriptId: active.id,
+      lease_id: bgLease.lease.lease_id,
+      signing_material: bgLease.lease.signing_material,
+      ...(sessionContext.userId ? { authorUserId: sessionContext.userId } : {}),
+      batches: payloadBatches,
+      locale: "en",
+      contentDelta: `[AuthorEcosystem offline_sealed manuscript=${active.id} tenant=${active.tenant_id}]\n`,
+    },
+  });
+
+  await chrome.runtime.sendMessage({
+    type: "HAL_OFFLINE_MARK_SYNCED",
+    batchIds: payloadBatches.map((b) => b.batch_id),
+  });
+  await refreshOfflineHud();
+  return result;
 }
 
 function wireFocusChatListeners() {
@@ -611,6 +745,18 @@ async function pushHalSession() {
     return;
   }
 
+  await ensureOfflineLease().catch(() => null);
+  if (!navigator.onLine) {
+    await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_FORCE_SEAL" }).catch(() => null);
+    await refreshOfflineHud();
+    setOutput({
+      ok: true,
+      sync_mode: "offline_sealed_pending",
+      message: "Focus mode — sealing locally. Reconnect to sync sealed batches at full HAL value.",
+    });
+    return;
+  }
+
   const { keystroke_data, content, surface } = await readKeystrokeBufferFromWritingTab();
   const { lastSyncedChunkIndex } = await readHalChunkCursor();
   await maybeFlushChunkPulse(
@@ -628,8 +774,15 @@ async function pushHalSession() {
     surface,
     lastSyncedChunkIndex
   );
-  const result = await apiFetch("/api/hal/session", { method: "POST", body });
-  setOutput(result);
+  try {
+    const result = await apiFetch("/api/hal/session", { method: "POST", body });
+    setOutput(result);
+  } catch (e) {
+    await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_FORCE_SEAL" }).catch(() => null);
+    await refreshOfflineHud();
+    throw e;
+  }
+  await drainOfflineSealedBatches().catch(() => null);
 }
 
 async function endSessionAndWrapUp() {
@@ -973,16 +1126,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadSettings();
   await refreshSessionContext();
   await refreshLoreMergesBadge();
+  await ensureOfflineLease().catch(() => null);
+  await refreshOfflineHud();
+
+  window.addEventListener("online", () => {
+    drainOfflineSealedBatches()
+      .then((r) => {
+        if (r && r.batches_accepted > 0) setOutput(r);
+      })
+      .catch(() => null);
+    refreshOfflineHud();
+  });
+  window.addEventListener("offline", () => refreshOfflineHud());
 
   $("saveAuth").addEventListener("click", () =>
     saveSettings()
       .then(() => refreshSessionContext())
+      .then(() => ensureOfflineLease())
       .then(() => refreshLoreMergesBadge())
+      .then(() => refreshOfflineHud())
       .catch((e) => setOutput(e.message))
   );
   $("syncSession").addEventListener("click", () =>
     refreshSessionContext()
+      .then(() => ensureOfflineLease())
       .then(() => refreshLoreMergesBadge())
+      .then(() => refreshOfflineHud())
+      .then(() => drainOfflineSealedBatches())
       .catch((e) => setOutput(e.message))
   );
   $("addBookDocUrls")?.addEventListener("click", () => addBookDocUrlsFromPaste().catch((e) => setOutput(e.message)));
@@ -995,6 +1165,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("reportLinkDoc").addEventListener("click", () => reportLinkDoc().catch((e) => setOutput(e.message)));
   $("reportAllBookDocs")?.addEventListener("click", () => reportAllBookDocs().catch((e) => setOutput(e.message)));
   $("pushSession").addEventListener("click", () => pushHalSession().catch((e) => setOutput(e.message)));
+  $("resyncOfflineHal")?.addEventListener("click", () =>
+    drainOfflineSealedBatches()
+      .then((r) => setOutput(r || { ok: true, message: "Nothing to sync" }))
+      .catch((e) => setOutput(e.message))
+  );
   $("endSessionWrapUp").addEventListener("click", () => endSessionAndWrapUp().catch((e) => setOutput(e.message)));
   $("askLibrarian").addEventListener("click", () => askLibrarian().catch((e) => setOutput(e.message)));
   $("useSelection")?.addEventListener("click", () => useSelectionIntoPaste().catch((e) => setOutput(e.message)));

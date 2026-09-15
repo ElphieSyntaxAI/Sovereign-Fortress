@@ -20,3 +20,9 @@ export const P4_RECALIBRATION_LOGS = "p4_recalibration_logs" as const;
 
 /** Editor POEE / suggestion proof rows (see `20260524120000_p4_editor_ledger.sql`). */
 export const P4_EDITOR_LEDGER = "p4_editor_ledger" as const;
+
+/** Offline focus-mode HMAC leases (see `20260916010000_p4_hal_offline_sealed.sql`). */
+export const P4_HAL_OFFLINE_LEASES = "p4_hal_offline_leases" as const;
+
+/** Accepted sealed batch ids for replay protection. */
+export const P4_HAL_OFFLINE_ACCEPTED_BATCHES = "p4_hal_offline_accepted_batches" as const;

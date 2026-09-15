@@ -85,8 +85,12 @@
     </section>
 
     <section class="panel-section panel-section--hal" aria-label="HAL session">
+      <div id="halOfflineHud" class="field-hint" role="status">HAL connectivity: checking…</div>
       <button type="button" id="pushSession" class="btn btn-secondary btn-block">Push HAL session</button>
-      <p class="field-hint">Biometrics + linguistic score vs rolling 5-session average — unchanged by chapter facts.</p>
+      <button type="button" id="resyncOfflineHal" class="btn btn-ghost btn-block">Sync sealed offline batches</button>
+      <p class="field-hint">
+        Live push unchanged. Focus/offline typing is sealed locally and resyncs at full HAL value after reconnect.
+      </p>
     </section>
 
     <section class="panel-section" aria-label="Chapter facts">
