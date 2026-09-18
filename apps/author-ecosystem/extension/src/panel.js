@@ -125,6 +125,9 @@ async function ensureOfflineLease() {
   const active = sessionContext.activeManuscript;
   const bgLease = await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_EXPORT_LEASE" }).catch(() => null);
   const existing = bgLease?.lease;
+  const pendingStatus = await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_GET_STATUS" }).catch(() => null);
+  const pending = Number(pendingStatus?.pending) || 0;
+
   if (
     existing?.lease_id &&
     existing?.signing_material &&
@@ -132,11 +135,38 @@ async function ensureOfflineLease() {
     existing?.expires_at
   ) {
     const exp = Date.parse(existing.expires_at);
-    if (Number.isFinite(exp) && exp > Date.now() + 60 * 60 * 1000) {
+    // Keep the same lease while sealed batches are pending so HMAC secrets stay valid.
+    if (Number.isFinite(exp) && (exp > Date.now() + 60 * 60 * 1000 || pending > 0)) {
+      if (pending > 0 && Number.isFinite(exp) && exp <= Date.now() + 60 * 60 * 1000 && navigator.onLine) {
+        try {
+          await apiFetch("/api/hal/offline-lease/renew", {
+            method: "POST",
+            body: {
+              tenantId: active.tenant_id,
+              lease_id: existing.lease_id,
+              signing_material: existing.signing_material,
+            },
+          }).then(async (renewed) => {
+            await chrome.runtime.sendMessage({
+              type: "HAL_OFFLINE_SET_LEASE",
+              lease: {
+                ...existing,
+                expires_at: renewed.expires_at,
+              },
+            });
+          });
+        } catch {
+          /* renew best-effort; drain can still use batch-stored secrets */
+        }
+      }
       return existing;
     }
   }
   if (!navigator.onLine) return null;
+  // Do not rotate to a new lease while older lease batches are still pending.
+  if (pending > 0 && existing?.lease_id && existing?.signing_material) {
+    return existing;
+  }
 
   const instanceId = chrome.runtime.id || "chrome-extension";
   const lease = await apiFetch("/api/hal/offline-lease", {
@@ -164,60 +194,94 @@ async function ensureOfflineLease() {
   return lease;
 }
 
+/**
+ * Drain pending sealed batches grouped by lease_id (each group verified with its own secret).
+ */
 async function drainOfflineSealedBatches() {
   if (!navigator.onLine) return null;
   await refreshSessionContext();
   if (!sessionContext.authOk || !sessionContext.activeManuscript) return null;
 
-  await ensureOfflineLease();
   await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_FORCE_SEAL" }).catch(() => null);
 
   const listed = await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_LIST_PENDING" });
   const batches = listed?.batches || [];
   if (batches.length === 0) {
+    await ensureOfflineLease().catch(() => null);
     await refreshOfflineHud();
     return { ok: true, batches_accepted: 0, message: "No sealed batches pending" };
   }
 
-  const bgLease = await chrome.runtime.sendMessage({ type: "HAL_OFFLINE_EXPORT_LEASE" });
-  if (!bgLease?.lease?.signing_material || !bgLease?.lease?.lease_id) {
-    throw new Error("No offline lease — Sync session while online first.");
+  const active = sessionContext.activeManuscript;
+  const byLease = new Map();
+  for (const b of batches) {
+    const lid = b.lease_id || "unknown";
+    if (!byLease.has(lid)) byLease.set(lid, []);
+    byLease.get(lid).push(b);
   }
 
-  const active = sessionContext.activeManuscript;
-  const payloadBatches = batches.map((b) => ({
-    batch_id: b.batch_id,
-    prev_hash: b.prev_hash,
-    batch_hash: b.batch_hash,
-    hmac: b.hmac,
-    started_at: b.started_at,
-    ended_at: b.ended_at,
-    event_count: b.event_count,
-    events: b.events,
-    content_fingerprint: b.content_fingerprint ?? null,
-    word_count_estimate: b.word_count_estimate,
-  }));
+  const results = [];
+  let totalAccepted = 0;
 
-  const result = await apiFetch("/api/hal/offline-resync", {
-    method: "POST",
-    body: {
-      tenantId: active.tenant_id,
-      manuscriptId: active.id,
-      lease_id: bgLease.lease.lease_id,
-      signing_material: bgLease.lease.signing_material,
-      ...(sessionContext.userId ? { authorUserId: sessionContext.userId } : {}),
-      batches: payloadBatches,
-      locale: "en",
-      contentDelta: `[AuthorEcosystem offline_sealed manuscript=${active.id} tenant=${active.tenant_id}]\n`,
-    },
-  });
+  for (const [leaseId, group] of byLease) {
+    let signing = group[0]?.signing_material;
+    if (!signing) {
+      const vault = await chrome.runtime.sendMessage({
+        type: "HAL_OFFLINE_EXPORT_LEASE_ID",
+        leaseId,
+      }).catch(() => null);
+      signing = vault?.lease?.signing_material;
+    }
+    if (!signing) {
+      throw new Error(
+        `Missing signing material for lease ${leaseId}. Sync session while online, then retry sealed sync.`
+      );
+    }
 
-  await chrome.runtime.sendMessage({
-    type: "HAL_OFFLINE_MARK_SYNCED",
-    batchIds: payloadBatches.map((b) => b.batch_id),
-  });
+    const payloadBatches = group.map((b) => ({
+      batch_id: b.batch_id,
+      prev_hash: b.prev_hash,
+      batch_hash: b.batch_hash,
+      hmac: b.hmac,
+      started_at: b.started_at,
+      ended_at: b.ended_at,
+      event_count: b.event_count,
+      events: b.events,
+      content_fingerprint: b.content_fingerprint ?? null,
+      word_count_estimate: b.word_count_estimate,
+    }));
+
+    const result = await apiFetch("/api/hal/offline-resync", {
+      method: "POST",
+      body: {
+        tenantId: active.tenant_id,
+        manuscriptId: active.id,
+        lease_id: leaseId,
+        signing_material: signing,
+        ...(sessionContext.userId ? { authorUserId: sessionContext.userId } : {}),
+        batches: payloadBatches,
+        locale: "en",
+        contentDelta: `[AuthorEcosystem offline_sealed manuscript=${active.id} tenant=${active.tenant_id}]\n`,
+      },
+    });
+
+    await chrome.runtime.sendMessage({
+      type: "HAL_OFFLINE_MARK_SYNCED",
+      batchIds: payloadBatches.map((b) => b.batch_id),
+    });
+    totalAccepted += payloadBatches.length;
+    results.push(result);
+  }
+
+  await ensureOfflineLease().catch(() => null);
   await refreshOfflineHud();
-  return result;
+  return {
+    ok: true,
+    sync_mode: "offline_sealed",
+    batches_accepted: totalAccepted,
+    message: "Sealed offline — verified",
+    results,
+  };
 }
 
 function wireFocusChatListeners() {
@@ -793,6 +857,14 @@ async function endSessionAndWrapUp() {
 
   const projectId = sessionContext.activeManuscript.id;
 
+  let sealedResync = null;
+  try {
+    sealedResync = await drainOfflineSealedBatches();
+  } catch (e) {
+    /* still allow live wrap-up; surface sealed error in output */
+    sealedResync = { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+
   const { keystroke_data, content, surface } = await readKeystrokeBufferFromWritingTab();
 
   const result = await apiFetch("/api/hal/session", {
@@ -821,7 +893,8 @@ async function endSessionAndWrapUp() {
 
   setOutput({
     wrap_up_opened: u.toString(),
-    hal_response: result,
+    live_hal: result,
+    sealed_offline: sealedResync,
   });
 }
 

@@ -310,6 +310,18 @@ export async function acceptHalOfflineResync(params: {
 
   const startedAt = new Date(batches[0]!.started_at);
   const endedAt = new Date(batches[batches.length - 1]!.ended_at);
+  if (Number.isNaN(startedAt.getTime()) || Number.isNaN(endedAt.getTime())) {
+    return {
+      ok: false,
+      status: 400,
+      body: {
+        error: "Could not verify session integrity",
+        tamper_result: "rejected",
+        hard: ["seal_integrity"],
+        reasons: ["Invalid batch started_at/ended_at"],
+      },
+    };
+  }
   const leaseCreated = new Date(String(lease.created_at)).getTime();
   if (endedAt.getTime() - leaseCreated > HAL_OFFLINE_MAX_HOURS * 60 * 60 * 1000 + HAL_OFFLINE_CLOCK_SKEW_MS) {
     return {
@@ -324,14 +336,17 @@ export async function acceptHalOfflineResync(params: {
     };
   }
 
-  // Cross-path: live session for same manuscript overlapping sealed window
+  // Cross-path: live session for same manuscript whose created_at falls inside sealed window
+  // (prevents double-claiming the same writing period as both live and sealed).
+  const windowStart = new Date(startedAt.getTime() - 5 * 60 * 1000).toISOString();
+  const windowEnd = new Date(endedAt.getTime() + 5 * 60 * 1000).toISOString();
   const { data: liveHits } = await params.supabase
     .from(P4_HAL_LEDGER)
     .select("id, created_at, raw_sample, sync_mode")
     .eq("tenant_id", tenantId)
-    .gte("created_at", new Date(startedAt.getTime() - 5 * 60 * 1000).toISOString())
-    .lte("created_at", new Date(endedAt.getTime() + 5 * 60 * 1000).toISOString())
-    .limit(20);
+    .gte("created_at", windowStart)
+    .lte("created_at", windowEnd)
+    .limit(40);
 
   const overlapsLive = (liveHits ?? []).some((row) => {
     const mode = row.sync_mode ?? (row.raw_sample as { sync_mode?: string } | null)?.sync_mode;

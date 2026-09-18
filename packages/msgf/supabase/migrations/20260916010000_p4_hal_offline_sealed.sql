@@ -77,7 +77,13 @@ USING (
   tenant_id = (auth.jwt() -> 'user_metadata' ->> 'tenant_id')::uuid
 );
 
--- Rolling-5 already includes all ledger rows (rejected never insert). No filter needed for sync_mode.
--- Keep view definition stable; comment documents full-value offline_sealed.
-COMMENT ON VIEW public.p4_hal_ledger_rolling_avg_5 IS
-'Last 5 post-recalibration HAL sessions per tenant. Includes live and verified offline_sealed rows (equal weight).';
+-- Rolling-5 already includes all ledger rows (rejected never insert).
+DO $hal_offline_view_comment$
+BEGIN
+  COMMENT ON VIEW public.p4_hal_ledger_rolling_avg_5 IS
+  'Last 5 post-recalibration HAL sessions per tenant. Includes live and verified offline_sealed rows (equal weight).';
+EXCEPTION
+  WHEN undefined_table THEN
+    NULL; -- view not present yet on fresh partial applies
+END
+$hal_offline_view_comment$;

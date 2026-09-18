@@ -1,7 +1,10 @@
 /**
  * Durable sealed HAL offline store (extension service worker / panel).
  * Hash-chained batches + HMAC with lease signing_material (Web Crypto).
- * Loaded via importScripts in background.js; also usable from panel if needed.
+ * Loaded via importScripts in background.js.
+ *
+ * Each sealed batch stores the lease_id + signing_material used to sign it so
+ * pending batches remain verifiable even if the active lease is later rotated.
  */
 (function (global) {
   const GENESIS =
@@ -59,6 +62,13 @@
     await txDone(t);
   }
 
+  async function idbAdd(store, value) {
+    const db = await openDb();
+    const t = db.transaction(store, "readwrite");
+    t.objectStore(store).add(value);
+    await txDone(t);
+  }
+
   async function idbGetAll(store) {
     const db = await openDb();
     return new Promise((resolve, reject) => {
@@ -73,13 +83,6 @@
     const db = await openDb();
     const t = db.transaction(store, "readwrite");
     t.objectStore(store).clear();
-    await txDone(t);
-  }
-
-  async function idbDelete(store, key) {
-    const db = await openDb();
-    const t = db.transaction(store, "readwrite");
-    t.objectStore(store).delete(key);
     await txDone(t);
   }
 
@@ -135,13 +138,33 @@
     return (await getMeta("lease")) || null;
   }
 
+  /** Persist active lease and keep a vault of secrets keyed by lease_id. */
   async function setLease(lease) {
     await setMeta("lease", lease);
+    if (lease?.lease_id && lease?.signing_material) {
+      const vault = (await getMeta("lease_vault")) || {};
+      vault[lease.lease_id] = {
+        lease_id: lease.lease_id,
+        signing_material: lease.signing_material,
+        manuscript_id: lease.manuscript_id,
+        tenant_id: lease.tenant_id,
+        expires_at: lease.expires_at,
+        genesis_prev_hash: lease.genesis_prev_hash || GENESIS,
+      };
+      await setMeta("lease_vault", vault);
+    }
+  }
+
+  async function getLeaseFromVault(leaseId) {
+    if (!leaseId) return null;
+    const vault = (await getMeta("lease_vault")) || {};
+    return vault[leaseId] || null;
   }
 
   async function appendEvent(entry) {
-    await idbPut(STORE_EVENTS, {
-      ...entry,
+    const { id: _dropId, ...safe } = entry && typeof entry === "object" ? entry : {};
+    await idbAdd(STORE_EVENTS, {
+      ...safe,
       _ts: Date.now(),
     });
     const open = await idbGetAll(STORE_EVENTS);
@@ -173,12 +196,12 @@
         : new Date().toISOString();
 
     const sealed = await idbGetAll(STORE_BATCHES);
-    const ordered = sealed.sort((a, b) =>
-      String(a.started_at).localeCompare(String(b.started_at))
-    );
+    const sameLease = sealed
+      .filter((b) => b.lease_id === lease.lease_id)
+      .sort((a, b) => String(a.started_at).localeCompare(String(b.started_at)));
     const lastHash =
-      ordered.length > 0
-        ? ordered[ordered.length - 1].batch_hash
+      sameLease.length > 0
+        ? sameLease[sameLease.length - 1].batch_hash
         : lease.genesis_prev_hash || GENESIS;
 
     const batch_id =
@@ -212,6 +235,9 @@
       word_count_estimate: Math.max(1, Math.round(events.length / 5)),
       synced: false,
       lease_id: lease.lease_id,
+      manuscript_id: lease.manuscript_id,
+      /** Kept so resync works even after active lease rotation. */
+      signing_material: lease.signing_material,
     };
 
     await idbPut(STORE_BATCHES, batch);
@@ -236,7 +262,8 @@
     const all = await idbGetAll(STORE_BATCHES);
     for (const b of all) {
       if (set.has(b.batch_id)) {
-        await idbPut(STORE_BATCHES, { ...b, synced: true });
+        const { signing_material: _omit, ...rest } = b;
+        await idbPut(STORE_BATCHES, { ...rest, synced: true });
       }
     }
   }
@@ -255,5 +282,6 @@
     markBatchesSynced,
     getLease,
     setLease,
+    getLeaseFromVault,
   };
 })(typeof self !== "undefined" ? self : globalThis);

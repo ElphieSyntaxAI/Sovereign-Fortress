@@ -126,5 +126,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  if (msg?.type === "HAL_OFFLINE_EXPORT_LEASE_ID") {
+    HalOfflineStore.getLeaseFromVault(msg.leaseId)
+      .then((lease) => sendResponse?.({ ok: true, lease }))
+      .catch((err) => sendResponse?.({ ok: false, error: String(err?.message || err) }));
+    return true;
+  }
+
   return undefined;
 });
