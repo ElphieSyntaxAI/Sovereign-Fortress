@@ -98,32 +98,44 @@ export async function createStripeCheckoutSession(params: {
     ...(entityId ? { msgf_entity_id: entityId } : {}),
   };
 
-  const session = await stripe.checkout.sessions.create({
-    mode: plan.mode,
-    line_items: [{ price: priceId, quantity }],
-    success_url: `${origin}/pricing?checkout=success&plan=${params.planId}`,
-    cancel_url: `${origin}/pricing?checkout=cancelled&plan=${params.planId}`,
-    customer_email: params.customerEmail?.trim() || undefined,
-    allow_promotion_codes: true,
-    client_reference_id: entityId || undefined,
-    metadata: sharedMetadata,
-    ...(plan.mode === "subscription"
-      ? {
-          subscription_data: {
-            metadata: sharedMetadata,
-          },
-        }
-      : {}),
-  });
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: plan.mode,
+      line_items: [{ price: priceId, quantity }],
+      success_url: `${origin}/pricing?checkout=success&plan=${params.planId}`,
+      cancel_url: `${origin}/pricing?checkout=cancelled&plan=${params.planId}`,
+      customer_email: params.customerEmail?.trim() || undefined,
+      allow_promotion_codes: true,
+      client_reference_id: entityId || undefined,
+      metadata: sharedMetadata,
+      ...(plan.mode === "subscription"
+        ? {
+            subscription_data: {
+              metadata: sharedMetadata,
+            },
+          }
+        : {}),
+    });
 
-  if (!session.url) {
+    if (!session.url) {
+      return {
+        ok: false,
+        error: "Stripe did not return a checkout URL.",
+        code: "STRIPE_SESSION_URL_MISSING",
+        status: 502,
+      };
+    }
+
+    return { ok: true, url: session.url, sessionId: session.id };
+  } catch (e) {
+    const stripeCode =
+      e && typeof e === "object" && "code" in e ? String((e as { code?: string }).code) : "";
+    console.error("[stripe-checkout]", stripeCode || (e instanceof Error ? e.message : e));
     return {
       ok: false,
-      error: "Stripe did not return a checkout URL.",
-      code: "STRIPE_SESSION_URL_MISSING",
-      status: 502,
+      error: "Stripe checkout could not start. Confirm test-mode price IDs.",
+      code: stripeCode === "resource_missing" ? "STRIPE_PRICE_MISSING" : "STRIPE_CHECKOUT_FAILED",
+      status: 503,
     };
   }
-
-  return { ok: true, url: session.url, sessionId: session.id };
 }

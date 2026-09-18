@@ -77,8 +77,18 @@ export default defineConfig({
       fullyParallel: false,
     },
     {
+      name: "rc-api",
+      testMatch: "**/rc-api.spec.ts",
+      fullyParallel: false,
+    },
+    {
+      name: "consumers",
+      testMatch: "**/consumers.spec.ts",
+      fullyParallel: false,
+    },
+    {
       name: "ui-smoke",
-      testMatch: "**/ui-smoke.spec.ts",
+      testMatch: ["**/ui-smoke.spec.ts", "**/operator-ui.spec.ts"],
       use: { ...devices["Desktop Chrome"] },
     },
     {

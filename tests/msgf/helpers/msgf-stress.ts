@@ -72,6 +72,20 @@ export function msgfTenantId(): string {
   );
 }
 
+export function licenseTenantCandidates(): string[] {
+  const ids = [
+    process.env.MSGF_AUTHOR_TENANT_ID?.trim(),
+    process.env.NEXT_PUBLIC_MSGF_AUTHOR_TENANT_ID?.trim(),
+    process.env.MSGF_SOLO_TENANT_ID?.trim(),
+    process.env.MSGF_TENANT_ID?.trim(),
+    process.env.MSGF_SOLO_TENANT_KEY?.trim(),
+    "author_ecosystem",
+    "integration_sandbox",
+    msgfTenantId(),
+  ].filter((v): v is string => Boolean(v));
+  return [...new Set(ids)];
+}
+
 export function standardLicense(): string {
   return (
     process.env.MSGF_CONTRACT_LICENSE_KEY?.trim() ||
@@ -82,6 +96,86 @@ export function standardLicense(): string {
 
 export function paidLicense(): string {
   return process.env.MSGF_PAID_LICENSE_KEY?.trim() || "";
+}
+
+export function opsCronSecret(): string {
+  return process.env.MSGF_OPS_CRON_SECRET?.trim() || "";
+}
+
+export function authorTenantId(): string {
+  return (
+    process.env.MSGF_AUTHOR_TENANT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_MSGF_AUTHOR_TENANT_ID?.trim() ||
+    "author_ecosystem"
+  );
+}
+
+export function educationTenantId(): string {
+  return (
+    process.env.MSGF_EDUCATION_TENANT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_MSGF_EDUCATION_TENANT_ID?.trim() ||
+    process.env.MSGF_EDUCATION_MANIFEST_TENANT?.trim() ||
+    "tenant_education"
+  );
+}
+
+export function foreignTenantId(): string {
+  return `foreign_rc_${randomUUID().slice(0, 8)}`;
+}
+
+export function gatewayUpstreamKey(): string {
+  return (
+    process.env.OPENAI_API_KEY?.trim() ||
+    process.env.MSGF_OPENAI_API_KEY?.trim() ||
+    process.env.MSGF_GATEWAY_UPSTREAM_KEY?.trim() ||
+    ""
+  );
+}
+
+export function creditReservationEnabled(): boolean {
+  const v = process.env.MSGF_CREDIT_RESERVATION_ENABLED?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+export function opsCronHeaders(): Record<string, string> {
+  const secret = opsCronSecret();
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: `Bearer ${secret}`,
+    "X-MSGF-Ops-Cron-Secret": secret,
+  };
+}
+
+export function gatewayHeaders(mode: "shadow" | "active"): Record<string, string> {
+  const license = standardLicense();
+  const upstream = gatewayUpstreamKey() || "sk-rc-placeholder-no-live-spend";
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "x-msgf-key": license,
+    "x-msgf-mode": mode,
+    "x-msgf-tenant-id": "spoofed-rc-tenant",
+    "X-MSGF-Tenant-Key": "spoofed-rc-tenant",
+    Authorization: `Bearer ${upstream}`,
+  };
+}
+
+export function swarmAbortHeaders(): Record<string, string> {
+  const id = randomUUID().slice(0, 8);
+  return {
+    "x-msgf-agent-id": `rc-child-${id}`,
+    "x-msgf-parent-agent-id": `rc-parent-${id}`,
+    "x-msgf-agent-role": "secondary",
+  };
+}
+
+export function bodyHasKeyLists(body: string): boolean {
+  return (
+    /"(blocked_keys|promoted_keys|p7_blocked|p7_promoted)"\s*:\s*\[/.test(body) ||
+    /msgf_live_[A-Za-z0-9_-]{8,}/.test(body) ||
+    /sk-[A-Za-z0-9]{12,}/.test(body)
+  );
 }
 
 export function pulseCookie(): string {
@@ -339,13 +433,19 @@ export async function mapPool<T, R>(
 export async function firePulse(
   request: APIRequestContext,
   profile: StressProfile,
-  headers: Record<string, string>
+  headers: Record<string, string>,
+  extraHeaders?: Record<string, string>
 ): Promise<StressResult> {
   const started = Date.now();
   try {
-    const res = await postJson(request, "/api/msgf/pulse", headers, {
-      keystrokes: sampleKeystrokes(`stress-${profile}`),
-    });
+    const res = await postJson(
+      request,
+      "/api/msgf/pulse",
+      { ...headers, ...extraHeaders },
+      {
+        keystrokes: sampleKeystrokes(`stress-${profile}`),
+      }
+    );
     return recordResponse(profile, "pulse", res, Date.now() - started);
   } catch (error) {
     return recordResponse(profile, "pulse", null, Date.now() - started, error);

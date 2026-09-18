@@ -12,6 +12,8 @@ on:
         options:
           - ui-smoke
           - stress
+          - rc-api
+          - consumers
           - paid
         default: ui-smoke
 
@@ -70,6 +72,8 @@ jobs:
         run: |
           case "${{ github.event.inputs.suite }}" in
             stress) npx playwright test --project=api-stress --workers=1 ;;
+            rc-api) npx playwright test --project=rc-api --workers=1 ;;
+            consumers) npx playwright test --project=consumers --workers=1 ;;
             paid) npx playwright test --project=checkout-paid ;;
             *) npx playwright test --project=ui-smoke ;;
           esac
