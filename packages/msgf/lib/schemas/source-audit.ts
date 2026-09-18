@@ -147,7 +147,9 @@ export function resourceKeyForVaultHall(
   id: string,
   ledger: "vault" | "hall"
 ): string {
-  return `${ledger}:${id.trim()}`;
+  const token =
+    typeof id === "string" ? id.trim() : String(id ?? "").trim();
+  return `${ledger}:${token}`;
 }
 
 export function resourceKeyForFile(filePath: string): string {

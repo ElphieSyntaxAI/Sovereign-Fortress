@@ -134,7 +134,7 @@ export async function fetchVaultLineage111WithScores(
   const rows = [...merged.values()];
   const rawHits = rows.map((row) =>
     hitFromLedgerRow({
-      id: row.id,
+      id: String(row.id ?? ""),
       content: row.content || "",
       metadata: row.metadata,
       ledger: "vault",

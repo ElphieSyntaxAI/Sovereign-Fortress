@@ -40,6 +40,10 @@ describe("p7 source-audit schemas", () => {
       "vault:11111111-1111-1111-1111-111111111111"
     );
     assert.equal(
+      resourceKeyForVaultHall(42 as unknown as string, "hall"),
+      "hall:42"
+    );
+    assert.equal(
       resourceKeyForFile("docs\\auth.md"),
       resourceKeyForFile("docs/auth.md")
     );

@@ -1,27 +1,84 @@
-name: Playwright Tests
+name: Playwright MSGF
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suite to run
+        type: choice
+        options:
+          - ui-smoke
+          - stress
+          - paid
+        default: ui-smoke
+
 jobs:
-  test:
+  ui-smoke:
+    if: ${{ github.event_name != 'workflow_dispatch' && vars.MSGF_E2E_BASE_URL != '' }}
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run MSGF ui-smoke
+        env:
+          MSGF_APP_URL: ${{ vars.MSGF_E2E_BASE_URL }}
+        run: npx playwright test --project=ui-smoke
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-ui-smoke
+          path: playwright-report/
+          retention-days: 14
+
+  ui-smoke-skipped:
+    if: ${{ github.event_name != 'workflow_dispatch' && vars.MSGF_E2E_BASE_URL == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip note
+        run: echo "MSGF_E2E_BASE_URL is unset — skipping Playwright ui-smoke. Set the repo variable to enable PR smoke against a live MSGF host."
+
+  dispatch:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run selected MSGF suite
+        env:
+          MSGF_APP_URL: ${{ vars.MSGF_E2E_BASE_URL }}
+          MSGF_CONTRACT_LICENSE_KEY: ${{ secrets.MSGF_CONTRACT_LICENSE_KEY }}
+          MSGF_PAID_LICENSE_KEY: ${{ secrets.MSGF_PAID_LICENSE_KEY }}
+          MSGF_PULSE_COOKIE: ${{ secrets.MSGF_PULSE_COOKIE }}
+          MSGF_STRIPE_E2E: ${{ github.event.inputs.suite == 'paid' && '1' || '' }}
+        run: |
+          case "${{ github.event.inputs.suite }}" in
+            stress) npx playwright test --project=api-stress --workers=1 ;;
+            paid) npx playwright test --project=checkout-paid ;;
+            *) npx playwright test --project=ui-smoke ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-dispatch
+          path: |
+            playwright-report/
+            tests/reports/
+            .msgf/hallucinations.json
+          retention-days: 14

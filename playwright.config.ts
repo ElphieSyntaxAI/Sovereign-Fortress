@@ -1,79 +1,98 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+const ROOT = __dirname;
 
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
+function loadEnvFile(file: string) {
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, "utf8");
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq < 1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+}
+
+loadEnvFile(path.join(ROOT, ".env.local"));
+loadEnvFile(path.join(ROOT, "packages", "msgf", ".env.local"));
+
+const baseURL = (
+  process.env.MSGF_APP_URL ||
+  process.env.NEXT_PUBLIC_MSGF_APP_URL ||
+  "http://127.0.0.1:3001"
+).replace(/\/+$/, "");
+
+const localHost = (() => {
+  try {
+    const { hostname } = new URL(baseURL);
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1"
+    );
+  } catch {
+    return true;
+  }
+})();
+
+const reportsDir = path.join(ROOT, "tests", "reports");
+fs.mkdirSync(reportsDir, { recursive: true });
+
 export default defineConfig({
-  testDir: './tests',
-  /* Run tests in files in parallel */
+  testDir: "./tests",
+  testMatch: "**/*.spec.ts",
   fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  timeout: 120_000,
+  expect: { timeout: 15_000 },
+  reporter: [
+    ["list"],
+    ["html", { open: "never" }],
+    ["./tests/msgf/helpers/msgf-file-reporter.ts"],
+  ],
   use: {
-    /* Base URL to use in actions like `await page.goto('')`. */
-    // baseURL: 'http://localhost:3000',
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    baseURL,
+    extraHTTPHeaders: { Accept: "application/json" },
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
   },
-
-  /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "api-stress",
+      testMatch: "**/stress.pulse-ingest.spec.ts",
+      fullyParallel: false,
     },
-
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: "ui-smoke",
+      testMatch: "**/ui-smoke.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
     },
-
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: "checkout-paid",
+      testMatch: "**/checkout-paid.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
     },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
-
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  webServer: localHost
+    ? {
+        command: "npm run dev -w msgf",
+        url: `${baseURL}/health`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 180_000,
+      }
+    : undefined,
 });
