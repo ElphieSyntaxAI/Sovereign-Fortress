@@ -17,6 +17,8 @@ Author Ecosystem document import (file upload + Google Docs) follows **MSGF V3.2
 | **DEFEND** | `documentIngestMsgfGuard.ts` | Shadow preflight, structure-merge risk, dual review on commit |
 | **PERSIST** | `commitDocumentIngest.ts` | `p4_narrative_library_chunks`, plot/lore vectors, wiki upsert (fails loud if lore/wiki empty), MSGF SWEEP shards |
 
+Ingest is not swarm-guard. Cross-tenant Global Brain swarm absorb is documented separately: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ## Environment (BFF / `packages/msgf/.env.local`)
 
 | Variable | Default | Purpose |

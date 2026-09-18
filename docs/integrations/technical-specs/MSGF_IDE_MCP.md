@@ -2,6 +2,8 @@
 
 Optional Cursor MCP wiring for agent handoff tools against your deployed MSGF API.
 
+Secondary-agent Pulse from MCP/child agents must send swarm identity headers. Global Brain stores structural failure telemetry only — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ## Environment
 
 | Variable | Description |

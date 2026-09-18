@@ -1,7 +1,7 @@
 # MSGF Pillar Mapping — Single Source of Truth
 
 **Status:** Canonical crosswalk for engineering, product, and AI/dev charters.  
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-10 · P7 closed loop 2026-09-18 · Global Brain telemetry pointer 2026-09-17
 
 This document resolves **documentation debt** where local filenames (e.g. `.msgf/P1_HAL.md`) used pillar numbers that **do not match** the V3.0 / V3.2 master specifications. When in conflict, **master-spec pillar numbers win** for platform architecture; `.msgf/*.md` files are **Author-domain extension charters** and must be read through the mapping table below—not by filename alone.
 
@@ -16,6 +16,7 @@ This document resolves **documentation debt** where local filenames (e.g. `.msgf
 | **MSGF 1.0 release plan** | Acceptance criteria, repo map | [`docs/msgf/MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) |
 | **SWEEP audit** | Day-zero code ↔ pillar map | [`packages/msgf/pre_ingestion_audit.md`](../../../packages/msgf/pre_ingestion_audit.md) |
 | **Engineering rules** | Six-pillar core directive for agents | [`packages/msgf/.cursorrules`](../../../packages/msgf/.cursorrules) |
+| **Zero-text Global Brain** | Swarm absorb never stores prompts | [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md) |
 | **Author domain charters** | Deep specs for HAL, revision, RAG, etc. | [`packages/msgf/.msgf/`](../../../packages/msgf/.msgf/) |
 
 ---
@@ -40,7 +41,10 @@ V3.2 **does not replace** the six-pillar meanings from V3.0; it adds **Redis hot
 | Concern | Tables / modules |
 | :--- | :--- |
 | Forward audit of cited sources | `msgf_source_audit_events`, beat `metadata.source_audit` |
-| Resource reputation + prune/boost | `msgf_resource_reputation` (`lib/schemas/source-audit.ts`, `lib/services/source-audit.ts`) |
+| Resource reputation + prune/boost | `msgf_resource_reputation` (`lib/schemas/source-audit.ts`, `lib/services/source-audit.ts`, `lib/services/p7-observe.ts`) |
+| Closed loop (2026-09-18) | Live writes: swarm abort, ingest, HITL, Sentry quarantine, heal-queue APPROVE/DENY, confirm-pack, verify-result, Active gateway. Read/steer: Active poison, swarm admission, agent-context packs. Shadow deferred apply-on-activate. |
+| Decay + prompt keys | `MSGF_P7_REPUTATION_HALFLIFE_DAYS` (default 30); `prompt:{sha256}` — Session Replay still holds full text |
+| Audit lists | Tenant metadata `promoted_keys` / `blocked_keys` (Audit hub `p7=` filter). Never on Global Brain JSON. |
 | Reverse impact by content hash | `msgf_source_downstream_impact` |
 | Dashboard | `GET /api/msgf/dashboard/source-audit`, `SourceAuditPanel` |
 

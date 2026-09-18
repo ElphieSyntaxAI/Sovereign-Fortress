@@ -28,6 +28,8 @@ Enable vibe-coding mode in `.vscode/settings.json` (Workspace → IDE setup incl
 
 With **MSGF Pulse Guard** reloaded, Pulse flushes on **file save** only (`x-msgf-flush-reason: save`), not every ~3 seconds. Use **MSGF: Flush buffered Pulse now** for a manual flush. See `dev/api-cookbook.md` for headers.
 
+Child / secondary agents must send `x-msgf-agent-id`, parent, role, and mandate-hash. Global Brain absorb is zero-text: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../../../docs/msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ## VS Code tasks
 
 Merge [`dev/tasks/msgf-tasks.json`](./dev/tasks/msgf-tasks.json) into your repo `.vscode/tasks.json`, or run tasks from the Command Palette after merge.

@@ -53,6 +53,10 @@ export function readMsgfSettings(): MsgfGuardSettings {
     smallBrainProvider: normalizedProvider,
     smallBrainApiKey: config.get<string>("smallBrainApiKey", "").trim(),
     smallBrainModelName: config.get<string>("smallBrainModelName", "").trim(),
+    agentId: sanitizeMsgfSettingValue(config.get<string>("agentId", "")),
+    parentAgentId: sanitizeMsgfSettingValue(config.get<string>("parentAgentId", "")),
+    agentRole: sanitizeMsgfSettingValue(config.get<string>("agentRole", "")),
+    mandateHash: sanitizeMsgfSettingValue(config.get<string>("mandateHash", "")),
   };
 
   return mergeMonorepoMsgfSettings(base, getRepoRoot());

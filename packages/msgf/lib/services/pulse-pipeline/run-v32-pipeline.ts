@@ -27,6 +27,11 @@ import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter"
 import { runGatePhase } from "@/lib/services/pulse-pipeline/gate-phase";
 import { runConsensusPhase } from "@/lib/services/pulse-pipeline/consensus-phase";
 import { runPersistPhase } from "@/lib/services/pulse-pipeline/persist-phase";
+import {
+  buildSwarmTrip,
+  persistSwarmDetection,
+  swarmPulseHttpError,
+} from "@/lib/services/swarm-guard";
 
 export async function runV32PulsePipeline(
   engine: PulseEngine,
@@ -45,6 +50,24 @@ export async function runV32PulsePipeline(
     const consensusResult = await runConsensusPhase(engine, input, gateResult);
     if (consensusResult.kind === "local") {
       return consensusResult.result;
+    }
+
+    const swarm = input.swarmIdentity;
+    if (swarm?.role === "secondary") {
+      const nonHuman =
+        consensusResult.converged.geminiVerdict === "NON_HUMAN" ||
+        consensusResult.converged.claudeVerdict === "NON_HUMAN" ||
+        consensusResult.converged.consensus.some((c) => c.grok?.verdict === "NON_HUMAN");
+      if (nonHuman && !consensusResult.converged.allHumanConfirmed) {
+        const trip = buildSwarmTrip(swarm, ["non_human_secondary"]);
+        await persistSwarmDetection({
+          admin: input.adminSupabase,
+          trip,
+          traceId: pulseTraceId,
+          logicDrift: gateResult.logicDrift,
+        });
+        throw swarmPulseHttpError(trip);
+      }
     }
 
     return runPersistPhase(

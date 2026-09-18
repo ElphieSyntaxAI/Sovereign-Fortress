@@ -4,6 +4,8 @@
 
 **API (ops panel):** `GET/PUT /api/msgf/admin/sentry` (operators only — `GLOBAL_ADMIN` / `COMPANY_ADMIN`)
 
+Sentry owns runtime crashes. Swarm / Global Brain owns **how a secondary-agent wave failed** (structural only) — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md). Audit hub `q=swarm`.
+
 ---
 
 ## Env — SDK (required for error capture)
@@ -75,7 +77,7 @@ MSGF does **not** replace the Sentry SDK in your apps — instrument Starmap/etc
 | `SENTRY_WEBHOOK_SECRET` | Bearer token or `x-sentry-webhook-secret` / `sentry-hook-signature` |
 | `SENTRY_VAULT_MATCH_THRESHOLD` | Default `0.75` — quarantine only at/above this lexical confidence |
 
-On match: sets `pillar_vectors.quarantine_status=QUARANTINED` (blocked from Vault retrieval). **Does not** auto-demote to Hall — HITL on `/admin/ops` is A3.
+On match: sets `pillar_vectors.quarantine_status=QUARANTINED` (blocked from Vault retrieval). **Does not** auto-demote to Hall — HITL on `/admin/ops` is A3. After a successful quarantine update, P7 writes `bad` + `highDrift` on the matched Vault `resource_key` so the win drops out of auto-GREEN / CROSS-REF immediately. HITL restore writes `good`; demote-to-Hall writes `bad`.
 
 Optional scope tags on the Sentry issue: `company_id`, `project_origin` (or headers `x-msgf-company-id` / `x-msgf-project-origin`).
 

@@ -110,6 +110,15 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    const p7 = sp.get("p7")?.trim().toLowerCase();
+    if (p7 === "promoted" || p7 === "blocked") {
+      const field = p7 === "promoted" ? "promoted_keys" : "blocked_keys";
+      filtered = filtered.filter((e) => {
+        const meta = (e.metadata ?? {}) as Record<string, unknown>;
+        return Array.isArray(meta[field]) && (meta[field] as unknown[]).length > 0;
+      });
+    }
+
     return adminJson(req, {
       ok: true,
       scope: isGlobal ? "global" : "company",

@@ -140,7 +140,7 @@ async function main() {
   const baseUrl =
     process.env.MSGF_APP_URL?.trim() ||
     process.env.NEXT_PUBLIC_MSGF_APP_URL?.trim() ||
-    "http://127.0.0.1:3000";
+    "http://127.0.0.1:3001";
 
   console.log("\n--- Add to packages/msgf/.env.local (or integrator .env) ---\n");
   console.log(`MSGF_APP_URL=${baseUrl}`);

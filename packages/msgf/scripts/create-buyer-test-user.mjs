@@ -503,11 +503,11 @@ async function main() {
   console.log(`  Password: ${password}`);
   console.log(`  User id:  ${userId}`);
   console.log("\nNext (buyer journey):");
-  console.log("  1. npm run dev -w msgf");
+  console.log("  1. npm run dev -w msgf  (http://127.0.0.1:3001)");
   console.log("  2. Comment out MSGF_CONTRACT_LICENSE_KEY in packages/msgf/.env.local");
-  console.log("  3. http://127.0.0.1:3000/sign-in  (not sign-up if email already confirmed)");
-  console.log("  4. Open /dashboard once (onboarding: pledge + pillars + p4_profiles)");
-  console.log("  5. Optional: /pricing → Stripe test checkout");
+  console.log("  3. http://127.0.0.1:3001/sign-in  (/sign-up is the beta waitlist, not account creation)");
+  console.log("  4. Open /dashboard once (onboarding: p4_profiles + pledge; pillars stay empty until a project)");
+  console.log("  5. Optional: /pricing → Indie downloads the extension; Pro/Startup → Stripe test checkout");
   console.log("  6. Copy session cookie → MSGF_PULSE_COOKIE → npm run probe:buyer -w msgf");
   console.log("\nDocs: docs/msgf/marketing/MSGF_BUYER_WALKTHROUGH.md\n");
 }

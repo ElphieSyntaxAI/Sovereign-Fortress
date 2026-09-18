@@ -24,6 +24,7 @@ export type ShadowRecommendedAction =
   | "ROUTE_SMALL_BRAIN"
   | "FLAG_RETRY_LOOP"
   | "FLAG_POLICY_DRIFT"
+  | "FLAG_BOT_SWARM"
   | "KEEP_AS_IS";
 
 export type ShadowUsageSource = "provider" | "estimated";
@@ -59,6 +60,14 @@ export type ShadowEvaluationLog = {
   usageSource: ShadowUsageSource;
   model: string;
   timestamp: number;
+  p7PromoteCount?: number;
+  p7BlockCount?: number;
+  p7Deferred?: Array<{
+    resource_key: string;
+    ledger: string;
+    kind: string;
+    outcome: "good" | "bad";
+  }>;
 };
 
 export const MSGF_MODE_HEADER = "x-msgf-mode";

@@ -19,6 +19,7 @@ import type { ShadowRecommendedAction } from "@/lib/gateway/types";
 
 export const SHADOW_RETRY_LOOP_ACTION = "FLAG_RETRY_LOOP" as const;
 export const SHADOW_POLICY_DRIFT_ACTION = "FLAG_POLICY_DRIFT" as const;
+export const SHADOW_BOT_SWARM_ACTION = "FLAG_BOT_SWARM" as const;
 
 /** Shown on trial reports and live proof panels — scope, not a capability catalog. */
 export const SHADOW_PROOF_SCOPE_DISCLAIMER =
@@ -42,6 +43,9 @@ export type ShadowProofRow = {
   recommended_action?: string | null;
   actual_tokens?: number | null;
   observed_at?: string | null;
+  p7_promote_count?: number | null;
+  p7_block_count?: number | null;
+  p7_deferred?: Array<{ resource_key?: string; outcome?: string }> | null;
 };
 
 export type ShadowProofLedger = {
@@ -52,7 +56,10 @@ export type ShadowProofLedger = {
   retry_loop_prompts: number;
   policy_flags: number;
   fat_context_calls: number;
+  bot_swarm_waves: number;
   cache_recommended: number;
+  p7_promoted_resources: number;
+  p7_blocked_resources: number;
   headline: string;
 };
 
@@ -69,7 +76,9 @@ export function pickShadowRecommendedAction(input: {
   cacheHit: boolean;
   signals: ShadowPromptSignals;
   fallback: ShadowRecommendedAction;
+  swarmTrip?: boolean;
 }): ShadowRecommendedAction {
+  if (input.swarmTrip) return SHADOW_BOT_SWARM_ACTION;
   if (input.cacheHit) return "ENABLE_SEMANTIC_CACHE";
   if (input.signals.retry_loop) return SHADOW_RETRY_LOOP_ACTION;
   if (input.signals.policy_drift) return SHADOW_POLICY_DRIFT_ACTION;
@@ -89,10 +98,17 @@ function formatProofUsd(value: number): string {
 
 export function buildShadowProofHeadline(proof: Omit<ShadowProofLedger, "headline">): string {
   if (proof.evaluation_count <= 0) {
-    return "No traffic yet — we count duplicate calls, retry loops, and policy-risk prompts as soon as the SDK is pointed here.";
+    return "No traffic yet — we count duplicate calls, retry loops, policy-risk prompts, and runaway secondary-agent waves as soon as the SDK is pointed here.";
   }
 
   const parts: string[] = [];
+  if (proof.bot_swarm_waves > 0) {
+    parts.push(
+      `aborted ${proof.bot_swarm_waves.toLocaleString()} runaway secondary-agent wave${
+        proof.bot_swarm_waves === 1 ? "" : "s"
+      }`
+    );
+  }
   if (proof.duplicate_calls > 0) {
     parts.push(
       `skipped ${proof.duplicate_calls.toLocaleString()} duplicate call${
@@ -114,6 +130,13 @@ export function buildShadowProofHeadline(proof: Omit<ShadowProofLedger, "headlin
       }`
     );
   }
+  if (proof.p7_promoted_resources > 0 || proof.p7_blocked_resources > 0) {
+    parts.push(
+      `promoted ${proof.p7_promoted_resources.toLocaleString()} resource${
+        proof.p7_promoted_resources === 1 ? "" : "s"
+      } and blocked ${proof.p7_blocked_resources.toLocaleString()}`
+    );
+  }
   if (proof.fat_context_calls > 0 && parts.length < 2) {
     parts.push(
       `sharded ${proof.fat_context_calls.toLocaleString()} oversized context dump${
@@ -125,7 +148,7 @@ export function buildShadowProofHeadline(proof: Omit<ShadowProofLedger, "headlin
   if (parts.length === 0) {
     return `${proof.evaluation_count.toLocaleString()} call${
       proof.evaluation_count === 1 ? "" : "s"
-    } observed. Duplicates, retry loops, and Hall/policy flags appear as soon as traffic repeats.`;
+    } observed. Duplicates, retry loops, Hall/policy flags, and runaway agent waves appear as soon as traffic repeats.`;
   }
 
   const joined =
@@ -159,7 +182,22 @@ export function computeShadowProof(rows: ShadowProofRow[]): ShadowProofLedger {
   let retry_loop_prompts = 0;
   let policy_flags = 0;
   let fat_context_calls = 0;
+  let bot_swarm_waves = 0;
   let cache_recommended = 0;
+  const promotedKeys = new Set<string>();
+  const blockedKeys = new Set<string>();
+
+  for (const row of rows) {
+    const deferred = Array.isArray(row.p7_deferred) ? row.p7_deferred : [];
+    if (deferred.length) {
+      for (const d of deferred) {
+        const key = String(d?.resource_key ?? "").trim();
+        if (!key) continue;
+        if (d.outcome === "good") promotedKeys.add(key);
+        else blockedKeys.add(key);
+      }
+    }
+  }
 
   for (const list of byHash.values()) {
     list.sort((a, b) => a.at - b.at);
@@ -172,6 +210,7 @@ export function computeShadowProof(rows: ShadowProofRow[]): ShadowProofLedger {
     for (const item of list) {
       if (item.action === SHADOW_RETRY_LOOP_ACTION) retry_loop_prompts += 1;
       if (item.action === SHADOW_POLICY_DRIFT_ACTION) policy_flags += 1;
+      if (item.action === SHADOW_BOT_SWARM_ACTION) bot_swarm_waves += 1;
       if (item.action === "ENABLE_SEMANTIC_CACHE") cache_recommended += 1;
       if (item.action === "ENABLE_STATE_GATING" || item.tokens >= 8_000) {
         fat_context_calls += 1;
@@ -192,7 +231,10 @@ export function computeShadowProof(rows: ShadowProofRow[]): ShadowProofLedger {
     retry_loop_prompts,
     policy_flags,
     fat_context_calls,
+    bot_swarm_waves,
     cache_recommended,
+    p7_promoted_resources: promotedKeys.size,
+    p7_blocked_resources: blockedKeys.size,
   };
 
   return {
@@ -209,7 +251,10 @@ export const EMPTY_SHADOW_PROOF: ShadowProofLedger = {
   retry_loop_prompts: 0,
   policy_flags: 0,
   fat_context_calls: 0,
+  bot_swarm_waves: 0,
   cache_recommended: 0,
+  p7_promoted_resources: 0,
+  p7_blocked_resources: 0,
   headline: buildShadowProofHeadline({
     evaluation_count: 0,
     unique_prompts: 0,
@@ -218,6 +263,9 @@ export const EMPTY_SHADOW_PROOF: ShadowProofLedger = {
     retry_loop_prompts: 0,
     policy_flags: 0,
     fat_context_calls: 0,
+    bot_swarm_waves: 0,
     cache_recommended: 0,
+    p7_promoted_resources: 0,
+    p7_blocked_resources: 0,
   }),
 };

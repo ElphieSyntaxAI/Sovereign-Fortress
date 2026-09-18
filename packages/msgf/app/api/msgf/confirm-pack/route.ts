@@ -26,6 +26,13 @@ import {
   insertContextPackTransaction,
 } from "@/lib/services/pack-registry";
 import { sanitizeTenantScope } from "@/lib/sanitize-tenant-scope";
+import { MSGF_PROMPT_HASH_HEADER } from "@/lib/msgf-http-headers";
+import {
+  hitFromFilePath,
+  hitFromPackId,
+  hitFromPromptHash,
+  writeLiveP7,
+} from "@/lib/services/p7-observe";
 
 function json(req: NextRequest, data: unknown, init?: ResponseInit) {
   return applyAdminCorsHeaders(req, NextResponse.json(data, init));
@@ -90,6 +97,22 @@ export async function POST(req: NextRequest) {
       naiveCharCount: pack.naiveCharCount,
       shardedCharCount: pack.shardedCharCount,
       userIntent: pack.userIntent,
+    });
+
+    const promptHit = hitFromPromptHash(req.headers.get(MSGF_PROMPT_HASH_HEADER));
+    writeLiveP7({
+      admin,
+      tenantId: tenantKey,
+      entityId,
+      traceId: `confirm_pack_${pack.packId}`,
+      promoteHits: [
+        hitFromPackId(pack.packId, false),
+        ...pack.activeFilePaths.map((p) => hitFromFilePath(p, false)),
+        ...(promptHit ? [promptHit] : []),
+      ],
+      outcome: "pass",
+      decisionKind: "local_gateway",
+      routing: "confirm_pack",
     });
 
     return json(req, {

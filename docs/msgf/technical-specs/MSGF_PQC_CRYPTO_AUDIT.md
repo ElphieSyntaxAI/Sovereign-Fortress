@@ -2,7 +2,7 @@
 
 **Audience:** Engineering + security  
 **Status:** Inventory as of 2026-08-05  
-**Related:** Hybrid envelope `0x03` + HAL v2 ML-DSA-65 in `@elphie-syntax/core/lib/crypto`
+**Related:** Hybrid envelope `0x03` + HAL v2 ML-DSA-65 in `@elphie-syntax/core/lib/crypto` · Global Brain swarm hashes (`silo_ref`, mandate SHA-256) are integrity/privacy, not PQC — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md)
 
 ## 1. Platform vs app control
 

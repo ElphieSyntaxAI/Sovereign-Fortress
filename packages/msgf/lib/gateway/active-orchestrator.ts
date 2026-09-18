@@ -37,12 +37,13 @@ import {
 } from "@/lib/gateway/shadow-fast-path";
 import { resolveTenantActivePolicy } from "@/lib/gateway/tenant-policy";
 import type { CapturedProviderUsage, MsgfGatewayProvider } from "@/lib/gateway/types";
-import { MSGF_PROJECT_ORIGIN_HEADER } from "@/lib/msgf-http-headers";
+import { MSGF_PROJECT_ORIGIN_HEADER, MSGF_PROMPT_HASH_HEADER } from "@/lib/msgf-http-headers";
 import {
   recordProvenAvoidance,
   type ProvenAvoidanceRecord,
 } from "@/lib/services/proven-savings";
 import { getRollingConvergeBaselineTokens } from "@/lib/services/provider-usage-meter";
+import { observeP7ForPrompt, writeLiveP7, type P7ObserveResult } from "@/lib/services/p7-observe";
 
 function auditHeaders(params: {
   routing: string;
@@ -132,6 +133,40 @@ export async function runActiveOrchestrator(params: {
 
   try {
     let ir = parsePromptIR(params.provider, params.parsedBody, projectOrigin);
+    const clientHash = params.req.headers.get(MSGF_PROMPT_HASH_HEADER)?.trim();
+    const promptHash =
+      clientHash && /^[0-9a-f]{16,128}$/i.test(clientHash)
+        ? clientHash.toLowerCase()
+        : ir.promptHash;
+
+    let p7Observed: P7ObserveResult | null = null;
+    if (params.admin) {
+      try {
+        p7Observed = await observeP7ForPrompt({
+          admin: params.admin,
+          tenantId: params.tenantId,
+          promptText: params.promptText,
+          promptHash,
+        });
+      } catch {
+        /* P7 observe must never block gateway */
+      }
+    }
+
+    const writeObservedP7 = (routing: string) => {
+      if (!params.admin || !p7Observed) return;
+      writeLiveP7({
+        admin: params.admin,
+        tenantId: params.tenantId,
+        traceId: promptHash || `gw_${Date.now()}`,
+        promoteHits: p7Observed.promoteHits,
+        blockHits: p7Observed.blockHits,
+        outcome: p7Observed.steer.force_escalate || p7Observed.blockHits.length ? "block" : "pass",
+        decisionKind: "local_gateway",
+        routing,
+        highDrift: p7Observed.steer.force_escalate,
+      });
+    };
 
     // Step A — hash completion cache
     const cached = await getGatewayCompletionCache(
@@ -178,6 +213,7 @@ export async function runActiveOrchestrator(params: {
         model: cached.model || ir.model,
       };
 
+      writeObservedP7("SEMANTIC_CACHE_HIT");
       return {
         response,
         usagePromise: Promise.resolve(usage),
@@ -195,6 +231,7 @@ export async function runActiveOrchestrator(params: {
     const gateSaved = Math.max(0, gated.tokensBefore - gated.tokensAfter);
 
     if (policy.active_aggressiveness === "cache-only") {
+      if (gated.applied) writeObservedP7("STATE_GATED_PASSTHROUGH");
       return await passThroughSharded({
         ...params,
         ir,
@@ -225,20 +262,42 @@ export async function runActiveOrchestrator(params: {
         /* fitness read must never block gateway */
       }
     }
+    const p7Poison = Boolean(
+      p7Observed?.steer.prefer_small_brain || p7Observed?.steer.force_escalate
+    );
+    if (p7Poison && params.admin) {
+      try {
+        const { emitModelFitness } = await import("@/lib/services/model-fitness");
+        emitModelFitness(params.admin, {
+          tenant_id: params.tenantId,
+          product: "gateway",
+          purpose: "active",
+          model_id: ir.model || "unknown",
+          prompt_class: "gateway_p7",
+          prompt_hash: promptHash,
+          label: "over_provisioned",
+          trace_id: promptHash,
+        });
+      } catch {
+        /* fitness emit must never block */
+      }
+    }
     const wantConsensus =
       policy.active_aggressiveness === "full-consensus" &&
       drift.escalate &&
-      !preferSmallFromFitness;
+      !preferSmallFromFitness &&
+      !p7Poison;
 
     // Step D — sharded single-model upstream
     const routing = wantConsensus
       ? "STATE_GATED_CONVERGE"
       : gated.applied
-        ? drift.escalate && !preferSmallFromFitness
+        ? drift.escalate && !preferSmallFromFitness && !p7Poison
           ? "STATE_GATED_ESCALATE_UPSTREAM"
           : "STATE_GATED_SMALL_BRAIN"
         : "SMALL_BRAIN_UPSTREAM";
 
+    writeObservedP7(routing);
     return await passThroughSharded({
       ...params,
       ir,

@@ -4,7 +4,7 @@
 
 **When to run:** After roadmap pages and beta gates are deployed to production. Staging Supabase is for pre-prod smoke; **cross-repo testing uses production MSGF + production tenant data** unless explicitly noted.
 
-**Companions:** [`MONOREPO_PRODUCTS.md`](../../MONOREPO_PRODUCTS.md) · [`MSGF_TESTING.md`](../technical-specs/MSGF_TESTING.md) · [`AUTHOR_MSGF_WIRING.md`](../../integrations/technical-specs/AUTHOR_MSGF_WIRING.md) · [`STAGING_SUPABASE_SETUP.md`](../../STAGING_SUPABASE_SETUP.md)
+**Companions:** [`MONOREPO_PRODUCTS.md`](../../MONOREPO_PRODUCTS.md) · [`MSGF_TESTING.md`](../technical-specs/MSGF_TESTING.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) · [`AUTHOR_MSGF_WIRING.md`](../../integrations/technical-specs/AUTHOR_MSGF_WIRING.md) · [`STAGING_SUPABASE_SETUP.md`](../../STAGING_SUPABASE_SETUP.md)
 
 **Last updated:** 2026-08-12
 

@@ -41,10 +41,19 @@ import { processShadowEvaluation } from "@/lib/shadow-eval/shadow-evaluator";
 import { recordMeteredProviderUsage } from "@/lib/services/provider-usage-meter";
 import { createAdminClient } from "@/utils/supabase/admin";
 import {
+  MSGF_ENTITY_ID_HEADER,
+  MSGF_PARENT_AGENT_ID_HEADER,
   MSGF_PROMPT_HASH_HEADER,
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "@/lib/msgf-http-headers";
+import { PulseHttpError } from "@/lib/services/pulse-http-error";
+import {
+  evaluateAndMaybeAbortSwarm,
+  hashMandate,
+  parseAgentIdentityFromHeaders,
+  type SwarmAgentIdentity,
+} from "@/lib/services/swarm-guard";
 
 function parseMode(req: NextRequest): MsgfGatewayMode {
   const raw = req.headers.get(MSGF_MODE_HEADER)?.trim().toLowerCase();
@@ -142,6 +151,11 @@ export async function handleProviderGateway(params: {
   const model = extractModelFromBody(parsedBody);
   const promptText = extractPromptTextFromBody(params.provider, parsedBody);
   const stream = isStreamingBody(parsedBody);
+  const entityId =
+    params.req.headers.get(MSGF_ENTITY_ID_HEADER)?.trim() || auth.tenantId;
+  const gwTrace =
+    params.req.headers.get(MSGF_PROMPT_HASH_HEADER)?.trim()?.toLowerCase() ||
+    `gw_${Date.now()}`;
 
   let admin: SupabaseClient | null = null;
   try {
@@ -149,6 +163,8 @@ export async function handleProviderGateway(params: {
   } catch {
     admin = null;
   }
+
+  let swarmIdentity: SwarmAgentIdentity | null = null;
 
   // Phase 7/9: budget + circuit breaker must run before upstream dispatch.
   let forceFallbackSmallBrain = false;
@@ -166,6 +182,7 @@ export async function handleProviderGateway(params: {
         tenant_id: auth.tenantId,
         estimated_cost_usd: 0.002,
         trace_id: preTrace,
+        parent_agent_id: params.req.headers.get(MSGF_PARENT_AGENT_ID_HEADER),
         safety_critical: auth.mode === "active",
       });
       if (!budget.ok) {
@@ -193,6 +210,33 @@ export async function handleProviderGateway(params: {
     } catch (budgetErr) {
       console.warn("[provider-gateway] pre-dispatch budget check failed:", budgetErr);
     }
+  }
+
+  try {
+    const identity = parseAgentIdentityFromHeaders({
+      headers: params.req.headers,
+      tenantId: auth.tenantId,
+      entityId,
+      mandateSeed: promptText,
+    });
+    if (auth.mode === "active") {
+      await evaluateAndMaybeAbortSwarm({
+        admin,
+        identity,
+        traceId: gwTrace,
+        product: "gateway",
+        toolNameHash: model ? hashMandate(model) : null,
+      });
+    }
+    swarmIdentity = identity;
+  } catch (swarmErr) {
+    if (swarmErr instanceof PulseHttpError) {
+      return new Response(JSON.stringify(swarmErr.body), {
+        status: swarmErr.status,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    console.warn("[provider-gateway] swarm guard failed:", swarmErr);
   }
 
   const effectiveMode =
@@ -320,6 +364,7 @@ export async function handleProviderGateway(params: {
           promptText,
           usage,
           admin,
+          swarmIdentity,
         });
       }
     } catch (e) {

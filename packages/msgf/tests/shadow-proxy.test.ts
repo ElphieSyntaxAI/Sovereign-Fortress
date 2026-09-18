@@ -31,6 +31,12 @@ import {
 import { resolveTenantActivePolicy } from "../lib/gateway/tenant-policy.js";
 import { estimateCostUsd, splitTotalTokens } from "../lib/shadow-eval/shadow-pricing.js";
 import { processShadowEvaluation } from "../lib/shadow-eval/shadow-evaluator.js";
+import {
+  createMemorySwarmStore,
+  evaluateSwarmAdmission,
+  hashMandate,
+  resetMemorySwarmStore,
+} from "../lib/services/swarm-guard.ts";
 
 describe("shadow gateway helpers", () => {
   test("extracts OpenAI messages prompt text", () => {
@@ -221,8 +227,54 @@ describe("shadow pricing + evaluator", () => {
         "ROUTE_SMALL_BRAIN",
         "FLAG_RETRY_LOOP",
         "FLAG_POLICY_DRIFT",
+        "FLAG_BOT_SWARM",
         "KEEP_AS_IS",
       ].includes(log.recommendedAction)
     );
+  });
+
+  test("processShadowEvaluation flags mandate-mismatch secondaries as FLAG_BOT_SWARM", async () => {
+    resetMemorySwarmStore();
+    const store = createMemorySwarmStore();
+    const tenantId = "shadow_trial_swarm";
+    const mandate = hashMandate("parent task");
+    await evaluateSwarmAdmission({
+      identity: {
+        agentId: "parent-1",
+        parentAgentId: null,
+        role: "primary",
+        mandateHash: mandate,
+        entityId: "p1",
+        tenantId,
+      },
+      store,
+    });
+    const log = await processShadowEvaluation({
+      tenantId,
+      endpoint: "/v1/chat/completions",
+      provider: "openai",
+      mode: "shadow",
+      stream: false,
+      model: "gpt-4o-mini",
+      promptText: "that didn't work, try again with the same login form",
+      usage: {
+        input_tokens: 40,
+        output_tokens: 20,
+        total_tokens: 60,
+        usage_source: "provider",
+        model: "gpt-4o-mini",
+      },
+      admin: null,
+      swarmIdentity: {
+        agentId: "child-1",
+        parentAgentId: "parent-1",
+        role: "secondary",
+        mandateHash: hashMandate("other task"),
+        entityId: "c1",
+        tenantId,
+      },
+      swarmStore: store,
+    });
+    assert.equal(log.recommendedAction, "FLAG_BOT_SWARM");
   });
 });

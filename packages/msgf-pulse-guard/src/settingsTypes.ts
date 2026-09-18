@@ -26,4 +26,12 @@ export type MsgfGuardSettings = {
   smallBrainProvider: SmallBrainProvider;
   smallBrainApiKey: string;
   smallBrainModelName: string;
+  /** Optional child agent id (defaults to entityId). */
+  agentId: string;
+  /** When set, Pulse is a secondary agent bound to this parent. */
+  parentAgentId: string;
+  /** `primary` | `secondary` | `system_heal`. Inferred from parentAgentId when empty. */
+  agentRole: string;
+  /** SHA-256 hex of the parent user mandate. Required for secondary. */
+  mandateHash: string;
 };

@@ -19,4 +19,6 @@ If the signing key is missing, HITL still completes and a warning is logged (aud
 - Verify: `POST /api/msgf/admin/arbitrate-audit/verify` with `{ "id": "…" }` or full payload fields
 - UI: Ops console → **Signed HITL audit** (verify + download JSON)
 
+Swarm HITL (`bot_swarm_detected`) uses the same A6 path. Tenant ops keep the entity to freeze; Global Brain JSON does not. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 Apply migration: `20260724030300_msgf_arbitrate_audit.sql` via `npm run db:push`.

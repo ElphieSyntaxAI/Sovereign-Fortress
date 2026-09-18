@@ -2,11 +2,11 @@
 
 **Audience:** Engineering / operators. Describes how tenant-local work stays on **Small Brain** while global platform work routes to **Big Brain** and **admin-only** surfaces.
 
-**Last updated:** 2026-05-28
+**Last updated:** 2026-09-17
 
 **Product overview (use cases & marketing):** [`MSGF_PRODUCT_OVERVIEW.md`](../marketing/MSGF_PRODUCT_OVERVIEW.md)
 
-**Companion:** [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §7.6 · [`MONOREPO_PRODUCTS.md`](../../MONOREPO_PRODUCTS.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`packages/msgf/README.md`](../../../packages/msgf/README.md)
+**Companion:** [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §7.6 · [`MONOREPO_PRODUCTS.md`](../../MONOREPO_PRODUCTS.md) · [`MSGF_TESTING.md`](./MSGF_TESTING.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md) · [`packages/msgf/README.md`](../../../packages/msgf/README.md)
 
 ---
 
@@ -183,6 +183,7 @@ Optional third-opinion / alt-framing passes (same xAI adapter): HITL strategy ge
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-17 | Global Brain swarm absorb is zero-text structural telemetry — never prompt/completion ([`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md)). Session Replay stays tenant legal/security, not this feed. |
 | 2026-08-05 | Big Brain TRI majority + human_notify_threshold (0.45); tenant Small Brain consensus presets; xAI/Grok third vote. |
 | 2026-05-28 | Verify-result loop + Run Scripts in savings catalog; counter keys; [`MSGF_PRODUCT_OVERVIEW.md`](../marketing/MSGF_PRODUCT_OVERVIEW.md). |
 | 2026-05-20 | Initial SSoT: audience mapping, heal-queue scope, monorepo workspaces, APIs/UI/tests. |

@@ -8,6 +8,8 @@
 
 Shift MSGF from passive boundary to **active engineering mentor**: reduce friction, protect against fatigue, route developers to **0-token** context before cloud spend.
 
+Runaway secondary agents are a DX failure mode: abort-that-wave + HITL, zero-text Global Brain absorb. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ---
 
 ## Goal-HAL-DX — Friction & burnout interception

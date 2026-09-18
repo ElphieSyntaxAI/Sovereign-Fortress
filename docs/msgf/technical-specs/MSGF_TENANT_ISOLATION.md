@@ -35,6 +35,8 @@ Wrong `project_origin` → empty result set.
 
 `msgf_tenant_row_allowed` still keys primarily on `tenant_id`. Do **not** rely on RLS alone for company/project/path isolation under `service_role`.
 
+Global Brain swarm export hashes `silo_ref` and never stores tenant id, agent ids, or prompt text in that envelope — tenant HITL still keeps the entity id so ops can freeze. Spec: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ## Index
 
 Migration `20260724030000_pillar_vectors_compound_scope.sql` — composite expression index on metadata keys.

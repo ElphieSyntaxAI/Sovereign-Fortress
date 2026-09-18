@@ -17,6 +17,7 @@ Use with `GET /api/msgf/agent-context?mode=guided&refactor_profile=website_moder
 
 - No new npm dependencies.
 - Do not modify multi-tenant middleware, RLS, or credit guard.
+- Do not change Global Brain swarm telemetry (zero-text absorb vs Session Replay). See [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
 
 ## 4. Mandatory workflow
 

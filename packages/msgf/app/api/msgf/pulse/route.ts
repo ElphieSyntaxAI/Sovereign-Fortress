@@ -55,6 +55,10 @@ import {
   MSGF_AUTHOR_HAL_HEADER,
   MSGF_HUMAN_NOTIFY_THRESHOLD_HEADER,
 } from "@/lib/msgf-http-headers";
+import {
+  evaluateAndMaybeAbortSwarm,
+  parseAgentIdentityFromRequest,
+} from "@/lib/services/swarm-guard";
 import { resolveHumanNotifyThreshold } from "@/lib/services/consensus/msgf-consensus-config";
 import { parseAuthorHalTelemetryHeader } from "@/lib/hal-author-telemetry";
 import { resolveTenantIdForPillars } from "@/lib/services/msgf-metadata-scope";
@@ -131,6 +135,7 @@ async function runPulsePipelineWithHotLayer(params: {
   devSession?: ReturnType<typeof parseDevSessionFromHeaders>;
   forcedConvergeTier?: ReturnType<typeof parseForcedConvergeTierHeader>;
   humanNotifyThreshold?: number;
+  swarmIdentity?: import("@/lib/services/swarm-guard").SwarmAgentIdentity | null;
 }) {
   return pulseEngine.runFullPipeline({
     supabase: params.supabase,
@@ -153,6 +158,7 @@ async function runPulsePipelineWithHotLayer(params: {
     isIdePulse: params.isIdePulse,
     devSession: params.devSession,
     forcedConvergeTier: params.forcedConvergeTier ?? null,
+    swarmIdentity: params.swarmIdentity ?? null,
   });
 }
 
@@ -395,6 +401,28 @@ export async function POST(req: NextRequest) {
 
       const byok = extractPulseByokFromRequest(req);
 
+      const swarmIdentity = parseAgentIdentityFromRequest(
+        req,
+        tenantId,
+        entityId,
+        pulseTextSeed
+      );
+      try {
+        await evaluateAndMaybeAbortSwarm({
+          admin: adminSupabase,
+          identity: swarmIdentity,
+          traceId,
+          product: idePulse ? "ide" : "msgf",
+        });
+      } catch (e) {
+        if (e instanceof PulseHttpError) {
+          await hotSession.release();
+          await endTenantCreditReservation(adminSupabase, creditStart, e.status);
+          return pulseJsonWithTrace(req, traceId, e.body, { status: e.status });
+        }
+        throw e;
+      }
+
       let pipelineResult;
       try {
         pipelineResult = await runPulsePipelineWithHotLayer({
@@ -422,6 +450,7 @@ export async function POST(req: NextRequest) {
           forcedConvergeTier: parseForcedConvergeTierHeader(
             req.headers.get("x-msgf-converge-tier")
           ),
+          swarmIdentity,
         });
       } catch (e) {
         if (e instanceof PulseHttpError) {

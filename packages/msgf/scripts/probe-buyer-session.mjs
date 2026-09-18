@@ -453,7 +453,7 @@
  */
 import { randomUUID } from "node:crypto";
 
-const BASE = (process.env.MSGF_APP_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
+const BASE = (process.env.MSGF_APP_URL || "http://127.0.0.1:3001").replace(/\/+$/, "");
 const COOKIE = process.env.MSGF_PULSE_COOKIE?.trim() || "";
 
 if (process.env.MSGF_CONTRACT_LICENSE_KEY?.trim()?.startsWith("msgf_live_")) {

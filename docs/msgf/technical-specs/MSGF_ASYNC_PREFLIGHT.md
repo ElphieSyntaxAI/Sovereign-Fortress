@@ -25,3 +25,5 @@ If the secret is missing or the POST fails, the skip is **blocked**.
 | `MSGF_SKIP=1` | Same as `msgf.skipMsgf` for Run Scripts process env |
 
 Apply migration: `20260724030200_msgf_skip_audit.sql` via `npm run db:push`.
+
+Skip-audit is tenant ops telemetry. It is **not** Global Brain swarm absorb — see [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md).

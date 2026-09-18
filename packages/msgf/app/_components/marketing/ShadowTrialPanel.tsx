@@ -136,6 +136,7 @@ type TrialProof = {
   retry_loop_prompts: number;
   policy_flags: number;
   fat_context_calls: number;
+  bot_swarm_waves?: number;
   headline: string;
 };
 
@@ -526,6 +527,39 @@ export function ShadowTrialPanel({
                 </dd>
                 <p className="mt-1 text-[11px] text-slate-500">Shards instead of full paste</p>
               </div>
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+                <dt className="text-[11px] uppercase tracking-wide text-amber-200/80">
+                  Runaway agent waves
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold text-amber-100">
+                  {(summary.proof?.bot_swarm_waves ?? 0).toLocaleString()}
+                </dd>
+                <p className="mt-1 text-[11px] text-amber-200/70">
+                  Would abort the child + open HITL
+                </p>
+              </div>
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                <dt className="text-[11px] uppercase tracking-wide text-emerald-200/80">
+                  Would have promoted
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold text-emerald-100">
+                  {(summary.proof?.p7_promoted_resources ?? 0).toLocaleString()}
+                </dd>
+                <p className="mt-1 text-[11px] text-emerald-200/70">
+                  Hashed resources boosted on activate
+                </p>
+              </div>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
+                <dt className="text-[11px] uppercase tracking-wide text-rose-200/80">
+                  Would have blocked
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold text-rose-100">
+                  {(summary.proof?.p7_blocked_resources ?? 0).toLocaleString()}
+                </dd>
+                <p className="mt-1 text-[11px] text-rose-200/70">
+                  Hashed resources pruned on activate
+                </p>
+              </div>
             </dl>
 
             <p className="mt-4 text-xs text-slate-500">
@@ -577,8 +611,8 @@ export function ShadowTrialPanel({
                   {fullAccessLoading ? "Sending magic link…" : "Start 3-day full access"}
                 </button>
                 {" — "}
-                Individual Pro cloud (dashboard, Pulse, IDE token, Active, Vault/Hall) on this
-                same proof tenant.
+                apply these reputation promotes/blocks immediately, then Individual Pro cloud
+                (dashboard, Pulse, IDE token, Active, Vault/Hall) on this same proof tenant.
                 {!summary.first_eval_at
                   ? " Send a Shadow call first to start the 7-day clock."
                   : null}

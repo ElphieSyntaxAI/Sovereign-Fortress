@@ -194,8 +194,8 @@ export async function assertTenantDualValidationModelsConfigured(
   }
   if (missing.length) {
     throw new PulseHttpError(400, {
-      error: ERR_TWO_MODELS,
-      code: "DUAL_MODEL_CONFIG_REQUIRED",
+      error: config.mode === "SOLO_FAST" ? "Default AI provider is not configured." : ERR_TWO_MODELS,
+      code: config.mode === "SOLO_FAST" ? "DEFAULT_PROVIDER_CONFIG_REQUIRED" : "DUAL_MODEL_CONFIG_REQUIRED",
       missing_providers: missing,
       gemini_configured: presence.gemini,
       anthropic_configured: presence.anthropic,
@@ -303,7 +303,8 @@ export async function runTenantDualModelConsensusGateway(params: {
     )
   );
 
-  const tenantAgreementScore = pairwiseAgreement(outputs);
+  const tenantAgreementScore =
+    consensusConfig.mode === "SOLO_FAST" ? 1 : pairwiseAgreement(outputs);
   // Prefer google/anthropic labels for sovereign auditor inputs when present.
   const googleIdx = consensusConfig.providers.indexOf("google");
   const anthropicIdx = consensusConfig.providers.indexOf("anthropic");

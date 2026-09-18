@@ -22,10 +22,15 @@ import {
   computeShadowTrialWindowExpiresAt,
   evaluateShadowTrialClock,
   formatUsd,
+  renderShadowTrialProofReport,
   resolveEffectiveGatewayMode,
   shouldExpireUnusedShadowTrial,
   shouldSendShadowTrialProofReport,
 } from "../lib/services/shadow-trial.js";
+import {
+  computeShadowProof,
+  SHADOW_BOT_SWARM_ACTION,
+} from "../lib/shadow-eval/shadow-proof.js";
 import {
   INDIVIDUAL_TRIAL_3D_HOURS,
   INDIVIDUAL_TRIAL_3D_LICENSE_TYPE,
@@ -147,6 +152,44 @@ describe("shadow-trial", () => {
       }),
       "active"
     );
+  });
+
+  it("includes runaway agent waves on the 7-day proof email", () => {
+    const proof = computeShadowProof([
+      {
+        prompt_hash: "child-wave",
+        actual_cost_usd: 0.02,
+        recommended_action: SHADOW_BOT_SWARM_ACTION,
+        observed_at: "2026-09-22T08:00:00.000Z",
+      },
+    ]);
+    const { html, text } = renderShadowTrialProofReport({
+      name: "Jess",
+      statusUrl: "https://example.test/shadow-trial?t=abc",
+      summary: {
+        tenant_id: "shadow_trial_abcd",
+        window_hours: 24,
+        evaluation_count: 1,
+        actual_cost_usd: 0.02,
+        projected_savings_usd: 0,
+        expired: true,
+        expires_at: "2026-09-22T08:00:00.000Z",
+        started_at: "2026-09-15T08:00:00.000Z",
+        email: "jess@example.test",
+        report_sent: false,
+        proof,
+        awaiting_first_eval: false,
+        first_eval_at: "2026-09-15T08:00:00.000Z",
+        activation_expires_at: "2026-09-28T12:00:00.000Z",
+        full_access_started: false,
+        full_access_live: false,
+        full_access_expires_at: null,
+      },
+    });
+    assert.match(html, /Runaway agent waves/);
+    assert.match(html, /HITL/);
+    assert.match(text, /Runaway agent waves: 1/);
+    assert.match(proof.headline, /runaway secondary-agent wave/);
   });
 });
 

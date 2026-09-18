@@ -33,10 +33,7 @@ import {
   estimateCostUsd,
   splitTotalTokens,
 } from "@/lib/shadow-eval/shadow-pricing";
-import {
-  classifyShadowPromptSignals,
-  pickShadowRecommendedAction,
-} from "@/lib/shadow-eval/shadow-proof";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CapturedProviderUsage,
   MsgfGatewayMode,
@@ -44,7 +41,18 @@ import type {
   ShadowEvaluationLog,
   ShadowRecommendedAction,
 } from "@/lib/gateway/types";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  classifyShadowPromptSignals,
+  pickShadowRecommendedAction,
+} from "@/lib/shadow-eval/shadow-proof";
+import {
+  evaluateSwarmAdmission,
+  persistSwarmDetection,
+  type SwarmAgentIdentity,
+  type SwarmEvaluateTrip,
+  type SwarmStore,
+} from "@/lib/services/swarm-guard";
+import { observeP7ForPrompt } from "@/lib/services/p7-observe";
 
 export type ShadowEvalInput = {
   tenantId: string;
@@ -56,6 +64,8 @@ export type ShadowEvalInput = {
   promptText: string;
   usage: CapturedProviderUsage;
   admin?: SupabaseClient | null;
+  swarmIdentity?: SwarmAgentIdentity | null;
+  swarmStore?: SwarmStore;
 };
 
 function promptHash(text: string): string {
@@ -106,6 +116,23 @@ async function warmSemanticCache(tenantId: string, promptText: string): Promise<
   }
 }
 
+/** Observe-only: never abort. Failures are counted as FLAG_BOT_SWARM on the proof ledger. */
+async function observeShadowSwarmTrip(
+  input: ShadowEvalInput
+): Promise<SwarmEvaluateTrip | null> {
+  if (!input.swarmIdentity) return null;
+  try {
+    const result = await evaluateSwarmAdmission({
+      identity: input.swarmIdentity,
+      store: input.swarmStore,
+      admin: input.admin ?? null,
+    });
+    return result.ok ? null : result;
+  } catch {
+    return null;
+  }
+}
+
 export async function processShadowEvaluation(
   input: ShadowEvalInput
 ): Promise<ShadowEvaluationLog> {
@@ -128,6 +155,28 @@ export async function processShadowEvaluation(
   const signals = classifyShadowPromptSignals(promptText);
   const stateGateReduction = estimateStateGatingReduction(promptChars);
   const smallBrain = wouldPreferSmallBrain(promptChars, promptText);
+  const observedTrip = await observeShadowSwarmTrip(input);
+  const swarmTrip = Boolean(observedTrip);
+  const hash = promptHash(promptText);
+
+  let p7PromoteCount = 0;
+  let p7BlockCount = 0;
+  let p7Deferred: ShadowEvaluationLog["p7Deferred"] = [];
+  try {
+    const observed = await observeP7ForPrompt({
+      admin: input.admin ?? null,
+      tenantId: input.tenantId,
+      promptText,
+      swarmTrip: observedTrip,
+      promptHash: hash,
+      policyDrift: signals.policy_drift,
+    });
+    p7PromoteCount = observed.lists.promoted_count;
+    p7BlockCount = observed.lists.blocked_count;
+    p7Deferred = observed.deferred;
+  } catch (e) {
+    console.warn("[shadow-eval] P7 observe failed:", e instanceof Error ? e.message : e);
+  }
 
   let projectedTokens = actualTokens;
   let fallbackAction: ShadowRecommendedAction = "KEEP_AS_IS";
@@ -162,6 +211,7 @@ export async function processShadowEvaluation(
     cacheHit,
     signals,
     fallback: fallbackAction,
+    swarmTrip,
   });
 
   const projSplit = splitTotalTokens(projectedTokens);
@@ -193,6 +243,9 @@ export async function processShadowEvaluation(
     usageSource: input.usage.usage_source,
     model: input.model || input.usage.model || "unknown",
     timestamp: Date.now(),
+    p7PromoteCount,
+    p7BlockCount,
+    p7Deferred: input.mode === "shadow" ? p7Deferred : undefined,
   };
 
   await writeShadowEvaluationLog(input.admin ?? null, log);
@@ -201,6 +254,21 @@ export async function processShadowEvaluation(
       await markShadowTrialFirstEval(input.admin, log.tenantId);
     } catch (e) {
       console.warn("[shadow-eval] first-eval clock failed:", e);
+    }
+    if (observedTrip) {
+      try {
+        await persistSwarmDetection({
+          admin: input.admin,
+          trip: observedTrip,
+          traceId: log.promptHash || `shadow_${log.timestamp}`,
+          product: "gateway",
+          tokensIn: split.input,
+          tokensOut: split.output,
+          kind: "bot_swarm_observed",
+        });
+      } catch (e) {
+        console.warn("[shadow-eval] swarm observed emit failed:", e);
+      }
     }
   }
   await warmSemanticCache(input.tenantId, promptText);

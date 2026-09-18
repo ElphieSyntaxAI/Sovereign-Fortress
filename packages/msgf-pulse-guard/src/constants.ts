@@ -46,3 +46,8 @@ export const MSGF_FLUSH_REASON_HEADER = "x-msgf-flush-reason";
 export const MSGF_ACTIVE_FILE_HEADER = "x-msgf-active-file";
 
 export const MSGF_BUILD_ACTIVE_HEADER = "x-msgf-build-active";
+
+export const MSGF_AGENT_ID_HEADER = "x-msgf-agent-id";
+export const MSGF_PARENT_AGENT_ID_HEADER = "x-msgf-parent-agent-id";
+export const MSGF_AGENT_ROLE_HEADER = "x-msgf-agent-role";
+export const MSGF_MANDATE_HASH_HEADER = "x-msgf-mandate-hash";

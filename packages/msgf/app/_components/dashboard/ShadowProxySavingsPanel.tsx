@@ -121,6 +121,7 @@ type Summary = {
     retry_loop_prompts: number;
     policy_flags: number;
     fat_context_calls: number;
+    bot_swarm_waves?: number;
     headline: string;
   };
 };
@@ -193,7 +194,7 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-slate-300">
         {summary.proof?.headline ??
-          "Point SDKs at /api/v1 in shadow mode. We count duplicate calls, retry loops, and policy-risk prompts."}
+          "Point SDKs at /api/v1 in shadow mode. We count duplicate calls, retry loops, policy-risk prompts, runaway secondary-agent waves, and hashed promote/block projections."}
       </p>
       <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
@@ -227,6 +228,30 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
           </dt>
           <dd className="mt-1 text-xl font-semibold text-slate-100">
             {(summary.proof?.fat_context_calls ?? 0).toLocaleString()}
+          </dd>
+        </div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+          <dt className="text-[11px] uppercase tracking-wide text-amber-200/80">
+            Runaway agent waves
+          </dt>
+          <dd className="mt-1 text-xl font-semibold text-amber-100">
+            {(summary.proof?.bot_swarm_waves ?? 0).toLocaleString()}
+          </dd>
+        </div>
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+          <dt className="text-[11px] uppercase tracking-wide text-emerald-200/80">
+            Would have promoted
+          </dt>
+          <dd className="mt-1 text-xl font-semibold text-emerald-100">
+            {(summary.proof?.p7_promoted_resources ?? 0).toLocaleString()}
+          </dd>
+        </div>
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
+          <dt className="text-[11px] uppercase tracking-wide text-rose-200/80">
+            Would have blocked
+          </dt>
+          <dd className="mt-1 text-xl font-semibold text-rose-100">
+            {(summary.proof?.p7_blocked_resources ?? 0).toLocaleString()}
           </dd>
         </div>
       </dl>

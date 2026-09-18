@@ -15,6 +15,7 @@
  */
 
 import type { RemediationTask } from "@/lib/schemas/heal-queue";
+import { REPUTATION_PRUNE_THRESHOLD, resourceKeyForFile, resourceKeyForPack } from "@/lib/schemas/source-audit";
 
 export type AgentContextMode = "guided" | "auto";
 
@@ -25,6 +26,8 @@ export type AgentContextBuildInput = {
   file_paths?: string[];
   brain_summary?: string | null;
   trigger_label?: string | null;
+  reputation?: Map<string, number>;
+  packId?: string;
 };
 
 export type AgentContextBuildResult = {
@@ -47,8 +50,38 @@ function filterTasks(tasks: RemediationTask[], file_paths?: string[]): Remediati
   return tasks.filter((t) => selected.has(normalizePath(t.file_path)));
 }
 
+function pruneTasksByReputation(
+  tasks: RemediationTask[],
+  reputation?: Map<string, number>,
+  packId?: string
+): RemediationTask[] {
+  if (!reputation || reputation.size === 0) return tasks;
+  if (packId) {
+    const packScore = reputation.get(resourceKeyForPack(packId));
+    if (typeof packScore === "number" && packScore < REPUTATION_PRUNE_THRESHOLD) {
+      return [];
+    }
+  }
+  return tasks.filter((t) => {
+    const score = reputation.get(resourceKeyForFile(t.file_path));
+    return !(typeof score === "number" && score < REPUTATION_PRUNE_THRESHOLD);
+  });
+}
+
+export function omitPrunedContextTasks(
+  tasks: RemediationTask[],
+  reputation: Map<string, number>,
+  packId?: string
+): RemediationTask[] {
+  return pruneTasksByReputation(tasks, reputation, packId);
+}
+
 export function buildAgentContextPack(input: AgentContextBuildInput): AgentContextBuildResult {
-  const tasks = filterTasks(input.tasks, input.file_paths);
+  const tasks = pruneTasksByReputation(
+    filterTasks(input.tasks, input.file_paths),
+    input.reputation,
+    input.packId
+  );
   const lines: string[] = [
     "# MSGF agent context pack",
     "",

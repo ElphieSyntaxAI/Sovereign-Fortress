@@ -20,6 +20,8 @@ import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-co
 import { AgentContextQuerySchema } from "@/lib/schemas/report-issue";
 import { parseHealQueueTenantQuery } from "@/lib/schemas/heal-queue";
 import { buildAgentContextPack } from "@/lib/services/agent-context-service";
+import { resourceKeyForFile } from "@/lib/schemas/source-audit";
+import { loadReputationMap } from "@/lib/services/source-audit";
 import { buildRefactoringDirectivePack } from "@/lib/services/refactoring-directive-service";
 import { listHealQueueRemediationTasks } from "@/lib/services/heal-queue-service";
 import { recordSavingsFeatureCount } from "@/lib/services/savings-features-stats";
@@ -71,6 +73,14 @@ export async function GET(req: NextRequest) {
       listed.brain_readiness.missing_pillars.join(", ") || "none"
     }`;
 
+    let reputation: Map<string, number> | undefined;
+    try {
+      const keys = listed.remediation_tasks.map((t) => resourceKeyForFile(t.file_path));
+      reputation = await loadReputationMap(admin, tenant_id, keys);
+    } catch (e) {
+      console.warn("[agent-context] P7 reputation read failed:", e instanceof Error ? e.message : e);
+    }
+
     const pack = buildAgentContextPack({
       mode,
       tenant_id,
@@ -78,6 +88,7 @@ export async function GET(req: NextRequest) {
       file_paths,
       brain_summary,
       trigger_label: trigger_label ?? null,
+      reputation,
     });
 
     const refactorProfile = sp.get("refactor_profile");

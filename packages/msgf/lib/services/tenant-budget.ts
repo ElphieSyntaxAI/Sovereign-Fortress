@@ -39,6 +39,7 @@ export async function checkTenantBudgetBeforeDispatch(
     tenant_id: string;
     estimated_cost_usd?: number;
     trace_id?: string | null;
+    parent_agent_id?: string | null;
     session_tokens_so_far?: number;
     /** When true, refuse fallback_small_brain (RED/harm path). */
     safety_critical?: boolean;
@@ -85,6 +86,25 @@ export async function checkTenantBudgetBeforeDispatch(
         severity: "error",
         trace_id: opts.trace_id,
         summary: `Circuit open: ${count} calls in 60s (threshold ${rapid})`,
+      });
+      return { ok: false, reason: "circuit_open", action: "block" };
+    }
+  }
+
+  const parentAgent = opts.parent_agent_id?.trim();
+  if (parentAgent) {
+    const parentCount = await redisIncrWithWindow(
+      msgfRedisKey("budget-circuit", "parent", tid, parentAgent),
+      60
+    );
+    if (typeof parentCount === "number" && parentCount > rapid) {
+      emitPlatformAudit(admin, {
+        product: "msgf",
+        tenant_id: tid,
+        kind: "circuit_open",
+        severity: "error",
+        trace_id: opts.trace_id ?? null,
+        summary: `Circuit open: ${parentCount} calls in 60s for parent ${parentAgent} (threshold ${rapid})`,
       });
       return { ok: false, reason: "circuit_open", action: "block" };
     }

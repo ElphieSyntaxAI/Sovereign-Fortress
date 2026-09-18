@@ -2,13 +2,13 @@
 
 **Production host:** **https://elphiesgatedai.elphiesyntax.com** (with the Next runtime in `packages/msgf/`).
 
-**SSoT:** [`docs/msgf/MSGF_V1_ROADMAP.md`](../../../../docs/msgf/MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](../../../../docs/MONOREPO_PRODUCTS.md)
+**SSoT:** [`docs/msgf/MSGF_V1_ROADMAP.md`](../../../../docs/msgf/MSGF_V1_ROADMAP.md) · [`docs/MONOREPO_PRODUCTS.md`](../../../../docs/MONOREPO_PRODUCTS.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../../../docs/msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)
 
 ## Intended scope (MSGF 1.0 — M2)
 
 - Public marketing pages for standalone Gated AI
-- Pricing + Stripe Checkout (monthly / lifetime per P3 hybrid license)
-- Authenticated dashboard shell consuming `packages/core` and `packages/ui`
+- Pricing + Stripe Checkout (Indie $0 / Pro $99 perpetual / Startup $49/user/mo)
+- Authenticated dashboard shell in `packages/msgf` (this package is **not** a second app)
 - Docs for external integrators (BYOK, API keys, tenant IDs)
 
 ## Relationship to other surfaces
@@ -16,8 +16,8 @@
 | Surface | URL |
 | :--- | :--- |
 | MSGF API (Next) | Same origin as gatedai — `/api/msgf/*` |
-| MSGF ops dashboard | `apps/msgf-dashboard` (internal/admin) |
+| MSGF ops dashboard | Canonical `/admin/ops` in `packages/msgf`; legacy Vite `apps/msgf-dashboard` |
 | Author Ecosystem | https://elphiesyntax.com |
 | Syntax Education | https://syntaxeducation.elphiesyntax.com |
 
-This package is **not started** in code yet; track implementation under milestone **M2** in the MSGF 1.0 roadmap.
+This package is **not started** in code. **Do not build it for 1.0.** Public marketing, pricing, and checkout already live in `packages/msgf` Next routes. Track any future split as optional M2 polish in [`MSGF_V1_ROADMAP.md`](../../../../docs/msgf/MSGF_V1_ROADMAP.md).

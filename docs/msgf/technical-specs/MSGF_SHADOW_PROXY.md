@@ -2,7 +2,7 @@
 
 **Audience:** Integrators / enterprise IT  
 **Package:** `packages/msgf` (`/api/v1/*`) — not root `packages/core`  
-**Last updated:** 2026-08-06
+**Last updated:** 2026-09-18 (P7 deferred apply-on-activate + zero-text Global Brain swarm telemetry + 7-day trial proof email)
 
 Point OpenAI or Anthropic SDKs at MSGF to **prove projected bill savings** (shadow) or **apply live governance** (active) without changing app code.
 
@@ -90,7 +90,9 @@ Audit response headers: `x-msgf-routing`, `x-msgf-tokens-saved`, `x-msgf-cache-h
 
 - **Free 7-day trial:** `/shadow-trial` — email signup mints `msgf_test_*` key. The 7-day Shadow clock starts on first eval (unused keys expire after 14 days with no empty report). End-of-window proof email includes **Start 3-day full access** (Individual Pro for 72h on the same tenant). Cron: `POST /api/msgf/ops/shadow-trial-reports`.
 - Trial keys force `x-msgf-mode: shadow` until the 3-day full-access window is live.
-- Reports → **Shadow Proxy** panel: eval count, actual pass-through $, **projected savings $** (footnote) plus the proof ledger
+- Secondary-agent swarm is **observed only** in Shadow (no 409). Proof email includes **runaway agent waves** plus **would have promoted / blocked** hashed resource counts. Global Brain stores structural `bot_swarm_observed` — never the user prompt, never P7 key lists. Active mode **aborts that wave** + HITL. Spec: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+- **P7 deferred:** Shadow Eval stores hashed promote/block hits on `msgf_shadow_evaluation_logs` (`p7_deferred`). Reputation is **not** mutated during the 7-day window. **Start 3-day full access** applies those hits once (`p7_applied_at IS NULL` claim) so Active starts warm.
+- Reports → **Shadow Proxy** panel: eval count, actual pass-through $, **projected savings $** (footnote) plus the proof ledger (including P7 promote/block tiles)
 - Weekly / monthly tables + PDF: **Shadow projected $** column (not proven eco)
 - Active proven tokens → Redis + `msgf_proven_avoidance_events` (public eco when proven-only)
 - Table: `msgf_shadow_evaluation_logs`
@@ -106,3 +108,4 @@ Projected ≠ proven. Public eco only moves on proven avoidance / pack deltas.
 - `lib/gateway/prompt-ir.ts` / `active-orchestrator.ts` / `tenant-policy.ts`
 - `lib/shadow-eval/*`
 - `lib/auth/dashboard-guard.ts` — dashboard tenant IDOR guard
+- `lib/services/swarm-guard.ts` + [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md)

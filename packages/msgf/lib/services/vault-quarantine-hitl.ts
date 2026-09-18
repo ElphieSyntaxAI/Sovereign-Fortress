@@ -15,6 +15,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { PULSE_BUG_INDEX } from "@/lib/schemas/vault-hall-metadata";
 import { persistToHall } from "@/lib/services/constraint-ledger";
 import { appendVaultLog } from "@/lib/services/tenant-onboarding-vault";
+import { hitFromVaultId, writeLiveP7 } from "@/lib/services/p7-observe";
 
 export type QuarantinedVaultRow = {
   id: string;
@@ -102,6 +103,17 @@ export async function applyVaultQuarantineHitl(
 
     if (error) return { ok: false, error: error.message };
 
+    writeLiveP7({
+      admin,
+      tenantId,
+      entityId,
+      traceId: `vault_hitl_restore_${params.vectorId}`,
+      promoteHits: [hitFromVaultId(params.vectorId, false)],
+      outcome: "persist_vault",
+      decisionKind: "arbitrate",
+      routing: "hitl_restore",
+    });
+
     if (companyId) {
       await appendVaultLog(admin, companyId, "vault_quarantine_restored", {
         vector_id: params.vectorId,
@@ -157,6 +169,18 @@ export async function applyVaultQuarantineHitl(
     .eq("id", params.vectorId);
 
   if (updErr) return { ok: false, error: updErr.message };
+
+  writeLiveP7({
+    admin,
+    tenantId,
+    entityId,
+    traceId: `vault_hitl_demote_${params.vectorId}`,
+    blockHits: [hitFromVaultId(params.vectorId, true)],
+    outcome: "persist_hall",
+    decisionKind: "arbitrate",
+    routing: "hitl_demote",
+    highDrift: true,
+  });
 
   if (companyId) {
     await appendVaultLog(admin, companyId, "vault_quarantine_demoted", {

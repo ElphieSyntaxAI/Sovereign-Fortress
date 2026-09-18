@@ -2,6 +2,8 @@
 
 Provider-agnostic policy sign-off for team invites (`enforce_docusign` bundle flag).
 
+Legal / pledge version for Pulse (including zero-text Global Brain swarm) is `CURRENT_LEGAL_VERSION` in `lib/msgf-legal.ts` — not a signing envelope. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ## Providers
 
 | Provider | Env | Webhook |

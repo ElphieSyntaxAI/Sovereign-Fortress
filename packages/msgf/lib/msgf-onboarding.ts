@@ -106,7 +106,7 @@ export async function createPledgeBeat(
 
   const beatText =
     options?.beatText?.trim() ||
-    `No-AI-Training Pledge accepted at registration (Vault Pact). Legal version: ${CURRENT_LEGAL_VERSION}.`;
+    `No-AI-Training Pledge accepted at registration (Vault Pact). Legal version: ${CURRENT_LEGAL_VERSION}. Global Brain swarm telemetry is zero-text structural only; licensed benchmarks use synthetic stress cases. Session Replay is tenant legal/security retention, not a training corpus.`;
 
   const { data, error } = await admin
     .from("state_beats")
@@ -325,7 +325,7 @@ export async function ensureGatedAiBuyerAccount(input: {
   await createPledgeBeat(entityId, {
     tenantId,
     supabase: admin,
-    beatText: `No-AI-Training Pledge accepted at registration (Vault Pact). Legal version: ${CURRENT_LEGAL_VERSION}.`,
+    beatText: `No-AI-Training Pledge accepted at registration (Vault Pact). Legal version: ${CURRENT_LEGAL_VERSION}. Global Brain swarm telemetry is zero-text structural only; licensed benchmarks use synthetic stress cases. Session Replay is tenant legal/security retention, not a training corpus.`,
   });
 
   return { provisionedLicense, tenantId };

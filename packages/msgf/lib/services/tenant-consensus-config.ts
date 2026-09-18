@@ -16,6 +16,7 @@ import {
   SMALL_BRAIN_DEFAULT,
   TENANT_PRESET_IDS,
   configFromTenantPreset,
+  orderProvidersWithDefault,
   type MSGFConsensusConfig,
   type MsgfConsensusProvider,
   type TenantConsensusPresetId,
@@ -28,14 +29,22 @@ export type TenantConsensusConfigRow = {
   mode: string;
   providers: MsgfConsensusProvider[];
   strictness: string;
+  default_provider?: MsgfConsensusProvider;
   updated_at: string;
 };
+
+function parseDefaultProvider(value: unknown): MsgfConsensusProvider | undefined {
+  const p = typeof value === "string" ? value.trim() : "";
+  if (p === "anthropic" || p === "google" || p === "xai") return p;
+  return undefined;
+}
 
 function rowToConfig(row: {
   profile_id: string;
   mode: string;
   providers: unknown;
   strictness: string;
+  default_provider?: unknown;
 }): MSGFConsensusConfig {
   const providers = Array.isArray(row.providers)
     ? (row.providers as MsgfConsensusProvider[])
@@ -45,8 +54,11 @@ function rowToConfig(row: {
     providers,
     strictness: row.strictness as MSGFConsensusConfig["strictness"],
     profileId: row.profile_id,
+    defaultProvider: parseDefaultProvider(row.default_provider),
   });
-  return v.ok ? v.config : { ...SMALL_BRAIN_DEFAULT };
+  if (!v.ok) return { ...SMALL_BRAIN_DEFAULT };
+  const ordered = orderProvidersWithDefault(v.config.providers, v.config.defaultProvider);
+  return { ...v.config, ...ordered };
 }
 
 export async function getTenantConsensusConfig(params: {
@@ -56,17 +68,34 @@ export async function getTenantConsensusConfig(params: {
   const tid = params.tenantId.trim();
   const { data, error } = await params.admin
     .from("msgf_tenant_consensus_config")
-    .select("profile_id, mode, providers, strictness")
+    .select("profile_id, mode, providers, strictness, default_provider")
     .eq("tenant_id", tid)
     .maybeSingle();
 
   if (error) {
+    const missingCol = /default_provider/i.test(error.message);
+    if (missingCol) {
+      const retry = await params.admin
+        .from("msgf_tenant_consensus_config")
+        .select("profile_id, mode, providers, strictness")
+        .eq("tenant_id", tid)
+        .maybeSingle();
+      if (!retry.error && retry.data) return rowToConfig(retry.data);
+    }
     // Table may not exist yet — soft default
     console.warn("[getTenantConsensusConfig]", error.message);
     return { ...SMALL_BRAIN_DEFAULT };
   }
   if (!data) return { ...SMALL_BRAIN_DEFAULT };
-  return rowToConfig(data as { profile_id: string; mode: string; providers: unknown; strictness: string });
+  return rowToConfig(
+    data as {
+      profile_id: string;
+      mode: string;
+      providers: unknown;
+      strictness: string;
+      default_provider?: unknown;
+    }
+  );
 }
 
 export async function upsertTenantConsensusConfig(params: {
@@ -74,27 +103,44 @@ export async function upsertTenantConsensusConfig(params: {
   tenantId: string;
   profileId: TenantConsensusPresetId;
   customProviders?: MsgfConsensusProvider[];
+  defaultProvider?: MsgfConsensusProvider;
 }): Promise<MSGFConsensusConfig> {
   const tid = params.tenantId.trim();
   if (!TENANT_PRESET_IDS.includes(params.profileId)) {
     throw new Error(`Invalid profileId: ${params.profileId}`);
   }
-  const resolved = configFromTenantPreset(params.profileId, params.customProviders);
+  const resolved = configFromTenantPreset(
+    params.profileId,
+    params.customProviders,
+    params.defaultProvider
+  );
   if ("error" in resolved) {
     throw new Error(resolved.error);
   }
 
-  const { error } = await params.admin.from("msgf_tenant_consensus_config").upsert(
-    {
-      tenant_id: tid,
-      profile_id: resolved.profileId ?? params.profileId,
-      mode: resolved.mode,
-      providers: resolved.providers,
-      strictness: resolved.strictness,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "tenant_id" }
-  );
+  const row = {
+    tenant_id: tid,
+    profile_id: resolved.profileId ?? params.profileId,
+    mode: resolved.mode,
+    providers: resolved.providers,
+    strictness: resolved.strictness,
+    default_provider: resolved.defaultProvider ?? resolved.providers[0],
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await params.admin
+    .from("msgf_tenant_consensus_config")
+    .upsert(row, { onConflict: "tenant_id" });
+
+  if (error && /default_provider/i.test(error.message)) {
+    const { default_provider: _, ...legacy } = row;
+    const retry = await params.admin
+      .from("msgf_tenant_consensus_config")
+      .upsert(legacy, { onConflict: "tenant_id" });
+    if (retry.error) {
+      throw new Error(`upsertTenantConsensusConfig: ${retry.error.message}`);
+    }
+    return resolved;
+  }
 
   if (error) {
     throw new Error(`upsertTenantConsensusConfig: ${error.message}`);

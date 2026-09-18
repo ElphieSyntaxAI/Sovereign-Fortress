@@ -2,6 +2,8 @@
 
 **Goal:** Compare token usage **with MSGF** (HAL Pulse, CONVERGE, dev-session) vs **without**, and ship **authorecosystem** + **elphiesgatedai** subdomains.
 
+Swarm / Global Brain: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ---
 
 ## Part A — Run tonight (local prep)

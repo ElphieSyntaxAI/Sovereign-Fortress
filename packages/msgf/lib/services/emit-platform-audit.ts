@@ -247,10 +247,22 @@ export async function searchPlatformAudit(
   const needle = opts.q?.trim().toLowerCase() ?? "";
   if (!needle) return (data ?? []) as Record<string, unknown>[];
 
-  return ((data ?? []) as Record<string, unknown>[]).filter((row) => {
-    const summary = String(row.summary ?? "").toLowerCase();
-    const kind = String(row.kind ?? "").toLowerCase();
-    const trace = String(row.trace_id ?? "").toLowerCase();
-    return summary.includes(needle) || kind.includes(needle) || trace.includes(needle);
-  });
+  return ((data ?? []) as Record<string, unknown>[]).filter((row) =>
+    auditEventMatchesQuery(row, needle)
+  );
+}
+
+export function auditEventMatchesQuery(row: Record<string, unknown>, needle: string): boolean {
+  const q = needle.trim().toLowerCase();
+  if (!q) return true;
+  const summary = String(row.summary ?? "").toLowerCase();
+  const kind = String(row.kind ?? "").toLowerCase();
+  const trace = String(row.trace_id ?? "").toLowerCase();
+  const meta = JSON.stringify(row.metadata ?? {}).toLowerCase();
+  return (
+    summary.includes(q) ||
+    kind.includes(q) ||
+    trace.includes(q) ||
+    meta.includes(q)
+  );
 }

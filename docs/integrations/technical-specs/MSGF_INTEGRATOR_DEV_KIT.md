@@ -21,6 +21,8 @@ When **MSGF Pulse Guard** activates in a workspace, it scaffolds `.msgf/` with k
 - **MSGF: Open developer kit** — opens `.msgf/README.md`
 - **MSGF: Sync developer kit** — refreshes scripts, requests, and tasks templates
 
+Secondary-agent samples should include `x-msgf-agent-id` / parent / role / mandate-hash. Absorb is zero-text: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ## Terminal (Windows)
 
 ```powershell

@@ -311,6 +311,8 @@ export type PulseFullPipelineInput = PulseEngineInput & {
   isIdePulse?: boolean;
   /** Part B — admin/debug forced CONVERGE tier (x-msgf-converge-tier). */
   forcedConvergeTier?: import("@/lib/services/converge-tier/types").ConvergeTier | null;
+  /** Swarm monitor identity (secondary mandate binding). */
+  swarmIdentity?: import("@/lib/services/swarm-guard").SwarmAgentIdentity | null;
 };
 
 /** CONVERGE dual-model output before ARBITRATE retry / HITL decisions. */

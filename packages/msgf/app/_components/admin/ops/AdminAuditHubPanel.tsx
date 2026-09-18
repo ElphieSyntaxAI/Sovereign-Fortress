@@ -29,6 +29,7 @@ export function AdminAuditHubPanel() {
   const [q, setQ] = useState("");
   const [kind, setKind] = useState("");
   const [severity, setSeverity] = useState("");
+  const [p7Filter, setP7Filter] = useState("");
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [scope, setScope] = useState<"global" | "company">("company");
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,7 @@ export function AdminAuditHubPanel() {
       if (q.trim()) params.set("q", q.trim());
       if (kind.trim()) params.set("kind", kind.trim());
       if (severity.trim()) params.set("severity", severity.trim());
+      if (p7Filter.trim()) params.set("p7", p7Filter.trim());
       params.set("limit", "40");
       const res = await fetch(`/api/msgf/admin/audit-hub?${params}`, {
         credentials: "include",
@@ -65,7 +67,7 @@ export function AdminAuditHubPanel() {
     } finally {
       setLoading(false);
     }
-  }, [q, kind, severity]);
+  }, [q, kind, severity, p7Filter]);
 
   return (
     <div id="audit-hub">
@@ -81,21 +83,39 @@ export function AdminAuditHubPanel() {
         error={error}
         empty={events.length === 0}
         searched={searched}
-        placeholder="Search summary, kind, or trace id…"
+        placeholder="Search summary, kind, trace, cause_codes, promoted_keys, blocked_keys, resource_key…"
         filters={
           <div className="grid gap-2 sm:grid-cols-2">
             <input
               value={kind}
               onChange={(e) => setKind(e.target.value)}
-              placeholder="kind (harm_flag, p7_source_audit…)"
+              placeholder="kind (bot_swarm_detected, harm_flag…)"
               className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"
+              list="audit-hub-kinds"
             />
+            <datalist id="audit-hub-kinds">
+              <option value="bot_swarm_detected" />
+              <option value="bot_swarm_observed" />
+              <option value="harm_flag" />
+              <option value="p7_source_audit" />
+              <option value="circuit_open" />
+              <option value="budget_block" />
+            </datalist>
             <input
               value={severity}
               onChange={(e) => setSeverity(e.target.value)}
               placeholder="severity (info, warn, error…)"
               className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"
             />
+            <select
+              value={p7Filter}
+              onChange={(e) => setP7Filter(e.target.value)}
+              className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"
+            >
+              <option value="">P7 keys (any)</option>
+              <option value="promoted">Has promoted_keys</option>
+              <option value="blocked">Has blocked_keys</option>
+            </select>
           </div>
         }
       >
@@ -119,24 +139,75 @@ export function AdminAuditHubPanel() {
               </button>
               <p className="mt-1 text-slate-400">{ev.summary}</p>
               {expanded === ev.id ? (
-                <pre className="mt-2 overflow-x-auto rounded bg-slate-900/80 p-2 text-[11px] text-slate-400">
-                  {JSON.stringify(
-                    {
-                      tenant_id: ev.tenant_id,
-                      company_id: ev.company_id,
-                      trace_id: ev.trace_id,
-                      product: ev.product,
-                      metadata: ev.metadata,
-                    },
-                    null,
-                    2
-                  )}
-                </pre>
+                <div className="mt-2 space-y-2">
+                  <P7KeyLists metadata={ev.metadata} />
+                  <pre className="overflow-x-auto rounded bg-slate-900/80 p-2 text-[11px] text-slate-400">
+                    {JSON.stringify(
+                      {
+                        tenant_id: ev.tenant_id,
+                        company_id: ev.company_id,
+                        trace_id: ev.trace_id,
+                        product: ev.product,
+                        metadata: ev.metadata,
+                      },
+                      null,
+                      2
+                    )}
+                  </pre>
+                </div>
               ) : null}
             </li>
           ))}
         </ul>
       </AdminGovernanceSearchShell>
+    </div>
+  );
+}
+
+function asKeyList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((k): k is string => typeof k === "string" && k.trim().length > 0);
+}
+
+function P7KeyLists({ metadata }: { metadata?: Record<string, unknown> }) {
+  const promoted = asKeyList(metadata?.promoted_keys);
+  const blocked = asKeyList(metadata?.blocked_keys);
+  if (!promoted.length && !blocked.length) return null;
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300/80">
+          Promoted ({Number(metadata?.promoted_count ?? promoted.length)})
+        </p>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {promoted.map((key) => (
+            <a
+              key={`p-${key}`}
+              href={`/dashboard#source-audit?resource_key=${encodeURIComponent(key)}`}
+              className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-100 hover:underline"
+            >
+              {key}
+            </a>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-rose-300/80">
+          Blocked ({Number(metadata?.blocked_count ?? blocked.length)})
+        </p>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {blocked.map((key) => (
+            <a
+              key={`b-${key}`}
+              href={`/dashboard#source-audit?resource_key=${encodeURIComponent(key)}`}
+              className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 font-mono text-[10px] text-rose-100 hover:underline"
+            >
+              {key}
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

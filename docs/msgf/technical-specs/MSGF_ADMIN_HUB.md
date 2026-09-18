@@ -20,8 +20,8 @@ Shared **`project_origin`** filter strip syncs provenance, HITL audit, and skip-
 
 | Panel | Anchor / API / notes |
 | :--- | :--- |
-| **Audit hub** | `#audit-hub` · `GET /api/msgf/admin/audit-hub` — unified `platform_audit_events` timeline (COMPANY_ADMIN tenant-scoped) |
-| **Session Replay** | `#session-replay` · `GET /api/msgf/admin/prompt-sessions/search` (+ harm-ledger alias) — full-text prompt/completion forensics; harm opens HITL |
+| **Audit hub** | `#audit-hub` · `GET /api/msgf/admin/audit-hub` — unified `platform_audit_events` timeline (COMPANY_ADMIN tenant-scoped). Search `q=` matches summary/kind/trace/**metadata JSON** including `promoted_keys` / `blocked_keys` / `prompt:`. Filter `p7=promoted\|blocked`. Expanded row shows chip lists that deep-link to `/dashboard#source-audit?resource_key=` |
+| **Session Replay** | `#session-replay` · `GET /api/msgf/admin/prompt-sessions/search` (+ harm-ledger alias) — full-text prompt/completion forensics; harm opens HITL. **Not** the Global Brain feed. |
 | **Prompt templates** | Versioned bodies + `prompt_hash` lineage · `GET/POST /api/msgf/admin/prompt-templates` |
 | **Model fitness** | `#model-fitness` · `GET /api/msgf/admin/model-fitness` — under/over/fit rollups + cheapest-fit suggestion |
 | **Most-used resources** | Ranked `msgf_resource_usage_events` (hashed queries only) · `GET /api/msgf/dashboard/source-audit?mode=rank` |
@@ -37,7 +37,7 @@ Shared **`project_origin`** filter strip syncs provenance, HITL audit, and skip-
 | Sentry issues | `GET /api/msgf/admin/sentry?issues=1` · [`MSGF_SENTRY.md`](../../integrations/technical-specs/MSGF_SENTRY.md) |
 | DocuSign / signing roster | Envelopes + webhook inbox — [`MSGF_SIGNING.md`](../../integrations/technical-specs/MSGF_SIGNING.md) |
 
-**Human-proof defaults:** DEFEND RED and harm-flagged prompt sessions always open ARBITRATE HITL. Budget `fallback_small_brain` never bypasses RED/harm. Mitigation overrides that demote Hall RED require an A6-linked `incident_id` on the mitigation entry.
+**Human-proof defaults:** DEFEND RED and harm-flagged prompt sessions always open ARBITRATE HITL. Budget `fallback_small_brain` never bypasses RED/harm. Mitigation overrides that demote Hall RED require an A6-linked `incident_id` on the mitigation entry. Swarm detections (`bot_swarm_detected`) also open HITL; Audit hub search `q=swarm`. Global Brain JSON is hashed/`silo_ref` only — see [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md). Session Replay (`msgf_prompt_sessions`) is the full-text forensic store — it is not removed when P7 records `prompt:{hash}`.
 
 **Migrations:** `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`.
 
@@ -98,4 +98,4 @@ Migration: `20260629120000_company_team_vault_docusign.sql` (`msgf_docusign_enve
 
 ## Related
 
-- [`MSGF_PRODUCT_OVERVIEW.md`](../marketing/MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md)
+- [`MSGF_PRODUCT_OVERVIEW.md`](../marketing/MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_CONVERGE_TIER.md`](./MSGF_CONVERGE_TIER.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md) (zero-text swarm vs Session Replay) · [`MSGF_PILLAR_MAPPING_SSOT.md`](./MSGF_PILLAR_MAPPING_SSOT.md) (P7 is provenance, not a seventh SWEEP pillar)

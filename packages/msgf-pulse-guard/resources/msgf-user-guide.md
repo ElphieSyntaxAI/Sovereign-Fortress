@@ -90,6 +90,7 @@ Requires `msgf.authToken` in settings. If you see **Missing Authorization bearer
 | `msgf.authToken` | Long-lived IDE token (`msgf_ide_*`) from workspace IDE setup — Bearer on every Pulse |
 | `msgf.role` | Optional: `dev` (default), `company_admin`, `global_admin` |
 | `msgf.licenseKey` | Only for integrators with `msgf_live_…` keys (most buyers leave empty) |
+| `msgf.agentId` / `msgf.parentAgentId` / `msgf.agentRole` / `msgf.mandateHash` | Secondary / child agents — Active aborts a runaway wave; Global Brain stores **how** it failed, never the prompt |
 
 If a setting seems ignored, confirm you edited **Workspace** (not User) and run **Developer: Reload Window**.
 

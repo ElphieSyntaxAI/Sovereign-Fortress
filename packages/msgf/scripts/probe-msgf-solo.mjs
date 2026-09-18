@@ -461,7 +461,7 @@
  * Exercises: /health, POST /api/msgf/pulse (license), GET heal-queue, v32-heartbeat dry-run.
  *
  * Env:
- *   MSGF_APP_URL (default http://127.0.0.1:3000)
+ *   MSGF_APP_URL (default http://127.0.0.1:3001)
  *   MSGF_CONTRACT_LICENSE_KEY or MSGF_SOLO_* + mint via bootstrap:solo
  *   MSGF_SOLO_TENANT_ID, MSGF_SOLO_ENTITY_ID
  *   MSGF_OPS_CRON_SECRET (optional, heartbeat)
@@ -472,7 +472,7 @@ import { randomUUID } from "node:crypto";
 const BASE = (
   process.env.MSGF_APP_URL ||
   process.env.NEXT_PUBLIC_MSGF_APP_URL ||
-  "http://127.0.0.1:3000"
+  "http://127.0.0.1:3001"
 ).replace(/\/+$/, "");
 
 const TENANT =

@@ -4,7 +4,7 @@
 
 Code deltas are classified into **TIER_1 / TIER_2 / TIER_3** (&lt;5ms heuristic, no LLM). Each tier runs a **dual-model pair** (cost ladder); disagreement escalates T1→T2→T3; **T3 failure auto-quarantines matching Vault wins** (no auto-Hall) and forces HITL on `/admin/ops`.
 
-**Coexistence with TRI consensus:** The tier ladder is a **risk/cost path** (which pair runs first). Platform **Big Brain** vote truth when `MSGF_TRI_CONSENSUS_ENABLED=1` is **Claude + Gemini + Grok majority** ([`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)). Tier force headers still classify risk; Pulse chunk voting uses consensus config. Do **not** put Grok on every T1 call — keep TRI for high-drift Big Brain / tenant `tri_tribunal` preset.
+**Coexistence with TRI consensus:** The tier ladder is a **risk/cost path** (which pair runs first). Platform **Big Brain** vote truth when `MSGF_TRI_CONSENSUS_ENABLED=1` is **Claude + Gemini + Grok majority** ([`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md)). Tier force headers still classify risk; Pulse chunk voting uses consensus config. Do **not** put Grok on every T1 call — keep TRI for high-drift Big Brain / tenant `tri_tribunal` preset. Secondary-agent swarm abort is independent of CONVERGE tier — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md).
 
 ## Enable tiered converge
 

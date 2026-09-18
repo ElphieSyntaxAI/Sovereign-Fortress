@@ -4,11 +4,11 @@
 
 **Gate for tag `msgf-v1.0.0`:** All **P0** and **P1** checked; **P0-M3** required before paid self-serve claims; **P2** documented or deferred with owner.
 
-**SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./technical-specs/MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./technical-specs/MSGF_BRAIN_ROUTING.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
+**SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./technical-specs/MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./technical-specs/MSGF_BRAIN_ROUTING.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-09-14 (governance audit migrations + docs sync; Stripe mock may still be ON)  
-**Focus:** One-tenant staging smoke → technical soft-RC; live Checkout smoke → mock-off. Apply `20260915120000_governance_audit_platform.sql` + `20260915130000_trusted_license_allowlist.sql` on staging/prod.  
-**Readiness:** Technical soft-RC **~90%** · Paid self-serve **~82%** — see [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
+**Last updated:** 2026-09-18 (P7 closed loop + Shadow apply-on-activate in code; Stripe mock may still be ON)  
+**Focus:** Apply Sept 18 schema → one-tenant staging smoke (incl. swarm + Shadow CTA + audit hub chips) → technical soft-RC; live Checkout smoke → mock-off. Confirm Sept 2026 schema (`20260914200000_shadow_trial_*`, `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`, `20260918010000_tenant_default_ai_provider.sql`, `20260918120000_p7_prompt_shadow_deferred.sql`) on staging/prod.  
+**Readiness:** Technical soft-RC **~90%** · Paid self-serve **~82%** — P7/swarm/Shadow loop is **code-complete**; remaining = live schema + staging smoke. See [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
 
@@ -16,12 +16,12 @@
 
 Run from monorepo root. All must pass on a clean machine with env filled.
 
-- [x] `npm run test:unit -w msgf` (includes Jul 24 suites; re-green 2026-08-06 with shadow-proxy / launch hardening)
+- [x] `npm run test:unit -w msgf` (includes Jul 24 suites + heal-queue / human-arbitration / remediation-circuit / stripe / TRI / PQC / shadow-proxy / swarm-guard / global-brain-swarm / **p7-observe**; re-green 2026-09-11 via `validate:deployment`; p7-observe added 2026-09-18)
 - [x] `npm run test:stripe-entitlements -w msgf` (2026-08-02)
 - [x] `npm run test:tri-consensus -w msgf` (2026-08-05)
 - [x] `npm run test:hybrid-crypto -w msgf` / `test:hal-pqc` (2026-08-05)
-- [ ] `npm run test:savings -w msgf`
-- [x] **Build typing:** `showDirectoryPicker` fixed via `types/file-system-access.d.ts` (2026-08-02). Re-confirm full `next build` / `validate:deployment`.
+- [ ] `npm run test:savings -w msgf` (full savings bundle; not included in `test:unit`)
+- [x] **Build typing:** `showDirectoryPicker` fixed via `types/file-system-access.d.ts` (2026-08-02). Full `next build` re-confirmed via `validate:deployment` 2026-09-11.
 - [x] `npm run deep-test:solo -w msgf` — 2026-09-11 green
 - [x] `npm run verify:msgf-env -w msgf` — 2026-09-11 green
 - [x] `npm run db:push` applied `20260802010000_p4_profiles_stripe_subscription.sql` (2026-08-02)
@@ -44,9 +44,10 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 
 **Heal / brain / HAL:**
 
-- [ ] `npm run test:heal-queue -w msgf`
-- [ ] `npm run test:human-arbitration -w msgf`
-- [ ] `npm run test:remediation-circuit -w msgf`
+- [x] `npm run test:heal-queue -w msgf` — covered by `test:unit` (2026-09-11)
+- [x] `npm run test:human-arbitration -w msgf` — covered by `test:unit`
+- [x] `npm run test:remediation-circuit -w msgf` — covered by `test:unit`
+- [ ] `npm run test:savings -w msgf` (full savings bundle; not the same as `test:unit`)
 - [ ] `npm run test:brain-routing -w msgf`
 - [ ] `npm run test:heal-queue-audience -w msgf`
 - [ ] `npm run test:hal-word-chunk -w msgf`
@@ -69,6 +70,22 @@ Document date + operator + tenant id in changelog when done.
 - [ ] `POST /api/msgf/ops/v32-heartbeat` with `{"dry_run":true}` — 200 + expected summary
 - [ ] `/setup/projects` — monorepo preset creates row with correct `project_origin`
 - [ ] Sentry SDK: `GET /api/sentry-test` → issue in project `msgf` → delete route
+- [ ] Swarm abort (Active or Pulse with child-agent headers) → HITL + tenant audit `blocked_keys`; Global Brain JSON has **no** key lists
+- [ ] Shadow trial proof shows would-have promoted/blocked counts; **Start 3-day full access** applies deferred P7 once (`p7_applied_at` set)
+- [ ] `/admin/ops` audit hub: `p7=promoted` / `p7=blocked` chips + `q=` matches `promoted_keys` / `blocked_keys`
+
+---
+
+## P0 — P7 closed loop (code Done 2026-09-18; schema + smoke open)
+
+- [x] Live writes: swarm detected, ingest, HITL, Sentry quarantine, heal-queue APPROVE/DENY, confirm-pack, verify-result, Active gateway (`lib/services/p7-observe.ts`)
+- [x] Read/steer: Active P7 poison wins over model-fitness; swarm admission prune; agent-context packs omit pruned tasks
+- [x] Shadow observe-only + apply-once on 3-day CTA; paid Active never queues deferred P7
+- [x] Decay (30-day half-life) + `prompt:{sha256}` resource keys; Session Replay **not** removed
+- [x] `npm run test:p7-observe -w msgf` (included in `test:unit`)
+- [ ] `npm run db:push -w msgf` for `20260918120000_p7_prompt_shadow_deferred.sql` (prompt ledger CHECK + shadow `p7_*` columns)
+- [ ] `npm run verify:db-schema -w msgf` reports Shadow P7 columns + reputation ledger `'prompt'`
+- [ ] Follow-up (does not block soft-RC): Pulse `x-msgf-prompt-hash` → `prompt:{sha256}` on PulseEngine hits (gateway already wired)
 
 ---
 
@@ -192,6 +209,8 @@ MSGF can RC without these; include if your gate requires M5:
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-18 | **P7 closed loop:** live writes across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; `test:p7-observe`. Schema `20260918120000` + staging smokes still open. Soft-RC stays ~90%. |
+| 2026-09-17 | **Global Brain zero-text swarm telemetry** + `test:swarm-guard` / `test:global-brain-swarm` in `test:unit`. Docs re-sync with V1 roadmap: heal-queue unit tests marked covered by `test:unit`; remaining P0 = savings/brain/hal-word + integration + staging smoke. |
 | 2026-09-11 | **P0-M3:** live Stripe keys + webhook + live Price IDs on `msgf-api-00077-7qx`; identity done. Mock still ON. Remaining paid: Checkout smoke + mock-off + BYOK. **P0 automated:** `validate:deployment`, `deep-test:solo`, `verify:msgf-env` green. |
 | 2026-08-06 | Migrations `db:push:verify` green; Cloud Run `msgf-api-00068-v4d` got `MSGF_OPS_CRON_SECRET` + Sentry + Stripe Price IDs. Remaining soft-RC: staging smokes, heartbeat Action, `validate:deployment`. |
 | 2026-08-05 | TRI + PQC unit gates noted; TRI migration still to push; readiness soft-RC ~84% / paid ~68%. |

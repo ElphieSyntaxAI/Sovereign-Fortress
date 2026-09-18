@@ -1,8 +1,8 @@
 # MSGF V3.2 — Production deploy checklist
 
-Use after merging the P0–P4 roadmap work. **Code is built; production needs deploy + migrations.**
+Use after merging the P0–P4 roadmap work. **Code is built; production needs remaining schema apply + smokes.**
 
-**Last updated:** 2026-08-11
+**Last updated:** 2026-09-18 (P7 prompt ledger + Shadow deferred columns; zero-text Global Brain swarm telemetry)
 
 ---
 
@@ -31,6 +31,13 @@ Use after merging the P0–P4 roadmap work. **Code is built; production needs de
 | `20260810010000_msgf_p7_source_reputation.sql` | P7 source audit + reputation + reverse impact |
 | `20260811010000_p4_active_incidents_bug_inbox.sql` | Bug inbox columns on `p4_active_incidents` |
 | `20260811020000_p4_upsert_reopen_bug_inbox.sql` | Reopen dismissed inbox rows on re-report |
+| `20260914200000_shadow_trial_7d_full_access.sql` | 7-day Shadow trial clock + 3-day Individual Pro full access |
+| `20260915120000_governance_audit_platform.sql` | Audit hub, Session Replay, budgets, SIEM, resource usage |
+| `20260915130000_trusted_license_allowlist.sql` | Trusted-OSS bulk ARBITRATE allowlist |
+| `20260918010000_tenant_default_ai_provider.sql` | Tenant default AI provider |
+| `20260918120000_p7_prompt_shadow_deferred.sql` | P7 `prompt` ledger CHECK + Shadow `p7_deferred` / `p7_applied_at` / promote-block counts |
+
+Confirm Sept 2026 rows with `npm run db:push:verify -w msgf` if they are not yet on the live DB. `verify:db-schema` now asserts Shadow P7 columns and the reputation ledger `'prompt'` CHECK.
 
 ```bash
 npm run db:push -w msgf
@@ -48,11 +55,12 @@ MSGF_OPS_CRON_SECRET=...          # required: heartbeat, workers, audit fallback
 # Prefer dedicated keys in prod (fallback to ops cron is OK for soft launch):
 # MSGF_SKIP_AUDIT_SECRET=...
 # MSGF_ARBITRATE_AUDIT_KEY=...
-# Stripe (M3 — paid go-live; see MSGF_DEV_TODO.md §2b):
-# STRIPE_SECRET_KEY=...
+# Stripe (M3 — paid go-live; live keys already in Secret Manager on msgf-api-00077-7qx;
+# keep mock ON until Checkout smoke. See MSGF_DEV_TODO.md §2b):
+# STRIPE_SECRET_KEY=...          # prefer Secret Manager, not plaintext
 # STRIPE_WEBHOOK_SECRET=...
-# STRIPE_PRICE_PRO_INDIVIDUAL=price_...
-# STRIPE_PRICE_STARTUP_TEAM=price_...
+# STRIPE_PRICE_PRO_INDIVIDUAL=price_1UEN2uQjFFioI1PaY9uZ3XxO
+# STRIPE_PRICE_STARTUP_TEAM=price_1UEN30QjFFioI1Pamsh3dVyt
 # MSGF_STRIPE_WEBHOOK_LIVE=1
 # MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0
 # Gateway / Active Governance (optional):
@@ -62,6 +70,8 @@ MSGF_OPS_CRON_SECRET=...          # required: heartbeat, workers, audit fallback
 # Optional:
 # MSGF_IDE_TOKEN_TTL_DAYS=90
 # MSGF_HEAL_RESERVE_CHUNK=400
+# Optional P7:
+# MSGF_P7_REPUTATION_HALFLIFE_DAYS=30   # 0 disables decay
 ```
 
 Redeploy **msgf** service after env update.
@@ -120,7 +130,7 @@ curl -sS "https://elphiesgatedai.elphiesyntax.com/api/v1/chat/completions" \
 ## 6. Deferred (do not promise in v1 soft-RC)
 
 - Disk-level auto-patch (P4 optional)
-- Stripe Customer Portal / invoice history UI (Checkout itself is **in plan** — M3 / DEV_TODO §2b)
+- Stripe Customer Portal **invoice history UI** (Checkout + `/account` portal session API are shipped — M3 / DEV_TODO §2b)
 - Full Cursor MCP install (see [MSGF_IDE_MCP.md](../integrations/technical-specs/MSGF_IDE_MCP.md))
 - Embedding semantic similarity cache / dual-TRI chat wire on Active gateway (hash cache + state-gate shipped)
 
@@ -129,7 +139,9 @@ curl -sS "https://elphiesgatedai.elphiesyntax.com/api/v1/chat/completions" \
 ## Canonical docs
 
 - [MSGF_SHADOW_PROXY.md](./technical-specs/MSGF_SHADOW_PROXY.md)
+- [MSGF_GLOBAL_BRAIN_TELEMETRY.md](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)
 - [MSGF_PRODUCT_OVERVIEW.md](./marketing/MSGF_PRODUCT_OVERVIEW.md)
+- [MSGF_BUYER_WALKTHROUGH.md](./marketing/MSGF_BUYER_WALKTHROUGH.md)
 - [MSGF_IDE_SETUP_RUNBOOK.md](../integrations/technical-specs/MSGF_IDE_SETUP_RUNBOOK.md)
 - [MSGF_IDE_INTEGRATION.md](../integrations/technical-specs/MSGF_IDE_INTEGRATION.md)
 - [MSGF_AGENT_EXECUTION_MATRIX.md](./build-plans/MSGF_AGENT_EXECUTION_MATRIX.md)

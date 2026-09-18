@@ -23,7 +23,18 @@ export type MSGFConsensusConfig = {
   providers: MsgfConsensusProvider[];
   strictness: MsgfConsensusStrictness;
   profileId?: string;
+  /** Small Brain / SOLO_FAST lead. Must be in `providers`. */
+  defaultProvider?: MsgfConsensusProvider;
 };
+
+/** Platform Small Brain lead — Gemini (Vertex + IDE default). */
+export const DEFAULT_AI_PROVIDER: MsgfConsensusProvider = "google";
+
+export const CONSENSUS_PROVIDER_ORDER: MsgfConsensusProvider[] = [
+  "google",
+  "anthropic",
+  "xai",
+];
 
 export type MsgfConsensusProfileId =
   | "platform_tri_tribunal"
@@ -43,9 +54,10 @@ export const BIG_BRAIN_DEFAULT: MSGFConsensusConfig = {
 
 export const SMALL_BRAIN_DEFAULT: MSGFConsensusConfig = {
   mode: "DUAL",
-  providers: ["anthropic", "google"],
+  providers: ["google", "anthropic"],
   strictness: "UNANIMOUS",
   profileId: "balanced_dual",
+  defaultProvider: DEFAULT_AI_PROVIDER,
 };
 
 export const CONSENSUS_PRESET_CATALOG: Record<
@@ -54,37 +66,43 @@ export const CONSENSUS_PRESET_CATALOG: Record<
 > = {
   balanced_dual: {
     mode: "DUAL",
-    providers: ["anthropic", "google"],
+    providers: ["google", "anthropic"],
     strictness: "UNANIMOUS",
     profileId: "balanced_dual",
+    defaultProvider: DEFAULT_AI_PROVIDER,
   },
   bias_mitigated_dual: {
     mode: "DUAL",
     providers: ["anthropic", "xai"],
     strictness: "UNANIMOUS",
     profileId: "bias_mitigated_dual",
+    defaultProvider: "anthropic",
   },
   gemini_grok_dual: {
     mode: "DUAL",
     providers: ["google", "xai"],
     strictness: "UNANIMOUS",
     profileId: "gemini_grok_dual",
+    defaultProvider: DEFAULT_AI_PROVIDER,
   },
   tri_tribunal: {
     mode: "TRI",
-    providers: ["anthropic", "google", "xai"],
+    providers: ["google", "anthropic", "xai"],
     strictness: "MAJORITY",
     profileId: "tri_tribunal",
+    defaultProvider: DEFAULT_AI_PROVIDER,
   },
   solo_fast: {
     mode: "SOLO_FAST",
-    providers: ["anthropic"],
+    providers: [DEFAULT_AI_PROVIDER],
     strictness: "UNANIMOUS",
     profileId: "solo_fast",
+    defaultProvider: DEFAULT_AI_PROVIDER,
   },
 };
 
 export const TENANT_PRESET_IDS = [
+  "solo_fast",
   "balanced_dual",
   "bias_mitigated_dual",
   "gemini_grok_dual",
@@ -146,9 +164,10 @@ export function validateConsensusConfig(
   if (config.strictness !== "UNANIMOUS" && config.strictness !== "MAJORITY") {
     return { ok: false, error: "invalid strictness" };
   }
+  const defaultProvider = resolveDefaultProvider({ ...config, providers });
   return {
     ok: true,
-    config: { ...config, providers },
+    config: { ...config, providers, defaultProvider },
   };
 }
 
@@ -174,20 +193,68 @@ export function resolveBigBrainConsensusConfig(): MSGFConsensusConfig {
   return { ...BIG_BRAIN_DEFAULT };
 }
 
+export function resolveDefaultProvider(config: {
+  providers: MsgfConsensusProvider[];
+  defaultProvider?: MsgfConsensusProvider;
+}): MsgfConsensusProvider {
+  if (config.defaultProvider && config.providers.includes(config.defaultProvider)) {
+    return config.defaultProvider;
+  }
+  return config.providers[0] ?? DEFAULT_AI_PROVIDER;
+}
+
+/** Put the tenant default first so SOLO_FAST / lead-model callers share one order. */
+export function orderProvidersWithDefault(
+  providers: MsgfConsensusProvider[],
+  defaultProvider?: MsgfConsensusProvider | null
+): { providers: MsgfConsensusProvider[]; defaultProvider: MsgfConsensusProvider } {
+  const unique = [...new Set(providers)];
+  if (unique.length === 0 && defaultProvider) unique.push(defaultProvider);
+  const dp =
+    defaultProvider && unique.includes(defaultProvider)
+      ? defaultProvider
+      : unique[0] ?? DEFAULT_AI_PROVIDER;
+  if (!unique.includes(dp)) unique.unshift(dp);
+  return { defaultProvider: dp, providers: [dp, ...unique.filter((p) => p !== dp)] };
+}
+
+export function inferTenantPresetFromProviders(
+  providers: MsgfConsensusProvider[]
+): TenantConsensusPresetId {
+  const unique = [...new Set(providers)];
+  if (unique.length <= 1) return "solo_fast";
+  if (unique.length === 3) return "tri_tribunal";
+  const set = new Set(unique);
+  if (set.has("anthropic") && set.has("google")) return "balanced_dual";
+  if (set.has("anthropic") && set.has("xai")) return "bias_mitigated_dual";
+  if (set.has("google") && set.has("xai")) return "gemini_grok_dual";
+  return "custom_byok";
+}
+
 export function configFromTenantPreset(
   profileId: TenantConsensusPresetId,
-  customProviders?: MsgfConsensusProvider[]
+  customProviders?: MsgfConsensusProvider[],
+  defaultProvider?: MsgfConsensusProvider
 ): MSGFConsensusConfig | { error: string } {
-  if (profileId === "custom_byok") {
-    const providers = [...new Set(customProviders ?? [])];
+  if (profileId === "custom_byok" || profileId === "solo_fast") {
+    const ordered = orderProvidersWithDefault(
+      customProviders?.length ? customProviders : defaultProvider ? [defaultProvider] : [],
+      defaultProvider
+    );
+    const inferred = inferTenantPresetFromProviders(ordered.providers);
     const mode: MsgfConsensusMode =
-      providers.length === 3 ? "TRI" : providers.length === 1 ? "SOLO_FAST" : "DUAL";
+      ordered.providers.length === 3
+        ? "TRI"
+        : ordered.providers.length === 1
+          ? "SOLO_FAST"
+          : "DUAL";
     const strictness: MsgfConsensusStrictness = mode === "TRI" ? "MAJORITY" : "UNANIMOUS";
     const v = validateConsensusConfig({
       mode,
-      providers,
+      providers: ordered.providers,
       strictness,
-      profileId: "custom_byok",
+      profileId: inferred === "tri_tribunal" && profileId === "custom_byok" ? "custom_byok" : inferred,
+      defaultProvider: ordered.defaultProvider,
     });
     return v.ok ? v.config : { error: v.error };
   }
@@ -196,7 +263,12 @@ export function configFromTenantPreset(
   }
   const preset = CONSENSUS_PRESET_CATALOG[profileId as keyof typeof CONSENSUS_PRESET_CATALOG];
   if (!preset) return { error: `unknown profile: ${profileId}` };
-  return { ...preset };
+  const ordered = orderProvidersWithDefault(preset.providers, defaultProvider);
+  return {
+    ...preset,
+    providers: ordered.providers,
+    defaultProvider: ordered.defaultProvider,
+  };
 }
 
 /** Map consensus provider → tenant credential provider key. */

@@ -12,6 +12,8 @@ IDE extension for **MSGF V3.2-ULTRA** — micro-batched editor telemetry to the 
 
 The extension reads `vscode.workspace.getConfiguration('msgf')`, listens on `onDidChangeTextDocument`, buffers change events locally, and flushes JSON `{ keystrokes: [...] }` to `${apiUrl}/api/msgf/pulse` with `Content-Type: application/json` and `X-MSGF-Tenant-Key` (mirrored as `x-msgf-tenant-id` for the Pulse API).
 
+Secondary / child agents should set `msgf.agentId`, `msgf.parentAgentId`, `msgf.agentRole`, and `msgf.mandateHash` so Pulse can abort a runaway wave. Global Brain stores **how** the wave failed, never the prompt — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../docs/msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ---
 
 ## Prerequisites
@@ -130,6 +132,7 @@ Use this sequence in the **Extension Development Host** window only.
 
 - [ ] In Developer Tools **Network** (Extension Host), filter for `pulse` — expect `POST` to `{msgf.apiUrl}/api/msgf/pulse`.
 - [ ] Request headers include `Content-Type: application/json`, `X-MSGF-Tenant-Key`, `x-msgf-ide-pulse: 1`, and `x-msgf-entity-id`.
+- [ ] Secondary-agent Pulses also send `x-msgf-agent-id`, `x-msgf-parent-agent-id`, `x-msgf-agent-role`, `x-msgf-mandate-hash`.
 - [ ] Request body is JSON: `{ "keystrokes": [ { "ts", "key", "type", "target" }, … ] }` where `target` carries URI/workspace path metadata.
 - [ ] Response is non-blocking on failure (editor stays responsive); `4xx`/`5xx` log under `[MSGF Guard] flush failed` in the console only.
 

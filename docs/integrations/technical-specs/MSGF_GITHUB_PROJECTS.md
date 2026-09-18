@@ -4,6 +4,8 @@
 
 **UI:** `/setup/projects` (signed-in) · **APIs:** `/api/msgf/github/*`, `POST /api/msgf/projects/bulk`
 
+Mapped `project_origin` is tenant HITL scope. Global Brain swarm export uses hashed `silo_ref`, not repo names — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ---
 
 ## 1. Ops setup (required before Connect GitHub works)
@@ -30,7 +32,7 @@
 
 In Supabase **Authentication → URL configuration**:
 
-- **Site URL:** MSGF production (or `http://127.0.0.1:3000` for local)
+- **Site URL:** MSGF production (or `http://127.0.0.1:3001` for local)
 - **Redirect URLs** include:
   - `https://elphiesgatedai.elphiesyntax.com/auth/callback`
   - `https://elphiesgatedai.elphiesyntax.com/setup/projects`

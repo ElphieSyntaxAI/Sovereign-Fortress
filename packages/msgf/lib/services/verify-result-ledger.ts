@@ -26,6 +26,7 @@ import { pathToGenealogicalBugIndex } from "@/lib/services/IngestService";
 import { getPackFromRedis } from "@/lib/services/pack-registry";
 import { msgfRedisKey, redisIncrWithWindow } from "@/lib/redis";
 import { redactTerminalSnippet } from "@/lib/utils/shell-safe-path";
+import { hitFromFilePath, hitFromPackId, writeLiveP7 } from "@/lib/services/p7-observe";
 
 const HALL_FAIL_THRESHOLD =
   Number(process.env.MSGF_VERIFY_HALL_FAIL_THRESHOLD?.trim()) || 3;
@@ -107,6 +108,18 @@ export async function applyVerifyResultLedgerEffects(
       hall_persisted = true;
     }
 
+    writeLiveP7({
+      admin,
+      tenantId,
+      entityId: actorId,
+      traceId: `verify_fail_${fp}`,
+      blockHits: (body.file_paths ?? []).map((p) => hitFromFilePath(p, true)),
+      outcome: hall_persisted ? "persist_hall" : "block",
+      decisionKind: "defend",
+      routing: "verify_fail",
+      highDrift: hall_persisted,
+    });
+
     return { hall_persisted, vault_persisted, verify_fail_count };
   }
 
@@ -133,6 +146,20 @@ export async function applyVerifyResultLedgerEffects(
       vault_persisted = true;
     }
   }
+
+  writeLiveP7({
+    admin,
+    tenantId,
+    entityId: actorId,
+    traceId: `verify_pass_${body.pack_id ?? tenantId}`,
+    promoteHits: [
+      ...(body.file_paths ?? []).map((p) => hitFromFilePath(p, false)),
+      ...(body.pack_id?.trim() ? [hitFromPackId(body.pack_id.trim(), false)] : []),
+    ],
+    outcome: vault_persisted ? "persist_vault" : "pass",
+    decisionKind: "local_gateway",
+    routing: "verify_pass",
+  });
 
   return { hall_persisted, vault_persisted, verify_fail_count };
 }

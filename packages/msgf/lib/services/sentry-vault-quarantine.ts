@@ -19,6 +19,7 @@ import {
   type VaultMatchCandidate,
 } from "@/lib/services/sentry-vault-match";
 import { appendVaultLog } from "@/lib/services/tenant-onboarding-vault";
+import { hitFromVaultId, writeLiveP7 } from "@/lib/services/p7-observe";
 
 export type QuarantineFromSentryResult = {
   quarantined: boolean;
@@ -102,6 +103,24 @@ export async function quarantineVaultFromSentryCrash(
       reason: `update_failed:${error.message}`,
     };
   }
+
+  const matched = candidates.find((c) => c.id === match.vectorId);
+  const md = (matched?.metadata ?? {}) as Record<string, unknown>;
+  const tenantId =
+    (typeof md.tenant_id === "string" && md.tenant_id.trim()) ||
+    signal.companyId?.trim() ||
+    "system";
+  writeLiveP7({
+    admin,
+    tenantId,
+    traceId: `sentry_quarantine_${signal.issueId}`,
+    blockHits: [hitFromVaultId(match.vectorId, true)],
+    outcome: "block",
+    decisionKind: "defend",
+    routing: "sentry_quarantine",
+    highDrift: true,
+    defendReason: reason,
+  });
 
   if (signal.companyId?.trim()) {
     try {

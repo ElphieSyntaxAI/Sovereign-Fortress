@@ -325,7 +325,7 @@ function buildWelcomeEmailHtml(input: {
   });
   return `
 <p>${greeting}</p>
-<p>Your <strong>free Shadow Proxy trial</strong> is live — up to <strong>7 days</strong>, starting on your first Shadow call (not signup). Point OpenAI or Anthropic SDKs at MSGF with <code>x-msgf-mode: shadow</code> — zero extra latency. We count duplicate calls, retry loops, and policy-risk prompts in the background.</p>
+<p>Your <strong>free Shadow Proxy trial</strong> is live — up to <strong>7 days</strong>, starting on your first Shadow call (not signup). Point OpenAI or Anthropic SDKs at MSGF with <code>x-msgf-mode: shadow</code> — zero extra latency. We count duplicate calls, retry loops, policy-risk prompts, and runaway secondary-agent waves in the background.</p>
 <p><strong>MSGF key (save this — shown once):</strong><br/><code>${input.msgfKey}</code></p>
 <p><strong>Live savings dashboard:</strong><br/><a href="${input.statusUrl}">${input.statusUrl}</a></p>
 <p>If the key is unused, it expires ${unusedBy}. After your first call we email a proof report when the 7-day window closes, with a CTA to start 3-day Individual Pro full access.</p>
@@ -350,11 +350,14 @@ function buildReportEmailHtml(input: {
   <li><strong>Retry-loop prompts:</strong> ${proof.retry_loop_prompts.toLocaleString()} (Hall would have stopped the known-bad path)</li>
   <li><strong>Policy-risk prompts:</strong> ${proof.policy_flags.toLocaleString()} (DEFEND would have flagged before the model answered)</li>
   <li><strong>Oversized context dumps:</strong> ${proof.fat_context_calls.toLocaleString()}</li>
+  <li><strong>Runaway agent waves:</strong> ${proof.bot_swarm_waves.toLocaleString()} (Active Governance would have aborted the drifting child and opened HITL — tenant stays live)</li>
+  <li><strong>Resources that would have been promoted:</strong> ${proof.p7_promoted_resources.toLocaleString()}</li>
+  <li><strong>Resources that would have been blocked:</strong> ${proof.p7_blocked_resources.toLocaleString()}</li>
 </ul>
 <p>Token projection (footnote — not the headline): ${input.summary.evaluation_count.toLocaleString()} evals · pass-through ${formatUsd(input.summary.actual_cost_usd)} · projected ${formatUsd(input.summary.projected_savings_usd)}. Projected ≠ proven eco. Duplicate $ is what you already spent on identical prompts.</p>
 <p><em>Disclaimer:</em> ${SHADOW_PROOF_SCOPE_DISCLAIMER}</p>
 <p>Review the live ledger: <a href="${input.statusUrl}">${input.statusUrl}</a></p>
-<p><strong>Next:</strong> <a href="${fullCta}">Start 3-day full access</a> — Individual Pro cloud (dashboard, Pulse, IDE token, Active Governance, Vault/Hall) on the same tenant as this proof ledger.</p>
+<p><strong>Next:</strong> <a href="${fullCta}">Start 3-day full access</a> — apply these reputation promotes/blocks immediately, then Individual Pro cloud (dashboard, Pulse, IDE token, Active Governance, Vault/Hall) on the same tenant as this proof ledger.</p>
 <p>— Elphie Syntax · MSGF Gated AI</p>
 `.trim();
 }
@@ -374,6 +377,9 @@ function buildReportEmailText(input: {
     `Retry-loop prompts: ${proof.retry_loop_prompts}`,
     `Policy-risk prompts: ${proof.policy_flags}`,
     `Oversized context dumps: ${proof.fat_context_calls}`,
+    `Runaway agent waves: ${proof.bot_swarm_waves}`,
+    `Resources promoted (projected): ${proof.p7_promoted_resources}`,
+    `Resources blocked (projected): ${proof.p7_blocked_resources}`,
     "",
     `Evals: ${input.summary.evaluation_count}`,
     `Pass-through: ${formatUsd(input.summary.actual_cost_usd)}`,
@@ -382,10 +388,22 @@ function buildReportEmailText(input: {
     `Disclaimer: ${SHADOW_PROOF_SCOPE_DISCLAIMER}`,
     "",
     `Dashboard: ${input.statusUrl}`,
-    `Start 3-day full access: ${fullCta}`,
+    `Start 3-day full access to apply these reputation promotes/blocks immediately: ${fullCta}`,
     "",
-    "Duplicate $ is money already spent on identical prompts. Hall/policy counts are pattern matches — not a hallucination detector.",
+    "Duplicate $ is money already spent on identical prompts. Hall/policy counts are pattern matches — not a hallucination detector. Runaway agent waves are cheap swarm-monitor trips (mandate drift, fan-out, sibling edges) — not a tenant freeze.",
   ].join("\n");
+}
+
+/** Exported for unit tests of the 7-day proof email. */
+export function renderShadowTrialProofReport(input: {
+  name: string | null;
+  summary: ShadowTrialSummary;
+  statusUrl: string;
+}): { html: string; text: string } {
+  return {
+    html: buildReportEmailHtml(input),
+    text: buildReportEmailText(input),
+  };
 }
 
 export async function notifyAdminsNewShadowTrial(input: {

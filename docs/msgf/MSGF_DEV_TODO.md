@@ -2,13 +2,13 @@
 
 **Audience:** Jessica / MSGF engineering  
 **Status:** Living checklist for **MSGF 1.0 production readiness** (gatedai + Pulse Guard + ops).  
-**Last updated:** 2026-09-11 (live Stripe keys + webhook on `msgf-api-00077-7qx`; identity done; mock still ON)
+**Last updated:** 2026-09-18 (P7 closed loop + Shadow apply-on-activate in code; Global Brain zero-text swarm telemetry; live Stripe keys still mock-ON until Checkout smoke)
 
-**Priority now:** One-tenant staging smoke → technical soft-RC; then live Checkout smoke → flip `MSGF_STRIPE_WEBHOOK_LIVE=1` + mock off.
+**Priority now:** Apply Sept 18 schema → one-tenant staging smoke (incl. swarm + Shadow CTA + audit hub) → technical soft-RC; then live Checkout smoke → flip `MSGF_STRIPE_WEBHOOK_LIVE=1` + mock off.
 
-**Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~90%** · **paid self-serve ~82%** (P0 automated gates green 2026-09-11; remaining RC = live smoke; remaining paid = Checkout + mock-off).
+**Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~90%** · **paid self-serve ~82%** (P0 automated gates green 2026-09-11; P7/swarm code landed 2026-09-18; remaining RC = live schema + smoke; remaining paid = Checkout + mock-off).
 
-**Related:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_SHADOW_PROXY.md`](./technical-specs/MSGF_SHADOW_PROXY.md) · [`MSGF_PRODUCT_OVERVIEW.md`](./marketing/MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_TESTING.md`](./technical-specs/MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./technical-specs/MSGF_BRAIN_ROUTING.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./technical-specs/MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SENTRY.md`](../integrations/technical-specs/MSGF_SENTRY.md)
+**Related:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_BUYER_WALKTHROUGH.md`](./marketing/MSGF_BUYER_WALKTHROUGH.md) · [`MSGF_SHADOW_PROXY.md`](./technical-specs/MSGF_SHADOW_PROXY.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) · [`MSGF_PRODUCT_OVERVIEW.md`](./marketing/MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_TESTING.md`](./technical-specs/MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./technical-specs/MSGF_BRAIN_ROUTING.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./technical-specs/MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SENTRY.md`](../integrations/technical-specs/MSGF_SENTRY.md)
 
 ---
 
@@ -34,6 +34,7 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [x] Apply launch governance writers migration `20260806200000_launch_governance_writers.sql` (proven/usage audit columns) — 2026-08-06
 - [x] `npm run db:push:verify -w msgf` after TRI + usage + shadow + governance migrations — 2026-08-06 green
 - [x] Apply bug inbox migrations `20260811010000_p4_active_incidents_bug_inbox.sql` + `20260811020000_p4_upsert_reopen_bug_inbox.sql` — 2026-08-11 `db:push`
+- [ ] Confirm Sept 2026 schema on live DB: `20260914200000_shadow_trial_7d_full_access.sql`, `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`, `20260918010000_tenant_default_ai_provider.sql`, `20260918120000_p7_prompt_shadow_deferred.sql`
 
 ### 1.1b Launch hardening (code Done 2026-08-06)
 
@@ -87,10 +88,12 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [ ] Shadow Proxy: OpenAI client → `/api/v1/chat/completions` with `x-msgf-key` → shadow-eval panel shows projected row
 - [ ] Active mode: same request with `x-msgf-mode: active` → `x-msgf-routing` header present; spoofed `x-msgf-tenant-id` ignored
 - [ ] Period reports PDF downloads for caller’s tenant only (403 on foreign tenant_id)
+- [ ] Swarm abort writes tenant `blocked_keys`; Global Brain JSON has no key lists
+- [ ] Shadow 3-day CTA applies deferred P7 once; audit hub `p7=` chips searchable
 
 ### 1.5 Product surfaces
 
-- [ ] Landing / features / pricing / workspace / `/status` / extension download on staging
+- [ ] Landing / features / pricing / waitlist `/sign-up` / `/shadow-trial` / workspace / `/status` / extension download on staging
 - [x] Marketing copy updated (TRI, Sentry, DocuSign/Dropbox Sign, quantum-ready) — 2026-08-05
 - [x] Marketing + product overview updated for Shadow Proxy / Active Governance / proven vs projected — 2026-08-06
 - [ ] Pulse Guard: `msgf.enabled` + tenantKey + token on a real workspace
@@ -173,7 +176,7 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./marketing/MSGF_BOSS_DE
 - [x] TRI Big Brain + tenant presets (flagged)
 - [x] Hybrid PQC envelopes (flagged)
 - [x] Shadow Proxy + Active Governance (launch cut — hash cache / state-gate; embedding semantic + dual chat wire deferred)
-- [x] **P7 Source Audit & Resource Reputation** (Pulse-first; non-blocking; prune/boost; attribution_class; reverse impact)
+- [x] **P7 Source Audit & Resource Reputation** (closed loop 2026-09-18: live writes on swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; read-steer on Active + swarm + agent context; Shadow deferred apply-on-activate; decay + `prompt:{hash}`; non-blocking; prune/boost; attribution_class; reverse impact). Remaining: Pulse `x-msgf-prompt-hash` wiring + live schema.
 - [x] Admin provenance search + `/account` hub + Stripe Customer Portal API (nav/ops pass)
 - [x] **Bug inbox** — `p4_active_incidents` triage → promote to ARBITRATE / dismiss; FAB on dashboard + workspace; self-heal upserts inbox; reopen dismissed on re-report
 - [ ] Embedding semantic similarity cache on `/api/v1`
@@ -182,7 +185,7 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./marketing/MSGF_BOSS_DE
 - [ ] **Sentry** Session Replay / Logging / Profiling (P2 — distinct from MSGF Session Replay on `/admin/ops#session-replay`, which is **shipped**)
 - [ ] GitHub App (org-wide)
 - [ ] Nanosecond hot-layer **SLO claim**
-- [ ] Stripe Customer Portal UI
+- [ ] Stripe Customer Portal **invoice history UI** (`/account` + portal session API already shipped)
 - [ ] Platform PQ-TLS (GCP LB)
 
 ---
@@ -195,7 +198,8 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./marketing/MSGF_BOSS_DE
 4. **RC > demo.**  
 5. **Do not claim “HTTPS is post-quantum”** without platform PQ-TLS — claim **app-layer hybrid KEM** for vault secrets / HAL v2.  
 6. **Shadow projected ≠ proven eco** — never merge in public eco or sales slides.  
-7. **Gateway tenant always from license/IDE DB** — never from client `x-msgf-tenant-id`.
+7. **Gateway tenant always from license/IDE DB** — never from client `x-msgf-tenant-id`.  
+8. **Global Brain swarm telemetry is zero-text** — never train on prompts; Session Replay is tenant legal/security, not the Global Brain feed ([`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)).
 
 ---
 
@@ -203,6 +207,8 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./marketing/MSGF_BOSS_DE
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-18 | **P7 closed loop** (no longer Pulse-only): live writes + steer + Shadow apply-on-activate + audit hub lists + `test:p7-observe`. Add `20260918120000` / `20260918010000` to live schema confirm. Remaining = schema apply + staging smoke + Checkout smoke + mock-off. Optional follow-up: Pulse `x-msgf-prompt-hash`. |
+| 2026-09-17 | **Global Brain zero-text swarm telemetry** + pledge `2026.09.18-UTAH-SAFE`. Docs re-sync with V1 roadmap + buyer walkthrough. Added Sept 2026 schema confirm (shadow trial / governance audit / trusted-OSS). Remaining = staging smoke + Checkout smoke + mock-off. |
 | 2026-09-11 | **Live Stripe:** identity done; live keys + webhook + live Price IDs on `msgf-api-00077-7qx` via Secret Manager. Mock still ON. Next = live Checkout smoke → mock-off. Supabase project restored from pause; `/health` healthy. **P0 gates:** `validate:deployment`, `deep-test:solo`, `verify:msgf-env` green. |
 | 2026-08-11 | **Bug inbox** + FAB closed loop (migrations applied); account hub + Stripe portal API; provenance search; ops `project_origin` + resolved incidents; prefrontal marketing. |
 | 2026-08-10 | P7 Source Audit shipped (migration + Pulse hooks + dashboard API/panel + unit tests). Apply remote schema via `db:push:verify`. |

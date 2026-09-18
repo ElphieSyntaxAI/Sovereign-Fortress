@@ -739,6 +739,9 @@ const UNIT_TESTS = [
   { label: "test:hal-pqc", args: ["--test", "tests/hal-pqc-certificate.test.ts"] },
   { label: "test:tri-consensus", args: ["--test", "tests/tri-consensus.test.ts"] },
   { label: "test:source-audit", args: ["--test", "tests/source-audit.test.ts"] },
+  { label: "test:p7-observe", args: ["--test", "tests/p7-observe.test.ts"] },
+  { label: "test:swarm-guard", args: ["--test", "tests/swarm-guard.test.ts"] },
+  { label: "test:global-brain-swarm", args: ["--test", "tests/global-brain-swarm-telemetry.test.ts"] },
 ];
 
 function resolveTsxCli() {

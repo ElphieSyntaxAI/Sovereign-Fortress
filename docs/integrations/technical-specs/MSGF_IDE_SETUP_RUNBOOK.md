@@ -5,6 +5,8 @@
 
 **GitHub multi-repo picker:** [`MSGF_GITHUB_PROJECTS.md`](./MSGF_GITHUB_PROJECTS.md) — Connect GitHub on `/setup/projects`, map many repos + local monorepo subfolders. One IDE `msgf.authToken` (User settings) covers all; only `msgf.tenantKey` changes per project.
 
+Child / secondary agents: set `msgf.agentId`, `msgf.parentAgentId`, `msgf.agentRole`, `msgf.mandateHash`. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ---
 
 ## Required workspace settings

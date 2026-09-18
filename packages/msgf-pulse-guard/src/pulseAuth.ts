@@ -9,6 +9,7 @@ import {
   MSGF_TENANT_ID_HEADER,
   MSGF_TENANT_KEY_HEADER,
 } from "./constants";
+import { appendSwarmPulseHeaders } from "./swarmPulseHeaders";
 import {
   MSGF_PROJECT_ORIGIN_HEADER,
   resolveMappedProjectOrigin,
@@ -69,6 +70,7 @@ export function buildPulseAuthHeaders(params: {
   Object.assign(headers, buildByokPulseHeaders(byok));
 
   appendDevSessionPulseHeaders(headers, settings, params.flushContext);
+  appendSwarmPulseHeaders(headers, settings, entityId);
 
   return headers;
 }

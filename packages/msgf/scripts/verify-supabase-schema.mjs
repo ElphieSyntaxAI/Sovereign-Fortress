@@ -200,6 +200,52 @@ async function main() {
     process.exit(1);
   }
 
+  console.log("--- P7 prompt ledger + Shadow deferred ---");
+
+  const shadowP7Cols = await client.query(
+    `select column_name
+     from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'msgf_shadow_evaluation_logs'
+       and column_name in ('p7_deferred', 'p7_applied_at', 'p7_promote_count', 'p7_block_count')`
+  );
+  const shadowP7Present = new Set(shadowP7Cols.rows.map((r) => r.column_name));
+  const needShadowP7 = [
+    "p7_deferred",
+    "p7_applied_at",
+    "p7_promote_count",
+    "p7_block_count",
+  ];
+  const missingShadowP7 = needShadowP7.filter((c) => !shadowP7Present.has(c));
+  if (missingShadowP7.length > 0) {
+    console.error(
+      `FAIL: msgf_shadow_evaluation_logs missing ${missingShadowP7.join(", ")}. Apply 20260918120000_p7_prompt_shadow_deferred.sql via npm run db:push -w msgf.`
+    );
+    ok = false;
+  } else {
+    console.log("OK: Shadow eval P7 deferred columns present.");
+  }
+
+  const reputationLedgerCheck = await client.query(
+    `select pg_catalog.pg_get_constraintdef(c.oid, true) as def
+     from pg_catalog.pg_constraint c
+     join pg_catalog.pg_class r on r.oid = c.conrelid
+     join pg_catalog.pg_namespace n on n.oid = r.relnamespace
+     where n.nspname = 'public'
+       and r.relname = 'msgf_resource_reputation'
+       and c.contype = 'c'
+       and c.conname = 'msgf_resource_reputation_ledger_check'`
+  );
+  const ledgerDef = String(reputationLedgerCheck.rows[0]?.def ?? "");
+  if (!ledgerDef.includes("'prompt'")) {
+    console.error(
+      "FAIL: msgf_resource_reputation ledger CHECK does not allow 'prompt'. Apply 20260918120000_p7_prompt_shadow_deferred.sql."
+    );
+    ok = false;
+  } else {
+    console.log("OK: msgf_resource_reputation ledger CHECK includes prompt.");
+  }
+
   console.log("--- Pillar / ledger baseline ---");
 
   const emb = await client.query(

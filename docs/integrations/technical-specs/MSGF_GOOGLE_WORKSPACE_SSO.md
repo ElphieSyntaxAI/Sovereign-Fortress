@@ -2,6 +2,8 @@
 
 Company tenancy via Supabase Google OAuth + `msgf_company_domains` allowlist.
 
+Workspace SSO does not change swarm isolation: Global Brain export still hashes silo and never stores tenant id. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ## Enable (ops)
 
 1. Supabase Dashboard → Authentication → Providers → **Google** (client id/secret).

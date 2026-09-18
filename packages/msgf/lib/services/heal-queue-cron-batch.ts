@@ -48,6 +48,8 @@ import {
   recordRemediationSuccess,
   REMEDIATION_STATE,
 } from "@/lib/services/remediation-retry-circuit";
+import { emitResourceUsage } from "@/lib/services/emit-resource-usage";
+import { evaluateSwarmAdmission, hashMandate } from "@/lib/services/swarm-guard";
 
 /** Aligns with msgf-tier-heartbeat.yml (every 6 hours). */
 export const V32_CRON_PERIOD_HOURS_DEFAULT = 6;
@@ -323,6 +325,23 @@ export async function applyBulkHealForTasks(params: {
   const lom_consensus_settlements: CronLomConsensusSettlement[] = [];
 
   if (!params.dryRun) {
+    const healIdentity = {
+      agentId: `heal:${params.tenantId}`,
+      parentAgentId: params.cronNote?.trim() || "heal-cron",
+      role: "system_heal" as const,
+      mandateHash: hashMandate(params.cronNote ?? "heal-cron"),
+      entityId: params.tenantId,
+      tenantId: params.tenantId,
+    };
+    await evaluateSwarmAdmission({ identity: healIdentity });
+    emitResourceUsage(params.admin, {
+      tenant_id: params.tenantId,
+      product: "msgf",
+      kind: "agent",
+      resource_key: healIdentity.agentId,
+      content_hash: healIdentity.mandateHash,
+    });
+
     const clearedAt = new Date().toISOString();
     for (const task of params.tasks) {
       if (task.circuit_breaker_open) continue;

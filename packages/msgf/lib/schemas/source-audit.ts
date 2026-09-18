@@ -39,6 +39,7 @@ export const SourceHitKindSchema = z.enum([
   "mcp",
   "agent",
   "citation",
+  "prompt",
 ]);
 
 export const LineRangeSchema = z
@@ -67,7 +68,7 @@ export const SourceHitSchema = z.object({
   attribution_class: AttributionClassSchema.default("unknown"),
   pruned: z.boolean().optional(),
   ledger: z
-    .enum(["vault", "hall", "file", "tool", "search", "mcp", "agent", "citation", "pack"])
+    .enum(["vault", "hall", "file", "tool", "search", "mcp", "agent", "citation", "pack", "prompt"])
     .optional()
     .nullable(),
   reputation_score: z.number().min(-1).max(1).optional(),
@@ -122,6 +123,7 @@ export const ResourceReputationSchema = z.object({
     "agent",
     "citation",
     "pack",
+    "prompt",
   ]),
   resource_id: z.string().uuid().optional().nullable(),
   file_path: z.string().optional().nullable(),
@@ -152,6 +154,68 @@ export function resourceKeyForFile(filePath: string): string {
   const normalized = filePath.replace(/\\/g, "/").replace(/\r\n/g, "\n").trim();
   const digest = createHash("sha256").update(normalized, "utf8").digest("hex");
   return `file:${digest}`;
+}
+
+export function resourceKeyForPack(packId: string): string {
+  const digest = createHash("sha256").update(packId.trim(), "utf8").digest("hex");
+  return `pack:${digest}`;
+}
+
+/** Hash-only prompt identity. Never pass raw prompt text here. */
+export function resourceKeyForPromptHash(sha256: string): string {
+  const hex = sha256.trim().toLowerCase();
+  const digest = /^[0-9a-f]{64}$/.test(hex)
+    ? hex
+    : createHash("sha256").update(sha256.trim(), "utf8").digest("hex");
+  return `prompt:${digest}`;
+}
+
+export function resourceKeyForMandateHash(sha256: string): string {
+  const hex = sha256.trim().toLowerCase();
+  const digest = /^[0-9a-f]{64}$/.test(hex)
+    ? hex
+    : createHash("sha256").update(sha256.trim(), "utf8").digest("hex");
+  return `mandate:${digest.slice(0, 16)}`;
+}
+
+export const DEFAULT_P7_HALFLIFE_DAYS = 30;
+
+export function p7ReputationHalfLifeDays(): number {
+  const raw = process.env.MSGF_P7_REPUTATION_HALFLIFE_DAYS?.trim();
+  if (raw === "0") return 0;
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 0) return n;
+  return DEFAULT_P7_HALFLIFE_DAYS;
+}
+
+export function decayReputationCounts(input: {
+  good: number;
+  bad: number;
+  highDrift: number;
+  lastSeenAt: string | Date | null | undefined;
+  now?: Date;
+  halfLifeDays?: number;
+}): { good: number; bad: number; highDrift: number; factor: number } {
+  const halfLife = input.halfLifeDays ?? p7ReputationHalfLifeDays();
+  const g = Math.max(0, Number(input.good) || 0);
+  const b = Math.max(0, Number(input.bad) || 0);
+  const h = Math.max(0, Number(input.highDrift) || 0);
+  if (!(halfLife > 0) || !input.lastSeenAt) {
+    return { good: g, bad: b, highDrift: h, factor: 1 };
+  }
+  const last = new Date(input.lastSeenAt).getTime();
+  if (!Number.isFinite(last)) {
+    return { good: g, bad: b, highDrift: h, factor: 1 };
+  }
+  const now = (input.now ?? new Date()).getTime();
+  const ageDays = Math.max(0, (now - last) / 86_400_000);
+  const factor = Math.pow(0.5, ageDays / halfLife);
+  return {
+    good: g * factor,
+    bad: b * factor,
+    highDrift: h * factor,
+    factor,
+  };
 }
 
 export function computeReputationScore(

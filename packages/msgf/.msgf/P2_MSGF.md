@@ -11,6 +11,8 @@ This document governs **P2 only**. It must not define raw telemetry capture (P1)
 
 **Master Directive:** the non-overridable rule stack that LOM gates enforce before side effects commit.
 
+Secondary-agent swarm abort is a P2 gate (off-mandate fan-out). Global Brain stores structural failure telemetry only — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../../docs/msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ---
 
 ## 2. Universal definitions (authoritative for P2)

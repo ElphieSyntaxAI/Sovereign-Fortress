@@ -2,7 +2,7 @@
 
 **Audience:** You, operators, and anyone worried that “nothing hits Big Brain” means MSGF is broken.
 
-**Companion:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_PRODUCT_OVERVIEW.md`](../marketing/MSGF_PRODUCT_OVERVIEW.md)
+**Companion:** [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) · [`MSGF_PRODUCT_OVERVIEW.md`](../marketing/MSGF_PRODUCT_OVERVIEW.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md) (zero-text swarm absorb; not a training corpus)
 
 ---
 
@@ -24,7 +24,8 @@
 | **Ingest (SWEEP)** | Vault lineage, pillar gaps | Project scan / file upload |
 | **dev-event Heal Cheap** | Vault match or Flash heal narrative | IDE build failure |
 | **verify-result + pack** | Vault on pass; Hall after 3× same fail | Run Scripts / Safe Build |
-| **Heal queue** | Vault via remediation / scheduled cron | Post-ingest, operator actions |
+| **Heal queue** | Vault via remediation / scheduled cron | Post-ingest, operator actions. APPROVE writes P7 **good**; DENY writes **bad**. |
+| **P7 reputation** | Per-tenant hashed resource scores | Every write path above plus swarm/Active/Shadow-CTA. Next Pulse/Active/swarm **reads** before spending tokens. Not training data. |
 | **Pulse local_gateway** | `state_beats`, tenant Vault on approved low-drift deltas | Normal typing |
 | **CONVERGE cache** | Replays a **prior** Big Brain verdict (no re-spend) | Same content hash again |
 
@@ -100,4 +101,6 @@ After one green smoke: mark CONVERGE/ARBITRATE **Done (behavior)** in your head;
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-18 | P7 closed loop: reputation scores now steer the next Pulse/Active/swarm admission. Shadow CTA applies deferred hits once. Prompts never train models. |
+| 2026-09-17 | Global Brain swarm telemetry is structural only (cause codes, topology, token burn) — prompts never train models. Session Replay is tenant forensics, not this loop. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md). |
 | 2026-05-28 | Initial doc + `smoke:pulse-converge` script |

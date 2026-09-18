@@ -286,6 +286,11 @@ export const PULSE_BUG_INDEX = {
     level_1_1_branch: "1.1_CONVERGE",
     level_1_1_1_instance: "1.1.1_LOM_MODEL_DISAGREE",
   }),
+  hallBotSwarm: buildGenealogicalBugIndex({
+    level_1_category: "1.0_PULSE",
+    level_1_1_branch: "1.1_ARBITRATE",
+    level_1_1_1_instance: "1.1.1_BOT_SWARM",
+  }),
   /** Admin Decision Portal — Vault arbitration beat for P2 Cross-Ref prioritization. */
   adminArbitrationBeat: buildGenealogicalBugIndex({
     level_1_category: "1.0_PULSE",

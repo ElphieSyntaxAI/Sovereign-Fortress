@@ -77,6 +77,14 @@ export const MSGF_OPERATOR_USER_ID_HEADER = "x-msgf-operator-user-id";
 /** Prompt optimizer / fitness lineage hash (SHA-256 hex of optimized markdown). */
 export const MSGF_PROMPT_HASH_HEADER = "x-msgf-prompt-hash";
 
+/** Secondary / parent agent identity for swarm monitor (IDE subagents, gateway children). */
+export const MSGF_AGENT_ID_HEADER = "x-msgf-agent-id";
+export const MSGF_PARENT_AGENT_ID_HEADER = "x-msgf-parent-agent-id";
+/** `primary` | `secondary` | `system_heal` */
+export const MSGF_AGENT_ROLE_HEADER = "x-msgf-agent-role";
+/** SHA-256 hex of the parent user mandate / prompt. Required on secondary. */
+export const MSGF_MANDATE_HASH_HEADER = "x-msgf-mandate-hash";
+
 /** Trusted Author BFF HAL snapshot JSON ({@link AuthorHalTelemetrySnapshot}) — rhythm only, no RAG. */
 export const MSGF_AUTHOR_HAL_HEADER = "x-msgf-author-hal";
 

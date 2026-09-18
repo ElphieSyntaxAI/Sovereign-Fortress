@@ -281,6 +281,27 @@
           "type": "string",
           "default": "",
           "description": "Model id for Small Brain (e.g. gemini-2.0-flash, gpt-4o-mini). Sent as x-msgf-small-brain-model."
+        },
+        "msgf.agentId": {
+          "type": "string",
+          "default": "",
+          "description": "Optional agent id (x-msgf-agent-id). Defaults to entityId. Child subagents should set a distinct id."
+        },
+        "msgf.parentAgentId": {
+          "type": "string",
+          "default": "",
+          "description": "Parent agent id for secondary / subagent Pulse (x-msgf-parent-agent-id)."
+        },
+        "msgf.agentRole": {
+          "type": "string",
+          "enum": ["", "primary", "secondary", "system_heal"],
+          "default": "",
+          "description": "Agent role. When parentAgentId is set, defaults to secondary."
+        },
+        "msgf.mandateHash": {
+          "type": "string",
+          "default": "",
+          "description": "SHA-256 hex of the parent user prompt (x-msgf-mandate-hash). Required for secondary agents."
         }
       }
     }

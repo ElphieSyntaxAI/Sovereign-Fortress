@@ -8,6 +8,8 @@
 
 MSGF is the **governance layer in front of AI agents**: scoped context, severity-based heal, verified outcomes, margin protection via Pulse local gateway and heal-token estimates.
 
+Secondary agents that fan out off-mandate are aborted (Active) or observed (Shadow). Global Brain stores cause codes — never the user prompt. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 **Not shipped as automatic enforcement:** agents can still bypass the IDE without Cursor rules/MCP.
 
 ---

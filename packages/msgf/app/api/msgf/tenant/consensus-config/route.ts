@@ -14,7 +14,9 @@
  * Tenant Small Brain CONVERGE presets (dual / tri / custom BYOK).
  *
  * GET — current config (+ catalog)
- * PUT — body `{ profileId, providers? }` for custom_byok
+ * PUT — body `{ profileId, providers?, defaultProvider? }`
+ *   defaultProvider = Small Brain lead (gemini/google | anthropic | xai)
+ *   providers = dual/TRI pair (custom_byok / solo_fast)
  */
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -120,6 +122,9 @@ export async function PUT(req: NextRequest) {
       return json({ error: "Invalid profileId" }, { status: 400 });
     }
     const profileId = profileIdRaw as TenantConsensusPresetId;
+    const defaultProvider = parseMsgfConsensusProvider(
+      body?.["defaultProvider"] ?? body?.["default_provider"]
+    );
 
     if (profileId === "tri_tribunal" && !isTenantTriConsensusEnabled()) {
       return json(
@@ -129,24 +134,28 @@ export async function PUT(req: NextRequest) {
     }
 
     let customProviders: MsgfConsensusProvider[] | undefined;
-    if (profileId === "custom_byok") {
+    if (profileId === "custom_byok" || profileId === "solo_fast") {
       const raw = body?.["providers"];
-      if (!Array.isArray(raw)) {
-        return json({ error: "custom_byok requires providers: string[]" }, { status: 400 });
+      if (profileId === "custom_byok" && !Array.isArray(raw) && !defaultProvider) {
+        return json({ error: "custom_byok requires providers: string[] or defaultProvider" }, { status: 400 });
       }
       customProviders = [];
-      for (const item of raw) {
-        const p = parseMsgfConsensusProvider(item);
-        if (!p) return json({ error: `Invalid provider: ${String(item)}` }, { status: 400 });
-        customProviders.push(p);
+      if (Array.isArray(raw)) {
+        for (const item of raw) {
+          const p = parseMsgfConsensusProvider(item);
+          if (!p) return json({ error: `Invalid provider: ${String(item)}` }, { status: 400 });
+          customProviders.push(p);
+        }
+      } else if (defaultProvider) {
+        customProviders = [defaultProvider];
       }
       const unique = [...new Set(customProviders)];
-      if (unique.length < 2 || unique.length > 3) {
-        return json({ error: "custom_byok requires 2–3 unique providers" }, { status: 400 });
+      if (unique.length < 1 || unique.length > 3) {
+        return json({ error: "Choose 1 default AI, or 2–3 providers for dual/TRI" }, { status: 400 });
       }
       if (unique.length === 3 && !isTenantTriConsensusEnabled()) {
         return json(
-          { error: "custom_byok with 3 providers requires MSGF_TENANT_TRI_CONSENSUS_ENABLED=1" },
+          { error: "3-provider TRI requires MSGF_TENANT_TRI_CONSENSUS_ENABLED=1" },
           { status: 403 }
         );
       }
@@ -158,6 +167,7 @@ export async function PUT(req: NextRequest) {
       tenantId,
       profileId,
       customProviders,
+      defaultProvider: defaultProvider ?? undefined,
     });
 
     return json({ tenant_id: tenantId, config });

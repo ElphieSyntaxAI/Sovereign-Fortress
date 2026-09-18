@@ -2,13 +2,14 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-09-14 (governance audit platform + pricing/marketing sync)
+**Last updated:** 2026-09-18 (P7 closed loop + Shadow apply-on-activate; Global Brain zero-text swarm telemetry; buyer waitlist/invite; local :3001; Stripe mock may still be ON)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
 **Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** Indie · **$99** Pro perpetual · **$49**/user/mo Startup Team  
 **RC / deploy:** [`MSGF_RC_CHECKLIST.md`](../MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](../MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md)  
 **Provider gateway:** [`MSGF_SHADOW_PROXY.md`](../technical-specs/MSGF_SHADOW_PROXY.md)  
-**Ops map:** [`MSGF_ADMIN_HUB.md`](../technical-specs/MSGF_ADMIN_HUB.md)
+**Ops map:** [`MSGF_ADMIN_HUB.md`](../technical-specs/MSGF_ADMIN_HUB.md)  
+**Global Brain telemetry:** [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)
 
 ### Launch readiness (2026-09-11)
 
@@ -17,7 +18,7 @@
 | **Technical soft-RC** (`msgf-v1.0.0` with mock entitlements OK) | **~90%** | Green `validate:deployment` + `deep-test:solo` + `verify:msgf-env` (2026-09-11); remaining = one-tenant staging smoke |
 | **Paid self-serve launch** | **~82%** | Soft-RC + live Checkout smoke + mock off (live keys + identity + webhook already on `msgf-api`) |
 
-Largest remaining gap: **verification / staging smoke**, not feature code. Live Stripe keys landed 2026-09-11; mock entitlements still ON. Full bucket table: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §10.
+Largest remaining gap: **Sept 18 schema apply + one-tenant staging smoke**, not feature code. P7 closed loop landed 2026-09-18. Live Stripe keys landed 2026-09-11; mock entitlements still ON. Full bucket table: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §10.
 
 ---
 
@@ -94,18 +95,21 @@ Deploy gate (GET /api/msgf/deploy-gate · project_origin green · optional diff-
 
 ### 3.1a Pillar 7 — Source Audit & Resource Reputation (shipped)
 
-Pulse DEFEND / CROSS-REF now records **which sources** influenced a decision (Vault/Hall/file hits), not only the outcome tier:
+Pulse DEFEND / CROSS-REF now records **which sources** influenced a decision (Vault/Hall/file/pack/agent/prompt-hash hits), not only the outcome tier:
 
 | Capability | Behavior |
 | :--- | :--- |
 | **Content hash** | `content_hash = sha256` of the injected chunk (CRLF→LF + trim) so path/UUID churn does not break audit |
-| **Reputation** | Per-tenant `msgf_resource_reputation`; score in [-1, 1] from good / bad / high-drift counts |
+| **Reputation** | Per-tenant `msgf_resource_reputation`; score in [-1, 1] from good / bad / high-drift counts. Counts decay on a 30-day half-life (`MSGF_P7_REPUTATION_HALFLIFE_DAYS`, `0` disables). |
 | **Active prune** | `reputation_score < -0.3` removed from auto-GREEN context (still audited with `pruned: true`); `> 0.3` boosts match score |
+| **Closed loop** | Swarm abort, ingest, HITL, Sentry quarantine, heal-queue APPROVE/DENY, confirm-pack, verify-result, and Active gateway **write** hashed keys; the next Pulse / Active / swarm admission **reads** them before spending tokens or spawning children. P7 poison wins over model-fitness (stay Small Brain). |
+| **prompt_hash** | `x-msgf-prompt-hash` becomes `prompt:{sha256}` — hash only. Session Replay (`msgf_prompt_sessions`) still holds full text; prompts are never used for training. |
 | **Attribution class** | `attribution_class` on each hit (`internal_spec`, `permissive_oss`, `copyleft_risk`, `untrusted_external`, `unknown`). Copyleft / untrusted **block auto-GREEN** (escalate). Not Stripe `billing_license_type`. |
 | **Reverse impact** | `msgf_source_downstream_impact` side table (not JSONB `->>` on an array) answers “what used this source?” via `content_hash` / `resource_key` |
+| **Audit lists** | `p7_source_audit` and swarm audit metadata include capped `promoted_keys` / `blocked_keys` (searchable in Audit hub). Global Brain JSON stays zero-text — no key lists. |
 | **Hot path** | Audit + impact + reputation writes are **non-blocking** — never fail GATE/DEFEND |
 
-Dashboard: **Source Audit** panel on Governance home; API `GET /api/msgf/dashboard/source-audit`. Migration: `20260810010000_msgf_p7_source_reputation.sql`.
+Dashboard: **Source Audit** panel on Governance home; API `GET /api/msgf/dashboard/source-audit`. Shadow Proxy projects promote/block counts and applies them on the 3-day full-access CTA. Migrations: `20260810010000_msgf_p7_source_reputation.sql`, `20260918120000_p7_prompt_shadow_deferred.sql`.
 
 ### 3.2 Primary APIs
 
@@ -153,7 +157,8 @@ Platform-wide ledger + human-proof controls shared by MSGF, Author, and Educates
 | :--- | :--- |
 | **Most-used resources** | `msgf_resource_usage_events` — **hashed** `query_text_hash` only (no raw search strings) |
 | **Audit hub** | `platform_audit_events` — non-blocking emitters; sister apps never wait on MSGF |
-| **Session Replay / harm** | `msgf_prompt_sessions` — full-text forensics; harm flags open ARBITRATE; **purge-exempt** (tenant terms) |
+| **Session Replay / harm** | `msgf_prompt_sessions` — full-text forensics; harm flags open ARBITRATE; **purge-exempt** (tenant terms). **Not** used to train models and **not** the Global Brain feed. |
+| **Swarm / Global Brain** | `bot_swarm_detected` / `bot_swarm_observed` — cause codes, topology, token burn, `silo_ref`; **zero raw prompt/completion**. Spec: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) |
 | **Trusted-OSS bulk** | Allowlist (MIT/Apache/…) ARBITRATE multi-select; still writes A6 |
 | **Model fitness** | Events + rollups; Active gateway prefers Small Brain on over-provision spikes |
 | **Prompt templates** | Versioned bodies correlated via `x-msgf-prompt-hash` |
@@ -436,7 +441,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | “Another AI wrapper” | Six-pillar cold archive + Vault/Hall learning + dual-model only on drift — not a chat UI. |
 | “Too expensive” | Small Brain + cache + Heal Cheap are the default; CONVERGE is the exception. Show token-savings + Shadow projected vs proven Reports. |
 | “Will it block my team?” | DEFEND can short-circuit unsafe deltas; Safe Build is local; skip path is audited (A5); HITL is ops, not every commit. Shadow Proxy adds zero latency until you flip Active. |
-| “Trust / compliance?” | Signed skip + ARBITRATE audits; quarantine without auto-demote; tenant compound scope; **Session Replay + harm HITL**; SIEM export; gateway never trusts spoofed tenant headers. Author Chain of Origin exports can use **ML-DSA-65** signatures (algorithm per FIPS 204) — not a claim that HTTPS itself is post-quantum; see [`MSGF_PQC_CRYPTO_AUDIT.md`](../technical-specs/MSGF_PQC_CRYPTO_AUDIT.md). |
+| “Trust / compliance?” | Signed skip + ARBITRATE audits; quarantine without auto-demote; tenant compound scope; **Session Replay + harm HITL**; SIEM export; gateway never trusts spoofed tenant headers; **Global Brain swarm telemetry is zero-text** (prompts never train models). Author Chain of Origin exports can use **ML-DSA-65** signatures (algorithm per FIPS 204) — not a claim that HTTPS itself is post-quantum; see [`MSGF_PQC_CRYPTO_AUDIT.md`](../technical-specs/MSGF_PQC_CRYPTO_AUDIT.md). |
 | “We already have Sentry” | MSGF links crashes to **governance memory** (Vault wins) — Sentry owns runtime; MSGF owns what the AI should remember. |
 | “We can’t send code to your models” | Two separate answers — don’t blur them. **BYOK:** the Small Brain runs on the customer’s provider and key (OpenAI / Anthropic / Ollama / DeepSeek / Gemini); we never bill or read their model account. **Self-hosted:** the Indie tier runs against the customer’s own Redis + Supabase. Note that BYOK alone still routes the Pulse through the MSGF API — only the self-hosted path keeps data off our infrastructure. |
 | “How hard is integration?” | Two paths: (1) Pulse Guard scaffolds `.msgf/dev/` with an API cookbook; (2) change OpenAI/Anthropic `baseURL` to MSGF Shadow Proxy — prove savings before Active. |
@@ -492,7 +497,8 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | [`MSGF_SIGNING.md`](../../integrations/technical-specs/MSGF_SIGNING.md) | DocuSign / Dropbox Sign + archive |
 | [`MSGF_SOLO_INTEGRATION.md`](../../integrations/technical-specs/MSGF_SOLO_INTEGRATION.md) | BYOK integrators |
 | [`MSGF_SHADOW_PROXY.md`](../technical-specs/MSGF_SHADOW_PROXY.md) | Shadow Proxy + Active Governance gateway |
-| [`MSGF_BUYER_WALKTHROUGH.md`](./MSGF_BUYER_WALKTHROUGH.md) | SaaS buyer journey |
+| [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) | Zero-text Global Brain swarm telemetry vs Session Replay |
+| [`MSGF_BUYER_WALKTHROUGH.md`](./MSGF_BUYER_WALKTHROUGH.md) | SaaS buyer journey (waitlist/invite, not open sign-up) |
 | [`MSGF_TESTING.md`](../technical-specs/MSGF_TESTING.md) | Test & deploy runbooks |
 | [`MONOREPO_PRODUCTS.md`](../../MONOREPO_PRODUCTS.md) | Three products & domains |
 | [`packages/msgf/README.md`](../../../packages/msgf/README.md) | Env vars & npm scripts |
@@ -503,6 +509,8 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-18 | **P7 closed loop** (§3.1a): live writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; 30-day decay; `prompt:{hash}`. Session Replay stays. Soft-RC still ~90% (schema + staging smoke). |
+| 2026-09-17 | **Global Brain zero-text swarm telemetry** + honest ToS split (Session Replay stays tenant legal/security). Also docs re-sync with V1 roadmap: `/sign-up` is waitlist; buyer walkthrough rewritten; local MSGF is :3001. |
 | 2026-09-14 | **Governance audit platform** (§3.2a): resource ledger, audit hub, Session Replay/harm, trusted-OSS bulk, model fitness, budgets, SIEM, diff impact, human-proof HITL. Marketing + Startup pricing bullets synced. Pricing SSOT remains **$0 / $99 / $49**. |
 | 2026-08-11 | **Bug inbox** closed loop (`p4_active_incidents` → promote/dismiss); onscreen FAB on dashboard + workspace; self-heal also upserts inbox; reopen-on-resubmit RPC. Earlier same day: nav consistency + `/account` portal + provenance search + prefrontal marketing + Shadow baseURL how-to. |
 | 2026-08-10 | **P7 Source Audit & Resource Reputation:** content-hash provenance, reputation prune/boost, attribution_class auto-GREEN gate, reverse impact table + dashboard panel. |

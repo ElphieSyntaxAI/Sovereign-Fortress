@@ -18,6 +18,8 @@ import {
   SMALL_BRAIN_DEFAULT,
   byokSatisfiesConsensusConfig,
   configFromTenantPreset,
+  inferTenantPresetFromProviders,
+  resolveDefaultProvider,
   resolveHumanNotifyThreshold,
   validateConsensusConfig,
 } from "../lib/services/consensus/msgf-consensus-config.ts";
@@ -74,11 +76,18 @@ describe("configFromTenantPreset", () => {
   test("balanced_dual and bias_mitigated_dual", () => {
     const a = configFromTenantPreset("balanced_dual");
     assert.ok(!("error" in a));
-    assert.deepEqual(a.providers, ["anthropic", "google"]);
+    assert.deepEqual(a.providers, ["google", "anthropic"]);
+    assert.equal(a.defaultProvider, "google");
 
     const b = configFromTenantPreset("bias_mitigated_dual");
     assert.ok(!("error" in b));
     assert.deepEqual(b.providers, ["anthropic", "xai"]);
+    assert.equal(b.defaultProvider, "anthropic");
+
+    const geminiLead = configFromTenantPreset("balanced_dual", undefined, "anthropic");
+    assert.ok(!("error" in geminiLead));
+    assert.deepEqual(geminiLead.providers, ["anthropic", "google"]);
+    assert.equal(geminiLead.defaultProvider, "anthropic");
   });
 
   test("custom_byok dual vs tri", () => {
@@ -86,11 +95,44 @@ describe("configFromTenantPreset", () => {
     assert.ok(!("error" in dual));
     assert.equal(dual.mode, "DUAL");
     assert.equal(dual.strictness, "UNANIMOUS");
+    assert.equal(dual.profileId, "gemini_grok_dual");
 
     const tri = configFromTenantPreset("custom_byok", ["anthropic", "google", "xai"]);
     assert.ok(!("error" in tri));
     assert.equal(tri.mode, "TRI");
     assert.equal(tri.strictness, "MAJORITY");
+  });
+
+  test("solo_fast uses chosen default provider", () => {
+    const gemini = configFromTenantPreset("solo_fast", undefined, "google");
+    assert.ok(!("error" in gemini));
+    assert.equal(gemini.mode, "SOLO_FAST");
+    assert.deepEqual(gemini.providers, ["google"]);
+    assert.equal(gemini.defaultProvider, "google");
+
+    const claude = configFromTenantPreset("solo_fast", undefined, "anthropic");
+    assert.ok(!("error" in claude));
+    assert.deepEqual(claude.providers, ["anthropic"]);
+    assert.equal(claude.defaultProvider, "anthropic");
+  });
+
+  test("inferTenantPresetFromProviders maps pairs", () => {
+    assert.equal(inferTenantPresetFromProviders(["google"]), "solo_fast");
+    assert.equal(inferTenantPresetFromProviders(["google", "anthropic"]), "balanced_dual");
+    assert.equal(inferTenantPresetFromProviders(["anthropic", "xai"]), "bias_mitigated_dual");
+    assert.equal(inferTenantPresetFromProviders(["google", "xai"]), "gemini_grok_dual");
+    assert.equal(inferTenantPresetFromProviders(["google", "anthropic", "xai"]), "tri_tribunal");
+  });
+
+  test("resolveDefaultProvider prefers stored lead", () => {
+    assert.equal(
+      resolveDefaultProvider({
+        providers: ["anthropic", "google"],
+        defaultProvider: "google",
+      }),
+      "google"
+    );
+    assert.equal(resolveDefaultProvider({ providers: ["xai"] }), "xai");
   });
 });
 

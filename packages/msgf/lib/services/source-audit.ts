@@ -23,9 +23,13 @@ import {
   SourceAuditRecordSchema,
   blocksAutoGreen,
   computeReputationScore,
+  decayReputationCounts,
   hashSourceChunk,
   parseAttributionClass,
   resourceKeyForFile,
+  resourceKeyForMandateHash,
+  resourceKeyForPack,
+  resourceKeyForPromptHash,
   resourceKeyForVaultHall,
   type AttributionClass,
   type SourceAuditRecord,
@@ -36,8 +40,82 @@ import { emitResourceUsage } from "@/lib/services/emit-resource-usage";
 
 const MAX_SOURCES = 12;
 const BOOST_BIAS = 0.15;
+export const P7_KEY_LIST_CAP = 24;
 
 export type ReputationMap = Map<string, number>;
+export type ReputationOutcomeKind = "good" | "bad";
+
+export function ledgerForHit(hit: Pick<SourceHit, "kind" | "ledger">): string {
+  if (hit.ledger) return hit.ledger;
+  if (
+    hit.kind === "hall" ||
+    hit.kind === "file" ||
+    hit.kind === "tool" ||
+    hit.kind === "search" ||
+    hit.kind === "mcp" ||
+    hit.kind === "agent" ||
+    hit.kind === "citation" ||
+    hit.kind === "pack" ||
+    hit.kind === "prompt"
+  ) {
+    return hit.kind;
+  }
+  return "vault";
+}
+
+export function usageKindForHit(
+  hit: Pick<SourceHit, "kind">
+): "vault" | "hall" | "file" | "tool" | "search" | "mcp" | "agent" | "citation" | "pack" {
+  if (hit.kind === "hall") return "hall";
+  if (hit.kind === "file") return "file";
+  if (hit.kind === "pack") return "pack";
+  if (hit.kind === "tool") return "tool";
+  if (hit.kind === "search") return "search";
+  if (hit.kind === "mcp") return "mcp";
+  if (hit.kind === "agent") return "agent";
+  if (hit.kind === "citation") return "citation";
+  return "vault";
+}
+
+export function hitsForReputationOutcome(
+  hits: SourceHit[],
+  kind: ReputationOutcomeKind
+): SourceHit[] {
+  return kind === "bad"
+    ? hits.filter((h) => Boolean(h.resource_key))
+    : hits.filter((h) => !h.pruned && Boolean(h.resource_key));
+}
+
+export function uniqueResourceKeys(hits: SourceHit[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const h of hits) {
+    const k = h.resource_key?.trim();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(k);
+  }
+  return out;
+}
+
+export function p7AuditKeyLists(
+  promoted: SourceHit[],
+  blocked: SourceHit[]
+): {
+  promoted_keys: string[];
+  blocked_keys: string[];
+  promoted_count: number;
+  blocked_count: number;
+} {
+  const promotedAll = uniqueResourceKeys(promoted);
+  const blockedAll = uniqueResourceKeys(blocked);
+  return {
+    promoted_keys: promotedAll.slice(0, P7_KEY_LIST_CAP),
+    blocked_keys: blockedAll.slice(0, P7_KEY_LIST_CAP),
+    promoted_count: promotedAll.length,
+    blocked_count: blockedAll.length,
+  };
+}
 
 function logP7Error(scope: string, err: unknown) {
   const message = err instanceof Error ? err.message : String(err);
@@ -85,7 +163,7 @@ export async function loadReputationMap(
   try {
     const { data, error } = await admin
       .from("msgf_resource_reputation")
-      .select("resource_key, reputation_score")
+      .select("resource_key, reputation_score, good_count, bad_count, high_drift_count, last_seen_at")
       .eq("tenant_id", tenantId.trim())
       .in("resource_key", keys);
 
@@ -95,11 +173,16 @@ export async function loadReputationMap(
     }
     for (const row of data ?? []) {
       const key = typeof row.resource_key === "string" ? row.resource_key : "";
-      const score =
-        typeof row.reputation_score === "number"
-          ? row.reputation_score
-          : Number(row.reputation_score);
-      if (key && Number.isFinite(score)) map.set(key, score);
+      if (!key) continue;
+      const decayed = decayReputationCounts({
+        good: Number(row.good_count ?? 0),
+        bad: Number(row.bad_count ?? 0),
+        highDrift: Number(row.high_drift_count ?? 0),
+        lastSeenAt: typeof row.last_seen_at === "string" ? row.last_seen_at : null,
+      });
+      const raw = computeReputationScore(decayed.good, decayed.bad, decayed.highDrift);
+      const score = raw * decayed.factor;
+      if (Number.isFinite(score)) map.set(key, Math.max(-1, Math.min(1, score)));
     }
   } catch (e) {
     logP7Error("loadReputationMap", e);
@@ -290,8 +373,7 @@ export function recordSourceAudit(
         })
         .filter((r): r is NonNullable<typeof r> => r != null);
 
-      if (impactRows.length === 0) return;
-
+      if (impactRows.length > 0) {
       const { error: impactError } = await admin
         .from("msgf_source_downstream_impact")
         .upsert(impactRows, {
@@ -311,20 +393,14 @@ export function recordSourceAudit(
           )
         );
       }
+      }
 
       for (const s of sources) {
         if (!s.resource_key) continue;
         emitResourceUsage(admin, {
           tenant_id: record.tenant_id,
           product: "msgf",
-          kind:
-            s.kind === "hall"
-              ? "hall"
-              : s.kind === "file"
-                ? "file"
-                : s.kind === "pack"
-                  ? "pack"
-                  : "vault",
+          kind: usageKindForHit(s),
           resource_key: s.resource_key,
           content_hash: s.content_hash ?? null,
           project_origin: record.project_origin ?? null,
@@ -332,6 +408,8 @@ export function recordSourceAudit(
         });
       }
 
+      const promoted = sources.filter((s) => !s.pruned);
+      const blocked = sources.filter((s) => s.pruned || record.outcome === "block");
       emitPlatformAudit(admin, {
         product: "msgf",
         tenant_id: record.tenant_id,
@@ -346,6 +424,7 @@ export function recordSourceAudit(
           decision_kind: record.decision_kind,
           outcome: record.outcome,
           project_origin: record.project_origin ?? null,
+          ...p7AuditKeyLists(promoted, blocked),
         },
       });
     } catch (e) {
@@ -354,10 +433,9 @@ export function recordSourceAudit(
   })();
 }
 
-export type ReputationOutcomeKind = "good" | "bad";
-
 /**
- * Fire-and-forget reputation upsert for cited (non-pruned) sources.
+ * Fire-and-forget reputation upsert.
+ * `good` skips pruned hits; `bad` includes pruned / blocked hits.
  */
 export function applyReputationOutcome(
   admin: SupabaseClient,
@@ -373,7 +451,7 @@ export function applyReputationOutcome(
     try {
       const tid = tenantId.trim();
       if (!tid) return;
-      const cited = hits.filter((h) => !h.pruned && h.resource_key);
+      const cited = hitsForReputationOutcome(hits, opts.kind);
       if (cited.length === 0) return;
 
       const drift = opts.driftScore ?? null;
@@ -382,25 +460,26 @@ export function applyReputationOutcome(
       await Promise.allSettled(
         cited.map(async (hit) => {
           const key = hit.resource_key;
-          const ledger =
-            hit.ledger ??
-            (hit.kind === "hall" ? "hall" : hit.kind === "file" ? "file" : "vault");
+          const ledger = ledgerForHit(hit);
 
           const { data: existing } = await admin
             .from("msgf_resource_reputation")
             .select(
-              "good_count, bad_count, high_drift_count, last_content_hash"
+              "good_count, bad_count, high_drift_count, last_content_hash, last_seen_at"
             )
             .eq("tenant_id", tid)
             .eq("resource_key", key)
             .maybeSingle();
 
-          const good =
-            Number(existing?.good_count ?? 0) + (opts.kind === "good" ? 1 : 0);
-          const bad =
-            Number(existing?.bad_count ?? 0) + (opts.kind === "bad" ? 1 : 0);
-          const high =
-            Number(existing?.high_drift_count ?? 0) + (highDrift ? 1 : 0);
+          const decayed = decayReputationCounts({
+            good: Number(existing?.good_count ?? 0),
+            bad: Number(existing?.bad_count ?? 0),
+            highDrift: Number(existing?.high_drift_count ?? 0),
+            lastSeenAt: typeof existing?.last_seen_at === "string" ? existing.last_seen_at : null,
+          });
+          const good = Math.max(0, Math.round(decayed.good)) + (opts.kind === "good" ? 1 : 0);
+          const bad = Math.max(0, Math.round(decayed.bad)) + (opts.kind === "bad" ? 1 : 0);
+          const high = Math.max(0, Math.round(decayed.highDrift)) + (highDrift ? 1 : 0);
           const score = computeReputationScore(good, bad, high);
 
           const { error } = await admin.from("msgf_resource_reputation").upsert(
@@ -434,7 +513,11 @@ export {
   hashSourceChunk,
   resourceKeyForFile,
   resourceKeyForVaultHall,
+  resourceKeyForPack,
+  resourceKeyForPromptHash,
+  resourceKeyForMandateHash,
   computeReputationScore,
+  decayReputationCounts,
   blocksAutoGreen,
   REPUTATION_BOOST_THRESHOLD,
   REPUTATION_PRUNE_THRESHOLD,

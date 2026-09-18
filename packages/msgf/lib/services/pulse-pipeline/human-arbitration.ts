@@ -28,6 +28,7 @@ import {
   recordArbitrateAuditSafe,
   type ArbitrateAuditPayload,
 } from "@/lib/services/arbitrate-audit";
+import { hitFromFilePath, hitFromVaultId, writeLiveP7 } from "@/lib/services/p7-observe";
 
 export type HumanArbitrationAction = "APPROVE_BYPASS" | "DENY_PURGE";
 
@@ -267,6 +268,20 @@ export async function resolveHumanArbitrationAction(params: {
       ledger: "vault",
     });
 
+    writeLiveP7({
+      admin: params.admin,
+      tenantId: params.tenantId,
+      entityId: params.entityId,
+      traceId: `heal_approve_${params.filePath}`,
+      promoteHits: [
+        hitFromFilePath(params.filePath, false),
+        ...(params.pillarVectorId ? [hitFromVaultId(params.pillarVectorId, false)] : []),
+      ],
+      outcome: "persist_vault",
+      decisionKind: "arbitrate",
+      routing: "heal_approve",
+    });
+
     return {
       ok: true,
       action: params.action,
@@ -314,6 +329,21 @@ export async function resolveHumanArbitrationAction(params: {
     remediation_state: "RESOLVED",
     security_clean_signal: false,
     ledger: "hall",
+  });
+
+  writeLiveP7({
+    admin: params.admin,
+    tenantId: params.tenantId,
+    entityId: params.entityId,
+    traceId: `heal_deny_${params.filePath}`,
+    blockHits: [
+      hitFromFilePath(params.filePath, true),
+      ...(params.pillarVectorId ? [hitFromVaultId(params.pillarVectorId, true)] : []),
+    ],
+    outcome: "persist_hall",
+    decisionKind: "arbitrate",
+    routing: "heal_deny",
+    highDrift: true,
   });
 
   return {

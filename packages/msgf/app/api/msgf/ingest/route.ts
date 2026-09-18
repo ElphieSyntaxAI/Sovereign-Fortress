@@ -61,6 +61,7 @@ import {
   ProjectTrackingRailError,
   resolveProjectTrackingScope,
 } from "@/lib/services/project-tracking-rails";
+import { hitFromHallId, writeLiveP7 } from "@/lib/services/p7-observe";
 
 function normalizeRelPath(p: string): string | null {
   const x = p.replace(/\\/g, "/").replace(/^\.\/+/, "");
@@ -371,6 +372,23 @@ export async function POST(req: NextRequest) {
           { tenantId }
         );
         if (shadow.blocked) {
+          writeLiveP7({
+            admin,
+            tenantId,
+            entityId: ingestUserId,
+            traceId: `ingest_${randomUUID()}`,
+            promoteHits: shadow.contextHits ?? [],
+            blockHits: [
+              ...(shadow.prunedHits ?? []),
+              ...(shadow.hallMatch ? [hitFromHallId(shadow.hallMatch.id)] : []),
+            ],
+            outcome: "block",
+            decisionKind: "defend",
+            routing: "ingest_defend",
+            highDrift: true,
+            defendTier: shadow.tier,
+            defendReason: shadow.reason,
+          });
           return NextResponse.json(
             {
               error: "INGEST_DEFEND_BLOCKED",
@@ -399,6 +417,19 @@ export async function POST(req: NextRequest) {
         ingestedCount = sweep.ingested;
         skippedBaseline = sweep.skippedBaseline;
         await updateIngestHashesAfterSweep(tenantId, filesToSweep);
+        writeLiveP7({
+          admin,
+          tenantId,
+          entityId: ingestUserId,
+          traceId: `ingest_${randomUUID()}`,
+          promoteHits: shadow.contextHits ?? [],
+          blockHits: shadow.prunedHits ?? [],
+          outcome: "pass",
+          decisionKind: "defend",
+          routing: "ingest_sweep",
+          defendTier: shadow.tier,
+          defendReason: shadow.reason,
+        });
       }
 
       const ingestEntityId = ingestUserId;

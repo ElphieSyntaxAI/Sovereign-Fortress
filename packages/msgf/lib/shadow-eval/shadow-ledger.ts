@@ -82,6 +82,9 @@ export async function writeShadowEvaluationLog(
       usage_source: log.usageSource,
       model: log.model,
       observed_at: new Date(log.timestamp).toISOString(),
+      p7_promote_count: log.p7PromoteCount ?? 0,
+      p7_block_count: log.p7BlockCount ?? 0,
+      p7_deferred: log.p7Deferred ?? null,
     });
     if (error) {
       console.warn("[shadow-ledger] insert failed:", error.message);
@@ -144,7 +147,7 @@ export async function listShadowEvaluationsForProof(
   let query = admin
     .from("msgf_shadow_evaluation_logs")
     .select(
-      "prompt_hash, actual_cost_usd, recommended_action, actual_tokens, observed_at"
+      "prompt_hash, actual_cost_usd, recommended_action, actual_tokens, observed_at, p7_promote_count, p7_block_count, p7_deferred"
     )
     .eq("tenant_id", tenantId.trim())
     .order("observed_at", { ascending: true })

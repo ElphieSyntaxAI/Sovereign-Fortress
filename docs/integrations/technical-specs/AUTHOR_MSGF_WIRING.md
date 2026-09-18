@@ -11,6 +11,8 @@ Use Author as a **stress test** for the MSGF pipeline while watching **token sav
 
 The BFF always sends **`author_ecosystem`** (or `MSGF_AUTHOR_TENANT_ID`) on MSGF Pulse headers, even when the HAL body carries an Author UUID.
 
+Secondary-agent Pulse from Author tools uses the same swarm headers. Global Brain export hashes silo and never stores tenant id or prompts — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
 ## Local ports
 
 | App | Port |

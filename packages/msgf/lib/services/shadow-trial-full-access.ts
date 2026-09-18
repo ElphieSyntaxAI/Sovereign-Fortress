@@ -29,6 +29,7 @@ import {
 } from "@/lib/services/shadow-trial";
 import { sendTransactionalEmail } from "@/lib/services/transactional-email";
 import { resolveMsgfAppOrigin } from "@elphie-syntax/core";
+import { applyDeferredShadowP7 } from "@/lib/services/p7-observe";
 
 export const FULL_ACCESS_TRIAL_CREDITS = 5_000;
 
@@ -193,6 +194,11 @@ export async function activateShadowTrialFullAccess(
   }
 
   if (trial.full_access_started_at && trial.full_access_expires_at) {
+    try {
+      await applyDeferredShadowP7(admin, trial.tenant_id);
+    } catch (e) {
+      console.warn("[shadow-trial] deferred P7 apply failed:", e instanceof Error ? e.message : e);
+    }
     return {
       ok: true,
       reused: true,
@@ -300,6 +306,12 @@ export async function activateShadowTrialFullAccess(
       .from("msgf_ide_tokens")
       .update({ expires_at: fullAccessExpiresIso })
       .eq("id", minted.token_id);
+  }
+
+  try {
+    await applyDeferredShadowP7(admin, trial.tenant_id);
+  } catch (e) {
+    console.warn("[shadow-trial] deferred P7 apply failed:", e instanceof Error ? e.message : e);
   }
 
   return {

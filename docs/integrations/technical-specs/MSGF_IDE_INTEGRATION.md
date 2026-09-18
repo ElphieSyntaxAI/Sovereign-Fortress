@@ -13,6 +13,7 @@
 | [MSGF_DX_ELEVATION_PLAN.md](../../msgf/build-plans/MSGF_DX_ELEVATION_PLAN.md) | HAL friction → 0-Token Context Pack |
 | [MSGF_IDE_SETUP_RUNBOOK.md](./MSGF_IDE_SETUP_RUNBOOK.md) | Production 504/auth, workspace settings, connectivity |
 | [MSGF_PRODUCT_OVERVIEW.md](../../msgf/marketing/MSGF_PRODUCT_OVERVIEW.md) | Product capabilities, use cases, marketing by persona |
+| [MSGF_GLOBAL_BRAIN_TELEMETRY.md](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) | Zero-text swarm absorb vs Session Replay |
 
 ---
 

@@ -17,6 +17,7 @@ import {
   classifyShadowPromptSignals,
   computeShadowProof,
   pickShadowRecommendedAction,
+  SHADOW_BOT_SWARM_ACTION,
   SHADOW_POLICY_DRIFT_ACTION,
   SHADOW_PROOF_SCOPE_DISCLAIMER,
   SHADOW_RETRY_LOOP_ACTION,
@@ -44,6 +45,16 @@ describe("shadow-proof", () => {
       fallback: "KEEP_AS_IS",
     });
     assert.equal(action, "ENABLE_SEMANTIC_CACHE");
+  });
+
+  it("prefers bot-swarm trips over cache and retry flags", () => {
+    const action = pickShadowRecommendedAction({
+      cacheHit: true,
+      signals: { retry_loop: true, policy_drift: true, fat_context: false },
+      fallback: "KEEP_AS_IS",
+      swarmTrip: true,
+    });
+    assert.equal(action, SHADOW_BOT_SWARM_ACTION);
   });
 
   it("counts duplicate calls as extras and their $", () => {
@@ -86,6 +97,25 @@ describe("shadow-proof", () => {
     assert.match(proof.headline, /retry-loop/);
   });
 
+  it("counts FLAG_BOT_SWARM rows as runaway agent waves", () => {
+    const proof = computeShadowProof([
+      {
+        prompt_hash: "child-a",
+        actual_cost_usd: 0.02,
+        recommended_action: SHADOW_BOT_SWARM_ACTION,
+        observed_at: "2026-09-11T10:04:00.000Z",
+      },
+      {
+        prompt_hash: "child-b",
+        actual_cost_usd: 0.01,
+        recommended_action: SHADOW_BOT_SWARM_ACTION,
+        observed_at: "2026-09-11T10:05:00.000Z",
+      },
+    ]);
+    assert.equal(proof.bot_swarm_waves, 2);
+    assert.match(proof.headline, /runaway secondary-agent waves/);
+  });
+
   it("does not claim wins when every prompt is unique", () => {
     const proof = computeShadowProof([
       {
@@ -102,5 +132,32 @@ describe("shadow-proof", () => {
   it("scopes the report as a project estimate, not full MSGF", () => {
     assert.match(SHADOW_PROOF_SCOPE_DISCLAIMER, /this project only/i);
     assert.match(SHADOW_PROOF_SCOPE_DISCLAIMER, /not the full MSGF capability set/i);
+  });
+
+  it("unions unique deferred P7 keys across evals", () => {
+    const proof = computeShadowProof([
+      {
+        prompt_hash: "p1",
+        actual_cost_usd: 0.01,
+        recommended_action: "KEEP_AS_IS",
+        p7_deferred: [
+          { resource_key: "vault:aaa", outcome: "good" },
+          { resource_key: "agent:bbb", outcome: "bad" },
+        ],
+      },
+      {
+        prompt_hash: "p2",
+        actual_cost_usd: 0.01,
+        recommended_action: "KEEP_AS_IS",
+        p7_deferred: [
+          { resource_key: "vault:aaa", outcome: "good" },
+          { resource_key: "prompt:ccc", outcome: "bad" },
+        ],
+      },
+    ]);
+    assert.equal(proof.p7_promoted_resources, 1);
+    assert.equal(proof.p7_blocked_resources, 2);
+    assert.match(proof.headline, /promoted 1 resource/);
+    assert.match(proof.headline, /blocked 2/);
   });
 });

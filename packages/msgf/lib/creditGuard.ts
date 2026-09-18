@@ -170,8 +170,13 @@ async function fetchProjectSpendUsd(): Promise<number> {
   return Number.isFinite(n) ? n : 0;
 }
 
+function creditGuardDisabled(): boolean {
+  const v = process.env.MSGF_CREDIT_GUARD_DISABLED?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 export async function assertMsgfCreditsOr429(request: NextRequest): Promise<NextResponse | null> {
-  if (process.env.MSGF_CREDIT_GUARD_DISABLED === "true") {
+  if (creditGuardDisabled()) {
     return null;
   }
 

@@ -2,9 +2,9 @@
 
 **Audience:** Operators / engineers (admin). End users validate MSGF through the web app, Pulse API, and IDE extension — not these npm scripts.
 
-**Last updated:** 2026-05-20
+**Last updated:** 2026-09-18
 
-**Companion:** [`packages/msgf/README.md`](../../../packages/msgf/README.md) (Phase 0 smoke) · [`MSGF_SOLO_INTEGRATION.md`](../../integrations/technical-specs/MSGF_SOLO_INTEGRATION.md) (third-party / solo API) · [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) (Small/Big Brain + workspaces)
+**Companion:** [`packages/msgf/README.md`](../../../packages/msgf/README.md) (Phase 0 smoke; local **:3001**) · [`MSGF_SOLO_INTEGRATION.md`](../../integrations/technical-specs/MSGF_SOLO_INTEGRATION.md) (third-party / solo API) · [`MSGF_BUYER_WALKTHROUGH.md`](../marketing/MSGF_BUYER_WALKTHROUGH.md) (SaaS buyer) · [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) · [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md) (Small/Big Brain + workspaces) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md) (zero-text swarm absorb)
 
 ---
 
@@ -49,6 +49,9 @@ No live Supabase or Vertex required. Safe for CI and local dev on any OS.
 | `npm run test:savings -w msgf` | Token savings bundle (routing, idempotency, ingest hash, dev-event, CONVERGE cache, brain-routing, heal-queue-audience, QA 18–19) |
 | `npm run test:brain-routing -w msgf` | Brain catalog: Small Brain → user audience, Big Brain → admin |
 | `npm run test:heal-queue-audience -w msgf` | Heal-queue GET user scope strips arbitration / circuit-breaker tasks |
+| `npm run test:swarm-guard -w msgf` | Secondary-agent swarm abort (fan-out / inflight / mandate) — no extra classifier LLM |
+| `npm run test:global-brain-swarm -w msgf` | Zero-text Global Brain envelope, synthetic cause replay, Session Replay legal split |
+| `npm run test:p7-observe -w msgf` | P7 decay, prompt-hash keys, steer hints, swarm hits (no parent demote), deferred apply helpers, audit-hub query match |
 
 **Recommended admin smoke (fast):**
 
@@ -128,6 +131,7 @@ curl -sS -X POST "https://YOUR_MSGF_HOST/api/msgf/ops/v32-heartbeat" \
 | Script | Purpose |
 | :--- | :--- |
 | `npm run ops:purge-hall -w msgf` | Hall purge CLI |
+| `npm run export:swarm-synthetic -w msgf` | JSONL of synthetic swarm stress cases (no tenant prompts) — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md) |
 | `npm run security:prancer-pillars -w msgf` | Static security scan |
 | `npm run probe:author-ecosystem -w msgf` | Cross-stack probe |
 
@@ -153,7 +157,7 @@ curl -sS -X POST "https://YOUR_MSGF_HOST/api/msgf/ops/v32-heartbeat" \
 **Verify (operator session — full queue):**
 
 ```bash
-curl -sS "http://127.0.0.1:3000/api/msgf/heal-queue?tenant_id=YOUR_TENANT_UUID" \
+curl -sS "http://127.0.0.1:3001/api/msgf/heal-queue?tenant_id=YOUR_TENANT_UUID" \
   -H "Cookie: YOUR_OPERATOR_SESSION_COOKIE"
 ```
 
@@ -241,6 +245,8 @@ npm run compile -w msgf-pulse-guard
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-18 | P7 closed loop: `test:p7-observe`; `verify:db-schema` asserts Shadow `p7_*` columns + reputation ledger `'prompt'`. |
+| 2026-09-17 | Swarm + Global Brain: `test:swarm-guard`, `test:global-brain-swarm`, [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./MSGF_GLOBAL_BRAIN_TELEMETRY.md). |
 | 2026-05-20 | Brain routing: `test:brain-routing`, `test:heal-queue-audience`, [`MSGF_BRAIN_ROUTING.md`](./MSGF_BRAIN_ROUTING.md); heal-queue audience §5/§6. |
 | 2026-05-23 | Solo deep-test: `bootstrap:solo`, `probe:solo`, `deep-test:solo`, [`MSGF_SOLO_INTEGRATION.md`](../../integrations/technical-specs/MSGF_SOLO_INTEGRATION.md). Heal-queue accepts license + silo `tenant_id`. |
 | 2026-05-23 | Initial SSoT: admin vs user, `test:unit` / `test:integration`, strict `v32-heartbeat`, heal-queue human arbitration, cross-platform runners. |

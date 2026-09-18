@@ -252,7 +252,7 @@
 
 import { randomUUID } from "node:crypto";
 
-const BASE = (process.env.MSGF_APP_URL || "http://127.0.0.1:3000").replace(/\/$/, "");
+const BASE = (process.env.MSGF_APP_URL || "http://127.0.0.1:3001").replace(/\/$/, "");
 const TENANT =
   process.env.MSGF_SOLO_TENANT_KEY?.trim() ||
   process.env.MSGF_TENANT_KEY?.trim() ||

@@ -8,11 +8,12 @@
 - MSGF testing (admin vs users): [`MSGF_TESTING.md`](./msgf/technical-specs/MSGF_TESTING.md)
 - Cross-repo MSGF telemetry soak: [`MSGF_CROSS_REPO_TESTING.md`](./msgf/build-plans/MSGF_CROSS_REPO_TESTING.md)
 - Small Brain / Big Brain + workspaces: [`MSGF_BRAIN_ROUTING.md`](./msgf/technical-specs/MSGF_BRAIN_ROUTING.md)
+- Global Brain zero-text swarm telemetry: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)
 - Author product roadmap: [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md)
 - Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/technical-specs/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/technical-specs/syntax_education_pillars.md)
 - Implementation tracker (pillars + AUTH): [`PILLAR_PROGRESS.md`](./PILLAR_PROGRESS.md)
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-09-18
 
 ---
 
@@ -25,7 +26,7 @@
 
 Author and education apps **embed or call MSGF**; they do not reimplement guardrail logic in silos.
 
-**MSGF product map (capabilities + sales):** [`MSGF_PRODUCT_OVERVIEW.md`](./msgf/marketing/MSGF_PRODUCT_OVERVIEW.md) · gateway: [`MSGF_SHADOW_PROXY.md`](./msgf/technical-specs/MSGF_SHADOW_PROXY.md) · live `/features` on gatedai.
+**MSGF product map (capabilities + sales):** [`MSGF_PRODUCT_OVERVIEW.md`](./msgf/marketing/MSGF_PRODUCT_OVERVIEW.md) · gateway: [`MSGF_SHADOW_PROXY.md`](./msgf/technical-specs/MSGF_SHADOW_PROXY.md) · swarm absorb: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) · live `/features` on gatedai.
 
 ---
 
@@ -42,7 +43,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | App | Dev entry | Port (typical) |
 | :--- | :--- | :--- |
 | Author BFF + client | `apps/author-ecosystem/server`, `apps/author-ecosystem/client` | 3002 / 5173 |
-| MSGF Next | `npm run dev -w msgf` | 3000 |
+| MSGF Next | `npm run dev -w msgf` | **3001** |
 | MSGF admin dashboard | `npm run dev -w msgf-dashboard` | Vite default |
 | Syntax Educates | `apps/syntax-educates/` | per package |
 
@@ -145,6 +146,7 @@ Engineering SSOT: [`MSGF_V1_ROADMAP.md`](./msgf/MSGF_V1_ROADMAP.md). When the PD
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-17 | MSGF local default port is **3001** (`npm run dev -w msgf`). Buyer console is invite-only; `/sign-up` is waitlist. Global Brain swarm telemetry is zero-text ([`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)). |
 | 2026-09-14 | MSGF governance audit platform noted on product map; ops SSOT remains [`MSGF_ADMIN_HUB.md`](./msgf/technical-specs/MSGF_ADMIN_HUB.md). Pricing SSOT: **$0 / $99 / $49** (`pricing-tiers.ts`). |
 | 2026-08-11 | MSGF ops bug inbox closed loop (FAB → `/admin/ops#bug-inbox`); see [`MSGF_ADMIN_HUB.md`](./msgf/technical-specs/MSGF_ADMIN_HUB.md). |
 | 2026-05-15 | Linked V3.2-ULTRA PDF in `docs/references/`; MSGF 1.0 plan uses V3.2 as primary spec. |

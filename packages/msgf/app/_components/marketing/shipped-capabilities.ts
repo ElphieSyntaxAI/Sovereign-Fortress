@@ -41,7 +41,7 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "04",
     title: "Govern",
-    body: "Small Brain dual presets · TRI Big Brain on high drift · Shadow→Active gateway · human-proof HITL · Session Replay · SIEM.",
+    body: "Small Brain dual presets · TRI Big Brain on high drift · Shadow→Active gateway · P7 reputation prune · human-proof HITL · Session Replay · SIEM.",
   },
 ] as const;
 
@@ -79,14 +79,14 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
     id: "shadow-proxy",
     title: "Shadow Proxy → Active Governance",
     description:
-      "Point OpenAI or Anthropic SDKs at /api/v1. Shadow mode proves projected bill savings with zero added latency; Active mode applies cache, state-gating, and sharded prompts — license-bound auth, never spoofable tenant headers.",
+      "Point OpenAI or Anthropic SDKs at /api/v1. Shadow mode proves projected bill savings and would-have P7 promote/block counts with zero added latency; Active mode applies cache, state-gating, sharded prompts, and live reputation — license-bound auth, never spoofable tenant headers.",
     accent: "violet",
   },
   {
     id: "sentry-quarantine",
     title: "Sentry → Vault quarantine",
     description:
-      "Sentry crashes match Vault wins and mark them QUARANTINED (no silent auto-Hall). Ops restore or demote on /admin/ops — runtime monitoring links to governance memory.",
+      "Sentry crashes match Vault wins and mark them QUARANTINED (no silent auto-Hall) and write a P7 demote. Ops restore or demote on /admin/ops — runtime monitoring links to governance memory.",
     accent: "emerald",
   },
   {

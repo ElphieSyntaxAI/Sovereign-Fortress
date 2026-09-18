@@ -36,7 +36,7 @@ Map projects → Monitor (Sentry) → Verify (Safe Build)
 - `/admin/sign-in` → `/admin/ops`
 - **ARBITRATE** — live heal queue (not mock).
 - **Quarantine review** — if empty, note “Sentry webhook can quarantine Vault wins; HITL only demotes to Hall.”
-- **Sentry** — Load issues (if configured) · filter story by project.
+- **Audit hub / Session Replay** — forensics vs **zero-text** Global Brain swarm rows (`q=swarm`). Spec: [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
 - **Signing** — mock complete if invite pending.
 
 ### 3. Verify → deploy gate (3 min)

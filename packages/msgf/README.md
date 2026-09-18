@@ -16,10 +16,11 @@ MSGF is the **brain and guardrail engine** for Elphie Syntax products and a **st
 | [`docs/msgf/technical-specs/MSGF_TESTING.md`](../../docs/msgf/technical-specs/MSGF_TESTING.md) | **Testing SSoT** — admin scripts vs end-user flows (Windows / macOS / Linux) |
 | [`docs/integrations/technical-specs/MSGF_SOLO_INTEGRATION.md`](../../docs/integrations/technical-specs/MSGF_SOLO_INTEGRATION.md) | **Solo / BYOK** — bootstrap, license Pulse, probes for third-party projects |
 | [`docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md`](../../docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md) | **Shadow Proxy + Active Governance** — `/api/v1` OpenAI/Anthropic gateway |
-| [`docs/msgf/marketing/MSGF_BUYER_WALKTHROUGH.md`](../../docs/msgf/marketing/MSGF_BUYER_WALKTHROUGH.md) | **Buyer / SaaS** — new user sign-up, pricing, session Pulse (not integrator license) |
+| [`docs/msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../docs/msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) | **Zero-text Global Brain swarm telemetry** — never train on prompts; Session Replay is tenant forensics |
+| [`docs/msgf/marketing/MSGF_BUYER_WALKTHROUGH.md`](../../docs/msgf/marketing/MSGF_BUYER_WALKTHROUGH.md) | **Buyer / SaaS** — waitlist/invite, `/sign-in`, pricing, session Pulse (not integrator license) |
 | [`docs/MONOREPO_PRODUCTS.md`](../../docs/MONOREPO_PRODUCTS.md) | Three web apps & domains |
 | [`docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md`](../../docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md) | **Small Brain / Big Brain** — audience routing, heal queue, monorepo workspaces |
-| [`docs/msgf/MSGF_RC_CHECKLIST.md`](../../docs/msgf/MSGF_RC_CHECKLIST.md) | **MSGF 1.0 RC** — MSGF-only completion checklist (Stripe excluded) |
+| [`docs/msgf/MSGF_RC_CHECKLIST.md`](../../docs/msgf/MSGF_RC_CHECKLIST.md) | **MSGF 1.0 RC** — P0 automated + staging smoke; **P0-M3 Stripe** for paid claims |
 | [`supabase/email-templates/README.md`](./supabase/email-templates/README.md) | **Branded auth emails** — logo + jewel aesthetic; `npm run email:templates:build -w msgf` |
 | [`pre_ingestion_audit.md`](./pre_ingestion_audit.md) | Day-zero audit (SWEEP) & CONVERGE backlog |
 | [`docs/PILLAR_PROGRESS.md`](../../docs/PILLAR_PROGRESS.md) | Pillar/AUTH implementation tracker |
@@ -48,6 +49,7 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | `MSGF_ECO_PROVEN_ONLY` | Default **on** — public eco ignores estimated routing; proven avoidance / pack deltas only |
 | `MSGF_ACTIVE_AGGRESSIVENESS` | Active gateway: `cache-only` · `shard-and-route` (default) · `full-consensus` |
 | `MSGF_ACTIVE_PASSTHROUGH_FALLBACK` | Default on — Active orchestrator errors fall back to pass-through |
+| `MSGF_P7_REPUTATION_HALFLIFE_DAYS` | P7 count half-life (default 30; `0` disables). Prompt hashes use `x-msgf-prompt-hash` |
 | `ALLOW_DEMO_TENANT` / `MSGF_SHADOW_ALLOW_DEMO_TENANT` | Non-prod only — demo gateway tenant when key missing |
 | `POST /api/v1/chat/completions` · `POST /api/v1/messages` | Shadow Proxy / Active Governance (see [`MSGF_SHADOW_PROXY.md`](../../docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md)) |
 | `MSGF_CREDIT_RESERVATION_ENABLED` / `MSGF_CREDIT_RESERVATION_PROD_DEFAULT` | Reserve credits before Pulse/ingest; prod defaults on unless disabled |
@@ -72,7 +74,7 @@ At the **monorepo root**, copy [`.env.example`](../../.env.example) → `.env.lo
 | **Small Brain** | Tenant-local — Vault, `state_beats`, Redis hot layer, Heal Cheap / bypass, dev-event, cache replay. No global DNA without admin. | **Users** — `/dashboard`, user-scoped heal queue, user savings API |
 | **Big Brain** | Platform global CONVERGE + operator paths. Promotions to `msgf_rules` / `vault_core` need approval. | **Admins** — `/admin/dashboard#big-brain-issues`, human arbitration, admin savings API |
 
-Full internal reference: [`docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md`](../../docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md).
+Full internal reference: [`docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md`](../../docs/msgf/technical-specs/MSGF_BRAIN_ROUTING.md). Swarm absorb into Global Brain is **structural only** ([`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../docs/msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)).
 
 | Module | Role |
 | :--- | :--- |
@@ -160,7 +162,7 @@ Requires `DATABASE_URL` or `SUPABASE_DATABASE_URL` (Postgres connection string f
 npm run dev -w msgf
 ```
 
-Default: http://127.0.0.1:3000
+Default: **http://127.0.0.1:3001** (`PORT=3001` in `packages/msgf/package.json`)
 
 ### Step B — Create test user
 
@@ -174,7 +176,7 @@ Note the user **UUID** (`auth.users.id`).
 
 ### Step C — Pledge (`state_beats`)
 
-Pulse requires a `state_beats` row for the current legal version (`2026.05.05-UTAH-SAFE` — see `lib/msgf-legal.ts`).
+Pulse requires a `state_beats` row for the current legal version (`2026.09.18-UTAH-SAFE` — see `lib/msgf-legal.ts`).
 
 **SQL Editor** (service role) — replace `YOUR_USER_UUID`:
 
@@ -189,7 +191,7 @@ insert into public.state_beats (
 ) values (
   'YOUR_USER_UUID',
   'No-AI-Training Pledge accepted (Phase 0 smoke test).',
-  '2026.05.05-UTAH-SAFE',
+  '2026.09.18-UTAH-SAFE',
   1,
   'pledge',
   '{"source":"phase0_smoke_test"}'::jsonb
@@ -202,7 +204,7 @@ Without this row, `POST /api/msgf/pulse` returns **403** (“Please sign the No-
 
 1. Open the MSGF app (or use Supabase Auth sign-in against your project).
 2. Sign in as the test user.
-3. Copy the browser **Cookie** header for requests to `localhost:3000` (must include Supabase `sb-*-auth-token`).
+3. Copy the browser **Cookie** header for requests to `localhost:3001` (must include Supabase `sb-*-auth-token`).
 
 Store for later:
 
@@ -216,7 +218,7 @@ MSGF_PULSE_COOKIE="sb-...-auth-token=..."
 Send keystrokes until baseline is satisfied. First call may return **202** with `baseline_required: true` and a training prompt.
 
 ```bash
-curl -sS -X POST "http://127.0.0.1:3000/api/msgf/pulse" \
+curl -sS -X POST "http://127.0.0.1:3001/api/msgf/pulse" \
   -H "Content-Type: application/json" \
   -H "Cookie: $MSGF_PULSE_COOKIE" \
   -d '{

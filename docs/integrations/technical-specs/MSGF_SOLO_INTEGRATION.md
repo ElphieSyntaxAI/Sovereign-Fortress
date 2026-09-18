@@ -2,11 +2,11 @@
 
 **Purpose:** Run MSGF as a **standalone guardrail API** in another product (HR typing monitor, LMS, internal tools) without Author Ecosystem.
 
-**Buying the MSGF web product (new customer)?** Use [`MSGF_BUYER_WALKTHROUGH.md`](../../msgf/marketing/MSGF_BUYER_WALKTHROUGH.md) instead — sign-up, Stripe, session Pulse — not `bootstrap:solo`.
+**Buying the MSGF web product (new customer)?** Use [`MSGF_BUYER_WALKTHROUGH.md`](../../msgf/marketing/MSGF_BUYER_WALKTHROUGH.md) instead — waitlist / invite, Stripe, session Pulse — not `bootstrap:solo`.
 
 **Engine:** https://elphiesgatedai.elphiesyntax.com  
 **Roadmap status:** [`MSGF_V1_ROADMAP.md`](../../msgf/MSGF_V1_ROADMAP.md) §10  
-**Testing:** [`MSGF_TESTING.md`](../../msgf/technical-specs/MSGF_TESTING.md)
+**Testing:** [`MSGF_TESTING.md`](../../msgf/technical-specs/MSGF_TESTING.md) · **Swarm / Global Brain:** [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)
 
 ---
 
@@ -19,6 +19,7 @@
 | Post-ingest remediation | `GET/POST /api/msgf/heal-queue` |
 | Human arbitration | `POST /api/msgf/heal-queue/human-arbitration` |
 | OpenAI/Anthropic gateway | `POST /api/v1/chat/completions` · `POST /api/v1/messages` — [`MSGF_SHADOW_PROXY.md`](../../msgf/technical-specs/MSGF_SHADOW_PROXY.md) |
+| Secondary-agent swarm | Pulse / gateway headers `x-msgf-agent-id`, `x-msgf-parent-agent-id`, `x-msgf-agent-role`, `x-msgf-mandate-hash` — Active **409** + HITL; Shadow observes only — [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../../msgf/technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) |
 | Global mitigations (DEFEND) | `msgf_rules` / `global_mitigations` (DB) |
 | Scheduled ops | `POST /api/msgf/ops/v32-heartbeat` |
 | TypeScript client | `msgf/connector/MsgfBridge` · `msgf/ide-connector` |
@@ -126,7 +127,7 @@ Use `msgf/hal-author-bridge` to map your events and chunk by 175 words with 10-w
 
 ## 4. Deep-test checklist (operator)
 
-**Windows + OneDrive:** if `npm run dev -w msgf` fails with `EINVAL` on `.next/.../readlink`, delete `packages/msgf/.next` and retry. Use `MSGF_APP_URL=http://127.0.0.1:3000` in `packages/msgf/.env.local` for local `probe:solo`.
+**Windows + OneDrive:** if `npm run dev -w msgf` fails with `EINVAL` on `.next/.../readlink`, delete `packages/msgf/.next` and retry. Use `MSGF_APP_URL=http://127.0.0.1:3001` in `packages/msgf/.env.local` for local `probe:solo`.
 
 | Step | Command |
 | :--- | :--- |

@@ -129,11 +129,9 @@ export type MsgfIncidentRow = {
 
 
 const ARBITRATE_INSTANCES = new Set<string>([
-
   PULSE_BUG_INDEX.hallHitlRequired.level_1_1_1_instance,
-
   PULSE_BUG_INDEX.hallLomRecursion.level_1_1_1_instance,
-
+  PULSE_BUG_INDEX.hallBotSwarm.level_1_1_1_instance,
 ]);
 
 
