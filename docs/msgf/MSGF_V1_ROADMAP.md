@@ -522,7 +522,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | 1 | Offline unit suite (incl. TRI) | **Done** 2026-09-11 via `test:unit` (includes TRI / PQC / stripe / shadow-proxy / swarm / **p7-observe** 2026-09-18). Still open: `test:savings` / `test:brain-routing` / `test:heal-queue-audience` / `test:hal-word-chunk` |
 | 2 | Solo deep-test gate | **Done** 2026-09-11 — `npm run deep-test:solo` |
 | 3 | Solo integrator bootstrap | **Open on staging URL** — local `bootstrap:solo` → `probe:solo` still required against gatedai |
-| 4 | Env + schema | **Done** through Aug 2026 (`verify:msgf-env` 2026-09-11). **Confirm** Sept 2026: shadow trial / governance audit / trusted-OSS / **tenant default AI** / **P7 prompt + Shadow deferred** (`20260918120000`) |
+| 4 | Env + schema | **Done** 2026-09-18 — `db:push:verify` applied `20260918010000` + `20260918120000`; P7 prompt CHECK + Shadow deferred columns green |
 | 5 | Staging smoke | **Open** — pledge → Pulse → ingest → heal-queue → heartbeat dry-run → `/features` → swarm abort → Shadow CTA apply → audit hub `p7=` chips |
 
 ### B. Finish before `msgf-v1.0.0` tag (engine + ops)

@@ -137,6 +137,8 @@ type TrialProof = {
   policy_flags: number;
   fat_context_calls: number;
   bot_swarm_waves?: number;
+  p7_promoted_resources?: number;
+  p7_blocked_resources?: number;
   headline: string;
 };
 

@@ -26,3 +26,10 @@ packages/**/package-lock.json
 # Supabase CLI local cache (machine-specific; not for version control)
 supabase/.temp/
 packages/msgf/supabase/.temp/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

@@ -34,7 +34,7 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [x] Apply launch governance writers migration `20260806200000_launch_governance_writers.sql` (proven/usage audit columns) — 2026-08-06
 - [x] `npm run db:push:verify -w msgf` after TRI + usage + shadow + governance migrations — 2026-08-06 green
 - [x] Apply bug inbox migrations `20260811010000_p4_active_incidents_bug_inbox.sql` + `20260811020000_p4_upsert_reopen_bug_inbox.sql` — 2026-08-11 `db:push`
-- [ ] Confirm Sept 2026 schema on live DB: `20260914200000_shadow_trial_7d_full_access.sql`, `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`, `20260918010000_tenant_default_ai_provider.sql`, `20260918120000_p7_prompt_shadow_deferred.sql`
+- [x] Confirm Sept 2026 schema on live DB: `20260914200000_shadow_trial_7d_full_access.sql`, `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`, `20260918010000_tenant_default_ai_provider.sql`, `20260918120000_p7_prompt_shadow_deferred.sql` — 2026-09-18 `db:push:verify` (applied `18010000` + `18120000`; prior Sept rows were already present)
 
 ### 1.1b Launch hardening (code Done 2026-08-06)
 

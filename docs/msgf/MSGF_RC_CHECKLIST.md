@@ -83,8 +83,8 @@ Document date + operator + tenant id in changelog when done.
 - [x] Shadow observe-only + apply-once on 3-day CTA; paid Active never queues deferred P7
 - [x] Decay (30-day half-life) + `prompt:{sha256}` resource keys; Session Replay **not** removed
 - [x] `npm run test:p7-observe -w msgf` (included in `test:unit`)
-- [ ] `npm run db:push -w msgf` for `20260918120000_p7_prompt_shadow_deferred.sql` (prompt ledger CHECK + shadow `p7_*` columns)
-- [ ] `npm run verify:db-schema -w msgf` reports Shadow P7 columns + reputation ledger `'prompt'`
+- [x] `npm run db:push -w msgf` for `20260918120000_p7_prompt_shadow_deferred.sql` (prompt ledger CHECK + shadow `p7_*` columns) — 2026-09-18
+- [x] `npm run verify:db-schema -w msgf` reports Shadow P7 columns + reputation ledger `'prompt'` — 2026-09-18
 - [ ] Follow-up (does not block soft-RC): Pulse `x-msgf-prompt-hash` → `prompt:{sha256}` on PulseEngine hits (gateway already wired)
 
 ---
