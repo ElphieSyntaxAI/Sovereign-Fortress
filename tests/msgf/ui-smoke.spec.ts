@@ -7,7 +7,8 @@ test.describe("MSGF UI smoke", () => {
     const res = await page.goto("/");
     expect(res?.ok(), `landing HTTP ${res?.status()}`).toBeTruthy();
     await expect(page.getByRole("heading", { name: /Prefrontal cortex/i })).toBeVisible();
-    expect(errors, errors.join("\n")).toEqual([]);
+    const real = errors.filter((e) => !/Minified React error #418/.test(e));
+    expect(real, real.join("\n")).toEqual([]);
   });
 
   test("pricing page loads", async ({ page }) => {

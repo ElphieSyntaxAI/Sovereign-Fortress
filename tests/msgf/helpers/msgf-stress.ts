@@ -47,11 +47,15 @@ export function envInt(name: string, fallback: number): number {
 }
 
 export function stressConcurrency(): number {
-  return Math.max(1, Math.min(25, envInt("MSGF_STRESS_CONCURRENCY", 10)));
+  const cap = isProductionHost() ? 2 : 25;
+  const fallback = isProductionHost() ? 2 : 10;
+  return Math.max(1, Math.min(cap, envInt("MSGF_STRESS_CONCURRENCY", fallback)));
 }
 
 export function stressRequestCount(): number {
-  return Math.max(4, Math.min(200, envInt("MSGF_STRESS_REQUESTS", 40)));
+  const cap = isProductionHost() ? 8 : 200;
+  const fallback = isProductionHost() ? 8 : 40;
+  return Math.max(4, Math.min(cap, envInt("MSGF_STRESS_REQUESTS", fallback)));
 }
 
 export function msgfBaseUrl(): string {
@@ -184,13 +188,24 @@ export function pulseCookie(): string {
 
 export function isProductionHost(url = msgfBaseUrl()): boolean {
   try {
-    return new URL(url).hostname === "elphiesgatedai.elphiesyntax.com";
+    const host = new URL(url).hostname.toLowerCase();
+    if (host === "elphiesgatedai.elphiesyntax.com") return true;
+    // Production Cloud Run service URL — not msgf-api-staging-*.
+    if (
+      host.endsWith(".run.app") &&
+      host.startsWith("msgf-api-") &&
+      !host.startsWith("msgf-api-staging-")
+    ) {
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
 }
 
 export function stripeE2eEnabled(): boolean {
+  if (isProductionHost()) return false;
   const v = process.env.MSGF_STRIPE_E2E?.trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
 }

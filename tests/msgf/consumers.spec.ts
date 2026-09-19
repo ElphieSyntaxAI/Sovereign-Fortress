@@ -6,6 +6,7 @@ import {
   authorTenantId,
   educationTenantId,
   firePulse,
+  isProductionHost,
   licenseTenantCandidates,
   logLine,
   msgfTenantId,
@@ -55,6 +56,7 @@ test.describe("MSGF consumer product pulses", () => {
   });
 
   test("Author Ecosystem Pulse attributes through MSGF", async ({ request }) => {
+    test.skip(isProductionHost(), "Do not Pulse live Author tenant on production / Cloud Run");
     const tenant = authorTenantId();
     const result = await attributedPulse(
       request,
@@ -73,6 +75,7 @@ test.describe("MSGF consumer product pulses", () => {
   });
 
   test("Education Pulse attributes through MSGF", async ({ request }) => {
+    test.skip(isProductionHost(), "Do not Pulse live Education tenant on production / Cloud Run");
     const tenant = educationTenantId();
     const result = await attributedPulse(
       request,

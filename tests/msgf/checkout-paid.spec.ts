@@ -14,7 +14,7 @@ test.describe("MSGF paid Checkout smoke", () => {
     test.skip(!stripeE2eEnabled(), "Set MSGF_STRIPE_E2E=1 to run paid Checkout");
     test.skip(
       isProductionHost(),
-      "Checkout smoke is staging-only — refuse production elphiesgatedai"
+      "Checkout smoke is staging-only — refuse production elphiesgatedai and Cloud Run msgf-api"
     );
   });
 

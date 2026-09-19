@@ -8,6 +8,7 @@ import {
   fireIngest,
   firePulse,
   invalidIngestBody,
+  isProductionHost,
   paidLicense,
   printExecutionReport,
   runConcurrentWave,
@@ -52,6 +53,10 @@ test.describe("MSGF Pulse + Ingest stress", () => {
   });
 
   test("intentional ingest validation failure is Hall-logged", async ({ request }) => {
+    test.skip(
+      isProductionHost(),
+      "Skip invalid-ingest Hall writes on production / Cloud Run msgf-api"
+    );
     const result = await fireIngest(
       request,
       "invalid",

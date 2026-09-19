@@ -184,9 +184,13 @@ test.describe("MSGF RC API contracts", () => {
       authHeaders("standard"),
       swarmAbortHeaders()
     );
+    expect(bodyHasKeyLists(result.bodyExcerpt)).toBeFalsy();
+    if (isProductionHost() && result.status === 402) {
+      expect(result.errorCode).toBe("INSUFFICIENT_FUNDS");
+      return;
+    }
     expect(result.status, result.bodyExcerpt).toBe(409);
     expect(result.errorCode).toBe("BOT_SWARM_DETECTED");
-    expect(bodyHasKeyLists(result.bodyExcerpt)).toBeFalsy();
     expect(result.bodyExcerpt).toMatch(/hitl|cause_codes|BOT_SWARM/i);
     recordHallFailure(result);
   });

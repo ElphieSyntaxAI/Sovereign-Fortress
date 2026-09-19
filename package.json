@@ -35,6 +35,7 @@
     "test:e2e:consumers": "npx playwright test --project=consumers --workers=1",
     "test:e2e:paid": "npx cross-env MSGF_STRIPE_E2E=1 playwright test --project=checkout-paid",
     "test:e2e:staging": "npx playwright test --project=api-stress --project=rc-api --workers=1",
+    "test:e2e:cloud": "npx cross-env MSGF_APP_URL=https://msgf-api-bkracxai6q-uc.a.run.app playwright test --project=ui-smoke --project=rc-api --workers=1",
     "test:author": "npm run test -w @elphie-syntax/author-ecosystem-server && npm run test:smoke -w @elphie-syntax/author-ecosystem-server",
     "test:author:client:build": "npm run build -w @elphie-syntax/author-ecosystem-client",
     "validate:deployment": "node scripts/validate-deployment.mjs",

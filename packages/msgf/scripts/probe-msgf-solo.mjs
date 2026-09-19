@@ -475,10 +475,40 @@ const BASE = (
   "http://127.0.0.1:3001"
 ).replace(/\/+$/, "");
 
+function isProductionBase(url = BASE) {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host === "elphiesgatedai.elphiesyntax.com") return true;
+    return (
+      host.endsWith(".run.app") &&
+      host.startsWith("msgf-api-") &&
+      !host.startsWith("msgf-api-staging-")
+    );
+  } catch {
+    return false;
+  }
+}
+
 const TENANT =
   process.env.MSGF_SOLO_TENANT_ID?.trim() ||
   process.env.MSGF_TENANT_ID?.trim() ||
   "integration_sandbox";
+
+const TENANT_CANDIDATES = [
+  ...new Set(
+    [
+      process.env.MSGF_AUTHOR_TENANT_ID,
+      process.env.NEXT_PUBLIC_MSGF_AUTHOR_TENANT_ID,
+      process.env.MSGF_SOLO_TENANT_ID,
+      process.env.MSGF_TENANT_ID,
+      "author_ecosystem",
+      "integration_sandbox",
+      TENANT,
+    ]
+      .map((v) => (typeof v === "string" ? v.trim() : ""))
+      .filter(Boolean)
+  ),
+];
 
 const ENTITY =
   process.env.MSGF_SOLO_ENTITY_ID?.trim() ||
@@ -572,20 +602,34 @@ async function main() {
     body: JSON.stringify({ keystrokes: sampleKeystrokes() }),
   });
   logResult("POST /api/msgf/pulse", pulse);
-  if (!pulse.ok && pulse.status !== 202) failures.push("pulse");
-
-  const healHeaders = COOKIE ? { Cookie: COOKIE } : {};
-  if (LICENSE) {
-    healHeaders.Authorization = `Bearer ${LICENSE}`;
-    healHeaders["x-msgf-license-key"] = LICENSE;
-    healHeaders["x-msgf-tenant-id"] = TENANT;
-    healHeaders["x-msgf-entity-id"] = entityId;
+  if (!pulse.ok && pulse.status !== 202) {
+    const pulseError =
+      pulse.json && typeof pulse.json === "object" ? String(pulse.json.error ?? "") : "";
+    if (isProductionBase() && pulse.status === 402 && pulseError === "INSUFFICIENT_FUNDS") {
+      console.log(
+        "[probe:solo] Pulse 402 INSUFFICIENT_FUNDS on production Cloud Run — paid gate, not a probe failure."
+      );
+    } else {
+      failures.push("pulse");
+    }
   }
-  const heal = await probe(
-    "GET /api/msgf/heal-queue",
-    `${BASE}/api/msgf/heal-queue?tenant_id=${encodeURIComponent(TENANT)}`,
-    { headers: healHeaders }
-  );
+
+  let heal = { ok: false, status: 0, json: { error: "heal-queue not attempted" } };
+  for (const tenant of TENANT_CANDIDATES) {
+    const healHeaders = COOKIE ? { Cookie: COOKIE } : {};
+    if (LICENSE) {
+      healHeaders.Authorization = `Bearer ${LICENSE}`;
+      healHeaders["x-msgf-license-key"] = LICENSE;
+      healHeaders["x-msgf-tenant-id"] = tenant;
+      healHeaders["x-msgf-entity-id"] = entityId;
+    }
+    heal = await probe(
+      "GET /api/msgf/heal-queue",
+      `${BASE}/api/msgf/heal-queue?tenant_id=${encodeURIComponent(tenant)}`,
+      { headers: healHeaders }
+    );
+    if (heal.ok) break;
+  }
   logResult("GET /api/msgf/heal-queue", heal);
   if (!heal.ok) failures.push("heal-queue");
 
