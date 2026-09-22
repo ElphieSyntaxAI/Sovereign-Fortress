@@ -59,7 +59,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
-import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+import { useSharedOpsQuery, useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 type AuditEvent = {
   id: string;
@@ -76,7 +76,7 @@ type AuditEvent = {
 
 export function AdminAuditHubPanel() {
   const projectOrigin = useSharedProjectOrigin();
-  const [q, setQ] = useState("");
+  const q = useSharedOpsQuery();
   const [kind, setKind] = useState("");
   const [severity, setSeverity] = useState("");
   const [p7Filter, setP7Filter] = useState("");
@@ -121,9 +121,9 @@ export function AdminAuditHubPanel() {
   }, [q, kind, severity, p7Filter, projectOrigin]);
 
   useEffect(() => {
-    if (!projectOrigin) return;
+    if (!projectOrigin && !q.trim()) return;
     void runSearch();
-  }, [projectOrigin, runSearch]);
+  }, [projectOrigin, q, runSearch]);
 
   return (
     <div id="audit-hub">
@@ -133,7 +133,8 @@ export function AdminAuditHubPanel() {
         description="Searchable timeline across Pulse, gateway, IDE, HITL, harm flags, and budgets."
         scope={scope}
         query={q}
-        onQueryChange={setQ}
+        onQueryChange={() => {}}
+        hideQuery
         onSearch={() => void runSearch()}
         loading={loading}
         error={error}

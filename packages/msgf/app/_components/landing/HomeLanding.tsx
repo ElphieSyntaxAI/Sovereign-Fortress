@@ -20,6 +20,8 @@ import {
 import { ShadowSavingsHowTo } from "@/app/_components/marketing/ShadowSavingsHowTo";
 import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
 
+import { PILLAR_CARD_FACE } from "@/lib/pillar-display";
+
 import { AuthLandingNav } from "./AuthLandingNav";
 import { PublicEcoMetricsWidget } from "./PublicEcoMetricsWidget";
 import { PublicSiblingProductsSection } from "./PublicSiblingProductsSection";
@@ -27,38 +29,38 @@ import { PublicSiblingProductsSection } from "./PublicSiblingProductsSection";
 const PILLARS = [
   {
     id: "P1",
-    title: "Policy & compliance",
-    body: "Blocking rules for unsafe or out-of-policy changes before they reach the model.",
+    title: PILLAR_CARD_FACE.P1,
+    body: "Immutable rules and security checks before a request reaches the model.",
     accent: "emerald" as const,
   },
   {
     id: "P2",
-    title: "Change flow",
-    body: "Deployment order, multi-file dependencies, and verify-before-ship gates.",
+    title: PILLAR_CARD_FACE.P2,
+    body: "Pipeline and execution order, including verify-before-ship.",
     accent: "purple" as const,
   },
   {
     id: "P3",
-    title: "Identity & tenancy",
-    body: "Roles, tokens, entitlements, and tenant isolation.",
+    title: PILLAR_CARD_FACE.P3,
+    body: "Identity, roles, and tenant isolation.",
     accent: "emerald" as const,
   },
   {
     id: "P4",
-    title: "Session state",
-    body: "Live session telemetry and revision locks before the model acts.",
+    title: PILLAR_CARD_FACE.P4,
+    body: "Runtime telemetry and active session memory.",
     accent: "purple" as const,
   },
   {
     id: "P5",
-    title: "Local context",
-    body: "Sharded module context so prompts do not carry unused files.",
+    title: PILLAR_CARD_FACE.P5,
+    body: "Workspace context stays sharded so prompts do not carry unused files.",
     accent: "emerald" as const,
   },
   {
     id: "P6",
-    title: "Approved vs rejected memory",
-    body: "Vault stores approved outcomes; Hall stores failed outcomes — inspectable lineage.",
+    title: PILLAR_CARD_FACE.P6,
+    body: "Vault is verified state memory. Hall stores rejected outcomes.",
     accent: "purple" as const,
   },
 ];
@@ -74,11 +76,11 @@ const GATEWAY_COMPARISON = [
   },
   {
     ungoverned: "No record of what worked or failed",
-    msgf: "Approved vs rejected stores (Vault / Hall)",
+    msgf: "Vault (verified state memory) vs Hall",
   },
   {
     ungoverned: "One model for every request",
-    msgf: "Cost-efficient vs frontier routing",
+    msgf: "Small Brain local routing vs Big Brain consensus",
   },
   {
     ungoverned: "No source provenance",
@@ -90,12 +92,6 @@ function accentRing(accent: "emerald" | "purple") {
   return accent === "emerald"
     ? "border-emerald-500/25 group-hover:border-emerald-400/50"
     : "border-violet-500/25 group-hover:border-violet-400/50";
-}
-
-function accentBadge(accent: "emerald" | "purple") {
-  return accent === "emerald"
-    ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30"
-    : "bg-violet-500/15 text-violet-200 ring-violet-500/30";
 }
 
 export function HomeLanding() {
@@ -180,7 +176,7 @@ export function HomeLanding() {
                 Policy and routing before spend.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                MSGF runs policy checks, approved and rejected memory, and model routing before
+                MSGF runs policy checks, Vault and Hall, and Small Brain or Big Brain routing before
                 tokens are billed — so security and engineering share the same audit trail.
               </p>
             </article>
@@ -235,7 +231,7 @@ export function HomeLanding() {
               Shipped for <span className="text-gradient-jewel">production</span>
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-slate-400 sm:text-base">
-              These capabilities run in production Cloud Run and the Pulse Guard IDE extension today.
+              These capabilities run in production Cloud Run and Pulse Guard (IDE dev-environment protection) today.
             </p>
           </div>
           <div className="mt-10">
@@ -271,12 +267,7 @@ export function HomeLanding() {
                 href={`/getting-started#pillar-${p.id}`}
                 className={`glass-panel group scroll-mt-24 rounded-2xl border p-5 transition ${accentRing(p.accent)}`}
               >
-                <span
-                  className={`inline-flex rounded-lg px-2 py-0.5 text-xs font-bold ring-1 ${accentBadge(p.accent)}`}
-                >
-                  {p.id}
-                </span>
-                <h3 className="mt-3 font-semibold text-slate-100">{p.title}</h3>
+                <h3 className="font-semibold text-slate-100">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-400">{p.body}</p>
               </Link>
             ))}

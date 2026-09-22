@@ -40,10 +40,9 @@ export default async function AdminPortalPage() {
           <span className="text-gradient-jewel">Test the product family</span>
         </h1>
         <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-          Launch product surfaces from here. MSGF team onboarding (domains, signing, archive) lives
-          on{" "}
-          <Link href="/workspace?tab=setup" className="text-emerald-300 hover:underline">
-            Setup Projects → Manage Team
+          Launch product surfaces from here. Project mapping and invites live on{" "}
+          <Link href="/workspace" className="text-emerald-300 hover:underline">
+            Workspace
           </Link>
           . Pillar health and incident queues live on the{" "}
           <Link href="/admin/ops" className="text-violet-300 hover:underline">
@@ -67,11 +66,10 @@ export default async function AdminPortalPage() {
       {isStagingDeploy() ? <StagingReadinessSeed /> : null}
 
       <section className="glass-panel rounded-2xl border border-emerald-500/25 p-5 text-sm text-slate-300">
-        <h2 className="text-base font-semibold text-emerald-100">Team readiness (MSGF)</h2>
+        <h2 className="text-base font-semibold text-emerald-100">Workspace</h2>
         <p className="mt-2 text-slate-400">
-          After Workspace SSO or first invite, complete: allowlisted domains, signing provider,
-          optional Dropbox archive path, and mapped projects. Checklist + settings:{" "}
-          <Link href="/workspace?tab=setup" className="text-emerald-300 hover:underline">
+          Map projects and invite teammates on{" "}
+          <Link href="/workspace" className="text-emerald-300 hover:underline">
             workspace team panel
           </Link>
           {" "}

@@ -254,13 +254,16 @@ export function ConsensusPresetPanel({ tenantId }: Props) {
       id="converge-preset"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-        Cost-efficient verification
+        Select baseline and consensus models
       </p>
-      <h3 className="mt-1 text-lg font-semibold text-slate-50">Default AI + dual pair</h3>
-      <p className="mt-2 max-w-xl text-sm text-slate-400">
-        Pick the default model for SOLO_FAST (prompt optimize, low-cost remediation, single-model
-        verification). Then optionally add a second model for dual consensus — or a third when
-        tenant three-model consensus is enabled. Frontier routing still uses platform consensus when drift is high.
+      <h3 className="mt-1 text-lg font-semibold text-slate-50">Model Routing Presets</h3>
+      <p className="mt-2 text-sm text-slate-300">
+        Mode:{" "}
+        {data.config.mode === "SOLO_FAST"
+          ? "SOLO_FAST"
+          : data.config.mode === "TRI"
+            ? "Tri-Tribunal"
+            : "Balanced Dual"}
       </p>
       <div
         className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400"
@@ -301,9 +304,6 @@ export function ConsensusPresetPanel({ tenantId }: Props) {
       </div>
 
       <h4 className="mt-5 text-sm font-semibold text-slate-200">Dual pair (optional)</h4>
-      <p className="mt-1 max-w-xl text-xs text-slate-500">
-        Check a second provider to run dual verification. Leave both unchecked for SOLO_FAST.
-      </p>
       <ul className="mt-2 grid max-w-md gap-2">
         {PROVIDERS.filter((p) => p.id !== defaultProvider).map((p) => {
           const checked = dualPartners.includes(p.id);

@@ -301,6 +301,8 @@ import {
   type DailyReportsProjectTimeline,
 } from "@/lib/services/daily-reports-history";
 import type { PillarStoplightStatus } from "@/lib/services/HealthService";
+import { PILLAR_CARD_FACE } from "@/lib/pillar-display";
+import type { MsgfGovernancePillar } from "@/lib/services/pillar-baseline";
 
 type ApiResponse = {
   ok: boolean;
@@ -403,10 +405,9 @@ function PillarMiniGrid({ pillars }: { pillars: DailyReportPillarSnapshot[] }) {
             key={pillar.pillar}
             className={`rounded-xl border p-3 text-center ${styles.ring} bg-slate-950/50`}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/80">
-              {pillar.pillar}
+            <p className="text-xs font-medium text-slate-100">
+              {PILLAR_CARD_FACE[pillar.pillar as MsgfGovernancePillar] ?? pillar.label}
             </p>
-            <p className="mt-1 text-xs font-medium text-slate-100">{pillar.label}</p>
             <span
               className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${styles.badge}`}
             >
@@ -721,11 +722,10 @@ export function DailyReportsAccordion() {
 
   return (
     <div className="space-y-5">
-      <p className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3 text-sm text-slate-300">
-        Each mapped repository has its own archive. Events are filtered by{" "}
-        <code className="text-violet-200">project_origin</code> in narrative metadata — not merged
-        across repos. Network-wide digests are not overlaid on your personal timeline.
-      </p>
+      <div>
+        <h2 className="text-lg font-semibold text-slate-50">Repository Daily Logs</h2>
+        <p className="mt-1 text-sm text-slate-400">Filtered by project_origin.</p>
+      </div>
 
       {showRepoPicker ? (
         <div

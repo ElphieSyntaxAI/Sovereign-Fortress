@@ -94,14 +94,13 @@ export default async function StatusPage() {
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight">System status</h1>
           <p className="text-sm text-slate-400">
-            Integration env checks plus live V3.2-ULTRA directive readiness (Redis SHARD, ops
-            heartbeat, HITL).
+            Integration env checks plus live runtime readiness (Redis SHARD, ops heartbeat, HITL).
           </p>
         </div>
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-emerald-300/90">
-            V3.2-ULTRA checklist
+            Runtime checklist
           </h2>
           {v32.steps.map((s) => (
             <V32StepRow key={s.step} status={s.status} step={s.step} detail={s.detail} />

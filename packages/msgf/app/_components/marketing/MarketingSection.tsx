@@ -63,9 +63,6 @@ export function MarketingPillarList({
           key={item.id}
           className="flex gap-3 rounded-xl border border-emerald-500/15 bg-[#160f29]/60 p-4"
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-300">
-            {item.id}
-          </span>
           <div>
             <p className="font-semibold text-[#f8fafc]">{item.title}</p>
             <p className="mt-1 text-sm leading-relaxed text-emerald-100/75">{item.body}</p>

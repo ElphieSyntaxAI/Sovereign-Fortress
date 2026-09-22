@@ -540,32 +540,11 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
       className="glass-panel scroll-mt-24 rounded-2xl border border-amber-500/25 p-5"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300/90">
-        Token savings layer
+        24-hour activity window
       </p>
       <h2 className="mt-1 text-lg font-semibold text-slate-50">
-        {operatorView ? "Cost-efficient + frontier routing (operator)" : "Your workspace — cost-efficient routing"}
+        {operatorView ? "Operator token savings" : "Workspace Token Savings"}
       </h2>
-      <p className="mt-2 text-sm text-slate-400">
-        {operatorView ? (
-          <>
-            Tenant-local efficiency counters plus full catalog. Frontier / consensus escalations are in{" "}
-            <a href="#big-brain-issues" className="text-violet-300 hover:underline">
-              operator queue
-            </a>{" "}
-            below.
-          </>
-        ) : (
-          <>
-            Logic stays in <strong className="text-cyan-300/90">your project workspaces</strong>{" "}
-            (map apps under{" "}
-            <a href="/setup/projects" className="text-emerald-300 hover:underline">
-              Projects
-            </a>
-            ). Global CONVERGE and DNA promotion are handled by operators — not shown here.
-          </>
-        )}
-        {!hasActivity ? " Activity appears after Pulse, ingest, IDE dev-events, or CONVERGE runs." : null}
-      </p>
       {!operatorView && summary.small_brain_pulse_pct > 0 ? (
         <p className="mt-2 text-sm text-slate-300">
           <strong className="text-cyan-300">{summary.small_brain_pulse_pct}%</strong> of your pulses
@@ -588,11 +567,7 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
             <Metric
               label="Proven tokens saved"
               value={defensible.proven_tokens_saved}
-              hint={
-                defensible.eco_claim_allowed
-                  ? "Eligible for eco claims"
-                  : "Need metered CONVERGE baseline (≥2 samples) or pack deltas"
-              }
+              hint="Calculated using audited pack character deltas and metered provider baselines."
               variant="highlight"
             />
             <Metric
@@ -606,23 +581,6 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
               hint={`${defensible.guided_sessions_verified} confirm-pack(s) · ${defensible.verify_result_vault_tokens_saved.toLocaleString()} verify→Vault · ${defensible.run_script_rerun_tokens_saved.toLocaleString()} Run Scripts`}
             />
           </div>
-          {defensible.rolling_converge_baseline_tokens != null ? (
-            <p className="mt-3 text-xs text-slate-400">
-              Rolling metered CONVERGE baseline:{" "}
-              <strong className="text-slate-200">
-                {defensible.rolling_converge_baseline_tokens.toLocaleString()}
-              </strong>{" "}
-              tokens/call · ops estimate (not eco):{" "}
-              {defensible.estimated_tokens_saved_ops_only.toLocaleString()}
-            </p>
-          ) : (
-            <p className="mt-3 text-xs text-amber-200/90">
-              Eco claims unlock after ≥2 metered CONVERGE/dual/TRI calls establish a tenant baseline.
-              Until then, routing savings stay on the ops estimate track only.
-            </p>
-          )}
-          <p className="mt-3 text-xs text-amber-200/90">Notice: {defensible.footnote}</p>
-          <p className="mt-2 text-[11px] leading-relaxed text-slate-500">{defensible.eco_disclaimer}</p>
         </div>
       ) : null}
 

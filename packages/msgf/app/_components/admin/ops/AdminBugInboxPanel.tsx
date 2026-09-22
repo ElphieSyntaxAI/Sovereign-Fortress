@@ -153,7 +153,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
-import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+import { useSharedOpsQuery, useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 type InboxStatus = "open" | "promoted" | "dismissed" | "all";
 
@@ -173,8 +173,8 @@ type BugRow = {
 
 export function AdminBugInboxPanel() {
   const projectOrigin = useSharedProjectOrigin();
+  const q = useSharedOpsQuery();
   const [status, setStatus] = useState<InboxStatus>("open");
-  const [q, setQ] = useState("");
   const [rows, setRows] = useState<BugRow[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -289,22 +289,6 @@ export function AdminBugInboxPanel() {
             {tab}
           </button>
         ))}
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void load();
-          }}
-          placeholder="Search message / location / tenant"
-          className="min-w-[14rem] flex-1 rounded-md border border-zinc-700 bg-zinc-950/70 px-3 py-1.5 text-xs text-slate-100"
-        />
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="rounded-md bg-amber-600/80 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500"
-        >
-          Search
-        </button>
       </div>
 
       {error ? (

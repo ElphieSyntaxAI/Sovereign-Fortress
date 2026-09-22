@@ -327,11 +327,7 @@ export function GithubRepoPickerPanel({ projects, onMapped, setError, setMessage
         if (oauthErr) throw oauthErr;
       }
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "GitHub OAuth failed. Enable the GitHub provider in Supabase Auth (see docs/integrations/technical-specs/MSGF_GITHUB_PROJECTS.md)."
-      );
+      setError("GitHub connection failed. Check authentication provider settings.");
       setConnecting(false);
     }
   }
@@ -424,10 +420,9 @@ export function GithubRepoPickerPanel({ projects, onMapped, setError, setMessage
     <section className="glass-panel rounded-2xl border border-sky-500/20 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-slate-100">GitHub repos</h3>
+          <h3 className="text-base font-semibold text-slate-100">GitHub integration</h3>
           <p className="mt-1 text-sm text-slate-400">
-            Connect GitHub once, multi-select repos to map. Requires Supabase GitHub OAuth (
-            <code className="text-sky-200">read:user repo</code>).
+            Connect your GitHub account to import repositories.
           </p>
           {githubLogin ? (
             <p className="mt-1 text-xs text-sky-300/90">Connected as @{githubLogin}</p>
@@ -441,7 +436,7 @@ export function GithubRepoPickerPanel({ projects, onMapped, setError, setMessage
               onClick={() => void connectGithub()}
               className="rounded-full border border-sky-500/40 bg-sky-500/15 px-4 py-2 text-xs font-semibold text-sky-100 hover:bg-sky-500/25 disabled:opacity-50"
             >
-              {connecting ? "Redirecting…" : "Connect GitHub"}
+              {connecting ? "Redirecting…" : "Connect GitHub Account"}
             </button>
           ) : (
             <>
@@ -470,10 +465,7 @@ export function GithubRepoPickerPanel({ projects, onMapped, setError, setMessage
       ) : null}
 
       {!loadingStatus && !connected ? (
-        <p className="mt-4 text-sm text-slate-500">
-          Not connected yet. If Connect fails, enable the GitHub provider in Supabase Auth — see{" "}
-          <code className="text-sky-200">docs/integrations/technical-specs/MSGF_GITHUB_PROJECTS.md</code>.
-        </p>
+        <p className="mt-4 text-sm text-slate-500">Not connected yet.</p>
       ) : null}
 
       {connected ? (

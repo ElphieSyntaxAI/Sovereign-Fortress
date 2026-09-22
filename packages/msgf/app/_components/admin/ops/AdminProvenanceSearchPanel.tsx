@@ -160,6 +160,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { useSharedOpsQuery } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+
 type MatchSource = {
   resource_key: string;
   file_path: string | null;
@@ -203,8 +205,7 @@ function trustLabel(score: number | null | undefined): string {
 export function AdminProvenanceSearchPanel() {
   const searchParams = useSearchParams();
   const urlOrigin = searchParams?.get("project_origin")?.trim() || "";
-
-  const [q, setQ] = useState("");
+  const q = useSharedOpsQuery();
   const [projectOrigin, setProjectOrigin] = useState(urlOrigin);
   const [contentHash, setContentHash] = useState("");
   const [traceId, setTraceId] = useState("");
@@ -258,6 +259,11 @@ export function AdminProvenanceSearchPanel() {
     }
   }, [q, projectOrigin, contentHash, traceId]);
 
+  useEffect(() => {
+    if (!q && !urlOrigin) return;
+    void runSearch();
+  }, [q, urlOrigin, runSearch]);
+
   return (
     <section
       id="provenance"
@@ -285,12 +291,6 @@ export function AdminProvenanceSearchPanel() {
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="q (trace, reason, routing…)"
-          className="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"
-        />
         <input
           value={projectOrigin}
           onChange={(e) => setProjectOrigin(e.target.value)}

@@ -113,12 +113,12 @@ export type HealthServiceOptions = {
 };
 
 const PILLAR_LABELS: Record<MsgfGovernancePillar, string> = {
-  P1: "Universal HAL / DEFEND",
-  P2: "P2 Roadmap / CROSS-REF",
-  P3: "Stylometry / Linguistic",
-  P4: "State Ledger / SHARD",
-  P5: "Core / SWEEP",
-  P6: "RAG / Vault–Hall",
+  P1: "Static Ledger (Immutable Rules & Security)",
+  P2: "Flow Sequence (Pipeline & Execution Order)",
+  P3: "Entity Profiles (Identity, Roles & Stylometry)",
+  P4: "State Ledger (Runtime Telemetry & Active Memory)",
+  P5: "Local Variables (Workspace Context Sharding)",
+  P6: "Constraint Ledger (Vault vs. Hall Anomaly Isolation)",
 };
 
 const LOM_RECURSION_INSTANCE = PULSE_BUG_INDEX.hallLomRecursion.level_1_1_1_instance;

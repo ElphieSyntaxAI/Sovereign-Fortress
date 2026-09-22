@@ -14,7 +14,12 @@
  */
 import { useSearchParams } from "next/navigation";
 
-/** Shared `/admin/ops?project_origin=` filter written by OpsProjectOriginStrip. */
+/** Shared `/admin/ops?project_origin=` filter written by the ops header. */
 export function useSharedProjectOrigin(): string {
   return useSearchParams()?.get("project_origin")?.trim() || "";
+}
+
+/** Shared `/admin/ops?q=` search written by the ops header. */
+export function useSharedOpsQuery(): string {
+  return useSearchParams()?.get("q")?.trim() || "";
 }

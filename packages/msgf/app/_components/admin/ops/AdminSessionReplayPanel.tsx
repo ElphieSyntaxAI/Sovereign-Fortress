@@ -59,7 +59,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
-import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+import { useSharedOpsQuery, useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 import { PROMPT_SESSION_RETENTION_NOTICE } from "@/lib/msgf-legal";
 
 type SessionRow = {
@@ -78,7 +78,7 @@ type SessionRow = {
 
 export function AdminSessionReplayPanel() {
   const projectOrigin = useSharedProjectOrigin();
-  const [q, setQ] = useState("");
+  const q = useSharedOpsQuery();
   const [harmOnly, setHarmOnly] = useState(false);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [scope, setScope] = useState<"global" | "company">("company");
@@ -119,9 +119,9 @@ export function AdminSessionReplayPanel() {
   }, [q, harmOnly, projectOrigin]);
 
   useEffect(() => {
-    if (!projectOrigin) return;
+    if (!projectOrigin && !q.trim()) return;
     void runSearch();
-  }, [projectOrigin, runSearch]);
+  }, [projectOrigin, q, runSearch]);
 
   return (
     <div id="session-replay">
@@ -131,7 +131,8 @@ export function AdminSessionReplayPanel() {
         description="Full-text search of governed prompts and completions. Harm-flagged rows open HITL."
         scope={scope}
         query={q}
-        onQueryChange={setQ}
+        onQueryChange={() => {}}
+        hideQuery
         onSearch={() => void runSearch()}
         loading={loading}
         error={error}

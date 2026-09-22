@@ -787,6 +787,7 @@ import {
   statusStyles,
 } from "@/app/_components/dashboard/governance-pillar-blocks";
 import { GOVERNANCE_PILLAR_CARDS } from "@/lib/dashboard-pillar-copy";
+import { PILLAR_CARD_FACE } from "@/lib/pillar-display";
 import {
   fetchHealQueueForTenant,
   misalignmentCountByPillar,
@@ -915,7 +916,6 @@ function GlobalNotificationTicker({ events }: { events: GlobalNotificationTicker
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/90">
           Global notification ticker
         </p>
-        <span className="text-xs text-slate-500">V3.2 real-time stream</span>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1">
         {events.length ? (
@@ -926,7 +926,9 @@ function GlobalNotificationTicker({ events }: { events: GlobalNotificationTicker
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-semibold tracking-wider">{event.type}</span>
-                <span className="text-[11px] opacity-75">{event.pillar}</span>
+                <span className="text-[11px] opacity-75">
+                  {PILLAR_CARD_FACE[event.pillar] ?? event.pillar}
+                </span>
               </div>
               <p className="mt-2 line-clamp-2 text-sm">{event.message}</p>
               <p className="mt-2 text-[11px] opacity-70">
@@ -1094,10 +1096,10 @@ function MasterEcoLeaderboardWidget({ leaderboard }: { leaderboard: MasterEcoLea
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300">
-            Master Admin Portal · Network CSR Ledger
+            Enterprise Impact Control Plane
           </p>
           <h2 className="mt-1 text-xl font-semibold text-slate-50">
-            Corporate Ecosystem Green Offset Leaderboard
+            Resource Optimization & Sustainability Ledger
           </h2>
         </div>
         <span className="rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1.5 font-mono text-xs text-violet-100">
@@ -1367,7 +1369,7 @@ export function DashboardShell({
         <section className="flex flex-col items-center gap-4 text-center">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-              Your MSGF console
+                Your MSGF Console
             </p>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
               <span className="text-gradient-jewel">
@@ -1452,41 +1454,6 @@ export function DashboardShell({
           </section>
         ) : null}
 
-        {canAccessAdminDashboard ? (
-        <section className="glass-panel rounded-2xl border border-emerald-500/15 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300/80">
-                Dashboard switcher
-              </p>
-              <p className="mt-1 text-sm text-slate-400">
-                Governance is the pillar health lens; Admin is the operator lens for global/company incident work.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/admin/portal"
-                className="rounded-full border border-violet-500/25 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/20"
-              >
-                Admin portal
-              </Link>
-              <Link
-                href="/dashboard"
-                className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/20"
-              >
-                Your governance
-              </Link>
-              <Link
-                href="/admin/dashboard"
-                className="rounded-full border border-violet-500/25 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/20"
-              >
-                Ops dashboard
-              </Link>
-            </div>
-          </div>
-        </section>
-        ) : null}
-
         {showGovernanceMatrix ? (
           <>
             <SecurityViewSection
@@ -1506,7 +1473,7 @@ export function DashboardShell({
             <section className="glass-panel rounded-2xl border border-violet-500/15 p-4 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
                 <span>Last updated {new Date(lastRefresh).toLocaleString()}</span>
-                <span>Lookback 168h · Auto-refresh 30s</span>
+                <span>Auto-refresh: 30s</span>
               </div>
             </section>
           </>
@@ -1537,8 +1504,6 @@ export function DashboardShell({
                   key={copy.pillar}
                   pillarId={copy.pillar}
                   title={copy.title}
-                  subtitle={copy.subtitle}
-                  v32Step={copy.v32Step}
                   status={live?.status ?? "green"}
                   statusLabel={live?.status_label ?? "Green"}
                   pending={live?.pending_incidents ?? 0}
@@ -1573,34 +1538,17 @@ export function DashboardShell({
             aria-label="Start your first project"
           >
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-              New account
+              No Active Projects
             </p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">
-              Start your first project
+              Connect a repository to start tracking governance and token savings.
             </h2>
-            <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-slate-400 sm:text-base">
-              Your policy-domain matrix stays empty until you map a repository. No demo
-              data is loaded for new sign-ups — add a project, run the IDE extension, and domains
-              will light up from your real activity.
-            </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href="/workspace?tab=setup"
+                href="/workspace"
                 className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:from-emerald-500 hover:to-violet-500"
               >
-                Add your first project
-              </Link>
-              <Link
-                href="/getting-started#six-pillars"
-                className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-6 py-2.5 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
-              >
-                How policy domains work
-              </Link>
-              <Link
-                href="/workspace"
-                className="rounded-full border border-slate-600/50 px-6 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5"
-              >
-                Workspace & IDE setup
+                + Add Project
               </Link>
             </div>
           </section>
@@ -1667,7 +1615,7 @@ export function DashboardShell({
         ) : null}
 
         <p className="text-center text-xs text-slate-600">
-          MSGF V3.2-ULTRA · Cold layer authoritative · Redis hot path when configured
+          Cold layer authoritative · Redis hot path when configured
         </p>
       </main>
   );

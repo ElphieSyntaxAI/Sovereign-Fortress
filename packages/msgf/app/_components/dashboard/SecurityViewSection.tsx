@@ -641,8 +641,9 @@ function TenantSecurityPanel({
       aria-label="Tenant security"
     >
       <p className="text-sm text-slate-400">
-        Routine requests stay on <strong className="text-emerald-200/90">cost-efficient routing</strong>. Global
-        consensus and DNA promotion stay operator-gated — your tenant silo learns locally via Vault/Hall.
+        <strong className="text-slate-200">Workspace Isolation</strong> — Standard requests execute
+        via optimized routing. Global policy updates require operator approval while workspace
+        memory updates locally.
       </p>
       {error ? (
         <p className="text-sm text-amber-200/90">{error}</p>

@@ -617,8 +617,6 @@ export function ProjectGovernanceAccordion({
                               key={copy.pillar}
                               pillarId={copy.pillar}
                               title={copy.title}
-                              subtitle={copy.subtitle}
-                              v32Step={copy.v32Step}
                               status={live?.status ?? "green"}
                               statusLabel={live?.status_label ?? "Green"}
                               pending={live?.pending_incidents ?? 0}

@@ -78,6 +78,8 @@ export function AdminGovernanceSearchShell(props: {
   filters?: ReactNode;
   children?: ReactNode;
   placeholder?: string;
+  /** When set, the page-level `?q=` field is the only search box. */
+  hideQuery?: boolean;
 }) {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -114,13 +116,15 @@ export function AdminGovernanceSearchShell(props: {
       </div>
 
       <form onSubmit={onSubmit} className="mt-4 space-y-2">
-        <input
-          value={props.query}
-          onChange={(e) => props.onQueryChange(e.target.value)}
-          placeholder={props.placeholder ?? "Search…"}
-          className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"
-          aria-label="Search query"
-        />
+        {props.hideQuery ? null : (
+          <input
+            value={props.query}
+            onChange={(e) => props.onQueryChange(e.target.value)}
+            placeholder={props.placeholder ?? "Search…"}
+            className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"
+            aria-label="Search query"
+          />
+        )}
         {props.filters}
       </form>
 

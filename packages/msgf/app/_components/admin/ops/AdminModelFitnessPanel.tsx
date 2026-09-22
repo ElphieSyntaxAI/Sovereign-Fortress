@@ -59,7 +59,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
-import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+import { useSharedOpsQuery, useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 type Rollup = {
   model_id: string;
@@ -76,7 +76,7 @@ type Rollup = {
 
 export function AdminModelFitnessPanel() {
   const projectOrigin = useSharedProjectOrigin();
-  const [tenantId, setTenantId] = useState("");
+  const tenantId = useSharedOpsQuery();
   const [rollups, setRollups] = useState<Rollup[]>([]);
   const [preferred, setPreferred] = useState<{
     model_id: string;
@@ -126,9 +126,9 @@ export function AdminModelFitnessPanel() {
   }, [tenantId, projectOrigin]);
 
   useEffect(() => {
-    if (!projectOrigin) return;
+    if (!projectOrigin && !tenantId.trim()) return;
     void run();
-  }, [projectOrigin, run]);
+  }, [projectOrigin, tenantId, run]);
 
   return (
     <div id="model-fitness">
@@ -138,7 +138,8 @@ export function AdminModelFitnessPanel() {
         description="Under/over-provision signals and cheapest-fit suggestion for Small Brain preference."
         scope={scope}
         query={tenantId}
-        onQueryChange={setTenantId}
+        onQueryChange={() => {}}
+        hideQuery
         onSearch={() => void run()}
         loading={loading}
         error={error}

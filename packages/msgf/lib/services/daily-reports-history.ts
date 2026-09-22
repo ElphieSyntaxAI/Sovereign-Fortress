@@ -70,12 +70,12 @@ export type DailyReportsProjectTimeline = DailyReportsProjectScope & {
 };
 
 const PILLAR_LABELS: Record<MsgfGovernancePillar, string> = {
-  P1: "Static Ledger",
-  P2: "Flow Sequence",
-  P3: "Entity Profiles",
-  P4: "Narrative Logs",
-  P5: "Context Shard",
-  P6: "Constraint Ledger",
+  P1: "Static Ledger (Immutable Rules & Security)",
+  P2: "Flow Sequence (Pipeline & Execution Order)",
+  P3: "Entity Profiles (Identity, Roles & Stylometry)",
+  P4: "State Ledger (Runtime Telemetry & Active Memory)",
+  P5: "Local Variables (Workspace Context Sharding)",
+  P6: "Constraint Ledger (Vault vs. Hall Anomaly Isolation)",
 };
 
 type DayBucket = {

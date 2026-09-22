@@ -129,7 +129,7 @@ export function AdminTenantBudgetPanel(props: { tenantId?: string }) {
       </p>
       <h2 className="mt-1 text-xl font-semibold text-slate-100">Token &amp; dollar budgets</h2>
       <p className="mt-1 max-w-2xl text-sm text-slate-400">
-        Circuit-breaker before Gateway / Big Brain dispatch.{" "}
+        Quota limit — budget circuit breaker. Separate from swarm abort (409).{" "}
         <code className="text-slate-300">fallback_small_brain</code> never bypasses RED/harm HITL.
       </p>
       {budget ? (

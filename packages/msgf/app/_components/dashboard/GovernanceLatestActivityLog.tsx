@@ -335,7 +335,7 @@ function buildPillarActivities(
       rows.push({
         id: `pillar-${pillar.pillar}-${event.id}`,
         projectLabel: fallbackLabel,
-        message: `${pillar.label}: ${event.title} — ${event.summary}`,
+        message: `${event.title} — ${event.summary}`,
         urgent,
         timestamp: event.created_at,
         pillar: pillar.pillar,

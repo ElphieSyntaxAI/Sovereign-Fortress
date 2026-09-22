@@ -13,10 +13,13 @@
 /** V3.0 / V3.2 governance pillar labels for the SaaS dashboard (see docs/msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md). */
 
 import type { MsgfGovernancePillar } from "@/lib/services/pillar-baseline";
+import { OFFICIAL_PILLAR_TITLE, PILLAR_CARD_FACE } from "@/lib/pillar-display";
 
 export type GovernancePillarCardCopy = {
   pillar: MsgfGovernancePillar;
+  /** One-line card face. */
   title: string;
+  /** Official title, shown on drilldown and as the card gloss. */
   subtitle: string;
   v32Step: string;
 };
@@ -24,38 +27,38 @@ export type GovernancePillarCardCopy = {
 export const GOVERNANCE_PILLAR_CARDS: GovernancePillarCardCopy[] = [
   {
     pillar: "P1",
-    title: "Static Ledger",
-    subtitle: "Immutable rules, legal versions, security HALT",
+    title: PILLAR_CARD_FACE.P1,
+    subtitle: OFFICIAL_PILLAR_TITLE.P1,
     v32Step: "DEFEND",
   },
   {
     pillar: "P2",
-    title: "Flow Sequence",
-    subtitle: "Gate orchestration & deployment order",
+    title: PILLAR_CARD_FACE.P2,
+    subtitle: OFFICIAL_PILLAR_TITLE.P2,
     v32Step: "CONVERGE",
   },
   {
     pillar: "P3",
-    title: "Entity Profiles",
-    subtitle: "Roles, tiers, tenant identity",
+    title: PILLAR_CARD_FACE.P3,
+    subtitle: OFFICIAL_PILLAR_TITLE.P3,
     v32Step: "SHARD (P3)",
   },
   {
     pillar: "P4",
-    title: "State Ledger",
-    subtitle: "Session beats, HAL telemetry, hot slices",
+    title: PILLAR_CARD_FACE.P4,
+    subtitle: OFFICIAL_PILLAR_TITLE.P4,
     v32Step: "SHARD",
   },
   {
     pillar: "P5",
-    title: "Local Variables",
-    subtitle: "Tenant UI shards & module context",
+    title: PILLAR_CARD_FACE.P5,
+    subtitle: OFFICIAL_PILLAR_TITLE.P5,
     v32Step: "SWEEP",
   },
   {
     pillar: "P6",
-    title: "Constraint Ledger",
-    subtitle: "Vault vs Hall, lineage 1.1.1",
+    title: PILLAR_CARD_FACE.P6,
+    subtitle: OFFICIAL_PILLAR_TITLE.P6,
     v32Step: "CROSS-REF / PERSIST",
   },
 ];

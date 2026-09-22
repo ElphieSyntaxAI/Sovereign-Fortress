@@ -299,7 +299,7 @@ export async function resolveHumanArbitrationAction(params: {
     tenantId: params.tenantId,
     content: note,
     bugIndex: params.bugIndex,
-    reason: `Human DENY & PURGE: operator rejected automated remediation for ${params.filePath}`,
+    reason: `Policy Remediation Rejected: Operator issued DENY & PURGE for agent execution ${params.filePath}`,
     tier: "RED",
     actionType: "HUMAN_ARBITRATION_DENY",
   });

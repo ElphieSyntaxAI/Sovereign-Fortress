@@ -23,7 +23,7 @@ export function ShippedCapabilitiesStrip() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-            Shipped in V3.2
+            Shipped
           </p>
           <h2 className="text-lg font-semibold text-slate-50 sm:text-xl">
             IDE verify · TRI/Grok · audit hub · Session Replay — live on your tenant

@@ -773,6 +773,7 @@ const UNIT_TESTS = [
   { label: "test:shadow-proof", args: ["--test", "tests/shadow-proof.test.ts"] },
   { label: "test:shadow-trial", args: ["--test", "tests/shadow-trial.test.ts"] },
   { label: "test:memory-similarity", args: ["--test", "tests/memory-similarity.test.ts"] },
+  { label: "test:pillar-display", args: ["--test", "tests/pillar-display.test.ts"] },
   { label: "test:active-chat-majority", args: ["--test", "tests/active-chat-majority.test.ts"] },
   { label: "test:brain-metadata-only", args: ["--test", "tests/brain-metadata-only.test.ts"] },
   { label: "test:ingest-hash-cache", args: ["--test", "tests/ingest-hash-cache.test.ts"] },

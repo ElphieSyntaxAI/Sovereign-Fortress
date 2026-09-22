@@ -14,7 +14,7 @@ import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AccountBillingPortalButton } from "@/app/account/AccountBillingPortalButton";
+import { AccountBillingPanel } from "@/app/account/AccountBillingPanel";
 import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
 import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -50,10 +50,7 @@ export default async function AccountPage() {
   const stripeStatus =
     typeof profile?.stripe_subscription_status === "string"
       ? profile.stripe_subscription_status
-      : null;
-  const hasCustomer =
-    typeof profile?.stripe_customer_id === "string" &&
-    Boolean(profile.stripe_customer_id.trim());
+      : "none";
   const companyId =
     typeof profile?.company_id === "string" && profile.company_id.trim()
       ? profile.company_id.trim()
@@ -71,10 +68,6 @@ export default async function AccountPage() {
     }
   }
 
-  const showTeamLink =
-    access.operator.role === "COMPANY_ADMIN" ||
-    access.operator.role === "GLOBAL_ADMIN";
-
   return (
     <div className="app-shell min-h-screen text-slate-100">
       <DashboardNav
@@ -90,60 +83,19 @@ export default async function AccountPage() {
             Your <span className="text-gradient-jewel">billing &amp; profile</span>
           </h1>
           <p className="mt-3 text-sm text-slate-400 sm:text-base">
-            Subscription status and portal access for this signed-in user.
+            Cards, invoices, membership, and saved reports.
           </p>
         </header>
 
-        <section className="glass-panel space-y-5 rounded-2xl border border-slate-600/30 p-5 sm:p-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Email
-            </p>
-            <p className="mt-1 text-slate-100">{user.email ?? "—"}</p>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Subscription status
-            </p>
-            <p className="mt-1 text-slate-100">{stripeStatus ?? "none"}</p>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Stripe customer
-            </p>
-            <p className="mt-1 text-slate-100">{hasCustomer ? "linked" : "not linked"}</p>
-          </div>
-
-          {seatLimit != null ? (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Seat limit
-              </p>
-              <p className="mt-1 text-slate-100">{seatLimit}</p>
-            </div>
-          ) : null}
-
-          <AccountBillingPortalButton disabled={!hasCustomer} />
-
-          <div className="flex flex-wrap gap-4 border-t border-slate-800/80 pt-4 text-sm">
-            <Link
-              href="/forgot-password"
-              className="text-cyan-400 underline-offset-4 hover:underline"
-            >
-              Reset password
-            </Link>
-            {showTeamLink ? (
-              <Link
-                href="/workspace"
-                className="text-violet-300 underline-offset-4 hover:underline"
-              >
-                Team
-              </Link>
-            ) : null}
-          </div>
-        </section>
+        <AccountBillingPanel email={user.email ?? "—"} status={stripeStatus} />
+        {seatLimit != null ? (
+          <p className="mt-4 text-sm text-slate-400">Seat limit: {seatLimit}</p>
+        ) : null}
+        <p className="mt-6 text-sm">
+          <Link href="/forgot-password" className="text-cyan-400 underline-offset-4 hover:underline">
+            Reset password
+          </Link>
+        </p>
       </main>
     </div>
   );

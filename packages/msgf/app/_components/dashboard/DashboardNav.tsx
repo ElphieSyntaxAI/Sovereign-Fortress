@@ -424,7 +424,7 @@ export function DashboardNav({
   const settingsLinks = [
     ...DASHBOARD_SETTINGS_LINKS,
     ...(showAdminPortalLink
-      ? [{ label: "Admin portal", href: "/admin/portal", matchPath: "/admin" } satisfies DashboardNavLink]
+      ? [{ label: "Admin", href: "/admin/portal", matchPath: "/admin" } satisfies DashboardNavLink]
       : []),
   ];
 
@@ -506,7 +506,7 @@ export function DashboardNav({
 
           <nav
             className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto md:flex"
-            aria-label="Workspace"
+            aria-label="Navigation"
           >
             {primaryLinks.map((link) => (
               <Link
@@ -587,6 +587,20 @@ export function DashboardNav({
               </div>
             </div>
 
+            <span
+              className="hidden max-w-[11rem] truncate text-sm text-slate-500 lg:inline"
+              title={userEmail}
+            >
+              {userEmail}
+            </span>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              disabled={signingOut}
+              className="hidden rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-60 sm:inline-flex"
+            >
+              {signingOut ? "Signing out…" : "Sign out"}
+            </button>
             <button
               type="button"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-600/50 bg-slate-900/60 text-slate-200 transition duration-200 hover:border-emerald-500/35 hover:bg-emerald-500/10 md:hidden"
@@ -632,10 +646,7 @@ export function DashboardNav({
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Workspace mobile">
-            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400/80">
-              Workspace
-            </p>
+          <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Navigation">
             <ul className="space-y-0.5">
               {primaryLinks.map((link) => (
                 <li key={link.href}>

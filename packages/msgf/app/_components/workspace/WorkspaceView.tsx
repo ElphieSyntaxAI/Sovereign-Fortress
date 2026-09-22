@@ -352,12 +352,12 @@ export function WorkspaceView({
   const tabs: { id: WorkspaceTabId; label: string; hint: string }[] = [
     {
       id: "architecture",
-      label: "Architecture & Projects",
-      hint: "Mapping · Teams · Onboarding",
+      label: "Setup",
+      hint: "Repos and team",
     },
     {
       id: "ide",
-      label: "Active IDE Workspace",
+      label: "IDE",
       hint: `${projects.length} mapped`,
     },
   ];
@@ -372,9 +372,8 @@ export function WorkspaceView({
         <section className="glass-panel rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 sm:p-5">
           <p className="text-sm font-medium text-amber-100">Welcome to your workspace</p>
           <p className="mt-2 text-sm text-slate-300">
-            Map a project in <strong className="text-slate-100">Architecture & Projects</strong>, then
-            switch to <strong className="text-slate-100">Active IDE Workspace</strong> to mint tokens
-            and install Pulse Guard.
+            Map a project in <strong className="text-slate-100">Setup</strong>, then switch to{" "}
+            <strong className="text-slate-100">IDE</strong> to mint tokens and install Pulse Guard.
           </p>
         </section>
       ) : null}

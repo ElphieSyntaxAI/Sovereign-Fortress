@@ -41,7 +41,7 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "04",
     title: "Govern",
-    body: "Cost-efficient routing by default; three-model consensus on high drift; shadow then enforce; human-in-the-loop review; SIEM.",
+    body: "Small Brain routing by default; Big Brain consensus on high drift; shadow then enforce; human-in-the-loop review; SIEM.",
   },
 ] as const;
 
@@ -51,14 +51,14 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
     id: "command-center",
     title: "IDE extension panel",
     description:
-      "Pulse Guard for Cursor or VS Code: connection health, local prompt compiler, allowlisted verify scripts, Safe Build, and remediation tools.",
+      "Pulse Guard is IDE dev-environment protection for keystrokes. Cursor or VS Code: connection health, local prompt compiler, allowlisted verify scripts, Safe Build, and remediation tools.",
     accent: "emerald",
   },
   {
     id: "verify-loop",
     title: "Verify loop (Vault / Hall)",
     description:
-      "Allowlisted local commands write passing results to the approved-context store (Vault) and repeated failures to the rejected-outcome store (Hall) — then unlock the deploy gate.",
+      "Allowlisted local commands write passing results to Vault (verified state memory) and repeated failures to Hall — then unlock the deploy gate.",
     accent: "cyan",
   },
   {
@@ -79,7 +79,7 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
     id: "shadow-proxy",
     title: "Shadow mode → enforcement",
     description:
-      "Point OpenAI or Anthropic SDKs at /api/v1. Shadow mode is observe-only (zero added latency) with projected savings. Enforcement mode applies cache, context gating, and live reputation — license-bound auth, never client-spoofed tenant headers.",
+      "Point the SDK at /api/v1 with x-msgf-mode: shadow. Shadow mode is observe-only. Active mode applies the Active Cache, context gating, and live reputation.",
     accent: "violet",
   },
   {
@@ -104,7 +104,7 @@ export const ENTERPRISE_FEATURE_CARDS: ShippedFeature[] = [
     id: "tri-converge",
     title: "Three-model consensus",
     description:
-      "Optional cost ladder on risk paths. Frontier routing can take Claude + Gemini + Grok majority when enabled. Split votes no longer force human review when a majority agrees.",
+      "Big Brain can take a Claude + Gemini + Grok majority when drift is high. Split votes no longer force human review when a majority agrees.",
     accent: "violet",
   },
   {

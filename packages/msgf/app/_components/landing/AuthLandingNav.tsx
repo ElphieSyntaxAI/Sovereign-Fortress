@@ -14,6 +14,7 @@ import { Suspense } from "react";
 import { cookies, headers } from "next/headers";
 
 import { LandingNav } from "@/app/_components/landing/LandingNav";
+import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
 /**
@@ -36,5 +37,11 @@ async function AuthLandingNavSession() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return <LandingNav userEmail={user?.email ?? null} />;
+  const access = user ? await resolveDashboardAccessForUser(user) : null;
+  return (
+    <LandingNav
+      userEmail={user?.email ?? null}
+      showAdminPortalLink={access?.canAccessAdminDashboard ?? false}
+    />
+  );
 }

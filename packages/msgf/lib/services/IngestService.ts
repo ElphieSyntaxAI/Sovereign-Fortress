@@ -182,7 +182,7 @@ export class IngestService {
     const { files, supabase } = options;
 
     const auditLogs: string[] = [
-      "# MSGF V3.2 ULTRA - Pre-Ingestion Audit\n",
+      "# MSGF Pre-Ingestion Audit\n",
       `- [TENANT] ${tenantId}`,
       `- [PROJECT_ORIGIN] ${projectOrigin}`,
     ];

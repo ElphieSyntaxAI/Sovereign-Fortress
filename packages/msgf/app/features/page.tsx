@@ -20,6 +20,7 @@ import {
   SHIPPED_FEATURE_CARDS,
 } from "@/app/_components/marketing/shipped-capabilities";
 import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
+import { PILLAR_CARD_FACE } from "@/lib/pillar-display";
 
 export const metadata = {
   title: "Features | MSGF",
@@ -30,33 +31,33 @@ export const metadata = {
 const PILLARS = [
   {
     id: "P1",
-    title: "Policy & compliance",
-    body: "Blocking rules for unsafe or out-of-policy changes before they reach the model.",
+    title: PILLAR_CARD_FACE.P1,
+    body: "Immutable rules and security checks before a request reaches the model.",
   },
   {
     id: "P2",
-    title: "Change flow",
-    body: "Deployment order and multi-file dependencies.",
+    title: PILLAR_CARD_FACE.P2,
+    body: "Pipeline and execution order, including verify-before-ship.",
   },
   {
     id: "P3",
-    title: "Identity & tenancy",
-    body: "Roles, tokens, and tenant isolation.",
+    title: PILLAR_CARD_FACE.P3,
+    body: "Identity, roles, and tenant isolation.",
   },
   {
     id: "P4",
-    title: "Session state",
-    body: "Live session telemetry before the model acts.",
+    title: PILLAR_CARD_FACE.P4,
+    body: "Runtime telemetry and active session memory.",
   },
   {
     id: "P5",
-    title: "Local context",
-    body: "Sharded module context so prompts do not carry unused files.",
+    title: PILLAR_CARD_FACE.P5,
+    body: "Workspace context stays sharded so prompts do not carry unused files.",
   },
   {
     id: "P6",
-    title: "Approved vs rejected memory",
-    body: "Vault stores approved outcomes; Hall stores failed outcomes — inspectable lineage.",
+    title: PILLAR_CARD_FACE.P6,
+    body: "Vault is verified state memory. Hall stores rejected outcomes.",
   },
 ];
 
@@ -137,6 +138,7 @@ export default function FeaturesPage() {
             variant="featured"
           >
             <p className="mb-6">
+              Pulse Guard is IDE dev-environment protection for keystrokes. It is not the proxy.
               The native extension ships an <strong className="text-emerald-200">IDE panel</strong>:
               connect once, compile targeted prompts, run allowlisted verify scripts, and sync
               outcomes to your{" "}
@@ -161,7 +163,7 @@ export default function FeaturesPage() {
           <MarketingSection eyebrow="Verify loop" title="Approved on pass · rejected on repeat failure">
             <p>
               When verify passes with a linked context pack, MSGF writes a positive record to the{" "}
-              <strong className="text-emerald-200">Vault</strong> (approved-context store). Repeated
+              <strong className="text-emerald-200">Vault</strong> (verified state memory). Repeated
               failures on the same command pattern dedupe into the{" "}
               <strong className="text-amber-200">Hall</strong> (rejected-outcome store) after three
               strikes. Safe execution uses{" "}
@@ -170,13 +172,14 @@ export default function FeaturesPage() {
             </p>
           </MarketingSection>
 
-          <MarketingSection eyebrow="Routing" title="Cost-efficient pair · frontier consensus on drift">
+          <MarketingSection eyebrow="Routing" title="Small Brain by default · Big Brain on drift">
             <p>
-              Tenant verification defaults to <strong className="text-slate-100">Claude + Gemini</strong>{" "}
+              Small Brain is cost-optimized local routing. Big Brain is cross-model consensus and
+              arbitration. Tenant verification defaults to <strong className="text-slate-100">Claude + Gemini</strong>{" "}
               (unanimous). Compliance paths can switch to{" "}
               <strong className="text-slate-100">Claude + Grok</strong> or{" "}
               <strong className="text-slate-100">Gemini + Grok</strong>. When logic drift is high,
-              frontier routing can run a <strong className="text-violet-200">three-model majority</strong>{" "}
+              Big Brain can run a <strong className="text-violet-200">three-model majority</strong>{" "}
               (Claude + Gemini + Grok) and only opens human notification on high original drift, no
               majority, or a security non-human signal. Prompt compile stays local.
             </p>

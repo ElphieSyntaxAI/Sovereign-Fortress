@@ -159,7 +159,7 @@ async function summarizeForAudit(
     .join("\n\n")
     .slice(0, 120000);
 
-  const prompt = `Create a markdown report titled "pre_ingestion_audit.md" for MSGF V3.2 ULTRA.
+  const prompt = `Create a markdown report titled "pre_ingestion_audit.md" for MSGF.
 
 Include:
 1) Codebase overview by module

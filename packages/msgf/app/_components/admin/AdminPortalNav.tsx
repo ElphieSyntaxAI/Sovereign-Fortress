@@ -759,13 +759,7 @@ type Props = {
 const NAV_ITEMS = [
   { href: "/admin/portal", label: "Portal" },
   { href: "/admin/dashboard", label: "Pillar health" },
-  { href: "/admin/ops", label: "Ops console" },
-  { href: "/admin/ops#bug-inbox", label: "Bug inbox" },
-  { href: "/admin/ops#provenance", label: "Provenance" },
-  { href: "/admin/dashboard#token-savings", label: "Token savings" },
-  { href: "/admin/dashboard#big-brain-issues", label: "Big Brain queue" },
-  { href: "/workspace?tab=setup", label: "Team" },
-  { href: "/account", label: "Account" },
+  { href: "/admin/ops", label: "Ops" },
   { href: "/dashboard", label: "User dashboard" },
 ] as const;
 
@@ -773,6 +767,10 @@ export function AdminPortalNav({ userEmail, showSeed = false }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const items = showSeed
+    ? [...NAV_ITEMS, { href: "/admin/seed", label: "Seed" }]
+    : [...NAV_ITEMS];
 
   const signOut = useCallback(async () => {
     setSigningOut(true);
@@ -787,60 +785,118 @@ export function AdminPortalNav({ userEmail, showSeed = false }: Props) {
   }, [router]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-violet-500/15 bg-slate-950/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <Link href="/admin/portal" className="group flex items-center gap-2.5">
-          <BrandLogo
-            size={36}
-            decorative
-            className="border border-violet-400/30 bg-violet-500/10"
-          />
-          <div className="leading-tight">
-            <span className="block text-sm font-semibold tracking-tight text-slate-100 group-hover:text-violet-200">
-              MSGF Admin
-            </span>
-            <span className="block text-[11px] text-slate-500">Operator console</span>
-          </div>
-        </Link>
+    <>
+      <header className="sticky top-0 z-50 border-b border-violet-500/15 bg-slate-950/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl flex-nowrap items-center gap-3 px-5">
+          <Link href="/admin/portal" className="group flex shrink-0 items-center gap-2.5">
+            <BrandLogo
+              size={36}
+              decorative
+              className="border border-violet-400/30 bg-violet-500/10"
+            />
+            <div className="hidden leading-tight sm:block">
+              <span className="block text-sm font-semibold tracking-tight text-slate-100 group-hover:text-violet-200">
+                MSGF Admin
+              </span>
+              <span className="block text-[11px] text-slate-500">Operator console</span>
+            </div>
+          </Link>
 
-        <nav className="flex flex-wrap items-center gap-1 sm:gap-2" aria-label="Admin portal">
-          {(showSeed
-            ? [{ href: "/admin/seed", label: "Seed" } as const, ...NAV_ITEMS]
-            : NAV_ITEMS
-          ).map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href === "/admin/portal" && pathname === "/admin");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-full px-3 py-1.5 text-sm transition ${
-                  active
-                    ? "bg-violet-500/20 font-medium text-violet-100"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-          <span
-            className="hidden max-w-[11rem] truncate text-sm text-slate-500 sm:inline"
-            title={userEmail}
+          <nav
+            className="hidden min-w-0 flex-1 flex-nowrap items-center justify-center gap-1 overflow-x-auto md:flex"
+            aria-label="Admin portal"
           >
-            {userEmail}
-          </span>
+            {items.map((item) => {
+              const active =
+                pathname === item.href ||
+                (item.href === "/admin/portal" && pathname === "/admin");
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition ${
+                    active
+                      ? "bg-violet-500/20 font-medium text-violet-100"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <span
+              className="hidden max-w-[11rem] truncate text-sm text-slate-500 lg:inline"
+              title={userEmail}
+            >
+              {userEmail}
+            </span>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              disabled={signingOut}
+              className="hidden rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-60 sm:inline-flex"
+            >
+              {signingOut ? "Signing out…" : "Sign out"}
+            </button>
+            <button
+              type="button"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-600/50 text-slate-200 md:hidden"
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((open) => !open)}
+            >
+              <span className="sr-only">{mobileOpen ? "Close menu" : "Open menu"}</span>
+              Menu
+            </button>
+          </div>
+        </div>
+      </header>
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-[60] md:hidden">
           <button
             type="button"
-            onClick={() => void signOut()}
-            disabled={signingOut}
-            className="rounded-full border border-violet-500/25 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-60"
+            className="absolute inset-0 bg-slate-950/70"
+            aria-label="Close menu"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside
+            className="absolute right-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-l border-violet-500/20 bg-slate-950"
+            aria-label="Navigation"
           >
-            {signingOut ? "Signing out…" : "Sign out"}
-          </button>
-        </nav>
-      </div>
-    </header>
+            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-4">
+              <span className="text-sm font-semibold text-slate-100">Navigation</span>
+              <button type="button" onClick={() => setMobileOpen(false)} className="text-sm text-slate-400">
+                Close
+              </button>
+            </div>
+            <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
+              {items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="border-t border-slate-800 px-4 py-4">
+              <p className="truncate text-xs text-slate-500">{userEmail}</p>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                disabled={signingOut}
+                className="mt-3 w-full rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1.5 text-sm font-medium text-violet-200"
+              >
+                {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+    </>
   );
 }

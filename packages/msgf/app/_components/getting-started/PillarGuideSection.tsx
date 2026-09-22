@@ -33,10 +33,10 @@ export function PillarGuideSection() {
 
       <section
         className="glass-panel rounded-2xl border border-emerald-500/15 p-5 sm:p-6"
-        aria-label="V3.2 execution pipeline"
+        aria-label="Execution pipeline"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300/85">
-          V3.2-ULTRA pipeline
+          Execution pipeline
         </p>
         <ol className="mt-4 flex flex-wrap justify-center gap-2">
           {V32_PIPELINE_STEPS.map((item, i) => (
@@ -67,12 +67,8 @@ export function PillarGuideSection() {
               <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-200">
                 {entry.pillar}
               </span>
-              <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
-                {entry.v32Step}
-              </span>
             </div>
             <h3 className="mt-2 text-lg font-semibold text-slate-50">{entry.title}</h3>
-            <p className="text-sm text-slate-400">{entry.subtitle}</p>
 
             <dl className="mt-4 space-y-3 text-sm">
               <div>

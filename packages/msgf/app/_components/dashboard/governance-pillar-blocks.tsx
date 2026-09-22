@@ -371,11 +371,13 @@ export function consolidatedPillarSummary(report: {
   return overallLabel(report.overall_status);
 }
 
+function summaryRepeatsTitle(summary: string): boolean {
+  return /operating normally\.?$/i.test(summary.trim());
+}
+
 export function PillarCard({
   pillarId,
   title,
-  subtitle,
-  v32Step,
   status,
   statusLabel,
   pending,
@@ -389,8 +391,6 @@ export function PillarCard({
 }: {
   pillarId: string;
   title: string;
-  subtitle: string;
-  v32Step: string;
   status: PillarStoplightStatus;
   statusLabel: string;
   pending: number;
@@ -413,8 +413,8 @@ export function PillarCard({
       aria-expanded={healActive ? healConsoleOpen : selected}
       aria-label={
         healActive
-          ? `${pillarId} — ${healMisalignmentCount} misalignment(s), open healing console`
-          : `${pillarId} governance pillar`
+          ? `${title} — ${healMisalignmentCount} misalignment(s), open healing console`
+          : title
       }
       className={`glass-panel glass-panel-emerald relative flex h-full flex-col gap-4 rounded-2xl border p-5 text-left transition hover:border-violet-400/40 hover:bg-white/[0.03] focus:outline-none focus:ring-2 focus:ring-violet-400/40 ${styles.ring} ${
         healActive ? "heal-pillar-active border-amber-500/50" : ""
@@ -432,11 +432,7 @@ export function PillarCard({
       ) : null}
 
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300/80">{pillarId}</p>
-          <h3 className="mt-1 text-lg font-semibold text-slate-50">{title}</h3>
-          <p className="mt-0.5 text-sm text-slate-400">{subtitle}</p>
-        </div>
+        <h3 className="text-lg font-semibold text-slate-50">{title}</h3>
         <span
           className={`inline-flex shrink-0 items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${styles.badge}`}
         >
@@ -445,7 +441,9 @@ export function PillarCard({
         </span>
       </div>
 
-      <p className="text-sm leading-relaxed text-slate-300">{summary}</p>
+      {summaryRepeatsTitle(summary) ? null : (
+        <p className="text-sm leading-relaxed text-slate-300">{summary}</p>
+      )}
 
       <dl className="grid grid-cols-3 gap-2 text-center text-xs">
         <div className="rounded-lg bg-slate-900/50 px-2 py-2">
@@ -462,10 +460,7 @@ export function PillarCard({
         </div>
       </dl>
 
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-violet-400/70">
-          V3.2 · {v32Step}
-        </p>
+      <div className="flex items-center justify-end gap-3">
         {healActive ? (
           <span className="text-xs font-medium text-amber-200">Open healing console →</span>
         ) : (
@@ -501,7 +496,7 @@ export function PillarDrilldown({ pillar }: { pillar: PillarHealthEntry }) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-            {pillar.pillar} latest activity
+            Latest activity
           </p>
           <h2 className="mt-1 text-2xl font-semibold text-slate-50">{pillar.label}</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-400">

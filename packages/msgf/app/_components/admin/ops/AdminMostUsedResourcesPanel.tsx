@@ -59,7 +59,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
-import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+import { useSharedOpsQuery, useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 type RankRow = {
   resource_key: string;
@@ -71,7 +71,7 @@ type RankRow = {
 
 export function AdminMostUsedResourcesPanel(props: { tenantId?: string }) {
   const projectOrigin = useSharedProjectOrigin();
-  const [q, setQ] = useState("");
+  const q = useSharedOpsQuery();
   const [kind, setKind] = useState("");
   const [rows, setRows] = useState<RankRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -111,9 +111,9 @@ export function AdminMostUsedResourcesPanel(props: { tenantId?: string }) {
   }, [q, kind, props.tenantId, projectOrigin]);
 
   useEffect(() => {
-    if (!projectOrigin) return;
+    if (!projectOrigin && !q.trim()) return;
     void runSearch();
-  }, [projectOrigin, runSearch]);
+  }, [projectOrigin, q, runSearch]);
 
   return (
     <div id="most-used">
@@ -123,7 +123,8 @@ export function AdminMostUsedResourcesPanel(props: { tenantId?: string }) {
         description="Ranked resource_key usage. Search queries are hashed — raw query text is never shown."
         scope="tenant"
         query={q}
-        onQueryChange={setQ}
+        onQueryChange={() => {}}
+        hideQuery
         onSearch={() => void runSearch()}
         loading={loading}
         error={error}

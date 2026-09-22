@@ -765,6 +765,7 @@ import type {
 } from "@/lib/schemas/heal-queue";
 import type { MsgfGovernancePillar } from "@/lib/services/pillar-baseline";
 import { pillarCardCopy } from "@/lib/dashboard-pillar-copy";
+import { officialPillarTitle } from "@/lib/pillar-display";
 
 const PILLAR_ORDER: MsgfGovernancePillar[] = ["P1", "P2", "P3", "P4", "P5", "P6"];
 
@@ -1208,7 +1209,7 @@ export function PostIngestHealingConsole({
               Post-ingest remediation
             </p>
             <h2 id="heal-console-title" className="mt-1 text-lg font-bold text-slate-50">
-              Post-Ingest Healing Console
+              Automated Remediation Console
             </h2>
             <p className="mt-1 text-xs text-slate-400">{filterLabel}</p>
           </div>
@@ -1225,9 +1226,11 @@ export function PostIngestHealingConsole({
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {brain ? (
             <p className="mb-3 text-xs text-slate-400">
-              Brain readiness {brain.readiness_score}%
+              Security Policy Coverage: {brain.readiness_score}%
               {brain.missing_pillars.length
-                ? ` · missing ${brain.missing_pillars.join(", ")}`
+                ? ` (Missing Domain Baselines: ${brain.missing_pillars
+                    .map((id) => officialPillarTitle(id))
+                    .join(", ")})`
                 : " · baseline complete"}
             </p>
           ) : null}
@@ -1302,7 +1305,7 @@ export function PostIngestHealingConsole({
                   >
                     <div className="flex items-center justify-between border-b border-slate-800/80 bg-black/25 px-3 py-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                        {pillar} · {copy.title}
+                        {copy.title}
                       </span>
                       <span className="text-[10px] text-slate-500">{list.length} item(s)</span>
                     </div>

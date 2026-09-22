@@ -157,7 +157,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { SHADOW_PROOF_SCOPE_DISCLAIMER } from "@/lib/shadow-eval/shadow-proof";
 
 type Summary = {
   evaluation_count: number;
@@ -237,14 +236,14 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
       className="scroll-mt-24 rounded-2xl border border-sky-500/25 bg-sky-950/20 p-5"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300/90">
-        Shadow mode (proof)
+        Shadow proof
       </p>
       <h2 className="mt-1 text-lg font-semibold text-slate-50">
-        What pass-through traffic already wasted
+        {summary.evaluation_count > 0 ? "Pass-through evaluation" : "Awaiting SDK traffic"}
       </h2>
-      <p className="mt-2 text-sm leading-relaxed text-slate-300">
-        {summary.proof?.headline ??
-          "Point SDKs at /api/v1 in shadow mode. We count duplicate calls, retry loops, policy-risk prompts, runaway secondary-agent waves, and hashed promote/block projections."}
+      <p className="mt-2 text-sm text-slate-300">
+        Point your SDK to /api/v1 with <code className="text-sky-200">x-msgf-mode: shadow</code> to
+        capture projected waste.
       </p>
       <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
@@ -310,22 +309,20 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
           </dd>
         </div>
       </dl>
-      <p className="mt-3 text-[11px] text-slate-500">
-        {summary.evaluation_count.toLocaleString()} evals · pass-through $
-        {summary.actual_cost_usd.toFixed(4)} · token projection $
-        {summary.projected_savings_usd.toFixed(4)} (footnote, not proven eco).
-      </p>
-      <p className="mt-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-100/90">
-        {SHADOW_PROOF_SCOPE_DISCLAIMER}
-      </p>
-      <p className="mt-3 text-sm text-slate-300">
-        Next: set <code className="text-sky-200">x-msgf-mode: active</code> on the same{" "}
-        <code className="text-sky-200">x-msgf-key</code>, then review proven savings. Projected
-        dollars stay on this panel.{" "}
-        <a href="/dashboard#token-savings" className="font-semibold text-emerald-300 hover:underline">
-          Open proven savings
+      <div className="mt-4 flex flex-wrap gap-2">
+        <a
+          href="/dashboard#token-savings"
+          className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-500/25"
+        >
+          Activate enforcement (x-msgf-mode: active)
         </a>
-      </p>
+        <a
+          href="/dashboard#token-savings"
+          className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
+        >
+          View proven savings
+        </a>
+      </div>
       {recent.length > 0 ? (
         <ul className="mt-4 space-y-1.5 text-xs text-slate-400">
           {recent.slice(0, 5).map((row, i) => (
@@ -338,12 +335,7 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-xs text-slate-500">
-          No shadow evaluations yet. Point SDKs at{" "}
-          <code className="text-slate-400">/api/v1</code> with{" "}
-          <code className="text-slate-400">x-msgf-mode: shadow</code> — see{" "}
-          <code className="text-slate-400">docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md</code>.
-        </p>
+        <p className="mt-4 text-xs text-slate-500">No shadow evaluations yet.</p>
       )}
     </section>
   );

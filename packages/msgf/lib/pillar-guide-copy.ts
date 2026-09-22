@@ -30,8 +30,8 @@ export type PillarGuideEntry = {
 export const PILLAR_GUIDE_ENTRIES: PillarGuideEntry[] = [
   {
     pillar: "P1",
-    title: "Static Ledger",
-    subtitle: "Immutable rules, legal versions, security HALT",
+    title: "Static Ledger (Immutable Rules & Security)",
+    subtitle: "Immutable Rules & Security",
     v32Step: "DEFEND",
     whatItDoes:
       "Stores non-negotiable platform law: pledge versions, security constants, and HALT conditions. If a request violates legal or security policy, MSGF stops before models run.",
@@ -42,8 +42,8 @@ export const PILLAR_GUIDE_ENTRIES: PillarGuideEntry[] = [
   },
   {
     pillar: "P2",
-    title: "Flow Sequence",
-    subtitle: "Gate orchestration & deployment order",
+    title: "Flow Sequence (Pipeline & Execution Order)",
+    subtitle: "Pipeline & Execution Order",
     v32Step: "CONVERGE",
     whatItDoes:
       "Orders the pipeline: preflight → shadow → dual-model consensus → optional human tie-breaker. Ensures gates run in the master directive sequence, not ad hoc in your BFF.",
@@ -54,8 +54,8 @@ export const PILLAR_GUIDE_ENTRIES: PillarGuideEntry[] = [
   },
   {
     pillar: "P3",
-    title: "Entity Profiles",
-    subtitle: "Roles, tiers, tenant identity",
+    title: "Entity Profiles (Identity, Roles & Stylometry)",
+    subtitle: "Identity, Roles & Stylometry",
     v32Step: "SHARD (identity)",
     whatItDoes:
       "Binds humans and tenants to entitlements: tier_id, credits, Stripe status, tenant silo. Pulse middleware checks p4_profiles before burning inference credits.",
@@ -66,8 +66,8 @@ export const PILLAR_GUIDE_ENTRIES: PillarGuideEntry[] = [
   },
   {
     pillar: "P4",
-    title: "State Ledger",
-    subtitle: "Session beats, HAL telemetry, hot slices",
+    title: "State Ledger (Runtime Telemetry & Active Memory)",
+    subtitle: "Runtime Telemetry & Active Memory",
     v32Step: "SHARD",
     whatItDoes:
       "Flight recorder for rhythm telemetry (dwell, flight, paste flags), session beats, and Redis hot slices. HAL scores and baseline training live here — not under P1.",
@@ -78,8 +78,8 @@ export const PILLAR_GUIDE_ENTRIES: PillarGuideEntry[] = [
   },
   {
     pillar: "P5",
-    title: "Local Variables",
-    subtitle: "Tenant UI shards & module context",
+    title: "Local Variables (Workspace Context Sharding)",
+    subtitle: "Workspace Context Sharding",
     v32Step: "SWEEP",
     whatItDoes:
       "Holds per-tenant configuration shards: project_origin tags, module context, and UI-scoped variables used to scope health views and ingest paths.",
@@ -90,8 +90,8 @@ export const PILLAR_GUIDE_ENTRIES: PillarGuideEntry[] = [
   },
   {
     pillar: "P6",
-    title: "Constraint Ledger",
-    subtitle: "Vault vs Hall, lineage 1.1.1",
+    title: "Constraint Ledger (Vault vs. Hall Anomaly Isolation)",
+    subtitle: "Vault vs. Hall Anomaly Isolation",
     v32Step: "CROSS-REF / PERSIST",
     whatItDoes:
       "Vault stores successful patterns; Hall stores failures and constraints. Every ingest/Pulse cross-references genealogical bug_index (1.0 / 1.1 / 1.1.1) before persisting vectors.",

@@ -522,20 +522,9 @@ export function WorkspaceSetupProjectsTab({
           className="glass-panel min-w-0 space-y-4 rounded-2xl border border-emerald-500/20 p-5 sm:p-6"
         >
           <div>
-            <h2 className="text-lg font-semibold text-slate-100">Project mapping</h2>
-            <span className="mt-2 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-200">
-              SWEEP Architectural Ingest Enabled — Supports automated 1.1.1 genealogical module
-              indexing
-            </span>
+            <h2 className="text-lg font-semibold text-slate-100">Connect repositories and subfolders</h2>
             <p className="mt-1 text-sm text-slate-400">
-              Register each repo or monorepo app you guard with MSGF.
-              <InfoTip label="Monorepo mapping rules">
-                <strong className="text-cyan-200">Monorepo rule:</strong> add one workspace per app
-                (e.g. <code className="text-cyan-100">apps/author-ecosystem</code>,{" "}
-                <code className="text-cyan-100">packages/msgf</code>), not only the git root. Each row
-                is an independent <code className="text-cyan-100">project_origin</code> for cost-efficient routing
-                scoping and dashboard policy-domain health.
-              </InfoTip>
+              Register repositories or monorepo subfolders as isolated project origins.
             </p>
           </div>
 
@@ -648,25 +637,29 @@ export function WorkspaceSetupProjectsTab({
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">IDE tenant key</dt>
-              <dd className="break-all font-mono text-xs text-cyan-200/90">{tenantKey}</dd>
+              <dt className="text-slate-500">Tenant key</dt>
+              <dd className="flex flex-wrap items-center gap-2">
+                <span className="break-all font-mono text-xs text-cyan-200/90">{tenantKey}</span>
+                <button
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(tenantKey)}
+                  className="rounded-lg border border-slate-600 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-800"
+                >
+                  Copy key
+                </button>
+              </dd>
             </div>
           </dl>
-          <p className="mt-4 text-xs leading-relaxed text-slate-500">
-            BYOK (free indie) uses your Redis + Supabase and model keys under{" "}
-            <code className="text-violet-200">.msgf/keys/</code>.
-            <InfoTip label="Local Redis and Supabase">
-              Point the extension at your MSGF instance with{" "}
-              <code className="text-violet-200">REDIS_URL</code>,{" "}
-              <code className="text-violet-200">NEXT_PUBLIC_SUPABASE_URL</code>, and{" "}
-              <code className="text-violet-200">SUPABASE_SERVICE_ROLE_KEY</code> on the host you
-              control — or use a managed Pro license from{" "}
+          <details className="mt-4 text-xs text-slate-400">
+            <summary className="cursor-pointer text-slate-300">Setup guide</summary>
+            <p className="mt-2 leading-relaxed">
+              BYOK uses Redis, Supabase, and model keys under .msgf/keys/. Managed Pro is on{" "}
               <Link href="/pricing" className="text-violet-300 hover:underline">
                 pricing
               </Link>
               .
-            </InfoTip>
-          </p>
+            </p>
+          </details>
         </aside>
       </div>
 

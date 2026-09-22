@@ -118,30 +118,13 @@ export function detectP1SocraticViolation(text: string): string | null {
 }
 
 async function runPublisherModel(modelPath: string, prompt: string): Promise<string> {
-  if (isAnthropicPublisherModelPath(modelPath) && process.env.ANTHROPIC_API_KEY?.trim()) {
-    return runAnthropicDirectPublisherModel({
-      modelPath,
-      prompt,
-      maxTokens: 720,
-      temperature: 0.35,
-    });
-  }
-
-  const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
-  const client = new v1beta1.PredictionServiceClient({
-    ...vertexClientAuthOptions(),
-    apiEndpoint: location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`,
+  return generatePublisherText({
+    modelPath,
+    prompt,
+    maxTokens: 720,
+    temperature: 0.35,
+    timeoutLabel: "socratic_tutor.publisher_vertex",
   });
-
-  const [resp] = await runWithLlmTimeoutSimple("socratic_tutor.publisher_vertex", () =>
-    client.generateContent({
-      model: modelPath,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.35, maxOutputTokens: 720 },
-    })
-  );
-
-  return resp?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 }
 
 function pickSaferPayload(

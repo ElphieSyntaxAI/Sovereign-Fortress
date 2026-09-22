@@ -42,7 +42,7 @@ export default function Page() {
       liveLabel="Open MSGF console"
       roadmapDocPath="docs/msgf/MSGF_V1_ROADMAP.md"
       metrics={[
-        { label: "Master directive", value: "V3.2-ULTRA", hint: "SWEEP → PERSIST (7 steps)" },
+        { label: "Pipeline", value: "Seven steps", hint: "SWEEP → PERSIST" },
         { label: "Consensus", value: "TRI + Grok", hint: "Claude · Gemini · Grok" },
         { label: "Ops glue", value: "Audit · SIEM", hint: "Replay · budgets · SSO" },
         { label: "Crypto", value: "Hybrid PQ", hint: "ML-KEM + ML-DSA when enabled" },
@@ -122,7 +122,7 @@ export default function Page() {
       ]}
       footnotes={[
         "Source: docs/msgf/MSGF_V1_ROADMAP.md · docs/integrations/technical-specs/MSGF_SENTRY.md · docs/integrations/technical-specs/MSGF_SIGNING.md · docs/msgf/technical-specs/MSGF_PQC_CRYPTO_AUDIT.md",
-        "Primary spec: docs/references/MSGF_v3_2_masterdoc.pdf (V3.2-ULTRA)",
+        "Primary spec: docs/msgf/MSGF_V1_ROADMAP.md",
       ]}
     />
   );

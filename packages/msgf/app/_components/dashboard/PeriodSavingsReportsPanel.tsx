@@ -236,6 +236,16 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
   const [loading, setLoading] = useState(true);
   const [logging, setLogging] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "json" | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const visibleMonthly = monthly.filter((row) => {
+    if (selectedMonth) return row.period_key === selectedMonth;
+    return (
+      row.period_key === currentMonthKey ||
+      row.tokens_consumed_metered > 0 ||
+      row.tokens_saved_proven > 0
+    );
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -364,18 +374,9 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-            MSGF consumption &amp; savings
-          </p>
           <h2 className="mt-1 text-xl font-semibold text-slate-50 sm:text-2xl">
-            Weekly + monthly archive
+            Governance Archive
           </h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            Three most recent weekly reports and a monthly history table of what MSGF{" "}
-            <strong className="text-slate-200">actually metered</strong> (consumed) versus{" "}
-            <strong className="text-emerald-300">proven saved</strong>. Eco columns use proven
-            tokens only.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -386,6 +387,12 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
           >
             {exporting === "pdf" ? "Exporting PDF…" : "Export PDF"}
           </button>
+          {disclaimer ? (
+            <details className="max-w-xs text-xs text-slate-400">
+              <summary className="cursor-pointer text-slate-300">Audit methodology</summary>
+              <p className="mt-2 leading-relaxed">{disclaimer}</p>
+            </details>
+          ) : null}
           <button
             type="button"
             onClick={exportJson}
@@ -444,11 +451,24 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-200">Monthly history</h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Logged over time — refresh or “Log current week + month” to snapshot live counters into
-          durable rows.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-slate-200">Monthly history</h3>
+          <label className="text-xs text-slate-400">
+            Select month{" "}
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="ml-1 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-slate-100"
+            >
+              <option value="">Current and active</option>
+              {monthly.map((row) => (
+                <option key={row.period_key} value={row.period_key}>
+                  {row.period_label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className="mt-3 overflow-x-auto rounded-2xl border border-slate-800">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
@@ -456,22 +476,18 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
                 <th className="px-3 py-3 font-medium">Month</th>
                 <th className="px-3 py-3 font-medium">Consumed</th>
                 <th className="px-3 py-3 font-medium">Proven saved</th>
-                <th className="px-3 py-3 font-medium">Ops est.</th>
-                <th className="px-3 py-3 font-medium">Calls</th>
-                <th className="px-3 py-3 font-medium">Shadow $</th>
                 <th className="px-3 py-3 font-medium">Eco kWh</th>
-                <th className="px-3 py-3 font-medium">Logged</th>
               </tr>
             </thead>
             <tbody>
-              {monthly.length === 0 ? (
+              {visibleMonthly.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
+                  <td colSpan={4} className="px-3 py-8 text-center text-slate-500">
                     No monthly rows yet.
                   </td>
                 </tr>
               ) : (
-                monthly.map((row) => (
+                visibleMonthly.map((row) => (
                   <tr
                     key={row.period_key}
                     className="border-t border-slate-800/80 odd:bg-slate-950/40"
@@ -486,23 +502,10 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
                     <td className="px-3 py-2.5 tabular-nums text-emerald-300">
                       {fmt(row.tokens_saved_proven)}
                     </td>
-                    <td className="px-3 py-2.5 tabular-nums text-slate-400">
-                      {fmt(row.tokens_saved_estimated)}
-                    </td>
-                    <td className="px-3 py-2.5 tabular-nums text-slate-300">
-                      {fmt(row.provider_calls)}
-                    </td>
-                    <td className="px-3 py-2.5 tabular-nums text-sky-200">
-                      ${row.shadow_projected_usd.toFixed(4)}
-                    </td>
                     <td className="px-3 py-2.5 tabular-nums text-slate-300">
                       {row.eco_claimable
                         ? row.eco_metrics.grid_compute_prevented_kwh.toFixed(4)
                         : "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-slate-500">
-                      {new Date(row.logged_at).toLocaleString()}
-                      <span className="ml-1 text-slate-600">({row.source})</span>
                     </td>
                   </tr>
                 ))
@@ -512,9 +515,6 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
         </div>
       </div>
 
-      {disclaimer ? (
-        <p className="text-[11px] leading-relaxed text-slate-500">{disclaimer}</p>
-      ) : null}
     </section>
   );
 }

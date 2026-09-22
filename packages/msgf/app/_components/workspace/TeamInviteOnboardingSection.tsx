@@ -441,12 +441,11 @@ export function TeamInviteOnboardingSection({ value, onChange, uploading = false
         ) : null}
       </div>
 
-      <p className="mt-4 text-xs leading-relaxed text-slate-500">
-        <InfoTip label="Vault storage">
-          Documents attached here are stored cryptographically inside your tenant Vault. They are
-          served securely to the invitee upon successful password configuration, ensuring your
-          internal architecture documentation never leaks over public email channels.
-        </InfoTip>
+      <p className="mt-4 text-sm text-slate-300">
+        Attach onboarding docs
+        <span className="mt-1 block text-xs text-slate-500">
+          Encrypted and served via secure tenant vault.
+        </span>
       </p>
     </div>
   );

@@ -58,7 +58,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+import { useSharedOpsQuery, useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
 
@@ -74,23 +74,20 @@ type DiffReport = {
 
 export function AdminDiffImpactPanel() {
   const sharedOrigin = useSharedProjectOrigin();
+  const sharedQ = useSharedOpsQuery();
   const [pathsText, setPathsText] = useState("");
-  const [projectOrigin, setProjectOrigin] = useState(sharedOrigin);
+  const projectOrigin = sharedOrigin;
   const [report, setReport] = useState<DiffReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
-
-  useEffect(() => {
-    if (sharedOrigin) setProjectOrigin(sharedOrigin);
-  }, [sharedOrigin]);
 
   const run = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSearched(true);
     try {
-      const files = pathsText
+      const files = (pathsText.trim() || sharedQ)
         .split(/[\n,]+/)
         .map((p) => p.trim())
         .filter(Boolean)
@@ -120,7 +117,12 @@ export function AdminDiffImpactPanel() {
     } finally {
       setLoading(false);
     }
-  }, [pathsText, projectOrigin]);
+  }, [pathsText, sharedQ, projectOrigin]);
+
+  useEffect(() => {
+    if (!sharedQ.trim()) return;
+    setPathsText(sharedQ);
+  }, [sharedQ]);
 
   return (
     <div id="diff-impact">
@@ -129,8 +131,9 @@ export function AdminDiffImpactPanel() {
         title="Diff Impact"
         description="Map changed paths against Vault/Hall/P7 memory. When MSGF_REQUIRE_DIFF_IMPACT=1, red blocks deploy-gate."
         scope="company"
-        query={projectOrigin}
-        onQueryChange={setProjectOrigin}
+        query={sharedQ}
+        onQueryChange={() => {}}
+        hideQuery
         onSearch={() => void run()}
         loading={loading}
         error={error}

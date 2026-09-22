@@ -169,6 +169,13 @@ function eventTypeForHealthEvent(event: PillarHealthEvent): GlobalTickerType {
   return "INFO";
 }
 
+/** Display-time rewrite so older Hall rows do not leak pillar ids. */
+export function formatPolicyRemediationTicker(summary: string): string {
+  const swarm = summary.match(/swarm:\/\/[^\s]+/i);
+  const target = swarm ? `${swarm[0].slice(0, 20)}…` : "the blocked path";
+  return `Policy Remediation Rejected: Operator issued DENY & PURGE for agent execution ${target}`;
+}
+
 function sourceForTickerType(type: GlobalTickerType): GlobalNotificationTickerEvent["source"] {
   if (type === "ACTION_REQUIRED") return "p2_arbitrate";
   if (type === "WARNING") return "p6_self_heal";
@@ -191,10 +198,10 @@ export function mapHealthReportToTickerEvents(
         source: sourceForTickerType(type),
         message:
           type === "INFO"
-            ? `P5 context shard update: ${event.summary}`
+            ? `Workspace context update: ${event.summary}`
             : type === "WARNING"
-              ? `P6 anomaly/self-heal trace: ${event.summary}`
-              : `P2/Consensus lockout awaiting Human Arbitrate: ${event.summary}`,
+              ? formatPolicyRemediationTicker(event.summary)
+              : `Consensus lockout awaiting human review: ${event.summary}`,
         lineage: event.bug_index,
         attempt_count: type === "WARNING" ? 2 : undefined,
         action_url: type === "ACTION_REQUIRED" ? "/admin/dashboard" : undefined,
@@ -500,7 +507,7 @@ export function mockDashboardHealthReport(): PillarHealthReport {
           : null,
         predicted_future_issue: false,
         summary: latest_events.length
-          ? `${latest_events.length} latest V3.2 event(s).`
+          ? `${latest_events.length} latest event(s).`
           : "No telemetry in mock window.",
         latest_events,
       };

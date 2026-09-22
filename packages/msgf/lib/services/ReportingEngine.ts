@@ -201,7 +201,7 @@ export function aggregateDailySummary(rows: NarrativeRow[], window: DailySummary
 export function formatLogicDriftSummary(summary: DailySummaryResult): string {
   const lines: string[] = [
     "══════════════════════════════════════════════════════════════",
-    "  MSGF Logic Drift Summary (V3.2 BATCH — last 24h)",
+    "  MSGF Logic Drift Summary (last 24h)",
     "══════════════════════════════════════════════════════════════",
     `  Window : ${summary.window.from} → ${summary.window.to}`,
     `  Scanned: ${summary.scanned_rows} narrative logs (${summary.classified_rows} classified)`,

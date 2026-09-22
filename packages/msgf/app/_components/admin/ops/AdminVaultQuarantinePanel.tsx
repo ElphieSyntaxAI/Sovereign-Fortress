@@ -264,8 +264,9 @@ export function AdminVaultQuarantinePanel() {
           </p>
           <h2 className="mt-1 text-xl font-semibold text-slate-100">Quarantine review</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-400">
-            Sentry-matched Vault wins wait here. Demote writes Hall + blocks retrieval; restore
-            returns the row to eligible Vault use. Operators only — no auto-Hall.
+            Vault is verified state memory, not the embedding ring. Sentry-matched Vault wins wait
+            here. Demote writes Hall and blocks retrieval; restore returns the row to eligible Vault
+            use.
           </p>
         </div>
         <button
