@@ -25,6 +25,17 @@ export function isAuthorHelperEnabled(
 
 export type AuthorPostMvpFeature = "author_fan_hub" | "author_helper";
 
+/** Fan-hub HTTP surfaces only. Health/ping/status must stay reachable while the hub is hidden. */
+export function isAuthorFanHubRequestPath(pathname: string): boolean {
+  const p = String(pathname ?? "").split("?")[0] || "/";
+  return (
+    p === "/api/fan-hub" ||
+    p.startsWith("/api/fan-hub/") ||
+    p === "/api/fans" ||
+    p.startsWith("/api/fans/")
+  );
+}
+
 export function authorPostMvpDisabledPayload(feature: AuthorPostMvpFeature) {
   const envName =
     feature === "author_fan_hub" ? "AUTHOR_POST_MVP_FAN_HUB" : "AUTHOR_POST_MVP_HELPER";

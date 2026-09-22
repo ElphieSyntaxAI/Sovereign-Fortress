@@ -42,6 +42,7 @@
     "validate:deployment": "node scripts/validate-deployment.mjs",
     "validate:deployment:env": "node scripts/validate-deployment.mjs --with-env",
     "staging:preflight": "node scripts/staging-preflight.mjs",
+    "staging:stripe": "node scripts/seed-staging-stripe-from-local.mjs",
     "staging:prepare": "node scripts/prepare-cloudrun-env.mjs --staging",
     "smoke:staging": "node scripts/smoke-staging.mjs",
     "deploy:staging": "bash ./deploy-staging.sh",

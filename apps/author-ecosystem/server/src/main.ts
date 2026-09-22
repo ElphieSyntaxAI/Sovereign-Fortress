@@ -58,6 +58,8 @@ app.use(pactGuard);
  * Auth: Supabase `@supabase/ssr` session cookies (+ optional `author_bff_jwt` mirror for API JWT checks).
  */
 app.use("/api/auth", authSessionBridgeController);
+app.use(rootController);
+app.use(msgfHealthController);
 app.use(legalTermsController);
 app.use(legalNdaController);
 app.use(manuscriptsController);
@@ -75,8 +77,6 @@ app.use(manuscriptController);
 
 app.use(p4LoreRagController);
 
-app.use(rootController);
-app.use(msgfHealthController);
 app.use(msgfPulseController);
 app.use(msgfSelfHealController);
 app.use(msgfGovernanceController);

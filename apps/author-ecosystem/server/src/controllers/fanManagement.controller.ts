@@ -4,13 +4,14 @@ import { readBearerUser } from "../lib/readBearerJwtUser.js";
 import {
   authorPostMvpDisabledPayload,
   isAuthorFanHubEnabled,
+  isAuthorFanHubRequestPath,
 } from "../lib/postMvpGates.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 export const fanManagementController = Router();
 
-fanManagementController.use((_req, res, next) => {
-  if (!isAuthorFanHubEnabled()) {
+fanManagementController.use((req, res, next) => {
+  if (!isAuthorFanHubEnabled() && isAuthorFanHubRequestPath(req.path)) {
     res.status(404).json(authorPostMvpDisabledPayload("author_fan_hub"));
     return;
   }

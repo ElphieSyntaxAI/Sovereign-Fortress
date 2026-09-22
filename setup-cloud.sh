@@ -492,16 +492,21 @@ else
 fi
 
 # --- Cloud Run deploy env (YAML file — comma-separated --update-env-vars breaks on URL lists) ---
-# Never emit string literals for vars already bound to Secret Manager on msgf-api.
+# Never emit string literals for vars already bound to Secret Manager on production msgf-api.
 # Mixing types fails with: Cannot update environment variable […] to string literal
 # because it has already been set with a different type.
+# Staging Stripe is TEST-mode plaintext env — do not unset, and do not mount live Secret Manager keys.
 SECRET_BACKED_ENV_KEYS=(
   MASTER_GEMINI_KEY
   MASTER_ANTHROPIC_KEY
-  STRIPE_SECRET_KEY
-  STRIPE_WEBHOOK_SECRET
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 )
+if [[ "${DEPLOY_ENV:-production}" != "staging" ]]; then
+  SECRET_BACKED_ENV_KEYS+=(
+    STRIPE_SECRET_KEY
+    STRIPE_WEBHOOK_SECRET
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  )
+fi
 for _sk in "${SECRET_BACKED_ENV_KEYS[@]}"; do
   unset "RUN_ENV[${_sk}]"
 done
