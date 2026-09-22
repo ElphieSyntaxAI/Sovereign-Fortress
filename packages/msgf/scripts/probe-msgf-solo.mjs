@@ -511,6 +511,16 @@ const BASE = (
   "http://127.0.0.1:3001"
 ).replace(/\/+$/, "");
 
+function isStagingBase(url = BASE) {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.startsWith("staging.")) return true;
+    return host.includes("msgf-api-staging");
+  } catch {
+    return false;
+  }
+}
+
 function isProductionBase(url = BASE) {
   try {
     const host = new URL(url).hostname.toLowerCase();
@@ -557,7 +567,11 @@ const LICENSE =
   "";
 
 const COOKIE = process.env.MSGF_PULSE_COOKIE?.trim() || "";
-const CRON_SECRET = process.env.MSGF_OPS_CRON_SECRET?.trim() || "";
+const CRON_SECRET = (
+  isStagingBase()
+    ? process.env.MSGF_STAGING_OPS_CRON_SECRET
+    : process.env.MSGF_OPS_CRON_SECRET
+)?.trim() || "";
 
 function sampleKeystrokes() {
   let ts = Date.now();
@@ -681,7 +695,11 @@ async function main() {
     logResult("POST /api/msgf/ops/v32-heartbeat (dry_run)", hb);
     if (!hb.ok) failures.push("v32-heartbeat");
   } else {
-    console.log("[skip] v32-heartbeat — set MSGF_OPS_CRON_SECRET to probe cron");
+    console.log(
+      isStagingBase()
+        ? "[skip] v32-heartbeat — set MSGF_STAGING_OPS_CRON_SECRET to probe staging cron"
+        : "[skip] v32-heartbeat — set MSGF_OPS_CRON_SECRET to probe cron"
+    );
   }
 
   console.log("\n[probe:solo] MsgfBridge (other projects):");

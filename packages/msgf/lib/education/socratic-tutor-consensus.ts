@@ -13,21 +13,10 @@
 /**
  * Socratic Tutor — Gemini + Claude consensus (Vertex publishers, P2 CONVERGE).
  */
-import { v1beta1 } from "@google-cloud/aiplatform";
-
-import {
-  getGcpProjectId,
-  SERVICE_ACCOUNT_PATH,
-} from "@/lib/msgf-vertex";
+import { getGcpProjectId } from "@/lib/msgf-vertex";
 import { computeConsensusAgreementScore } from "@/lib/services/consensus-output-comparison";
-import {
-  executeAiWave,
-  runWithLlmTimeoutSimple,
-} from "@/lib/services/cost-runaway-guard";
-import {
-  isAnthropicPublisherModelPath,
-  runAnthropicDirectPublisherModel,
-} from "@/lib/services/anthropic-direct-fallback";
+import { executeAiWave } from "@/lib/services/cost-runaway-guard";
+import { generatePublisherText } from "@/lib/services/vertex-publisher-generate";
 import { LEARNING_BREAKDOWN_INDEX } from "@/lib/education/learning-breakdown-index";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
@@ -140,7 +129,7 @@ async function runPublisherModel(modelPath: string, prompt: string): Promise<str
 
   const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
   const client = new v1beta1.PredictionServiceClient({
-    keyFilename: SERVICE_ACCOUNT_PATH,
+    ...vertexClientAuthOptions(),
     apiEndpoint: location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`,
   });
 

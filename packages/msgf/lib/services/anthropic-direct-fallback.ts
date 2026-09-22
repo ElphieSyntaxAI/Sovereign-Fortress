@@ -20,13 +20,20 @@ export function isAnthropicPublisherModelPath(modelPath: string): boolean {
   return modelPath.includes("/publishers/anthropic/models/");
 }
 
+/** Cloud Run mounts the partner key as MASTER_ANTHROPIC_KEY. */
+export function resolveAnthropicApiKey(
+  env: NodeJS.ProcessEnv = process.env
+): string | undefined {
+  return env.ANTHROPIC_API_KEY?.trim() || env.MASTER_ANTHROPIC_KEY?.trim() || undefined;
+}
+
 export async function runAnthropicDirectPublisherModel(params: {
   modelPath: string;
   prompt: string;
   maxTokens: number;
   temperature: number;
 }): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  const apiKey = resolveAnthropicApiKey();
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY is required for direct Anthropic fallback.");
   }

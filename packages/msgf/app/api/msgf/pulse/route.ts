@@ -542,6 +542,16 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: unknown) {
     console.error("MSGF Pulse route error", err);
+    if (err && typeof err === "object") {
+      const rec = err as Record<string, unknown>;
+      console.error("MSGF Pulse route error fields", {
+        name: rec.name,
+        message: rec.message,
+        code: rec.code,
+        details: rec.details,
+        status: rec.status,
+      });
+    }
     return pulseJsonWithTrace(
       req,
       traceId,

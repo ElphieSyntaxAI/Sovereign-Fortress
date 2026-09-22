@@ -183,6 +183,7 @@
     "test:prod-mock-data-gate": "tsx --test tests/prod-mock-data-gate.test.ts",
     "test:post-mvp-gates": "tsx --test tests/post-mvp-gates.test.ts",
     "test:staging-seed": "tsx --test tests/staging-readiness-seed.test.ts",
+    "test:vertex-adc": "tsx --test tests/msgf-vertex-adc.test.ts",
     "test:savings": "node scripts/run-savings-tests.mjs",
     "test:unit": "node scripts/run-unit-tests.mjs",
     "test:integration": "node scripts/run-integration-tests.mjs",

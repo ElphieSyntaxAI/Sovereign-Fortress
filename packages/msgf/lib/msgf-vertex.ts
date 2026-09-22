@@ -36,14 +36,96 @@ function usesCloudRuntimeAdc(): boolean {
   );
 }
 
+function fileExists(pathname: string): boolean {
+  try {
+    return fs.existsSync(pathname);
+  } catch {
+    return false;
+  }
+}
+
 function serviceAccountKeyFileExists(): boolean {
-  return fs.existsSync(SERVICE_ACCOUNT_PATH);
+  return fileExists(SERVICE_ACCOUNT_PATH);
+}
+
+/**
+ * Local key file if present; otherwise undefined so Google auth uses Cloud Run ADC.
+ * Never return a path that does not exist — PredictionServiceClient would ENOENT.
+ */
+export function resolveVertexKeyFilename(
+  env: NodeJS.ProcessEnv = process.env,
+  exists: (pathname: string) => boolean = fileExists
+): string | undefined {
+  const gac = env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+  if (gac && exists(gac)) return gac;
+  if (gac && env === process.env && !exists(gac)) {
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  }
+  if (exists(SERVICE_ACCOUNT_PATH)) return SERVICE_ACCOUNT_PATH;
+  return undefined;
+}
+
+/** Auth options for Vertex / aiplatform clients. Empty object = ADC (Cloud Run). */
+export function vertexClientAuthOptions(
+  env: NodeJS.ProcessEnv = process.env,
+  exists: (pathname: string) => boolean = fileExists
+): { keyFilename?: string } {
+  const keyFilename = resolveVertexKeyFilename(env, exists);
+  return keyFilename ? { keyFilename } : {};
+}
+
+export function vertexApiEndpointForModelPath(modelPath: string): string {
+  const location =
+    modelPath.match(/\/locations\/([^/]+)\//)?.[1] ||
+    trimEnv("GCP_LOCATION") ||
+    trimEnv("GCP_REGION") ||
+    "us-central1";
+  return location === "global"
+    ? "aiplatform.googleapis.com"
+    : `${location}-aiplatform.googleapis.com`;
+}
+
+export function isGooglePublisherModelPath(modelPath: string): boolean {
+  return modelPath.includes("/publishers/google/models/");
+}
+
+export function publisherModelIdFromPath(modelPath: string): string {
+  const id = modelPath.split("/models/").pop()?.trim();
+  if (!id) {
+    throw new Error(`MSGF: invalid publisher model path (${modelPath}).`);
+  }
+  return id;
+}
+
+/**
+ * PredictionServiceClient options: REST fallback (Cloud Run gRPC often returns empty errors)
+ * and no keyFilename unless a real file exists.
+ */
+export function vertexPredictionClientOptions(
+  apiEndpoint: string,
+  env: NodeJS.ProcessEnv = process.env,
+  exists: (pathname: string) => boolean = fileExists
+): {
+  apiEndpoint: string;
+  fallback: "rest";
+  projectId?: string;
+  keyFilename?: string;
+} {
+  const keyFilename = resolveVertexKeyFilename(env, exists);
+  const projectId =
+    env.GCP_PROJECT_ID?.trim() || env.GOOGLE_CLOUD_PROJECT?.trim() || undefined;
+  return {
+    apiEndpoint,
+    fallback: "rest",
+    ...(projectId ? { projectId } : {}),
+    ...(keyFilename ? { keyFilename } : {}),
+  };
 }
 
 function googleApplicationCredentialsPath(): string | undefined {
   const creds = trimEnv('GOOGLE_APPLICATION_CREDENTIALS');
   if (!creds) return undefined;
-  return fs.existsSync(creds) ? creds : undefined;
+  return fileExists(creds) ? creds : undefined;
 }
 
 export function hasVertexCredentials(): boolean {
@@ -98,9 +180,7 @@ function getVertexAI(): VertexAI {
     clearBrokenGoogleApplicationCredentialsEnv();
     const location =
       trimEnv('GCP_LOCATION') || trimEnv('GCP_REGION') || 'us-central1';
-    const keyFile =
-      googleApplicationCredentialsPath() ??
-      (serviceAccountKeyFileExists() ? SERVICE_ACCOUNT_PATH : undefined);
+    const keyFile = resolveVertexKeyFilename();
     vertexAI = new VertexAI({
       project: getGcpProjectId(),
       location,

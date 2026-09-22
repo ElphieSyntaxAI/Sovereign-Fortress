@@ -41,7 +41,6 @@
 
 import { randomUUID } from "crypto";
 
-import { v1beta1 } from "@google-cloud/aiplatform";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
@@ -65,7 +64,6 @@ import {
 import {
   getGcpProjectId,
   getVertexGenerativeModelForId,
-  SERVICE_ACCOUNT_PATH,
 } from "@/lib/msgf-vertex";
 import {
   getActiveSlice,
@@ -195,10 +193,7 @@ import {
 } from "@/lib/services/cost-runaway-guard";
 import { recordCostRunawayDeadLetterSafe } from "@/lib/services/llm-dead-letter";
 import type { PulseHotSession } from "@/lib/services/pulse-hot-session";
-import {
-  isAnthropicPublisherModelPath,
-  runAnthropicDirectPublisherModel,
-} from "@/lib/services/anthropic-direct-fallback";
+import { generatePublisherText } from "@/lib/services/vertex-publisher-generate";
 import { ecoAggregatorClient } from "@/lib/services/EcoAggregatorClient";
 import { runV32PulsePipeline } from "@/lib/services/pulse-pipeline/run-v32-pipeline";
 import {
@@ -223,15 +218,6 @@ const CLAUDE_VERTEX_LOCATION =
   process.env.GCP_CLAUDE_LOCATION?.trim() ||
   "global";
 const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-sonnet-4@20250514";
-
-function vertexEndpointForLocation(location: string): string {
-  return location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`;
-}
-
-function vertexEndpointForModelPath(modelPath: string): string {
-  const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
-  return vertexEndpointForLocation(location);
-}
 
 export const ERR_RECURSION_LIMIT = "ERR_RECURSION_LIMIT" as const;
 
@@ -2124,30 +2110,13 @@ Allowed verdict values: HUMAN, NON_HUMAN, INCONCLUSIVE.`;
     modelPath: string,
     prompt: string
   ): Promise<{ verdict: ConsensusVote; reason: string }> {
-    if (isAnthropicPublisherModelPath(modelPath) && process.env.ANTHROPIC_API_KEY?.trim()) {
-      const text = await runAnthropicDirectPublisherModel({
-        modelPath,
-        prompt,
-        maxTokens: 200,
-        temperature: 0.1,
-      });
-      return this.parseVote(text);
-    }
-
-    const client = new v1beta1.PredictionServiceClient({
-      keyFilename: SERVICE_ACCOUNT_PATH,
-      apiEndpoint: vertexEndpointForModelPath(modelPath),
+    const text = await generatePublisherText({
+      modelPath,
+      prompt,
+      maxTokens: 200,
+      temperature: 0.1,
+      timeoutLabel: "pulse.consensus.publisher_vertex",
     });
-
-    const [resp] = await runWithLlmTimeoutSimple("pulse.consensus.publisher_vertex", () =>
-      client.generateContent({
-        model: modelPath,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
-      })
-    );
-
-    const text = resp?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     return this.parseVote(text);
   }
 

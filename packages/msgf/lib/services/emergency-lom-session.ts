@@ -14,9 +14,7 @@
  * Emergency LOM session — Gemini + Claude analyze a Sentinel snapshot vs P2 Roadmap.
  */
 
-import { v1beta1 } from "@google-cloud/aiplatform";
-
-import { getGcpProjectId, SERVICE_ACCOUNT_PATH } from "@/lib/msgf-vertex";
+import { getGcpProjectId } from "@/lib/msgf-vertex";
 import type { DiagnosticSnapshot } from "@/lib/schemas/diagnostic-snapshot";
 import {
   buildP2RoadmapDirective,
@@ -28,12 +26,8 @@ import type { SentinelDriftAssessment } from "@/lib/services/LogicDriftService";
 import {
   executeAiWave,
   isCostRunawayError,
-  runWithLlmTimeoutSimple,
 } from "@/lib/services/cost-runaway-guard";
-import {
-  isAnthropicPublisherModelPath,
-  runAnthropicDirectPublisherModel,
-} from "@/lib/services/anthropic-direct-fallback";
+import { generatePublisherText } from "@/lib/services/vertex-publisher-generate";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
 const CLAUDE_VERTEX_LOCATION =
@@ -42,15 +36,6 @@ const CLAUDE_VERTEX_LOCATION =
   "global";
 const GEMINI_MODEL_ID = process.env.MSGF_VERTEX_MODEL || "gemini-2.5-flash";
 const CLAUDE_MODEL_ID = process.env.MSGF_CLAUDE_MODEL || "claude-sonnet-4@20250514";
-
-function vertexEndpointForLocation(location: string): string {
-  return location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`;
-}
-
-function vertexEndpointForModelPath(modelPath: string): string {
-  const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
-  return vertexEndpointForLocation(location);
-}
 
 export type EmergencyLomVerdict = "ROADMAP_ALIGNED" | "ROADMAP_CONFLICT" | "INCONCLUSIVE";
 
@@ -96,30 +81,13 @@ async function runPublisherModel(
   modelPath: string,
   prompt: string
 ): Promise<EmergencyLomModelResult> {
-  if (isAnthropicPublisherModelPath(modelPath) && process.env.ANTHROPIC_API_KEY?.trim()) {
-    const text = await runAnthropicDirectPublisherModel({
-      modelPath,
-      prompt,
-      maxTokens: 280,
-      temperature: 0.1,
-    });
-    return parseLomVerdict(text);
-  }
-
-  const client = new v1beta1.PredictionServiceClient({
-    keyFilename: SERVICE_ACCOUNT_PATH,
-    apiEndpoint: vertexEndpointForModelPath(modelPath),
+  const text = await generatePublisherText({
+    modelPath,
+    prompt,
+    maxTokens: 280,
+    temperature: 0.1,
+    timeoutLabel: `emergency_lom.publisher.${modelPath.slice(-32)}`,
   });
-
-  const [resp] = await runWithLlmTimeoutSimple(`emergency_lom.publisher.${modelPath.slice(-32)}`, () =>
-    client.generateContent({
-      model: modelPath,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 280 },
-    })
-  );
-
-  const text = resp?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
   return parseLomVerdict(text);
 }
 

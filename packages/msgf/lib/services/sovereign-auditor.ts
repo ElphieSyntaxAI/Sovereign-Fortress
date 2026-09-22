@@ -15,15 +15,9 @@
  * for final verdict when tenant-side dual validators disagree below threshold.
  */
 
-import { v1beta1 } from "@google-cloud/aiplatform";
-
-import { getGcpProjectId, SERVICE_ACCOUNT_PATH } from "@/lib/msgf-vertex";
+import { getGcpProjectId } from "@/lib/msgf-vertex";
 import { computeConsensusAgreementScore } from "@/lib/services/consensus-output-comparison";
-import { runWithLlmTimeoutSimple } from "@/lib/services/cost-runaway-guard";
-import {
-  isAnthropicPublisherModelPath,
-  runAnthropicDirectPublisherModel,
-} from "@/lib/services/anthropic-direct-fallback";
+import { generatePublisherText } from "@/lib/services/vertex-publisher-generate";
 
 const VERTEX_LOCATION = process.env.GCP_LOCATION || "us-central1";
 const CLAUDE_VERTEX_LOCATION =
@@ -35,39 +29,14 @@ const CLAUDE_MASTER_MODEL =
   process.env.MSGF_CLAUDE_MODEL?.trim() ||
   "claude-sonnet-4@20250514";
 
-function vertexEndpointForLocation(location: string): string {
-  return location === "global" ? "aiplatform.googleapis.com" : `${location}-aiplatform.googleapis.com`;
-}
-
-function vertexEndpointForModelPath(modelPath: string): string {
-  const location = modelPath.match(/\/locations\/([^/]+)\//)?.[1] || VERTEX_LOCATION;
-  return vertexEndpointForLocation(location);
-}
-
 async function runMasterPublisherModel(modelPath: string, prompt: string): Promise<string> {
-  if (isAnthropicPublisherModelPath(modelPath) && process.env.ANTHROPIC_API_KEY?.trim()) {
-    return runAnthropicDirectPublisherModel({
-      modelPath,
-      prompt,
-      maxTokens: 400,
-      temperature: 0.05,
-    });
-  }
-
-  const client = new v1beta1.PredictionServiceClient({
-    keyFilename: SERVICE_ACCOUNT_PATH,
-    apiEndpoint: vertexEndpointForModelPath(modelPath),
+  return generatePublisherText({
+    modelPath,
+    prompt,
+    maxTokens: 400,
+    temperature: 0.05,
+    timeoutLabel: `sovereign.publisher.${modelPath.slice(-24)}`,
   });
-
-  const [resp] = await runWithLlmTimeoutSimple(`sovereign.publisher.${modelPath.slice(-24)}`, () =>
-    client.generateContent({
-      model: modelPath,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.05, maxOutputTokens: 400 },
-    })
-  );
-
-  return resp?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
 }
 
 function buildSovereignPrompt(params: {
