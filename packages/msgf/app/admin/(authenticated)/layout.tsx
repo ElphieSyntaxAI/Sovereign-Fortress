@@ -14,6 +14,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AdminPortalNav } from "@/app/_components/admin/AdminPortalNav";
+import { isStagingDeploy } from "@/lib/deploy-env";
 import {
   assertSessionOperatorIsAdmin,
   resolveSessionDashboardOperator,
@@ -50,7 +51,10 @@ export default async function AdminAuthenticatedLayout({
 
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
-      <AdminPortalNav userEmail={user.email ?? "Signed in"} />
+      <AdminPortalNav
+        userEmail={user.email ?? "Signed in"}
+        showSeed={isStagingDeploy()}
+      />
       {children}
     </div>
   );

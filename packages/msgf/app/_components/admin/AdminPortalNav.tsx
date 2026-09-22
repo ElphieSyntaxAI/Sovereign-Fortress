@@ -741,6 +741,7 @@ import { createClient } from "@/utils/supabase/client";
 
 type Props = {
   userEmail: string;
+  showSeed?: boolean;
 };
 
 const NAV_ITEMS = [
@@ -756,7 +757,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "User dashboard" },
 ] as const;
 
-export function AdminPortalNav({ userEmail }: Props) {
+export function AdminPortalNav({ userEmail, showSeed = false }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
@@ -791,7 +792,10 @@ export function AdminPortalNav({ userEmail }: Props) {
         </Link>
 
         <nav className="flex flex-wrap items-center gap-1 sm:gap-2" aria-label="Admin portal">
-          {NAV_ITEMS.map((item) => {
+          {(showSeed
+            ? [{ href: "/admin/seed", label: "Seed" } as const, ...NAV_ITEMS]
+            : NAV_ITEMS
+          ).map((item) => {
             const active =
               pathname === item.href ||
               (item.href === "/admin/portal" && pathname === "/admin");

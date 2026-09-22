@@ -780,6 +780,7 @@ const UNIT_TESTS = [
   { label: "test:global-brain-swarm", args: ["--test", "tests/global-brain-swarm-telemetry.test.ts"] },
   { label: "test:prod-mock-data-gate", args: ["--test", "tests/prod-mock-data-gate.test.ts"] },
   { label: "test:post-mvp-gates", args: ["--test", "tests/post-mvp-gates.test.ts"] },
+  { label: "test:staging-seed", args: ["--test", "tests/staging-readiness-seed.test.ts"] },
 ];
 
 function resolveTsxCli() {

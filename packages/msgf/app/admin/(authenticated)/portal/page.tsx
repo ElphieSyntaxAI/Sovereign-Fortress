@@ -15,7 +15,9 @@ import type { Metadata } from "next";
 
 import { AdminDevStackBanner } from "@/app/_components/admin/AdminDevStackBanner";
 import { AdminProductLauncher } from "@/app/_components/admin/AdminProductLauncher";
+import { StagingReadinessSeed } from "@/app/_components/admin/StagingReadinessSeed";
 import { getAdminProductSurfaces } from "@/lib/admin-product-surfaces";
+import { isStagingDeploy } from "@/lib/deploy-env";
 import { probeLocalDevStack } from "@/lib/dev-stack-status";
 
 export const metadata: Metadata = {
@@ -61,6 +63,8 @@ export default async function AdminPortalPage() {
       </header>
 
       {devProbes.length > 0 ? <AdminDevStackBanner probes={devProbes} /> : null}
+
+      {isStagingDeploy() ? <StagingReadinessSeed /> : null}
 
       <section className="glass-panel rounded-2xl border border-emerald-500/25 p-5 text-sm text-slate-300">
         <h2 className="text-base font-semibold text-emerald-100">Team readiness (MSGF)</h2>
