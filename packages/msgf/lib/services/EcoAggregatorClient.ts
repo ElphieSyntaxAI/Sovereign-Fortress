@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * B2B Sustainable Compute telemetry bridge.
@@ -21,6 +21,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { allowMockTelemetry } from "@/lib/deploy-env";
 import { calculateEcoSavings, type EcoMetrics } from "@/lib/utils/ecoCalculator";
 
 /** Default ON — public eco claims require proven evidence. */
@@ -321,6 +322,9 @@ export class EcoAggregatorClient {
     const projectOrigin = payloadBody.project_origin?.trim();
 
     if (!supabase) {
+      if (!allowMockTelemetry()) {
+        throw new Error("global eco rollup requires a live database in production.");
+      }
       if (userId && projectOrigin) {
         applyPayloadToMockUserProjectRollups(userId, projectOrigin, payload);
       }
@@ -379,6 +383,9 @@ export class EcoAggregatorClient {
 
   async getLeaderboard(supabase?: SupabaseClient): Promise<MasterEcoLeaderboard> {
     if (!supabase) {
+      if (!allowMockTelemetry()) {
+        return buildLeaderboard([], "live");
+      }
       seedMockRollups();
       return buildLeaderboard(withContribution([...mockRollups.values()]), "mock");
     }

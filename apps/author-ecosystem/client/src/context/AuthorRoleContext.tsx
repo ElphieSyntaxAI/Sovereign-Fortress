@@ -10,6 +10,7 @@ import {
 
 import { bffAuthHeaders, bffCredentials, bffFetch, bffUrl } from "../lib/bffFetch";
 import { getPreferredBffBearer } from "../lib/authAccessToken";
+import { isAuthorFanHubEnabled, isAuthorHelperEnabled } from "../lib/postMvpGates";
 
 /** Author-platform personas (BFF-switchable). Fan is UI-only until backend adds the slug. */
 export const AUTHOR_ROLE_OPTIONS = [
@@ -21,6 +22,14 @@ export const AUTHOR_ROLE_OPTIONS = [
 ] as const;
 
 export type AuthorRoleId = (typeof AUTHOR_ROLE_OPTIONS)[number]["id"];
+
+export function visibleAuthorRoleOptions() {
+  return AUTHOR_ROLE_OPTIONS.filter((r) => {
+    if (r.id === "helper" && !isAuthorHelperEnabled()) return false;
+    if (r.id === "fan" && !isAuthorFanHubEnabled()) return false;
+    return true;
+  });
+}
 
 export type AuthorSessionUser = {
   id: string;

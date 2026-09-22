@@ -8,10 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { isPostMvpFeatureEnabled } from "@/lib/post-mvp-gates";
 import { getSigningProviderForCompany } from "@/lib/services/signing/index";
 import { signingMockMode } from "@/lib/services/signing/resolveSigningProvider";
 import type { SigningProviderId } from "@/lib/services/signing/SigningProvider";
@@ -30,6 +31,7 @@ export async function createSigningEnvelopeForInvite(
   envelope_id: string;
   signing_url: string;
 } | null> {
+  if (!isPostMvpFeatureEnabled("signing")) return null;
   const provider = await getSigningProviderForCompany(admin, params.companyId);
   if (!provider.isAvailable()) return null;
 
@@ -73,6 +75,7 @@ export async function createSigningEnvelopeForInvite(
 
 /** True when any signing adapter can create envelopes (mock or live credentials). */
 export function signingIsAvailable(_providerId?: SigningProviderId): boolean {
+  if (!isPostMvpFeatureEnabled("signing")) return false;
   if (signingMockMode()) return true;
   const ds =
     Boolean(process.env.DOCUSIGN_INTEGRATION_KEY?.trim()) &&

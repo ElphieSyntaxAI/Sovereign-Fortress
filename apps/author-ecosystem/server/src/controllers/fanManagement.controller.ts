@@ -1,9 +1,21 @@
 import { Router, type Request, type Response } from "express";
 
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
+import {
+  authorPostMvpDisabledPayload,
+  isAuthorFanHubEnabled,
+} from "../lib/postMvpGates.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 export const fanManagementController = Router();
+
+fanManagementController.use((_req, res, next) => {
+  if (!isAuthorFanHubEnabled()) {
+    res.status(404).json(authorPostMvpDisabledPayload("author_fan_hub"));
+    return;
+  }
+  next();
+});
 
 const SIGNAL_SELECT =
   "id, kind, title, body, created_at, manuscript_id, read_at, payload";

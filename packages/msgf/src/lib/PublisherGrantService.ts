@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Publisher share links: hashed tokens, verify flow, author notifications via `p4_author_signal`.

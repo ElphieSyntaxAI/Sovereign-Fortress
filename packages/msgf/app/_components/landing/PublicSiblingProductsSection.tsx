@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 
@@ -35,11 +35,11 @@ export function PublicSiblingProductsSection() {
           Elphie Syntax product family
         </p>
         <h2 className="mt-3 text-center text-2xl font-bold tracking-tight sm:text-3xl">
-          Other products on the same brain
+          Other products on the same governance layer
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-slate-400">
-          MSGF is the prefrontal cortex. Author Ecosystem and Syntax Education are sovereign
-          surfaces powered by the same gates — explore from{" "}
+          MSGF is the shared AI gateway. Author Ecosystem and Syntax Education are applications on
+          that layer — explore from{" "}
           <a href={PICKER_URL} className="text-emerald-400/90 hover:underline">
             {ELPHIE_PRODUCT_HOSTS.apex}
           </a>

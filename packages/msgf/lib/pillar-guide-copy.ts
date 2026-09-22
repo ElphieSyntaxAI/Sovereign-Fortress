@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Educational copy for the six MSGF governance pillars (getting-started / integrators).
@@ -60,9 +60,9 @@ export const PILLAR_GUIDE_ENTRIES: PillarGuideEntry[] = [
     whatItDoes:
       "Binds humans and tenants to entitlements: tier_id, credits, Stripe status, tenant silo. Pulse middleware checks p4_profiles before burning inference credits.",
     inYourProduct:
-      "Each integrator gets a tenant silo (license key or session). Map your app's org/user id to x-msgf-entity-id and tenant headers; keep billing in MSGF or mirror Stripe webhooks into p4_profiles.",
+      "Each integrator gets a tenant silo from the license or session in the MSGF database. Map your app's org/user id to x-msgf-entity-id; keep billing in MSGF or mirror Stripe webhooks into p4_profiles.",
     howToUse:
-      "Complete checkout or starter credits on sign-up. For API integrators, mint msgf_live_… and pass Authorization + x-msgf-tenant-id on every Pulse call.",
+      "Mint a license (`msgf_live_…` / `msgf_test_…`) and send it as `x-msgf-key`. Tenant always comes from that license row — never set `x-msgf-tenant-id` as the source of truth.",
   },
   {
     pillar: "P4",

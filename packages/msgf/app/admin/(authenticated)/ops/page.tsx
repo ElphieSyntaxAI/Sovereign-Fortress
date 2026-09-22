@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { Suspense } from "react";
 
@@ -18,7 +18,6 @@ import { AdminAuditHubPanel } from "@/app/_components/admin/ops/AdminAuditHubPan
 import { AdminBetaWaitlistPanel } from "@/app/_components/admin/ops/AdminBetaWaitlistPanel";
 import { AdminBugInboxPanel } from "@/app/_components/admin/ops/AdminBugInboxPanel";
 import { AdminDiffImpactPanel } from "@/app/_components/admin/ops/AdminDiffImpactPanel";
-import { AdminDocuSignPanel } from "@/app/_components/admin/ops/AdminDocuSignPanel";
 import { AdminModelFitnessPanel } from "@/app/_components/admin/ops/AdminModelFitnessPanel";
 import { AdminMostUsedResourcesPanel } from "@/app/_components/admin/ops/AdminMostUsedResourcesPanel";
 import { AdminPromptTemplatesPanel } from "@/app/_components/admin/ops/AdminPromptTemplatesPanel";
@@ -74,7 +73,6 @@ export default function AdminOpsPage() {
         <AdminSkipAuditPanel />
       </Suspense>
       <AdminSentryPanel />
-      <AdminDocuSignPanel />
     </main>
   );
 }

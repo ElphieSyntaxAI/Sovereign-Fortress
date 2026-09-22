@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+-- =============================================================================
 -- Trusted permissive OSS allowlist for ARBITRATE bulk-triage (Phase 3).
 CREATE TABLE IF NOT EXISTS public.msgf_trusted_license_allowlist (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Company team invites, roster, bootstrap, integration status.
@@ -18,6 +18,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type { PlatformRole } from "@/lib/platform-rbac";
+import { isPostMvpFeatureEnabled } from "@/lib/post-mvp-gates";
 import { listActiveIdeTokens } from "@/lib/services/ide-token-service";
 import {
   createSigningEnvelopeForInvite,
@@ -218,11 +219,12 @@ export async function createTeamInvite(
   }
 ): Promise<{ invite_id: string }> {
   const email = params.email.trim().toLowerCase();
-  const bundle: OnboardingBundleInput = params.onboarding ?? {
-    include_pillar_guide: false,
-    include_architecture_template: false,
+  const incoming = params.onboarding;
+  const bundle: OnboardingBundleInput = {
+    include_pillar_guide: incoming?.include_pillar_guide ?? false,
+    include_architecture_template: incoming?.include_architecture_template ?? false,
     enforce_docusign: false,
-    custom_document_ids: [],
+    custom_document_ids: incoming?.custom_document_ids ?? [],
   };
 
   const { data: invite, error: inviteErr } = await admin
@@ -274,7 +276,8 @@ export async function applyTeamInviteBootstrap(
     ? (meta.assigned_project_origins as string[])
     : [];
   const inviteId = String(meta.invite_id ?? "").trim();
-  const enforceDocusign = Boolean(meta.enforce_docusign);
+  const enforceDocusign =
+    isPostMvpFeatureEnabled("signing") && Boolean(meta.enforce_docusign);
 
   if (!companyId || !inviteId) {
     return {
@@ -449,6 +452,7 @@ export async function getComplianceStatus(
     .maybeSingle();
 
   const isLocked =
+    isPostMvpFeatureEnabled("signing") &&
     accountStatus === "pending_signatures" &&
     (role === "dev" || role === "security");
 

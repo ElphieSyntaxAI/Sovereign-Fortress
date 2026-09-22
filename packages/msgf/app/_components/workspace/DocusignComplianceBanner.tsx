@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -230,6 +242,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
+import { usePostMvpGates } from "@/app/_components/feature-gates/usePostMvpGates";
+
 type ComplianceResponse = {
   ok: boolean;
   account_status?: string;
@@ -239,6 +253,7 @@ type ComplianceResponse = {
 };
 
 export function DocusignComplianceBanner() {
+  const gates = usePostMvpGates();
   const [status, setStatus] = useState<ComplianceResponse | null>(null);
   const [completing, setCompleting] = useState(false);
 
@@ -257,9 +272,11 @@ export function DocusignComplianceBanner() {
   }, []);
 
   useEffect(() => {
+    if (!gates.signing) return;
     void load();
-  }, [load]);
+  }, [load, gates.signing]);
 
+  if (!gates.signing) return null;
   if (!status?.is_locked && status?.account_status !== "pending_signatures") {
     return null;
   }

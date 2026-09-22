@@ -8,11 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+import { allowMockTelemetry } from "@/lib/deploy-env";
 import {
   ecoAggregatorClient,
   MasterEcoPayloadBodySchema,
@@ -57,7 +58,7 @@ export async function GET() {
     const leaderboard = await ecoAggregatorClient.getLeaderboard(masterSupabaseOrUndefined());
     return NextResponse.json({ ok: true, leaderboard });
   } catch (error) {
-    console.warn("[master/eco-rollups] GET live read failed; returning mock leaderboard.", {
+    console.warn("[master/eco-rollups] GET live read failed; returning fallback leaderboard.", {
       message: error instanceof Error ? error.message : "Unknown leaderboard error",
     });
     const leaderboard = await ecoAggregatorClient.getLeaderboard(undefined);
@@ -86,9 +87,12 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ ok: true, rollup });
   } catch (error) {
-    console.warn("[master/eco-rollups] POST live write failed; recording mock rollup.", {
+    console.warn("[master/eco-rollups] POST live write failed.", {
       message: error instanceof Error ? error.message : "Unknown rollup write error",
     });
+    if (!allowMockTelemetry()) {
+      return NextResponse.json({ ok: false, error: "eco rollup write failed" }, { status: 503 });
+    }
     const rollup = await ecoAggregatorClient.recordIncomingPayload(parsed.data, undefined);
     return NextResponse.json({ ok: true, rollup, source: "mock" });
   }

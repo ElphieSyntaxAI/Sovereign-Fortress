@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
@@ -42,18 +42,30 @@ describe("signing resolver helpers", () => {
   test("signingMockMode honors MSGF_SIGNING_MOCK and MSGF_DOCUSIGN_MOCK", () => {
     const a = process.env.MSGF_SIGNING_MOCK;
     const b = process.env.MSGF_DOCUSIGN_MOCK;
+    const nodeEnv = process.env.NODE_ENV;
+    const deploy = process.env.DEPLOY_ENV;
     delete process.env.MSGF_SIGNING_MOCK;
     delete process.env.MSGF_DOCUSIGN_MOCK;
+    delete process.env.DEPLOY_ENV;
+    process.env.NODE_ENV = "test";
     assert.equal(signingMockMode(), false);
     process.env.MSGF_SIGNING_MOCK = "1";
     assert.equal(signingMockMode(), true);
     delete process.env.MSGF_SIGNING_MOCK;
     process.env.MSGF_DOCUSIGN_MOCK = "true";
     assert.equal(signingMockMode(), true);
+    process.env.NODE_ENV = "production";
+    process.env.DEPLOY_ENV = "production";
+    process.env.MSGF_SIGNING_MOCK = "1";
+    assert.equal(signingMockMode(), false);
     if (a === undefined) delete process.env.MSGF_SIGNING_MOCK;
     else process.env.MSGF_SIGNING_MOCK = a;
     if (b === undefined) delete process.env.MSGF_DOCUSIGN_MOCK;
     else process.env.MSGF_DOCUSIGN_MOCK = b;
+    if (nodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = nodeEnv;
+    if (deploy === undefined) delete process.env.DEPLOY_ENV;
+    else process.env.DEPLOY_ENV = deploy;
   });
 
   test("Dropbox Sign parseWebhook detects all_signed", () => {

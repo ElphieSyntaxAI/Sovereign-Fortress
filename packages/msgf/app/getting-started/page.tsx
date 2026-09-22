@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
@@ -24,32 +24,35 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
 export const metadata = {
-  title: "Getting Started | Elphie's Gated AI",
-  description: "MSGF quickstart, six-pillar guide, IDE extension, and optional BYOK.",
+  title: "Getting Started | MSGF",
+  description: "MSGF quickstart, six policy domains, IDE extension, and optional bring-your-own keys.",
 };
 
 function QuickstartSteps() {
   return (
     <ol className="space-y-8">
       <li>
-        <MarketingSection eyebrow="Step 1" title="Create your account">
+        <MarketingSection eyebrow="Step 1" title="Start in shadow mode">
           <p>
             <Link
-              href="/sign-up"
+              href="/shadow-trial"
               className="font-medium text-emerald-400 underline-offset-4 hover:underline"
             >
-              Sign up
+              Start the 7-day shadow-mode trial
             </Link>{" "}
-            or{" "}
+            to point an SDK at the MSGF gateway — no console seat required. Already invited?{" "}
             <Link
               href="/sign-in?next=/workspace"
               className="font-medium text-emerald-400 underline-offset-4 hover:underline"
             >
-              sign in
-            </Link>
-            . Open <strong className="text-[#f8fafc]">Workspace</strong> to copy a ready-made{" "}
-            <code className="text-violet-200">.vscode/settings.json</code> block tied to your
-            session.
+              Sign in
+            </Link>{" "}
+            and open <strong className="text-[#f8fafc]">Workspace</strong> for a ready-made{" "}
+            <code className="text-violet-200">.vscode/settings.json</code> block.{" "}
+            <Link href="/sign-up" className="text-slate-400 underline-offset-4 hover:underline">
+              Beta waitlist
+            </Link>{" "}
+            is for a console seat, not account creation.
           </p>
         </MarketingSection>
       </li>
@@ -78,15 +81,15 @@ function QuickstartSteps() {
             <Link href="/setup/projects" className="text-cyan-400 underline-offset-4 hover:underline">
               Projects
             </Link>
-            , then watch pillar health on your{" "}
+            , then watch policy-domain health on your{" "}
             <Link href="/dashboard" className="text-emerald-400 underline-offset-4 hover:underline">
               governance dashboard
             </Link>
             . Optional BYOK keys live in <code className="text-violet-200">.msgf/keys/</code>{" "}
             (<code className="text-violet-200">gemini.key</code>,{" "}
             <code className="text-violet-200">claude.key</code>, optional{" "}
-            <code className="text-violet-200">xai.key</code> for Grok). Pick CONVERGE presets on the
-            dashboard under token savings.
+            <code className="text-violet-200">xai.key</code> for Grok). Pick routing presets on the
+            dashboard under token cost.
           </p>
           <p className="mt-4">
             <Link
@@ -134,7 +137,7 @@ export default async function GettingStartedPage() {
               MSGF in <span className="text-gradient-jewel">three steps</span>
             </h1>
             <p className="mx-auto mt-5 text-base leading-relaxed text-slate-400">
-              Setup guide and six-pillar reference for your account.
+              Setup guide and policy-domain reference for your account.
             </p>
             <Link
               href="/dashboard"
@@ -182,7 +185,7 @@ export default async function GettingStartedPage() {
 
         <p className="mt-12 text-center text-sm text-slate-500">
           <Link href="#six-pillars" className="text-violet-400/90 underline-offset-4 hover:underline">
-            Jump to six-pillar guide
+            Jump to policy-domain guide
           </Link>
           {" · "}
           <Link href="/workspace" className="text-cyan-400/90 underline-offset-4 hover:underline">

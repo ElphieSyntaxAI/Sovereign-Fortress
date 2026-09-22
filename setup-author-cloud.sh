@@ -328,6 +328,8 @@ steps:
       - $(_docker_build_flag VITE_AUTHOR_APP_URL "${author_app}")
       - $(_docker_build_flag VITE_MSGF_APP_URL "${msgf_app}")
       - $(_docker_build_flag VITE_EDUCATION_APP_URL "${edu}")
+      - $(_docker_build_flag VITE_AUTHOR_POST_MVP_FAN_HUB "${RUN_ENV[VITE_AUTHOR_POST_MVP_FAN_HUB]:-${RUN_ENV[AUTHOR_POST_MVP_FAN_HUB]:-0}}")
+      - $(_docker_build_flag VITE_AUTHOR_POST_MVP_HELPER "${RUN_ENV[VITE_AUTHOR_POST_MVP_HELPER]:-${RUN_ENV[AUTHOR_POST_MVP_HELPER]:-0}}")
       - $(_docker_build_flag AUTHOR_BFF_UPSTREAM "${bff_upstream}")
       - .
 images:

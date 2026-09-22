@@ -1,0 +1,23 @@
+name: Staging smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Staging MSGF base URL (Cloud Run or staging.elphiesgatedai…)
+        required: false
+        default: https://staging.elphiesgatedai.elphiesyntax.com
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Assert host is staging
+        env:
+          MSGF_STAGING_URL: ${{ github.event.inputs.url || vars.MSGF_STAGING_URL }}
+        run: node scripts/smoke-staging.mjs

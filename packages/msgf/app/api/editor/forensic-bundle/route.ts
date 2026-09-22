@@ -8,11 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import {
   ContractAutomationService,
   ForensicAccessDeniedError,
@@ -27,6 +28,9 @@ import { createClient } from "@/utils/supabase/server";
  * Sovereign NDA exists for the pair. Otherwise **403**.
  */
 export async function GET(req: Request) {
+  if (!isPostMvpFeatureEnabled("author_helper")) {
+    return NextResponse.json(postMvpDisabledPayload("author_helper"), { status: 404 });
+  }
   const url = new URL(req.url);
   const manuscript_id = (url.searchParams.get("manuscript_id") ?? "").trim();
   const helper_id = (url.searchParams.get("helper_id") ?? "").trim();

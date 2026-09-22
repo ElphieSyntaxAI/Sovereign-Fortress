@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -230,6 +242,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
+import { usePostMvpGates } from "@/app/_components/feature-gates/usePostMvpGates";
+
 type EnvelopeRow = {
   id: string;
   invite_id: string;
@@ -250,6 +264,7 @@ type ApiResponse = {
 };
 
 export function AdminDocuSignPanel() {
+  const gates = usePostMvpGates();
   const [rows, setRows] = useState<EnvelopeRow[]>([]);
   const [mode, setMode] = useState<string>("—");
   const [loading, setLoading] = useState(true);
@@ -276,8 +291,11 @@ export function AdminDocuSignPanel() {
   }, []);
 
   useEffect(() => {
+    if (!gates.signing) return;
     void load();
-  }, [load]);
+  }, [load, gates.signing]);
+
+  if (!gates.signing) return null;
 
   const pending = rows.filter((r) => r.status === "sent").length;
 

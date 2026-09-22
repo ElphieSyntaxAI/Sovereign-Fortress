@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { bffCredentials, bffFetch, formatBffFetchError } from "../lib/bffFetch";
+import { isAuthorHelperEnabled } from "../lib/postMvpGates";
 import { NDA_DOCUMENTS } from "../legal/ndaRegistry";
 import { TERMS_DOCUMENTS } from "../legal/termsRegistry";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../legal/vaultPactAttestation";
@@ -187,11 +188,13 @@ export function RegisterForm(props: { onError: (msg: string | null) => void }) {
             className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600"
             {...register("terms_role")}
           >
-            {AUTHOR_REGISTER_ROLES.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
+            {AUTHOR_REGISTER_ROLES.filter((r) => r.value !== "helper" || isAuthorHelperEnabled()).map(
+              (r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              )
+            )}
           </select>
           {errors.terms_role ? (
             <p className="text-xs text-red-400" role="alert">

@@ -6,8 +6,8 @@
 
 **SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./technical-specs/MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./technical-specs/MSGF_BRAIN_ROUTING.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-09-18 (P7 closed loop + Shadow apply-on-activate in code; Stripe mock may still be ON)  
-**Focus:** Apply Sept 18 schema → one-tenant staging smoke (incl. swarm + Shadow CTA + audit hub chips) → technical soft-RC; live Checkout smoke → mock-off. Confirm Sept 2026 schema (`20260914200000_shadow_trial_*`, `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`, `20260918010000_tenant_default_ai_provider.sql`, `20260918120000_p7_prompt_shadow_deferred.sql`) on staging/prod.  
+**Last updated:** 2026-09-21 (hide vs implement/test split)  
+**Focus:** Lane H hide pass (DocuSign / Dropbox / MCP off storefront) → staging smoke → Checkout + mock-off → **Sentry** → **TRI** → **GitHub Connect** → **PQ-TLS if TargetHttpsProxy** → **Workspace SSO** → **SIEM webhook**. Signing/MCP are **hide**, not RC blockers. SSO/SIEM **are** 1.0 claim blockers — [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §0.1. Confirm Sept 2026 schema (`20260914200000_shadow_trial_*`, `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`, `20260918010000_tenant_default_ai_provider.sql`, `20260918120000_p7_prompt_shadow_deferred.sql`) on staging/prod.  
 **Readiness:** Technical soft-RC **~90%** · Paid self-serve **~82%** — P7/swarm/Shadow loop is **code-complete**; remaining = live schema + staging smoke. See [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---

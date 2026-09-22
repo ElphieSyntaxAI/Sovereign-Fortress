@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -846,6 +858,10 @@ export function PublicEcoMetricsWidget() {
   const treeEquivalent = data.metrics.co2e_offset_lbs / CO2_LBS_PER_TREE_SEEDLING_10_YEARS;
   const claimable = data.claimable === true && data.metrics.tokens_saved > 0;
 
+  if (loading || data.source !== "live") {
+    return null;
+  }
+
   return (
     <section className="rounded-3xl border border-emerald-500/20 bg-slate-950/70 p-6 shadow-2xl shadow-emerald-950/20 backdrop-blur-xl sm:p-8">
       <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
@@ -860,7 +876,7 @@ export function PublicEcoMetricsWidget() {
             Public network totals — not your private governance dashboard. We only publish
             environmental impact from{" "}
             <strong className="text-emerald-200">proven avoided provider tokens</strong> — metered
-            CONVERGE baselines when Small Brain skips cloud calls, or audited pack deltas from
+            consensus baselines when cost-efficient routing skips cloud calls, or audited pack deltas from
             verify / Run Scripts. Estimates never inflate this board.
           </p>
           <p className="mt-5 max-w-xl rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm font-medium leading-relaxed text-emerald-50">

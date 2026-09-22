@@ -16,8 +16,8 @@ export const AUTHOR_LENS_META: Record<
   business: {
     label: "Business",
     short: "Grow",
-    description: "Creative Guild helpers and publishing requests agents and publishers browse.",
-    defaultPath: "/guild",
+    description: "Publishing requests agents and publishers browse.",
+    defaultPath: "/publishing-requests",
   },
 };
 

@@ -1,4 +1,5 @@
 import type { AuthorWorkspaceLens } from "./authorWorkspaceLens";
+import { isAuthorFanHubEnabled, isAuthorHelperEnabled } from "./postMvpGates";
 
 export type AuthorNavItem = {
   to: string;
@@ -25,5 +26,10 @@ export const BUSINESS_NAV: AuthorNavItem[] = [
 ];
 
 export function navItemsForLens(lens: AuthorWorkspaceLens): AuthorNavItem[] {
-  return lens === "business" ? BUSINESS_NAV : CREATIVE_NAV;
+  if (lens !== "business") return CREATIVE_NAV;
+  return BUSINESS_NAV.filter((item) => {
+    if (item.to === "/guild" && !isAuthorHelperEnabled()) return false;
+    if (item.to === "/fan-management" && !isAuthorFanHubEnabled()) return false;
+    return true;
+  });
 }

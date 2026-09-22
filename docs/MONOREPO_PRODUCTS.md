@@ -1,6 +1,6 @@
 # Elphie Syntax Monorepo — Product Surfaces (SSoT)
 
-**Status:** Single source of truth for the three customer-facing web applications in this repository and how they relate to **MSGF** (the shared brain/engine).
+**Status:** Single source of truth for the three customer-facing web applications in this repository and how they relate to **MSGF** (the shared AI gateway).
 
 **Companion docs:**
 
@@ -13,7 +13,7 @@
 - Syntax Education: [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) · [`syntax_education_masterdoc.md`](./syntax-education/technical-specs/syntax_education_masterdoc.md) · [`syntax_education_pillars.md`](./syntax-education/technical-specs/syntax_education_pillars.md)
 - Implementation tracker (pillars + AUTH): [`PILLAR_PROGRESS.md`](./PILLAR_PROGRESS.md)
 
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-22
 
 ---
 
@@ -21,7 +21,7 @@
 
 **MSGF** (Modular State-Gate Framework) is:
 
-1. **The brain and engine** for narrative-sovereignty products in this monorepo (HAL gates, Vault/Hall lineage, Pulse consensus, tiered reporting, credit guard).
+1. **The AI gateway** for Elphie Syntax products in this monorepo (authorship attestation, Vault/Hall lineage, ingest consensus, tiered reporting, credit guard).
 2. **A standalone platform** deployable at **https://elphiesgatedai.elphiesyntax.com** and consumable by **other software** via APIs, OpenAI/Anthropic-compatible `/api/v1` gateway, webhooks, tenant configuration, and shared packages (`packages/msgf`, `packages/core`, `packages/ui`).
 
 Author and education apps **embed or call MSGF**; they do not reimplement guardrail logic in silos.
@@ -34,8 +34,8 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 
 | Product | Production URL | Repo home (today) | Role |
 | :--- | :--- | :--- | :--- |
-| **Author Ecosystem** | **https://elphiesyntax.com** | `apps/author-ecosystem/` (BFF, Vite client, Chrome extension) | Sovereign author workflow: HAL, Vault Pact, manuscripts, revision gates, RAG librarian, publisher-facing proofs. |
-| **MSGF (Gated AI)** | **https://elphiesgatedai.elphiesyntax.com** | `packages/msgf/` (Next.js), `apps/msgf-dashboard/`, future `packages/msgf/apps/web/` | Guardrail engine + SaaS: Pulse, ingest, DEFEND preflight, Shadow Proxy / Active Governance (`/api/v1`), consensus, billing/credits, **governance audit platform** (audit hub, Session Replay, budgets, SIEM), ops dashboard, public marketing/checkout shell. |
+| **Author Ecosystem** | **https://elphiesyntax.com** | `apps/author-ecosystem/` (BFF, Vite client, Chrome extension) | Manuscript workspace: authorship attestation, Vault Pact, manuscripts, revision gates, RAG librarian, publisher-facing proofs. |
+| **MSGF** | **https://elphiesgatedai.elphiesyntax.com** | `packages/msgf/` (Next.js), `apps/msgf-dashboard/`, future `packages/msgf/apps/web/` | AI gateway + SaaS: ingest, policy preflight, shadow mode / enforcement (`/api/v1`), consensus, billing/credits, **audit console** (audit hub, Session Replay, budgets, SIEM), ops dashboard, public marketing/checkout shell. |
 | **Syntax Education** | **https://syntaxeducates.elphiesyntax.com** | `apps/syntax-educates/` | Education platform; tenant-scoped paths in `packages/msgf/config/tenant-manifest.json` (`tenant_education`). Spec: [`docs/syntax-education/`](./syntax-education/). |
 
 **Local dev defaults (typical):**
@@ -57,14 +57,14 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | :--- | :--- |
 | **elphiesyntax.com** (apex) | Product family overview + **unified sign-in** (`PlatformLoginMatrix` in `@elphie-syntax/ui`) |
 | **authorecosystem.elphiesyntax.com** | Author Ecosystem app (HAL, manuscripts, Vault Pact) |
-| **elphiesgatedai.elphiesyntax.com** | MSGF / Gated AI (Pulse, billing, governance dashboard, **operator admin** `/admin/*`) |
+| **elphiesgatedai.elphiesyntax.com** | MSGF (ingest, billing, governance dashboard, **operator admin** `/admin/*`) |
 | **syntaxeducates.elphiesyntax.com** | Syntax Education (sandbox, teacher, LTI) |
 
 **Login flow (target):**
 
 1. User opens **elphiesyntax.com** → hub explains the three surfaces.
 2. User signs in once (shared Supabase project).
-3. User picks **Author · Education · Gated AI** + persona → redirect to that product’s subdomain with session cookies on `.elphiesyntax.com` when configured.
+3. User picks **Author · Education · MSGF** + persona → redirect to that product’s subdomain with session cookies on `.elphiesyntax.com` when configured.
 4. **MSGF operator admin** is canonical on **elphiesgatedai** (`/admin/sign-in`). Author and Syntax Educates expose the same path and **redirect to MSGF** (shared helpers in `@elphie-syntax/core/platform-admin-auth`).
 
 **Today (interim):**
@@ -73,7 +73,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 - **Deploy gap:** apex DNS must map to **author-client** via `AUTHOR_APEX_DOMAIN` in `map-product-domains.sh` — until then, `elphiesyntax.com` may still show Squarespace parking instead of the picker. See [`DEPLOY_PRODUCT_DOMAINS.md`](./DEPLOY_PRODUCT_DOMAINS.md#apex-hub-elphiesyntaxcom-picker).
 - **authorecosystem** host skips the hub and goes straight to `/sign-in`.
 - Product CTAs already point at the correct production subdomains via `VITE_MSGF_APP_URL`, `VITE_AUTHOR_APP_URL`, `VITE_EDUCATION_APP_URL`.
-- Email confirm / PKCE should complete on **Gated AI** for MSGF admin, or use Author `/auth/callback` → forward to MSGF (see [`AUTHOR_MSGF_WIRING.md`](./integrations/technical-specs/AUTHOR_MSGF_WIRING.md)).
+- Email confirm / PKCE should complete on **MSGF** for operator admin, or use Author `/auth/callback` → forward to MSGF (see [`AUTHOR_MSGF_WIRING.md`](./integrations/technical-specs/AUTHOR_MSGF_WIRING.md)).
 
 **Later refactor (no new product logic):** extract the hub into a small deployable under `apps/` or `packages/ui` so apex DNS does not depend on the Author Vite bundle; keep `platform-persona-auth.ts` and cookie domain rules as the single routing SSOT.
 
@@ -84,7 +84,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 | Layer | Location | Consumers |
 | :--- | :--- | :--- |
 | MSGF runtime (API + middleware) | `packages/msgf/` | All three apps + external integrators |
-| Core guardrail libraries | `packages/core/`, `packages/msgf/lib/` | Pulse, DEFEND preflight, Shadow Proxy gateway, consensus, P4 |
+| Core guardrail libraries | `packages/core/`, `packages/msgf/lib/` | Pulse, policy preflight, shadow-mode gateway, consensus, P4 |
 | UI primitives | `packages/ui/` | Author client, msgf-dashboard, future MSGF web |
 | Supabase schema | `packages/msgf/supabase/migrations/` | Shared Postgres for P4/MSGF tables |
 | Tenant silo policy | `packages/msgf/config/tenant-manifest.json` | CI / `enforce-silo` tooling |
@@ -95,7 +95,7 @@ Author and education apps **embed or call MSGF**; they do not reimplement guardr
 
 | App | `project_origin` (use as `msgf.tenantKey` in IDE) | Local folder to register |
 | :--- | :--- | :--- |
-| MSGF Gated AI | `elphiesyntax/msgf` | `packages/msgf` |
+| MSGF | `elphiesyntax/msgf` | `packages/msgf` |
 | Author Ecosystem | `elphiesyntax/author-ecosystem` | `apps/author-ecosystem` (or client/server subfolder you actively edit) |
 | Syntax Educates | `elphiesyntax/syntax-educates` | `apps/syntax-educates` |
 
@@ -112,7 +112,7 @@ Do **not** use folder paths (`apps/author-ecosystem`) as `msgf.tenantKey`. Opera
 
 | Preset id | App | `project_origin` | Typical local path |
 | :--- | :--- | :--- | :--- |
-| `msgf-gated-ai` | MSGF Gated AI | `elphiesyntax/msgf` | `packages/msgf` |
+| `msgf-gated-ai` | MSGF | `elphiesyntax/msgf` | `packages/msgf` |
 | `author-ecosystem` | Author Ecosystem | `elphiesyntax/author-ecosystem` | `apps/author-ecosystem` |
 | `syntax-educates` | Syntax Educates | `elphiesyntax/syntax-educates` | `apps/syntax-educates` |
 | `client-vortex` | Vortex Client | `elphiesyntax/client-vortex` | `apps/client-vortex` |
@@ -125,8 +125,8 @@ SSoT for preset bodies: `packages/msgf/lib/services/monorepo-workspace-presets.t
 
 | Product | 1.0 intent (summary) | Detailed plan |
 | :--- | :--- | :--- |
-| **MSGF** | Standalone gated-AI product: V3 architecture operational, multi-tenant API, Stripe entitlements, public site on gatedai subdomain | [`MSGF_V1_ROADMAP.md`](./msgf/MSGF_V1_ROADMAP.md) |
-| **Author Ecosystem** | Creative Integrity Flywheel for authors (Phase 1–2 SSOT) | [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) |
+| **MSGF** | Standalone AI gateway: V3 architecture operational, multi-tenant API, Stripe entitlements, public site on gatedai subdomain | [`MSGF_V1_ROADMAP.md`](./msgf/MSGF_V1_ROADMAP.md) |
+| **Author Ecosystem** | Manuscript workspace for authors (Phase 1–2 SSOT) | [`AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) |
 | **Syntax Education** | Education UX on top of shared auth/MSGF policies | TBD — track under `tenant_education` |
 
 ---

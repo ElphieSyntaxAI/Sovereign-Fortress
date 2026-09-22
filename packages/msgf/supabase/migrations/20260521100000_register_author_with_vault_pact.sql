@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+-- Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
 -- =============================================================================
 -- Atomic registration tail: profiles + legal_attestations + msgf_legacy_users in one transaction.
 -- Preceding step: Supabase Auth createUser (TypeScript). On RPC failure, TS deletes the auth user.

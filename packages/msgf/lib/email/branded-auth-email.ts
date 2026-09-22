@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Branded transactional email layout — matches MSGF landing aesthetic
@@ -153,7 +153,7 @@ export function buildBrandedAuthEmail(input: BrandedAuthEmailInput): string {
                 </p>
                 <p style="margin:14px 0 0; color:${BRAND_EMAIL.textDim}; font-size:11px; line-height:1.55; text-align:center;">
                   <span style="color:${BRAND_EMAIL.emerald}; font-weight:600;">Elphie Syntax LLC</span>
-                  · Glass-box sovereignty · MSGF Gated AI
+                  · AI gateway · MSGF
                 </p>
                 <p style="margin:10px 0 0; color:${BRAND_EMAIL.textDim}; font-size:10px; line-height:1.5; text-align:center;">
                   <a href="https://elphiesyntax.com" style="color:${BRAND_EMAIL.purple}; text-decoration:none;">elphiesyntax.com</a>

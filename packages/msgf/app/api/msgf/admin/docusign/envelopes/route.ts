@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * GET /api/msgf/admin/docusign/envelopes — company DocuSign envelope status (session or Bearer admin).
@@ -16,12 +16,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import { resolveOperatorForAdminRequest } from "@/lib/msgf-admin-request-operator";
 import { docuSignModeLabel } from "@/lib/services/docusign-gateway";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function GET(req: NextRequest) {
+  if (!isPostMvpFeatureEnabled("signing")) {
+    return NextResponse.json(postMvpDisabledPayload("signing"), { status: 404 });
+  }
   try {
     const admin = createAdminClient();
     const op = await resolveOperatorForAdminRequest(req, admin);

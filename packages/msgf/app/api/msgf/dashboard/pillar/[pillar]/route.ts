@@ -8,12 +8,14 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { NextResponse } from "next/server";
 
+import { allowMockTelemetry } from "@/lib/deploy-env";
 import {
   buildPillarLiveLogsFromReport,
+  emptyDashboardHealthReport,
   hasLiveDashboardDatabaseEnv,
   mockDashboardHealthReport,
   parsePillarParam,
@@ -27,13 +29,16 @@ export async function GET(
 ) {
   const { pillar: rawPillar } = await context.params;
   const pillar = parsePillarParam(rawPillar);
-  const report = hasLiveDashboardDatabaseEnv()
+  const live = hasLiveDashboardDatabaseEnv();
+  const report = live
     ? await healthService.getPillarHealth(createAdminClient(), { userId: null, lookbackHours: 168 })
-    : mockDashboardHealthReport();
+    : allowMockTelemetry()
+      ? mockDashboardHealthReport()
+      : emptyDashboardHealthReport();
 
   return NextResponse.json({
     ok: true,
-    source: hasLiveDashboardDatabaseEnv() ? "live" : "mock",
+    source: live ? "live" : allowMockTelemetry() ? "mock" : "empty",
     logs: buildPillarLiveLogsFromReport(report, pillar),
   });
 }

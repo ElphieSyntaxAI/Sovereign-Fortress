@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 
@@ -22,11 +22,12 @@ export function PillarGuideSection() {
           Governance reference
         </p>
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          How the <span className="text-gradient-jewel">six pillars</span> work
+          How the <span className="text-gradient-jewel">six policy domains</span> work
         </h2>
         <p className="mx-auto max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base">
-          MSGF V3.0 defines what each pillar means; V3.2-ULTRA runs them through SWEEP → PERSIST.
-          Use this guide when wiring Pulse, ingest, or reading your dashboard stoplights.
+          Each domain is an isolated context partition. The pipeline inspects, routes, and stores
+          outcomes so prompts never mix projects. Use this guide when wiring ingest or reading
+          dashboard health.
         </p>
       </header>
 

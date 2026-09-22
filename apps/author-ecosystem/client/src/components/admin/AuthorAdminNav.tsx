@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 
 import { useAuthorRole } from "../../context/AuthorRoleContext";
-import { AUTHOR_ADMIN_NAV, type AuthorAdminNavItem } from "../../lib/authorAdminNavConfig";
+import { AUTHOR_ADMIN_NAV, authorAdminNavItems, type AuthorAdminNavItem } from "../../lib/authorAdminNavConfig";
 
 function isItemActive(pathname: string, item: AuthorAdminNavItem): boolean {
   if (!item.to) return false;
@@ -76,9 +76,9 @@ function NavSection(props: { title: string; items: AuthorAdminNavItem[]; pathnam
 
 export function AuthorAdminNav() {
   const location = useLocation();
-  const platform = AUTHOR_ADMIN_NAV.filter((i) => i.section === "platform");
-  const roles = AUTHOR_ADMIN_NAV.filter((i) => i.section === "roles");
-  const account = AUTHOR_ADMIN_NAV.filter((i) => i.section === "account");
+  const platform = authorAdminNavItems().filter((i) => i.section === "platform");
+  const roles = authorAdminNavItems().filter((i) => i.section === "roles");
+  const account = authorAdminNavItems().filter((i) => i.section === "account");
 
   return (
     <aside

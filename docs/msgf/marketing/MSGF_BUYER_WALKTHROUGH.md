@@ -108,7 +108,7 @@ npm run create:buyer-user -w msgf
 10. **Pulse** — from dashboard / workspace / extension after baseline typing (cookie capture: README Phase 0 Steps D–E, but hit **:3001**).
     - Session Pulse uses **`p4_profiles`** (no `msgf_live_` key in the browser).
     - First `POST /api/msgf/pulse` may return **202** with `baseline_required: true`. Later calls **200**.
-11. **Reports** — `/dashboard/daily-reports`: metered vs proven; Shadow Proxy panel if you pointed an SDK at `/api/v1`. Also `/dashboard#token-savings` and Source Audit.
+11. **Reports** — `/dashboard/daily-reports`: metered vs proven; shadow-mode panel if you pointed an SDK at `/api/v1`. Also `/dashboard#token-savings` and Source Audit.
 12. **Heal queue** — dashboard drawer; API uses the profile tenant (`tenant_gated` by default), not `integration_sandbox`.
 13. **Skip `/admin/ops`** unless this user is `GLOBAL_ADMIN` / `COMPANY_ADMIN`. Buyers can file the onscreen FAB (`POST /api/msgf/report-issue`); operators triage `#bug-inbox`.
 

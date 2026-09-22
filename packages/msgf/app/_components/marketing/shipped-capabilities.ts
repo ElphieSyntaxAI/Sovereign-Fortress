@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Shipped MSGF capabilities — single source for marketing + dashboard copy.
@@ -26,22 +26,22 @@ export const IDE_WORKFLOW_STEPS = [
   {
     step: "01",
     title: "Connect",
-    body: "Map project_origin · msgf_ide_* token · Command Center health goes green.",
+    body: "Map the repo, mint an IDE token, and confirm the extension is healthy.",
   },
   {
     step: "02",
     title: "Optimize",
-    body: "0-token prompt with @-attachments and mandatory verify rules — local SOLO_FAST only.",
+    body: "Compile a local prompt with file attachments and required verify steps — no model call.",
   },
   {
     step: "03",
     title: "Verify",
-    body: "Run Scripts or Safe Build · pass → Vault · repeat fail → Hall · deploy-gate.",
+    body: "Run allowlisted tests or a local build. Pass writes to Vault; repeated fail writes to Hall.",
   },
   {
     step: "04",
     title: "Govern",
-    body: "Small Brain dual presets · TRI Big Brain on high drift · Shadow→Active gateway · P7 reputation prune · human-proof HITL · Session Replay · SIEM.",
+    body: "Cost-efficient routing by default; three-model consensus on high drift; shadow then enforce; human-in-the-loop review; SIEM.",
   },
 ] as const;
 
@@ -49,51 +49,51 @@ export const IDE_WORKFLOW_STEPS = [
 export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
   {
     id: "command-center",
-    title: "IDE Command Center",
+    title: "IDE extension panel",
     description:
-      "MSGF Pulse Guard sidebar: connection health, prompt optimizer, Run Scripts, Safe Build (async preflight), and advanced heal ops in Cursor or VS Code.",
+      "Pulse Guard for Cursor or VS Code: connection health, local prompt compiler, allowlisted verify scripts, Safe Build, and remediation tools.",
     accent: "emerald",
   },
   {
     id: "verify-loop",
-    title: "Vault · Hall verify loop",
+    title: "Verify loop (Vault / Hall)",
     description:
-      "Allowlisted execFile runs sync pass to verify-result and fail to dev-event. Learning accrues without burning Big Brain on every build — then unlock deploy-gate.",
+      "Allowlisted local commands write passing results to the approved-context store (Vault) and repeated failures to the rejected-outcome store (Hall) — then unlock the deploy gate.",
     accent: "cyan",
   },
   {
     id: "model-presets",
-    title: "Model presets + Grok",
+    title: "Model routing + consensus",
     description:
-      "Pick your Small Brain pair: Claude+Gemini (default), Claude+Grok, or Gemini+Grok. Big Brain uses TRI majority (Claude + Gemini + Grok) when drift is high — humans notify only above the high-drift threshold.",
+      "Default pair is Claude + Gemini. Optional Claude + Grok or Gemini + Grok. High drift can take a three-model majority (Claude + Gemini + Grok). Humans are notified only above the drift threshold.",
     accent: "violet",
   },
   {
     id: "savings",
-    title: "Defensible token savings",
+    title: "Defensible token-cost reporting",
     description:
-      "Metered provider usage, proven avoidance (not estimates), weekly/monthly Reports + PDF, and Shadow Proxy projected $ kept separate from public eco.",
+      "Metered provider usage, proven avoidance (not estimates), weekly and monthly reports with PDF, and shadow-mode projected spend kept separate from public eco metrics.",
     accent: "amber",
   },
   {
     id: "shadow-proxy",
-    title: "Shadow Proxy → Active Governance",
+    title: "Shadow mode → enforcement",
     description:
-      "Point OpenAI or Anthropic SDKs at /api/v1. Shadow mode proves projected bill savings and would-have P7 promote/block counts with zero added latency; Active mode applies cache, state-gating, sharded prompts, and live reputation — license-bound auth, never spoofable tenant headers.",
+      "Point OpenAI or Anthropic SDKs at /api/v1. Shadow mode is observe-only (zero added latency) with projected savings. Enforcement mode applies cache, context gating, and live reputation — license-bound auth, never client-spoofed tenant headers.",
     accent: "violet",
   },
   {
     id: "sentry-quarantine",
-    title: "Sentry → Vault quarantine",
+    title: "Sentry → context quarantine",
     description:
-      "Sentry crashes match Vault wins and mark them QUARANTINED (no silent auto-Hall) and write a P7 demote. Ops restore or demote on /admin/ops — runtime monitoring links to governance memory.",
+      "Sentry crashes match approved records in Vault and mark them quarantined (no silent move to Hall). Operators restore or demote on /admin/ops — runtime monitoring linked to governance memory.",
     accent: "emerald",
   },
   {
-    id: "esign-sso",
-    title: "E-sign + Workspace SSO",
+    id: "workspace-sso",
+    title: "Workspace SSO",
     description:
-      "Team invites via DocuSign or Dropbox Sign, company domains, and Google Workspace SSO. Signing webhooks and ops panels ship ready — configure keys when you go live.",
+      "Company domains and Google Workspace SSO for corporate seats. Consumer Gmail lands on invite-only — not a silent tenant.",
     accent: "cyan",
   },
 ];
@@ -102,58 +102,58 @@ export const SHIPPED_FEATURE_CARDS: ShippedFeature[] = [
 export const ENTERPRISE_FEATURE_CARDS: ShippedFeature[] = [
   {
     id: "tri-converge",
-    title: "TRI majority CONVERGE",
+    title: "Three-model consensus",
     description:
-      "Optional T1→T3 cost ladder for risk paths. Platform Big Brain: Claude + Gemini + Grok majority when enabled. Model splits alone no longer force HITL when majority agrees.",
+      "Optional cost ladder on risk paths. Frontier routing can take Claude + Gemini + Grok majority when enabled. Split votes no longer force human review when a majority agrees.",
     accent: "violet",
   },
   {
     id: "signed-hitl",
-    title: "Signed HITL audits",
+    title: "Signed human-in-the-loop audits",
     description:
-      "Skip-MSGF and ARBITRATE decisions leave HMAC-signed, hash-chained snapshots — a compliance-ready trail of who approved what on /admin/ops.",
+      "Skip-gateway and arbitration decisions leave HMAC-signed, hash-chained snapshots — a compliance trail of who approved what on /admin/ops.",
     accent: "amber",
   },
   {
     id: "deploy-gate",
     title: "Deploy gate",
     description:
-      "CI checks GET /api/msgf/deploy-gate for your project_origin. Ship only when verify is green for that silo.",
+      "CI checks GET /api/msgf/deploy-gate for your project. Ship only when verify is green for that isolation boundary.",
     accent: "emerald",
   },
   {
     id: "tenant-isolation",
     title: "Compound tenant isolation",
     description:
-      "Every vector scoped by project_origin + subpath — agencies and monorepos keep client and app memory from bleeding across silos.",
+      "Every vector is scoped by project and subpath — agencies and monorepos keep client and app memory from crossing silos.",
     accent: "cyan",
   },
   {
     id: "hybrid-crypto",
-    title: "Quantum-ready security",
+    title: "Post-quantum envelopes",
     description:
-      "Optional hybrid post-quantum envelopes (X25519 + ML-KEM-768) for vault secrets and ML-DSA-65 authorship certificates — future-ready crypto without waiting on platform PQ-TLS.",
+      "Optional hybrid post-quantum envelopes (X25519 + ML-KEM-768) for Vault secrets and ML-DSA-65 authorship certificates. HTTPS post-quantum only when the load-balancer SSL policy is enabled — not Pulse, Redis, or Supabase.",
     accent: "violet",
   },
   {
     id: "ops-tower",
-    title: "Admin ops control tower",
+    title: "Admin ops console",
     description:
-      "One /admin/ops surface: audit hub timeline, Session Replay + harm ledger, most-used resources, model fitness, diff impact, tenant budgets, SIEM export, trusted-OSS bulk ARBITRATE, Sentry quarantine, and DocuSign.",
+      "One /admin/ops surface: audit timeline, Session Replay, security event log, most-used resources, model fitness, diff impact, tenant budgets, SIEM export, trusted-OSS bulk review, and Sentry quarantine.",
     accent: "amber",
   },
   {
     id: "governance-audit",
     title: "Platform governance audit",
     description:
-      "Hashed resource-usage rankings, unified platform_audit_events, prompt-session forensics (purge-exempt), and human-proof gates — RED and harm always open HITL; budgets never bypass safety.",
+      "Hashed resource-usage rankings, unified audit events, prompt-session forensics, and human-in-the-loop gates — policy failures and harm always open review; budgets never bypass safety.",
     accent: "cyan",
   },
   {
     id: "siem-budgets",
     title: "Budgets + SIEM export",
     description:
-      "Hard monthly dollar caps and rapid-retry circuit breakers before gateway dispatch, plus async OpenTelemetry JSON webhooks to customer SIEM — primary paths never wait on export.",
+      "Hard monthly spend caps and rapid-retry circuit breakers before gateway dispatch, plus async OpenTelemetry JSON webhooks to your SIEM — primary paths never wait on export.",
     accent: "emerald",
   },
 ];
@@ -164,7 +164,7 @@ export const DASHBOARD_QUICK_LINKS = [
   { label: "Features & IDE", href: "/features" },
   { label: "Ops audit hub", href: "/admin/ops#audit-hub" },
   { label: "Session Replay", href: "/admin/ops#session-replay" },
-  { label: "CONVERGE presets", href: "#token-savings" },
-  { label: "Token savings", href: "#token-savings" },
+  { label: "Routing presets", href: "#token-savings" },
+  { label: "Token cost", href: "#token-savings" },
   { label: "Reports", href: "/dashboard/daily-reports" },
 ] as const;

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
@@ -37,6 +37,14 @@ describe("dropbox-archive paths", () => {
     assert.equal(dropboxArchiveMockMode({ MSGF_DROPBOX_ARCHIVE_MOCK: "1" }), true);
     assert.equal(
       dropboxArchiveMockMode({ MSGF_DROPBOX_ARCHIVE_MOCK: "0", DROPBOX_ACCESS_TOKEN: "t" }),
+      false
+    );
+    assert.equal(
+      dropboxArchiveMockMode({
+        NODE_ENV: "production",
+        DEPLOY_ENV: "production",
+        MSGF_DROPBOX_ARCHIVE_MOCK: "1",
+      }),
       false
     );
   });

@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+-- Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
 -- =============================================================================
 -- Repair: clarify columns may be missing if 20260525120000 was claimed by another migration file.
 

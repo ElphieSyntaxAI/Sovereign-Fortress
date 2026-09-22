@@ -8,16 +8,16 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Elphie's Gated AI | MSGF",
+  title: "MSGF | Elphie Syntax",
   description:
-    "Modular State-Gate Framework — prefrontal cortex for AI with TRI/Grok consensus, Sentry quarantine, DocuSign/Dropbox Sign, and quantum-ready hybrid vault crypto.",
+    "AI gateway between your applications and the model. MSGF inspects and organizes context so low-quality data does not poison the next prompt.",
   /**
    * Tab favicon comes from `app/icon.png` automatically (Next 15 app-router
    * convention). Adding an `apple-touch-icon` so iOS Add to Home Screen picks
@@ -27,9 +27,9 @@ export const metadata: Metadata = {
     apple: "/brand/elphie-syntax-logo.png",
   },
   openGraph: {
-    title: "Elphie's Gated AI | MSGF",
+    title: "MSGF | Elphie Syntax",
     description:
-      "Prefrontal cortex for AI — TRI CONVERGE, Sentry→Vault, e-sign, quantum-ready envelopes.",
+      "AI gateway between your applications and the model. MSGF inspects and organizes context so low-quality data does not poison the next prompt.",
     images: [{ url: "/brand/elphie-syntax-logo.png" }],
   },
 };

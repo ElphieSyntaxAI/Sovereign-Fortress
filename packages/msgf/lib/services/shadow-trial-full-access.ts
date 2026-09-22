@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Sequential 3-day Individual Pro full access after Shadow Proxy proof.
@@ -138,7 +138,7 @@ export async function requestShadowTrialFullAccess(
 <p>Cloud CONVERGE is capped at <strong>${MSGF_TRIAL_3D_SLICE_SOFT_CAP.toLocaleString()} verification slices</strong> during the trial.</p>
 <p><a href="${actionLink}">Start 3-day full access</a></p>
 <p>This link is for <strong>${trial.email}</strong> only. One grant per email.</p>
-<p>— Elphie Syntax · MSGF Gated AI</p>
+<p>— Elphie Syntax · MSGF</p>
 `.trim(),
     text: [
       "Start your 3-day MSGF Individual Pro trial",
@@ -384,7 +384,7 @@ export async function expireShadowTrialFullAccess(
 <p>${greeting}</p>
 <p>Your <strong>3-day Individual Pro</strong> trial has ended. Active Governance, Pulse, and cloud CONVERGE on that trial key are off.</p>
 <p>Keep the proof — buy <strong>Individual Pro for $99</strong> (perpetual): <a href="${pricingUrl}">${pricingUrl}</a></p>
-<p>— Elphie Syntax · MSGF Gated AI</p>
+<p>— Elphie Syntax · MSGF</p>
 `.trim(),
     text: [
       "Your 3-day MSGF Individual Pro trial ended.",

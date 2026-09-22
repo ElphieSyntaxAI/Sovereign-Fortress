@@ -5,6 +5,7 @@ import { ActiveManuscriptChip } from "./ActiveManuscriptChip";
 import { BusinessCreativeToggle } from "./BusinessCreativeToggle";
 import {
   AUTHOR_ROLE_OPTIONS,
+  visibleAuthorRoleOptions,
   type AuthorRoleId,
   useAuthorRole,
 } from "../context/AuthorRoleContext";
@@ -142,7 +143,7 @@ export function AuthorTopNav() {
                 role="listbox"
                 className="absolute left-0 top-full z-50 mt-1 min-w-[12rem] rounded-lg border border-zinc-700 bg-zinc-950 py-1 shadow-xl"
               >
-                {AUTHOR_ROLE_OPTIONS.map((opt) => {
+                {visibleAuthorRoleOptions().map((opt) => {
                   const activated =
                     user?.activated_personas?.includes(opt.id) ?? opt.id === activePersona;
                   const isActive = opt.id === activePersona;

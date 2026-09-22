@@ -247,7 +247,7 @@ export function PlatformRoadmapExplorer({
             </span>
           </h2>
           <p className="mx-auto max-w-2xl text-sm text-slate-400">
-            Beta signup, Shadow Proxy trials, and foundational testing run on{" "}
+            Beta signup, shadow-mode trials, and foundational testing run on{" "}
             <strong className="font-medium text-slate-200">production hosts</strong> — staging is
             for operators only. Snapshot · {PLATFORM_HUB_ROADMAP_AS_OF}
           </p>

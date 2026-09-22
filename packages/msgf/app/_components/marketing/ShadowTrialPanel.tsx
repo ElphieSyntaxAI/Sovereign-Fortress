@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -305,7 +317,7 @@ export function ShadowTrialPanel({
       setFullAccessMessage(
         json.reused
           ? "3-day Individual Pro is already active on this email."
-          : "3-day Individual Pro is live — Active Governance, Pulse, and your IDE token are unlocked."
+          : "3-day Individual Pro is live — enforcement mode, ingest, and your IDE token are unlocked."
       );
       await loadStatus(token);
     } catch (e) {
@@ -366,18 +378,18 @@ export function ShadowTrialPanel({
             Free · up to 7 days
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            Shadow Proxy trial
+            Shadow-mode trial
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">
-            Point your OpenAI or Anthropic SDK at MSGF in shadow mode — zero extra
+            Point your OpenAI or Anthropic SDK at MSGF in observe-only shadow mode — zero extra
             latency. The 7-day clock starts on your first call, not signup. We count
-            duplicate calls you already paid for, retry loops Hall would have stopped,
-            and policy-risk prompts DEFEND would have flagged.
+            duplicate calls you already paid for, retry loops the rejected-outcome store would have
+            stopped, and policy-risk prompts the gateway would have blocked.
           </p>
           <ul className="mt-4 space-y-1 text-xs text-slate-400">
-            <li>Duplicate calls + the $ you already paid twice</li>
-            <li>Retry loops ("that didn't work / try again")</li>
-            <li>Policy-risk language DEFEND would flag before the model answers</li>
+            <li>Duplicate calls + the spend you already paid twice</li>
+            <li>Retry loops (&quot;that didn&apos;t work / try again&quot;)</li>
+            <li>Policy-risk language the gateway would block before the model answers</li>
           </ul>
 
           <form onSubmit={(e) => void onStart(e)} className="mt-6 space-y-4">
@@ -419,7 +431,7 @@ export function ShadowTrialPanel({
               disabled={loading}
               className="w-full rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
             >
-              {loading ? "Starting trial…" : "Start free 7-day Shadow Proxy"}
+              {loading ? "Starting trial…" : "Start 7-day shadow-mode trial"}
             </button>
           </form>
 
@@ -454,7 +466,7 @@ export function ShadowTrialPanel({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300/90">
-                  Live Shadow Proxy proof
+                  Live shadow-mode proof
                 </p>
                 <h2 className="mt-1 text-xl font-semibold text-slate-50">
                   {summary.full_access_live
@@ -506,7 +518,7 @@ export function ShadowTrialPanel({
                   {(summary.proof?.retry_loop_prompts ?? 0).toLocaleString()}
                 </dd>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Hall would stop the known-bad path
+                  Rejected-outcome store would stop the known-bad path
                 </p>
               </div>
               <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
@@ -517,7 +529,7 @@ export function ShadowTrialPanel({
                   {(summary.proof?.policy_flags ?? 0).toLocaleString()}
                 </dd>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  DEFEND would flag before the model answers
+                  Policy gate would flag before the model answers
                 </p>
               </div>
               <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
@@ -537,7 +549,7 @@ export function ShadowTrialPanel({
                   {(summary.proof?.bot_swarm_waves ?? 0).toLocaleString()}
                 </dd>
                 <p className="mt-1 text-[11px] text-amber-200/70">
-                  Would abort the child + open HITL
+                  Would abort the child request and open human review
                 </p>
               </div>
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
@@ -596,8 +608,8 @@ export function ShadowTrialPanel({
             ) : null}
             {summary.full_access_live ? (
               <p className="mt-3 text-sm text-slate-300">
-                Active mode is unlocked on your trial key. Cloud CONVERGE is capped at{" "}
-                <strong>200 verification slices</strong> for this 72-hour window.{" "}
+                Enforcement mode is unlocked on your trial key. Cloud consensus is capped at{" "}
+                <strong>200 verification credits</strong> for this 72-hour window.{" "}
                 <Link href="/dashboard" className="font-semibold text-emerald-300 hover:underline">
                   Open dashboard
                 </Link>
@@ -614,7 +626,7 @@ export function ShadowTrialPanel({
                 </button>
                 {" — "}
                 apply these reputation promotes/blocks immediately, then Individual Pro cloud
-                (dashboard, Pulse, IDE token, Active, Vault/Hall) on this same proof tenant.
+                (dashboard, ingest, IDE token, enforcement, Vault/Hall) on this same proof tenant.
                 {!summary.first_eval_at
                   ? " Send a Shadow call first to start the 7-day clock."
                   : null}
@@ -664,7 +676,7 @@ export function ShadowTrialPanel({
         </Link>
         {" · "}
         <Link href="/getting-started#shadow-savings-how-to" className="text-violet-300 hover:underline">
-          Shadow Proxy guide
+          Shadow-mode guide
         </Link>
       </p>
     </div>

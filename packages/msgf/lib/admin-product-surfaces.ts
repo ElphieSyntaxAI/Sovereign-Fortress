@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { buildAuthorAdminMsgfLinks } from "@elphie-syntax/core/author-admin-msgf-links";
 import { buildMsgfAuthorHandoffUrl } from "@elphie-syntax/core/operator-handoff-url";
@@ -105,9 +105,9 @@ export function getAdminProductSurfaces(): AdminProductSurface[] {
   return [
     {
       id: "msgf",
-      eyebrow: "Brain · Engine",
-      title: "MSGF — Gated AI",
-      summary: "Ops dashboard, pillar health, incidents, and education APIs hosted on this app.",
+      eyebrow: "AI gateway",
+      title: "MSGF",
+      summary: "Ops console, policy-domain health, incidents, and education APIs hosted on this app.",
       tone: "emerald",
       detailHref: "/products/msgf",
       testLaunch: { label: "Open ops console", href: "/admin/ops" },

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Verifies Postgres schema for MSGF Supabase cold layer.
@@ -53,10 +53,14 @@ import {
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function loadEnvFiles() {
-  for (const rel of ["../../.env", "../../.env.local", ".env", ".env.local"]) {
+  const useStaging = process.argv.includes("--staging");
+  const files = useStaging
+    ? [".env.staging.local", ".env.staging", "../../.env.staging.local"]
+    : ["../../.env", "../../.env.local", ".env", ".env.local"];
+  for (const rel of files) {
     const p = path.resolve(pkgRoot, rel);
     if (fs.existsSync(p)) {
-      dotenv.config({ path: p, override: true });
+      dotenv.config({ path: p, override: useStaging ? false : true });
     }
   }
 }

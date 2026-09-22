@@ -8,9 +8,9 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { applyMsgfApiTenantMiddleware } from "@/app/api/middleware";
 import { assertMsgfCreditsOr429, applyMsgfCreditModelHeader } from "@/lib/creditGuard";
@@ -26,27 +26,35 @@ import { updateSession } from "@/utils/supabase/middleware";
  * `MSGF_AUTH_COOKIE_SECURE` as the author BFF (`bffSupabaseCookieOptions` re-exports that module).
  * `next.config.ts` loads the monorepo root `.env.local` so this matches the BFF env.
  */
+function withStagingRobots(response: NextResponse) {
+  if (process.env.DEPLOY_ENV?.trim() === "staging") {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   let req = request;
 
   const tenantGate = await applyMsgfApiTenantMiddleware(req);
-  if (tenantGate.response) return tenantGate.response;
+  if (tenantGate.response) return withStagingRobots(tenantGate.response);
   req = tenantGate.request;
 
   if (req.nextUrl.pathname.startsWith("/api/msgf")) {
     const isAuthorHandoff = req.nextUrl.pathname === "/api/msgf/admin/author-handoff";
+    const isFeatureGates = req.nextUrl.pathname === "/api/msgf/feature-gates";
 
-    if (!isAuthorHandoff) {
+    if (!isAuthorHandoff && !isFeatureGates) {
       const entitlementDenied = await assertPulseEntitlementOr429(req);
-      if (entitlementDenied) return entitlementDenied;
+      if (entitlementDenied) return withStagingRobots(entitlementDenied);
 
       const denied = await assertMsgfCreditsOr429(req);
-      if (denied) return denied;
+      if (denied) return withStagingRobots(denied);
       req = applyMsgfCreditModelHeader(req);
     }
   }
 
-  return await updateSession(req);
+  return withStagingRobots(await updateSession(req));
 }
 
 export const config = {

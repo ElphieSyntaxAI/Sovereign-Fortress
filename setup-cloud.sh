@@ -539,10 +539,17 @@ for s in "${SECRET_GEMINI_KEY_RESOURCE}" "${SECRET_ANTHROPIC_KEY_RESOURCE}"; do
 done
 
 if [[ "${MISSING}" -eq 0 ]]; then
-  # --update-secrets merges; --set-secrets would wipe Stripe / other secret mounts.
-  SECRET_FLAGS=(
-    --update-secrets="MASTER_GEMINI_KEY=${SECRET_GEMINI_KEY_RESOURCE}:latest,MASTER_ANTHROPIC_KEY=${SECRET_ANTHROPIC_KEY_RESOURCE}:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=stripe-publishable-key:latest"
-  )
+  # --update-secrets merges; --set-secrets would wipe other secret mounts.
+  # Staging must not mount live Stripe secrets (test keys live in .env.cloudrun.staging).
+  if [[ "${DEPLOY_ENV:-production}" == "staging" ]]; then
+    SECRET_FLAGS=(
+      --update-secrets="MASTER_GEMINI_KEY=${SECRET_GEMINI_KEY_RESOURCE}:latest,MASTER_ANTHROPIC_KEY=${SECRET_ANTHROPIC_KEY_RESOURCE}:latest"
+    )
+  else
+    SECRET_FLAGS=(
+      --update-secrets="MASTER_GEMINI_KEY=${SECRET_GEMINI_KEY_RESOURCE}:latest,MASTER_ANTHROPIC_KEY=${SECRET_ANTHROPIC_KEY_RESOURCE}:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=stripe-publishable-key:latest"
+    )
+  fi
 fi
 
 # --- Deploy ------------------------------------------------------------------

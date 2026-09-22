@@ -8,13 +8,14 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { MsgfAdminAuthError, assertMsgfServiceAdmin } from "@/lib/msgf-admin-auth";
+import { allowMockTelemetry } from "@/lib/deploy-env";
 import {
   applyArbitrationStateMachine,
   hasLiveDashboardDatabaseEnv,
@@ -98,7 +99,7 @@ export async function POST(
 
     return NextResponse.json({
       ...result,
-      source: live ? "live" : "mock",
+      source: live ? "live" : allowMockTelemetry() ? "mock" : "unconfigured",
       actor_via: actor.via,
     });
   } catch (e) {

@@ -23,6 +23,11 @@ import { resolvePlatformOperatorAccess } from "../lib/isPlatformOperator.js";
 import { getPublishableAuthClient } from "../lib/resolveBffAuthUser.js";
 import { syncPlatformPersonaSession, setPlatformContextCookies } from "../lib/syncPlatformPersonaSession.js";
 import { VAULT_PACT_ATTESTATION_PHRASE } from "../lib/vaultPactAttestation.js";
+import {
+  authorPostMvpDisabledPayload,
+  isAuthorFanHubEnabled,
+  isAuthorHelperEnabled,
+} from "../lib/postMvpGates.js";
 
 /**
  * Auth routes on the author BFF: Supabase session via `@supabase/ssr` cookie storage (same pattern as
@@ -286,6 +291,18 @@ function isRegisterAuthorPersona(persona: string): boolean {
   return isPersonaValidForPlatform("author", persona);
 }
 
+function rejectDeferredAuthorPersona(persona: string, res: Response): boolean {
+  if (persona === "helper" && !isAuthorHelperEnabled()) {
+    res.status(404).json(authorPostMvpDisabledPayload("author_helper"));
+    return true;
+  }
+  if (persona === "fan" && !isAuthorFanHubEnabled()) {
+    res.status(404).json(authorPostMvpDisabledPayload("author_fan_hub"));
+    return true;
+  }
+  return false;
+}
+
 authSessionBridgeController.post("/login", (req: Request, res: Response) => {
   void (async () => {
     try {
@@ -372,6 +389,7 @@ authSessionBridgeController.post("/register", (req: Request, res: Response) => {
         });
         return;
       }
+      if (rejectDeferredAuthorPersona(termsRole, res)) return;
       if (vaultPactSignature !== VAULT_PACT_ATTESTATION_PHRASE) {
         res.status(400).json({
           message: `Sign the Vault Pact by typing the exact attestation: ${VAULT_PACT_ATTESTATION_PHRASE}`,
@@ -524,6 +542,7 @@ authSessionBridgeController.post("/switch-persona", (req: Request, res: Response
         res.status(400).json({ message: "Invalid author persona." });
         return;
       }
+      if (rejectDeferredAuthorPersona(persona, res)) return;
 
       const supabase = createBffSupabaseServerClient(req, res);
       const { data: userData, error } = await supabase.auth.getUser();
@@ -585,6 +604,7 @@ authSessionBridgeController.post("/activate-persona", (req: Request, res: Respon
         res.status(400).json({ message: "Invalid author persona." });
         return;
       }
+      if (rejectDeferredAuthorPersona(persona, res)) return;
 
       const supabase = createBffSupabaseServerClient(req, res);
       const { data: userData, error } = await supabase.auth.getUser();

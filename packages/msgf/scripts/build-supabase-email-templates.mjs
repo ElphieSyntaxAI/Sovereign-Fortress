@@ -9,6 +9,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -291,7 +303,7 @@ const templates = [
       eyebrow: "Welcome to Elphie Syntax",
       headline: "Confirm your account",
       intro:
-        "You are one step away from the MSGF glass-box dashboard — visible gates, sovereign AI, and auditable lineage.",
+        "You are one step away from the MSGF dashboard — inspectable policy gates, tenant isolation, and auditable lineage.",
       ctaLabel: "Confirm sign up",
       ctaHref: "{{ .ConfirmationURL }}",
       linkFallback: true,
@@ -305,7 +317,7 @@ const templates = [
     subjectText: "Your Elphie Syntax sign-in link",
     input: {
       pageTitle: "Sign in to Elphie Syntax",
-      eyebrow: "MSGF Gated AI",
+      eyebrow: "MSGF",
       headline: "Your secure sign-in link",
       intro:
         "Use the button below to sign in. This link expires soon and works only once for your security.",
@@ -342,7 +354,7 @@ const templates = [
       eyebrow: "Team invite",
       headline: "You have been invited",
       intro:
-        "Accept the invitation to join an Elphie Syntax workspace with MSGF guardrails, sovereign tenants, and auditable Pulse lineage.",
+        "Accept the invitation to join an Elphie Syntax workspace with MSGF policy gates, tenant isolation, and auditable ingest lineage.",
       ctaLabel: "Accept invitation",
       ctaHref: "{{ .ConfirmationURL }}",
       linkFallback: true,
@@ -359,7 +371,7 @@ const templates = [
       eyebrow: "Account update",
       headline: "Confirm your new email",
       intro:
-        "Confirm this address to complete your email change on Elphie Syntax and MSGF Gated AI.",
+        "Confirm this address to complete your email change on Elphie Syntax and MSGF.",
       ctaLabel: "Confirm new email",
       ctaHref: "{{ .ConfirmationURL }}",
       linkFallback: true,

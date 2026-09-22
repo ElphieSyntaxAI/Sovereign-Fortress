@@ -8,10 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { NextResponse } from "next/server";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import { HelperProofService, type HelperMilestoneType } from "../../../../../../apps/author-ecosystem/server/src/lib/HelperProofService";
 import { createServiceRoleClient } from "@msgf/lib/supabase/service-role";
 
@@ -29,6 +30,9 @@ function parseMilestone(v: unknown): HelperMilestoneType | null {
  * Secured with `Authorization: Bearer <HELPER_API_SECRET>` (trusted helper worker / bridge).
  */
 export async function POST(req: Request) {
+  if (!isPostMvpFeatureEnabled("author_helper")) {
+    return NextResponse.json(postMvpDisabledPayload("author_helper"), { status: 404 });
+  }
   const secret = process.env.HELPER_API_SECRET?.trim();
   if (!secret) {
     return NextResponse.json({ error: "HELPER_API_SECRET is not configured" }, { status: 503 });

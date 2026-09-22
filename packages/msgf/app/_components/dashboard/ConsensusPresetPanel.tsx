@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 import { useEffect, useMemo, useState } from "react";
@@ -206,13 +218,13 @@ export function ConsensusPresetPanel({ tenantId }: Props) {
       id="converge-preset"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-        Small Brain verification
+        Cost-efficient verification
       </p>
       <h3 className="mt-1 text-lg font-semibold text-slate-50">Default AI + dual pair</h3>
       <p className="mt-2 max-w-xl text-sm text-slate-400">
-        Pick the default model for SOLO_FAST (prompt optimize, Heal Cheap, single-model
-        verification). Then optionally add a second model for dual CONVERGE — or a third when
-        tenant TRI is enabled. Big Brain still uses platform TRI when drift is high.
+        Pick the default model for SOLO_FAST (prompt optimize, low-cost remediation, single-model
+        verification). Then optionally add a second model for dual consensus — or a third when
+        tenant three-model consensus is enabled. Frontier routing still uses platform consensus when drift is high.
       </p>
       <div
         className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400"

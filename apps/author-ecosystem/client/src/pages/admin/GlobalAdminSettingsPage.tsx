@@ -17,7 +17,7 @@ export default function GlobalAdminSettingsPage() {
         <h1 className="mt-1 text-lg font-semibold text-zinc-100">Account &amp; platform</h1>
         <p className="mt-1 text-xs text-zinc-500">
           Persona activation, creative/business lens defaults, and legal schedules. Operators can also open
-          MSGF env and tier controls on the Gated AI portal.
+          MSGF env and tier controls on the MSGF portal.
         </p>
         {isOperator ? (
           <a

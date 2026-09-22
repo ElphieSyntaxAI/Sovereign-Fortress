@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 
@@ -40,7 +40,7 @@ const client = new Anthropic({
 });`;
 
 const STEPS = [
-  "Start a free trial — we mint your Shadow Proxy key. The 7-day clock starts on your first call (unused keys expire in 14 days).",
+  "Start a free trial — we mint your shadow-mode key. The 7-day clock starts on your first call (unused keys expire in 14 days).",
   "Point OpenAI or Anthropic SDK baseURL at MSGF with x-msgf-mode: shadow.",
   "Watch the proof ledger on your trial dashboard; get the email report when the window ends, then start 3-day Individual Pro full access.",
 ] as const;
@@ -51,11 +51,11 @@ export function ShadowSavingsHowTo() {
       id="shadow-savings-how-to"
       variant="featured"
       eyebrow="Shadow mode"
-      title="Prove projected savings in Shadow mode"
+      title="Prove projected savings in observe-only mode"
     >
       <p>
         Zero-latency pass-through to your provider. MSGF evaluates optimizations in the background
-        and records projected savings — flip to Active when the ROI is credible.
+        and records projected savings — switch to enforcement mode when the ROI is credible.
       </p>
 
       <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-300 sm:text-base">

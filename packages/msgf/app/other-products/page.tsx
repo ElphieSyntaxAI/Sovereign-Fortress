@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
@@ -20,7 +20,7 @@ import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
 export const metadata = {
-  title: "Other products | Elphie's Gated AI",
+  title: "Other products | MSGF",
   description: "Author Ecosystem and Syntax Education — powered by MSGF.",
 };
 
@@ -54,7 +54,7 @@ export default async function OtherProductsPage() {
             <span className="text-gradient-jewel">Other products</span>
           </h1>
           <p className="max-w-2xl text-sm text-slate-400 sm:text-base">
-            Your MSGF governance dashboard stays focused on gates and pillars. Explore Author and
+            Your MSGF dashboard stays focused on policy, routing, and token cost. Explore Author and
             Education here when you need those surfaces.
           </p>
           <Link

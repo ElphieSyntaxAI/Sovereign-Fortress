@@ -6,7 +6,7 @@
 | :--- | :--- | :--- |
 | Portal | `/admin/portal` | Launch Author / Education / MSGF; local stack checklist |
 | Pillar health | `/admin/dashboard` | Six-pillar operator lens, token savings, Big Brain summary |
-| **Ops console** | `/admin/ops` | Audit hub · Session Replay · most-used · fitness · budgets · SIEM · ARBITRATE · quarantine · Sentry · DocuSign |
+| **Ops console** | `/admin/ops` | Audit hub · Session Replay · most-used · fitness · budgets · SIEM · ARBITRATE · quarantine · Sentry · DocuSign (**1.1 / unconfigured — do not tour on 1 Nov**) |
 | Account | `/account` | Plan / seats summary · Stripe Customer Portal |
 | Governance (personal) | `/dashboard` | Tenant pillar health, daily reports / period PDF, Shadow Proxy panel, security view |
 
@@ -79,6 +79,10 @@ Educates Admin → Legal governance includes MSGF deep-links (audit hub, Session
 ## Project tracking rails
 
 Telemetry (pulse, ingest, daily reports) is scoped to **mapped** `project_origin` values in Workspace → Projects. IDE clients must set `msgf.tenantKey` to that slug (`org/repo`). Unmapped paths are rejected when the user has project mappings. Compound vector scope also uses `subpath_hash` — see [`MSGF_TENANT_ISOLATION.md`](./MSGF_TENANT_ISOLATION.md).
+
+## 1.0 vs DocuSign
+
+**1 Nov hide:** do not sell or demo DocuSign / Dropbox Sign. Leave **Enforce DocuSign** off. Panel may remain **unconfigured**. Code stays for 1.1.
 
 ## Deploying admin without DocuSign keys
 

@@ -8,12 +8,14 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Platform RBAC — admin | security | auditor | dev (company-scoped team roles).
  * Independent personal sandbox sessions auto-receive admin + security + dev.
  */
+
+import { isPostMvpFeatureEnabled } from "@/lib/post-mvp-gates";
 
 export type PlatformRole = "admin" | "security" | "auditor" | "dev";
 
@@ -105,7 +107,11 @@ export function resolveSessionPermissions(input: {
     isIndependentSandbox || hasAdmin || hasSecurity || hasAuditor;
 
   const isDocuSignLocked =
-    accountStatus === "pending_signatures" && (hasDev || hasSecurity) && !hasAdmin && !hasAuditor;
+    isPostMvpFeatureEnabled("signing") &&
+    accountStatus === "pending_signatures" &&
+    (hasDev || hasSecurity) &&
+    !hasAdmin &&
+    !hasAuditor;
 
   return {
     roles,

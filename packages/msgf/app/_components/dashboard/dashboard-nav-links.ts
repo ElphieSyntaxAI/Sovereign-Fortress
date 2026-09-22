@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 export type DashboardNavLink = {
   label: string;
@@ -42,7 +42,7 @@ export const DASHBOARD_PRIMARY_LINKS = (
 
 export const DASHBOARD_SETTINGS_LINKS: DashboardNavLink[] = [
   { label: "Account", href: "/account", matchPath: "/account" },
-  { label: "Pillar Guide", href: "/getting-started#six-pillars" },
+  { label: "Policy domains", href: "/getting-started#six-pillars" },
   { label: "System Status", href: "/status", matchPath: "/status" },
   { label: "Other Products", href: "/other-products", matchPath: "/other-products" },
   { label: "Platform hub", href: "/", matchPath: "/" },

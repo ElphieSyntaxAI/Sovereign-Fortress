@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Historical daily governance snapshots grouped by calendar day (user-scoped).
@@ -16,6 +16,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { allowMockTelemetry } from "@/lib/deploy-env";
 import {
   hasLiveDashboardDatabaseEnv,
   transformDailyNetworkReport,
@@ -30,8 +31,6 @@ import {
   MSGF_GOVERNANCE_PILLARS,
   type MsgfGovernancePillar,
 } from "@/lib/services/pillar-baseline";
-import { calculateEcoSavings } from "@/lib/utils/ecoCalculator";
-
 export type DailyReportPillarSnapshot = {
   pillar: MsgfGovernancePillar;
   label: string;
@@ -400,9 +399,6 @@ function finalizeBucketsForTimeline(
         );
         bucket.tokens_saved = saved;
       }
-      if (!bucket.tokens_saved && bucket.narratives.length + bucket.incidents.length > 0) {
-        bucket.tokens_saved = calculateEcoSavings(12_000).tokens_saved;
-      }
       return finalizeDaySnapshot(date, bucket);
     })
     .sort((a, b) => b.date.localeCompare(a.date));
@@ -498,6 +494,9 @@ export async function fetchDailyReportsHistoryByProject(
   const timelineOrigins = [...mappedOrigins, DAILY_REPORTS_UNSCOPED_ORIGIN];
 
   if (!hasLiveDashboardDatabaseEnv()) {
+    if (!allowMockTelemetry()) {
+      return mapped.map((p) => ({ ...p, days: [] }));
+    }
     const mockDays = Math.min(lookbackDays, 60);
     const timelines: DailyReportsProjectTimeline[] = mapped.map((p) => ({
       ...p,

@@ -9,6 +9,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -260,6 +272,18 @@ import { createHash } from "node:crypto";
 const API = (process.env.MSGF_API_URL ?? "").replace(/\/$/, "");
 const TOKEN = process.env.MSGF_AUTH_TOKEN?.trim() ?? "";
 const TENANT_KEY = process.env.MSGF_TENANT_KEY?.trim() ?? "";
+
+function mcpProductEnabled() {
+  const v = (process.env.MSGF_POST_MVP_MCP ?? "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+if (!mcpProductEnabled()) {
+  console.error(
+    "MSGF IDE MCP is deferred until after MVP. Set MSGF_POST_MVP_MCP=1 to enable this server."
+  );
+  process.exit(1);
+}
 
 function tenantUuid(tenantKey) {
   const trimmed = tenantKey.trim();

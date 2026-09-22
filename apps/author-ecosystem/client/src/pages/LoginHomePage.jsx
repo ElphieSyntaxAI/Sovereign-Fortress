@@ -48,7 +48,7 @@ export default function LoginHomePage() {
       {sessionMode === "signin" ? (
         <PlatformLoginMatrix
           title="Elphie Syntax"
-          subtitle="Sovereign ethical AI across Author, Education, and Gated AI"
+          subtitle="Ethical AI across Author Ecosystem, Syntax Education, and MSGF"
           onSubmit={async (payload) => {
             setAuthError(null);
             try {

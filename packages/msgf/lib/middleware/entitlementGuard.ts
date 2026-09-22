@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * M3 — commercial entitlement gate for MSGF Brain (`POST /api/msgf/pulse`).
@@ -26,6 +26,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
+import { isProductionDeploy } from "@/lib/deploy-env";
 import {
   evaluateManagedCloudWindow,
   isIndividualTrial3dLicenseType,
@@ -61,10 +62,11 @@ function entitlementDisabled(): boolean {
 
 /** When true, monthly users pass without `stripe_subscription_status = active` in DB. */
 export function mockStripeSubscriptionActive(): boolean {
+  if (isProductionDeploy()) return false;
   const v = process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE?.trim().toLowerCase();
   if (v === "0" || v === "false" || v === "no") return false;
   if (v === "1" || v === "true" || v === "yes") return true;
-  // Default mock ON until Stripe webhook is explicitly marked live.
+  // Default mock ON until Stripe webhook is explicitly marked live (local/staging only).
   const live = process.env.MSGF_STRIPE_WEBHOOK_LIVE?.trim().toLowerCase();
   return live !== "true" && live !== "1" && live !== "yes";
 }

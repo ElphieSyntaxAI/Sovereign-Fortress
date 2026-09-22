@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -165,7 +165,11 @@ describe("mockStripeSubscriptionActive env", () => {
   test("explicit 0 disables mock even when webhook not live", () => {
     const prevMock = process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE;
     const prevLive = process.env.MSGF_STRIPE_WEBHOOK_LIVE;
+    const prevNode = process.env.NODE_ENV;
+    const prevDeploy = process.env.DEPLOY_ENV;
     try {
+      process.env.NODE_ENV = "test";
+      delete process.env.DEPLOY_ENV;
       process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE = "0";
       delete process.env.MSGF_STRIPE_WEBHOOK_LIVE;
       assert.equal(mockStripeSubscriptionActive(), false);
@@ -176,11 +180,21 @@ describe("mockStripeSubscriptionActive env", () => {
       delete process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE;
       process.env.MSGF_STRIPE_WEBHOOK_LIVE = "1";
       assert.equal(mockStripeSubscriptionActive(), false);
+
+      delete process.env.MSGF_STRIPE_WEBHOOK_LIVE;
+      process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE = "1";
+      process.env.NODE_ENV = "production";
+      process.env.DEPLOY_ENV = "production";
+      assert.equal(mockStripeSubscriptionActive(), false);
     } finally {
       if (prevMock === undefined) delete process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE;
       else process.env.MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE = prevMock;
       if (prevLive === undefined) delete process.env.MSGF_STRIPE_WEBHOOK_LIVE;
       else process.env.MSGF_STRIPE_WEBHOOK_LIVE = prevLive;
+      if (prevNode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prevNode;
+      if (prevDeploy === undefined) delete process.env.DEPLOY_ENV;
+      else process.env.DEPLOY_ENV = prevDeploy;
     }
   });
 });

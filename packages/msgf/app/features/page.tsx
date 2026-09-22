@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 
@@ -22,60 +22,60 @@ import {
 import { WorkflowStrip } from "@/app/_components/marketing/WorkflowStrip";
 
 export const metadata = {
-  title: "Features | Elphie's Gated AI",
+  title: "Features | MSGF",
   description:
-    "MSGF V3.2 — IDE Command Center, TRI/Grok consensus, governance audit hub, Session Replay, SIEM, Sentry→Vault quarantine, DocuSign/Dropbox Sign, Workspace SSO, and defensible token savings.",
+    "MSGF AI gateway — IDE extension, model routing and consensus, audit console, Session Replay, SIEM, Sentry quarantine, Workspace SSO, and defensible token-cost reporting.",
 };
 
 const PILLARS = [
   {
     id: "P1",
-    title: "Static Ledger",
-    body: "Enforces hard codebase compliance laws; instantly drops a ruby-red HALT on critical syntax regressions.",
+    title: "Policy & compliance",
+    body: "Blocking rules for unsafe or out-of-policy changes before they reach the model.",
   },
   {
     id: "P2",
-    title: "Flow Sequence",
-    body: "Maps structural deployment priority and multi-file code dependencies.",
+    title: "Change flow",
+    body: "Deployment order and multi-file dependencies.",
   },
   {
     id: "P3",
-    title: "Entity Profiles",
-    body: "Secures identities, tokens, and multi-tenant sandboxing boundaries.",
+    title: "Identity & tenancy",
+    body: "Roles, tokens, and tenant isolation.",
   },
   {
     id: "P4",
-    title: "State Ledger",
-    body: 'Active "Flight Recorder" tracking your live-memory typing rhythm dynamics (HAL).',
+    title: "Session state",
+    body: "Live session telemetry before the model acts.",
   },
   {
     id: "P5",
-    title: "Local Variables",
-    body: "Shards front-end module context to save token waste.",
+    title: "Local context",
+    body: "Sharded module context so prompts do not carry unused files.",
   },
   {
     id: "P6",
-    title: "Constraint Ledger",
-    body: "The Vault (what worked) and the Hall (what failed) — differential learning for every fix.",
+    title: "Approved vs rejected memory",
+    body: "Vault stores approved outcomes; Hall stores failed outcomes — inspectable lineage.",
   },
 ];
 
 const IDE_FEATURES = [
   {
-    title: "0-Token Prompt Optimizer",
-    body: "Describe your task once. MSGF builds a sharded, @-attachment-ready prompt with mandatory agent verify rules — SOLO_FAST, no server-side LLM burn.",
+    title: "Local prompt compiler",
+    body: "Describe the task once. MSGF builds a sharded, attachment-ready prompt with required verify steps — locally, with no server-side model call.",
   },
   {
-    title: "Run Scripts",
-    body: "Auto-registered verify commands in .msgf/run-scripts.json. Re-run tests without regenerating the prompt. Counters show up on your token savings dashboard.",
+    title: "Verify scripts",
+    body: "Allowlisted verify commands in .msgf/run-scripts.json. Re-run tests without regenerating the prompt. Counters appear on the token-cost dashboard.",
   },
   {
     title: "Safe Build",
-    body: "One-click local build/test with async preflight. Pass syncs to verify-result; fail triggers Heal Cheap via dev-event — not a blind incident dump.",
+    body: "One-click local build/test with async preflight. Pass syncs to verify-result; fail triggers low-cost remediation — not a blind incident dump.",
   },
   {
-    title: "Command Center sidebar",
-    body: "Connection status, optimizer, Run Scripts, Safe Build, and advanced Pulse/heal ops in one Cursor/VS Code panel.",
+    title: "IDE extension panel",
+    body: "Connection status, prompt compiler, verify scripts, Safe Build, and advanced Pulse / remediation tools in one Cursor or VS Code panel.",
   },
 ];
 
@@ -88,18 +88,18 @@ export default function FeaturesPage() {
             Capabilities · shipped
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
-            <span className="text-gradient-jewel">Elite</span> governance
-            <span className="block text-slate-200">&amp; zero re-prompt verify</span>
+            <span className="text-gradient-jewel">AI</span> governance
+            <span className="block text-slate-200">&amp; verify without re-prompting</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-400">
-            Prefrontal cortex for AI with six pillars, IDE verify loops,{" "}
-            <strong className="text-cyan-300/90">Grok-aware model presets</strong>,{" "}
-            <strong className="text-emerald-200">human-proof HITL</strong> with Session Replay and
+            Control plane for model traffic: six isolated context domains, IDE verify loops,{" "}
+            <strong className="text-cyan-300/90">optional Grok in routing presets</strong>,{" "}
+            <strong className="text-emerald-200">signed human-in-the-loop review</strong> with Session Replay and
             SIEM export,{" "}
-            <strong className="text-violet-300/90">Sentry→Vault quarantine</strong>,{" "}
-            <strong className="text-emerald-200">DocuSign / Dropbox Sign</strong>, and{" "}
-            <strong className="text-amber-200">quantum-ready</strong> hybrid vault envelopes —
-            configure integrations when you go live; panels degrade cleanly until then.
+            <strong className="text-violet-300/90">Sentry → Vault quarantine</strong>,{" "}
+            <strong className="text-emerald-200">Workspace SSO</strong>, and{" "}
+            <strong className="text-amber-200">optional post-quantum</strong> Vault envelopes —
+            unconfigured integrations degrade; they do not break the rest of the product.
           </p>
         </header>
 
@@ -120,30 +120,30 @@ export default function FeaturesPage() {
 
         <div className="space-y-8">
           <MarketingSection
-            eyebrow="Structural ingest"
-            title="The 6-Pillar Structural Ingest Engine"
+            eyebrow="Context partitions"
+            title="Six isolated policy domains"
           >
             <p>
-              MSGF maps your active development project to six isolated, ultra-performance local
-              ledger slices inside a hidden <strong className="text-[#f8fafc]">.msgf/</strong>{" "}
-              directory to eliminate system lag and context noise:
+              MSGF maps the active project into six isolated local slices inside a hidden{" "}
+              <strong className="text-[#f8fafc]">.msgf/</strong> directory so prompts do not mix
+              contexts:
             </p>
             <MarketingPillarList items={PILLARS} />
           </MarketingSection>
 
           <MarketingSection
-            eyebrow="IDE — Command Center"
+            eyebrow="IDE extension"
             title="MSGF Pulse Guard for Cursor & VS Code"
             variant="featured"
           >
             <p className="mb-6">
-              The native extension ships a <strong className="text-emerald-200">Command Center</strong>{" "}
-              sidebar: connect once, generate targeted prompts, run allowlisted verify scripts, and
-              sync outcomes to your{" "}
+              The native extension ships an <strong className="text-emerald-200">IDE panel</strong>:
+              connect once, compile targeted prompts, run allowlisted verify scripts, and sync
+              outcomes to your{" "}
               <Link href="/dashboard#token-savings" className="text-cyan-300 hover:underline">
-                token savings
+                token-cost
               </Link>{" "}
-              dashboard — including CONVERGE model presets (Claude / Gemini / Grok pairs).
+              dashboard — including routing presets (Claude / Gemini / Grok pairs).
             </p>
             <ul className="grid gap-3 sm:grid-cols-2">
               {IDE_FEATURES.map((f) => (
@@ -158,74 +158,75 @@ export default function FeaturesPage() {
             </ul>
           </MarketingSection>
 
-          <MarketingSection eyebrow="Verify loop" title="Vault on pass · Hall on repeat failure">
+          <MarketingSection eyebrow="Verify loop" title="Approved on pass · rejected on repeat failure">
             <p>
-              When verify passes with a linked context pack, MSGF writes a positive beat to the{" "}
-              <strong className="text-emerald-200">Vault</strong>. Repeated failures on the same
-              command pattern dedupe into the <strong className="text-amber-200">Hall</strong> after
-              three strikes — so you get signal without noise. Safe execution uses{" "}
+              When verify passes with a linked context pack, MSGF writes a positive record to the{" "}
+              <strong className="text-emerald-200">Vault</strong> (approved-context store). Repeated
+              failures on the same command pattern dedupe into the{" "}
+              <strong className="text-amber-200">Hall</strong> (rejected-outcome store) after three
+              strikes. Safe execution uses{" "}
               <code className="text-violet-300/90">execFile</code> with an allowlisted command set
               (no shell injection from tampered script files).
             </p>
           </MarketingSection>
 
-          <MarketingSection eyebrow="Consensus" title="Small Brain presets · Big Brain TRI">
+          <MarketingSection eyebrow="Routing" title="Cost-efficient pair · frontier consensus on drift">
             <p>
               Tenant verification defaults to <strong className="text-slate-100">Claude + Gemini</strong>{" "}
-              (unanimous). Compliance and vendor-mandate paths can switch to{" "}
+              (unanimous). Compliance paths can switch to{" "}
               <strong className="text-slate-100">Claude + Grok</strong> or{" "}
               <strong className="text-slate-100">Gemini + Grok</strong>. When logic drift is high,
-              platform Big Brain runs <strong className="text-violet-200">TRI majority</strong> —
-              Claude + Gemini + Grok — and only opens human notify on high original drift, no
-              majority, or security NON_HUMAN. Prompt optimize stays SOLO_FAST.
+              frontier routing can run a <strong className="text-violet-200">three-model majority</strong>{" "}
+              (Claude + Gemini + Grok) and only opens human notification on high original drift, no
+              majority, or a security non-human signal. Prompt compile stays local.
             </p>
           </MarketingSection>
 
           <MarketingSection
             eyebrow="Security"
-            title="Quantum-ready vault crypto"
+            title="Optional post-quantum Vault envelopes"
           >
             <p>
               Long-lived secrets can use <strong className="text-slate-100">hybrid KEM envelopes</strong>{" "}
               (X25519 + ML-KEM-768) and authorship proofs can use{" "}
-              <strong className="text-slate-100">ML-DSA-65</strong> certificates when enabled — so
-              vault material stays ready for a post-quantum world. Transport still relies on platform
-              TLS; we do not over-claim “HTTPS is PQ” until your load balancer negotiates PQ KEMs.
+              <strong className="text-slate-100">ML-DSA-65</strong> certificates when enabled.
+              Transport still relies on platform TLS; we do not claim HTTPS is post-quantum until
+              your load balancer negotiates a PQ key exchange.
             </p>
           </MarketingSection>
 
           <MarketingSection
             eyebrow="Integrations"
-            title="Sentry, e-sign, and Workspace SSO"
+            title="Sentry, Workspace SSO, and SIEM"
           >
             <p>
-              <strong className="text-slate-100">Sentry</strong> issues match Vault wins and
-              quarantine poisoned context on <code className="text-violet-300/90">/admin/ops</code>.
-              Team invites run through <strong className="text-slate-100">DocuSign</strong> or{" "}
-              <strong className="text-slate-100">Dropbox Sign</strong> (company-selectable).{" "}
+              <strong className="text-slate-100">Sentry</strong> issues match approved Vault records
+              and quarantine poisoned context on <code className="text-violet-300/90">/admin/ops</code>.{" "}
               <strong className="text-slate-100">Google Workspace SSO</strong> and company domains
-              gate corporate seats. Unconfigured panels show as unconfigured — they do not break the
-              rest of the product.
+              gate corporate seats.{" "}
+              <strong className="text-slate-100">SIEM</strong> is an OpenTelemetry JSON webhook to
+              your sink — not a Splunk marketplace app. Unconfigured panels show as unconfigured.
             </p>
           </MarketingSection>
 
-          <MarketingSection eyebrow="Token savings" title="Defensible ROI on your dashboard">
+          <MarketingSection eyebrow="Token cost" title="Defensible spend on the dashboard">
             <p>
               After you map a project and run the IDE loop, your{" "}
               <Link href="/dashboard#token-savings" className="text-amber-300 hover:underline">
                 governance dashboard
               </Link>{" "}
-              shows grouped counters: IDE verify (pass/fail/Vault/Hall), Run Script reruns, 0-token
-              optimizer packs, ingest hash skips, and pulse routing mix. A 24h rollup separates MSGF
+              shows grouped counters: IDE verify (pass/fail/Vault/Hall), script reruns, local
+              prompt packs, ingest hash skips, and routing mix. A 24-hour rollup separates MSGF
               cloud tokens from context savings you can defend to finance.
             </p>
           </MarketingSection>
 
-          <MarketingSection eyebrow="Heal Cheap" title="IDE build failures without full Pulse">
+          <MarketingSection eyebrow="Remediation" title="IDE build failures without a full Pulse">
             <p>
-              <strong className="text-[#f8fafc]">dev-event</strong> handles IDE build failures:
-              tenant Vault lexical match or a single Flash heal — never the full biometric Pulse →
-              CONVERGE chain. Your keystrokes stay on Small Brain unless drift truly escalates.
+              <strong className="text-[#f8fafc]">dev-event</strong> handles IDE build failures with a
+              Vault lexical match or a single low-cost model call — not the full telemetry and
+              consensus chain. Traffic stays on the cost-efficient path unless drift truly
+              escalates.
             </p>
           </MarketingSection>
         </div>

@@ -79,9 +79,23 @@ export default defineConfig(({ mode }) => {
   const viteMsgfAppUrl =
     env.VITE_MSGF_APP_URL ||
     env.MSGF_APP_URL ||
+    process.env.VITE_MSGF_APP_URL ||
+    process.env.MSGF_APP_URL ||
     env.MSGF_LOCAL_DEV_URL ||
     env.NEXT_PUBLIC_MSGF_APP_URL ||
     "http://127.0.0.1:3001";
+  const viteAuthorFanHub =
+    env.VITE_AUTHOR_POST_MVP_FAN_HUB ||
+    env.AUTHOR_POST_MVP_FAN_HUB ||
+    process.env.VITE_AUTHOR_POST_MVP_FAN_HUB ||
+    process.env.AUTHOR_POST_MVP_FAN_HUB ||
+    "0";
+  const viteAuthorHelper =
+    env.VITE_AUTHOR_POST_MVP_HELPER ||
+    env.AUTHOR_POST_MVP_HELPER ||
+    process.env.VITE_AUTHOR_POST_MVP_HELPER ||
+    process.env.AUTHOR_POST_MVP_HELPER ||
+    "0";
 
   return {
     plugins: [tailwindcss(), react(), spaFallbackPlugin()],
@@ -100,6 +114,8 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_AUTHOR_APP_URL": JSON.stringify(viteAuthorAppUrl),
       "import.meta.env.VITE_EDUCATION_APP_URL": JSON.stringify(viteEducationAppUrl),
       "import.meta.env.VITE_MSGF_APP_URL": JSON.stringify(viteMsgfAppUrl),
+      "import.meta.env.VITE_AUTHOR_POST_MVP_FAN_HUB": JSON.stringify(viteAuthorFanHub),
+      "import.meta.env.VITE_AUTHOR_POST_MVP_HELPER": JSON.stringify(viteAuthorHelper),
     },
     resolve: {
       /** Use `development` exports (TypeScript source) — `dist/*.js` is not built in every clone. */

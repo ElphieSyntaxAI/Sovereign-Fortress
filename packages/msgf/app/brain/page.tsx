@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * `/brain` — MSGF brand / marketing landing.
@@ -22,9 +22,9 @@ import type { Metadata } from "next";
 import { HomeLanding } from "@/app/_components/landing/HomeLanding";
 
 export const metadata: Metadata = {
-  title: "MSGF — Gated AI · Brand · Elphie Syntax",
+  title: "MSGF — AI gateway · Elphie Syntax",
   description:
-    "Prefrontal cortex for AI — from IDE to cloud. MSGF V3.2 — Command Center, verify loop, six pillars, and defensible token savings.",
+    "MSGF is an AI gateway: six policy domains, IDE verify, model routing and consensus, audit console, Session Replay, Sentry quarantine, Workspace SSO, SIEM, and defensible token-cost reporting.",
 };
 
 export default function Page() {

@@ -11,7 +11,7 @@ export type MonorepoProductPreset = {
 export const MONOREPO_PRODUCT_PRESETS: readonly MonorepoProductPreset[] = [
   {
     id: "msgf-gated-ai",
-    label: "MSGF Gated AI",
+    label: "MSGF",
     projectOrigin: "elphiesyntax/msgf",
     productPath: "packages/msgf",
   },

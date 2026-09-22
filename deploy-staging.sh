@@ -10,9 +10,12 @@ cd "${SCRIPT_DIR}"
 STAGING_ENV="${CLOUDRUN_ENV_FILE:-.env.cloudrun.staging}"
 
 if [[ ! -f "${STAGING_ENV}" ]]; then
-  echo "Missing ${STAGING_ENV} — copy env.cloudrun.staging.example and fill staging Supabase + URLs." >&2
+  echo "Missing ${STAGING_ENV} — run: npm run staging:prepare" >&2
+  echo "(after packages/msgf/.env.staging.local has a real staging Supabase project, not YOUR_STAGING_REF)" >&2
   exit 1
 fi
+
+node scripts/staging-preflight.mjs --env-file "${STAGING_ENV}"
 
 export DEPLOY_ENV=staging
 export CLOUDRUN_ENV_FILE="${STAGING_ENV}"

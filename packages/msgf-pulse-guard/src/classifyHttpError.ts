@@ -38,7 +38,7 @@ const FIX = {
     "Copy a fresh token from Workspace → IDE setup.",
   ],
   tenant: [
-    "Map the project at Gated AI → Setup projects (e.g. deckhostwmsgf/deck_host).",
+    "Map the project at MSGF → Setup projects (e.g. deckhostwmsgf/deck_host).",
     "Set msgf.tenantKey to the mapped project_origin exactly.",
   ],
   gateway504: [

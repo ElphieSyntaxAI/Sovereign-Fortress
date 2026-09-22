@@ -1,9 +1,21 @@
 import { Router, type Request, type Response } from "express";
 
 import { readBearerUser } from "../lib/readBearerJwtUser.js";
+import {
+  authorPostMvpDisabledPayload,
+  isAuthorFanHubEnabled,
+} from "../lib/postMvpGates.js";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
 
 export const fanHubController = Router();
+
+fanHubController.use((_req, res, next) => {
+  if (!isAuthorFanHubEnabled()) {
+    res.status(404).json(authorPostMvpDisabledPayload("author_fan_hub"));
+    return;
+  }
+  next();
+});
 
 const DEFAULT_MODULES = {
   polls: true,

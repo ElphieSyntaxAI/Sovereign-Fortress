@@ -8,10 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import { DropboxSignSigningProvider } from "@/lib/services/signing/DropboxSignSigningProvider";
 import { processSigningWebhookCompletion } from "@/lib/services/signing/processSigningWebhook";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -19,6 +20,9 @@ import { createAdminClient } from "@/utils/supabase/admin";
 const provider = new DropboxSignSigningProvider();
 
 export async function POST(req: NextRequest) {
+  if (!isPostMvpFeatureEnabled("signing")) {
+    return NextResponse.json(postMvpDisabledPayload("signing"), { status: 404 });
+  }
   const rawBody = await req.text();
 
   if (!provider.verifyWebhook(rawBody, req.headers)) {

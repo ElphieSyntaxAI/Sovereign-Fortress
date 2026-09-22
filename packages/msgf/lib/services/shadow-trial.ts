@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Free 7-day Shadow Proxy trials — mint keys, start clock on first eval, end-of-window reports.
@@ -329,7 +329,7 @@ function buildWelcomeEmailHtml(input: {
 <p><strong>MSGF key (save this — shown once):</strong><br/><code>${input.msgfKey}</code></p>
 <p><strong>Live savings dashboard:</strong><br/><a href="${input.statusUrl}">${input.statusUrl}</a></p>
 <p>If the key is unused, it expires ${unusedBy}. After your first call we email a proof report when the 7-day window closes, with a CTA to start 3-day Individual Pro full access.</p>
-<p>— Elphie Syntax · MSGF Gated AI</p>
+<p>— Elphie Syntax · MSGF</p>
 `.trim();
 }
 
@@ -358,7 +358,7 @@ function buildReportEmailHtml(input: {
 <p><em>Disclaimer:</em> ${SHADOW_PROOF_SCOPE_DISCLAIMER}</p>
 <p>Review the live ledger: <a href="${input.statusUrl}">${input.statusUrl}</a></p>
 <p><strong>Next:</strong> <a href="${fullCta}">Start 3-day full access</a> — apply these reputation promotes/blocks immediately, then Individual Pro cloud (dashboard, Pulse, IDE token, Active Governance, Vault/Hall) on the same tenant as this proof ledger.</p>
-<p>— Elphie Syntax · MSGF Gated AI</p>
+<p>— Elphie Syntax · MSGF</p>
 `.trim();
 }
 

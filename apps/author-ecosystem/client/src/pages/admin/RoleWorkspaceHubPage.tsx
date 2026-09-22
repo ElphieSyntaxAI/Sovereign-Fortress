@@ -8,6 +8,8 @@ import {
 } from "../../context/AuthorRoleContext";
 import { useAuthorWorkspaceLens } from "../../context/AuthorWorkspaceLensContext";
 import { ROLE_WORKSPACE_HOME } from "../../lib/authorAdminNavConfig";
+import { isAuthorFanHubEnabled, isAuthorHelperEnabled } from "../../lib/postMvpGates";
+import { PostMvpPlaceholder } from "../PostMvpPlaceholder";
 
 const VALID_ROLES = new Set<string>(AUTHOR_ROLE_OPTIONS.map((r) => r.id));
 
@@ -19,11 +21,13 @@ export default function RoleWorkspaceHubPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const role = (roleId?.toLowerCase() ?? "") as AuthorRoleId;
+  const helperGated = role === "helper" && !isAuthorHelperEnabled();
+  const fanGated = role === "fan" && !isAuthorFanHubEnabled();
   const home = VALID_ROLES.has(role) ? ROLE_WORKSPACE_HOME[role] : null;
   const label = AUTHOR_ROLE_OPTIONS.find((r) => r.id === role)?.label ?? role;
 
   useEffect(() => {
-    if (!home) return;
+    if (helperGated || fanGated || !home) return;
 
     void (async () => {
       if (role === "fan") {
@@ -52,7 +56,35 @@ export default function RoleWorkspaceHubPage() {
       setLens(home.lens);
       navigate(home.path, { replace: true });
     })();
-  }, [home, role, user?.persona, user?.activated_personas, switchPersona, setLens, navigate, label]);
+  }, [
+    helperGated,
+    fanGated,
+    home,
+    role,
+    user?.persona,
+    user?.activated_personas,
+    switchPersona,
+    setLens,
+    navigate,
+    label,
+  ]);
+
+  if (helperGated) {
+    return (
+      <PostMvpPlaceholder
+        title="Helper guild"
+        body="Helper seats and the Creative Guild are deferred until after the Author three-seat launch."
+      />
+    );
+  }
+  if (fanGated) {
+    return (
+      <PostMvpPlaceholder
+        title="Fan hub"
+        body="Fan management is deferred until after the Author three-seat launch."
+      />
+    );
+  }
 
   if (!home) {
     return (

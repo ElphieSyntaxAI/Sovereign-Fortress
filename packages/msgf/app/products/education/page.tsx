@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * /products/education — "Find out more" detail page for Syntax Education.
@@ -22,7 +22,7 @@ import { canAccessPrelaunchProducts } from "@/lib/prelaunch-product-access";
 export const metadata: Metadata = {
   title: "Syntax Education · Elphie Syntax",
   description:
-    "Socratic sandbox with grade-aware AI Allowance. Layered Workspace Control, Canvas LTI 1.3, Human Effort Certificate, approved curriculum slicing, and reading dependency triggers.",
+    "Socratic sandbox with grade-aware AI allowance. Layered workspace control, Canvas LTI 1.3, Human Effort Certificate, approved curriculum slicing, and reading dependency triggers.",
 };
 
 export default async function Page() {
@@ -45,7 +45,7 @@ export default async function Page() {
       liveLabel="Open Syntax Education"
       roadmapDocPath="docs/syntax-education/ROADMAP.md"
       metrics={[
-        { label: "Pillars", value: "6", hint: "Mapped to MSGF P1–P6" },
+        { label: "Policy domains", value: "6", hint: "Mapped to MSGF P1–P6" },
         { label: "AI Allowance", value: "L0 → L4", hint: "Zero · Resource · Scaffold · Socratic · Sandbox" },
         { label: "Phases", value: "3", hint: "ELA/History · Math/Sci · Scale & compliance" },
         { label: "External hosts", value: "GW + M365", hint: "Google Workspace · Microsoft 365 · MV3" },

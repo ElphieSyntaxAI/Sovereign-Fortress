@@ -9,6 +9,7 @@ import {
 } from "@elphie-syntax/core/platform-admin-auth";
 
 import type { AuthorRoleId } from "../context/AuthorRoleContext";
+import { isAuthorFanHubEnabled, isAuthorHelperEnabled } from "./postMvpGates";
 
 export type AuthorAdminNavItem = {
   id: string;
@@ -55,8 +56,8 @@ export function authorAdminProducts(): AuthorAdminProduct[] {
   return [
     {
       id: "msgf",
-      title: "MSGF — Gated AI",
-      summary: "Ops console, pillar health, bugs, and Author tenant token savings.",
+      title: "MSGF — AI gateway",
+      summary: "Ops console, policy-domain health, bugs, and Author tenant token savings.",
       href: msgfLinks.portal,
       external: true,
       tone: "emerald",
@@ -64,7 +65,7 @@ export function authorAdminProducts(): AuthorAdminProduct[] {
     {
       id: "author",
       title: "Author Ecosystem",
-      summary: "Sovereign manuscripts, wiki, HAL, and Vault Pact.",
+      summary: "Manuscripts, wiki, authorship attestation, and no-training agreement.",
       href: `${author}/home`,
       external: typeof window !== "undefined" && !window.location.origin.includes("localhost")
         ? window.location.hostname !== "authorecosystem.elphiesyntax.com"
@@ -146,3 +147,11 @@ export const AUTHOR_ADMIN_NAV: AuthorAdminNavItem[] = [
     matchPrefix: "/admin/notifications",
   },
 ];
+
+export function authorAdminNavItems(): AuthorAdminNavItem[] {
+  return AUTHOR_ADMIN_NAV.filter((item) => {
+    if (item.roleId === "helper" && !isAuthorHelperEnabled()) return false;
+    if (item.roleId === "fan" && !isAuthorFanHubEnabled()) return false;
+    return true;
+  });
+}

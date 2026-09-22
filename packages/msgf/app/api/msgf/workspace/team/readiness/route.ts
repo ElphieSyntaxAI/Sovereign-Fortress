@@ -8,11 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import { resolveOrCreateCompanyForAdmin } from "@/lib/services/company-team";
 import {
   getTeamReadiness,
@@ -68,6 +69,15 @@ export async function PATCH(req: NextRequest) {
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: "Invalid body." }, { status: 400 });
+    }
+    if (parsed.data.signing_provider && !isPostMvpFeatureEnabled("signing")) {
+      return NextResponse.json(postMvpDisabledPayload("signing"), { status: 404 });
+    }
+    if (
+      parsed.data.dropbox_archive_path !== undefined &&
+      !isPostMvpFeatureEnabled("dropbox_archive")
+    ) {
+      return NextResponse.json(postMvpDisabledPayload("dropbox_archive"), { status: 404 });
     }
     await updateCompanySigningSettings(session.admin, companyId, parsed.data);
     const readiness = await getTeamReadiness(session.admin, companyId);

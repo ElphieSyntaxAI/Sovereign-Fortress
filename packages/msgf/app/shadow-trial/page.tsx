@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { Suspense } from "react";
 
@@ -16,9 +16,9 @@ import { AuthLandingNav } from "@/app/_components/landing/AuthLandingNav";
 import { ShadowTrialPanel } from "@/app/_components/marketing/ShadowTrialPanel";
 
 export const metadata = {
-  title: "Free 7-day Shadow Proxy trial | MSGF Gated AI",
+  title: "Free 7-day shadow-mode trial | MSGF",
   description:
-    "Prove projected bill savings in zero-latency Shadow mode. Clock starts on first call. Then start 3-day Individual Pro full access.",
+    "Prove projected bill savings in observe-only shadow mode. Clock starts on first call. Then start 3-day Individual Pro full access.",
 };
 
 type PageProps = {

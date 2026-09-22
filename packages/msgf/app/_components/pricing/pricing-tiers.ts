@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import type { PricingTierConfig } from "./PricingCard";
 
@@ -19,11 +19,11 @@ export const PRICING_TIERS: PricingTierConfig[] = [
     priceLabel: "$0",
     priceSuffix: "/ forever",
     description:
-      "Fully open local six-pillar tracking with complete project data isolation.",
+      "Local six-domain tracking with complete project data isolation.",
     bullets: [
-      "Fully open local 6-Pillar tracking metrics",
+      "Local 6-domain tracking metrics",
       "Complete local project data isolation",
-      "BYOK for Claude, Gemini, and optional Grok (.msgf/keys/) — dual or TRI consensus when you wire keys",
+      "Bring your own keys for Claude, Gemini, and optional Grok — dual or three-model consensus when you wire keys",
     ],
     cta: {
       kind: "extension_download",
@@ -38,8 +38,8 @@ export const PRICING_TIERS: PricingTierConfig[] = [
     description: "Own the software forever. Year 1 managed cloud consensus included.",
     bullets: [
       "Own the software forever",
-      "Includes 1 Year of Managed Cloud Consensus Core (1,200 verification slices / month)",
-      "Zero configuration — Claude / Gemini / Grok TRI path on our cloud when enabled",
+      "Includes 1 year of managed cloud consensus (1,200 verification credits / month)",
+      "Zero configuration — Claude / Gemini / Grok three-model path on our cloud when enabled",
       "Falls back gracefully to 100% BYOK mode after Year 1 if you skip cloud maintenance renewal",
     ],
     featured: true,
@@ -55,14 +55,14 @@ export const PRICING_TIERS: PricingTierConfig[] = [
     priceLabel: "$49",
     priceSuffix: "/ user / mo",
     description:
-      "Multi-tenant corporate workspace with ARBITRATE, audit hub, Session Replay, budgets, and SIEM.",
+      "Multi-tenant corporate workspace with human review, audit console, Session Replay, budgets, and SIEM.",
     bullets: [
-      "Multi-tenant corporate workspace organization scopes",
-      "Global ARBITRATE + trusted-OSS bulk triage + signed A6 audits",
-      "Audit hub, Session Replay / harm ledger, most-used resources, model fitness, diff impact",
+      "Multi-tenant corporate workspace scopes",
+      "Global human review + trusted-OSS bulk triage + signed audit snapshots",
+      "Audit console, Session Replay, security event log, most-used resources, model fitness, diff impact",
       "Tenant budgets / circuit breaker + SIEM webhook export",
-      "Sentry quarantine + DocuSign / Dropbox Sign ops panels",
-      "Custom company-wide P1 rulebooks, Workspace SSO, and shared incident review logs",
+      "Sentry quarantine + Workspace SSO",
+      "Custom company policy packs, Workspace SSO, and shared incident review logs",
     ],
     cta: {
       kind: "stripe_checkout",

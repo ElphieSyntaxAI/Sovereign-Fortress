@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -495,12 +507,12 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
         Token savings layer
       </p>
       <h2 className="mt-1 text-lg font-semibold text-slate-50">
-        {operatorView ? "Small Brain + Big Brain (operator)" : "Your workspace — Small Brain"}
+        {operatorView ? "Cost-efficient + frontier routing (operator)" : "Your workspace — cost-efficient routing"}
       </h2>
       <p className="mt-2 text-sm text-slate-400">
         {operatorView ? (
           <>
-            Tenant-local efficiency counters plus full catalog. Big Brain escalations are in{" "}
+            Tenant-local efficiency counters plus full catalog. Frontier / consensus escalations are in{" "}
             <a href="#big-brain-issues" className="text-violet-300 hover:underline">
               operator queue
             </a>{" "}
@@ -521,7 +533,7 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
       {!operatorView && summary.small_brain_pulse_pct > 0 ? (
         <p className="mt-2 text-sm text-slate-300">
           <strong className="text-cyan-300">{summary.small_brain_pulse_pct}%</strong> of your pulses
-          stayed on Small Brain (local / bypass) in the last 24h.
+          stayed on cost-efficient routing (local / bypass) in the last 24h.
         </p>
       ) : null}
 
@@ -627,7 +639,7 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
         />
       </MetricGroup>
 
-      <MetricGroup title="Pulse routing" subtitle="Small Brain vs Big Brain (24h)">
+      <MetricGroup title="Request routing" subtitle="Cost-efficient vs frontier (24h)">
         <Metric
           label="Dev-session pulses"
           value={counters.dev_session_pulses}
@@ -669,7 +681,7 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
             <>
               {" "}
               <span className="text-cyan-200/90">
-                Big Brain idle (0 global CONVERGE) — expected when dev-session, Run Scripts, and Safe Build
+                Frontier routing idle (0 global consensus) — expected when IDE verify, Run Scripts, and Safe Build
                 handle verify. Tenant memory still grows via Vault/Hall on verify, dev-event, and ingest.
               </span>
             </>
@@ -711,7 +723,7 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
                     : "rounded bg-cyan-500/15 px-1.5 py-0.5 text-cyan-300"
                 }
               >
-                {entry.brain_tier === "big_brain" ? "Big Brain" : "Small Brain"}
+                {entry.brain_tier === "big_brain" ? "Frontier" : "Cost-efficient"}
               </span>
               {entry.requires_admin_for_global ? (
                 <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-200">

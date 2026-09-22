@@ -8,13 +8,15 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { SigningProviderId } from "@/lib/services/signing/SigningProvider";
+import { isProductionDeploy } from "@/lib/deploy-env";
 
 export function signingMockMode(): boolean {
+  if (isProductionDeploy()) return false;
   const a = process.env.MSGF_SIGNING_MOCK?.trim().toLowerCase();
   const b = process.env.MSGF_DOCUSIGN_MOCK?.trim().toLowerCase();
   return a === "1" || a === "true" || b === "1" || b === "true";

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 
@@ -39,8 +39,8 @@ export function ShippedCapabilitiesStrip() {
             <Link href="/admin/ops" className="text-violet-300/90 underline-offset-2 hover:underline">
               /admin/ops
             </Link>{" "}
-            for audit hub, Session Replay, budgets, SIEM, Sentry quarantine, and DocuSign / Dropbox
-            Sign when configured. Vault and Hall update from verify even when Big Brain CONVERGE is
+            for audit hub, Session Replay, budgets, SIEM, Sentry quarantine, and Workspace SSO
+            when configured. Vault (approved outcomes) and Hall (rejected outcomes) update from verify even when frontier consensus is
             idle.
           </p>
         </div>

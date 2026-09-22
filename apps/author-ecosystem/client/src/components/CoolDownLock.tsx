@@ -260,8 +260,8 @@ export function CoolDownLock(props: CoolDownLockProps) {
                   Manuscript is hardening in the Vault
                 </h2>
                 <p id="vault-cooling-desc" className={`mt-2 max-w-prose text-sm leading-relaxed ${VAULT_GREEN.muted}`}>
-                  Phase 2 read-only gate: inputs are frozen while the cool-down lock is active. Librarian and Critic run
-                  bicameral passes for the revision report; work is being hardened under the Vault Seal.
+                  Phase 2 read-only gate: inputs are frozen while revision cooldown is active. Librarian and Critic run
+                  dual review passes for the revision report.
                 </p>
               </div>
               <div
@@ -274,7 +274,7 @@ export function CoolDownLock(props: CoolDownLockProps) {
 
             <div className="relative space-y-2">
               <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-emerald-200/85">
-                <span>Bicameral progress</span>
+                <span>Dual-review progress</span>
                 <span className="text-emerald-400">Vault hardened</span>
               </div>
               <p className="text-xs text-zinc-500">

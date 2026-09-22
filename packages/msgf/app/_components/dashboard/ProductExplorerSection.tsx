@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Product family explorer — primary-dashboard launchpad for the three customer-facing
@@ -56,15 +56,15 @@ const EDUCATION_APP_URL =
 const PRODUCTS: ProductCard[] = [
   {
     id: "msgf",
-    eyebrow: "Brain · Engine",
-    title: "MSGF — Gated AI",
-    tagline: "Stateful, self-defending AI orchestration",
+    eyebrow: "AI gateway",
+    title: "MSGF",
+    tagline: "AI gateway with context governance",
     summary:
-      "MSGF V3.2: six-pillar glass box, IDE Command Center, Grok-aware TRI consensus, Sentry→Vault quarantine, DocuSign/Dropbox Sign, and quantum-ready hybrid vault crypto.",
+      "Six isolated policy domains, IDE verify, model routing and consensus, Sentry → Vault quarantine, Workspace SSO, SIEM, and optional post-quantum Vault envelopes.",
     bullets: [
-      "0-token prompt optimizer + Run Scripts / Safe Build + deploy-gate",
-      "Model presets + Big Brain TRI · quantum-ready hybrid KEM envelopes",
-      "Sentry quarantine · e-sign invites · Workspace SSO on /admin/ops",
+      "Local prompt compiler + verify scripts / Safe Build + deploy gate",
+      "Routing presets + three-model consensus on high drift",
+      "Sentry quarantine · Workspace SSO · SIEM webhook on /admin/ops",
     ],
     detailHref: "/products/msgf",
     liveUrl: MSGF_APP_URL,
@@ -73,15 +73,15 @@ const PRODUCTS: ProductCard[] = [
   },
   {
     id: "author",
-    eyebrow: "Creative Integrity Flywheel",
+    eyebrow: "Authors · editors · publishers",
     title: "Author Ecosystem",
-    tagline: "From “Protecting the Work” to “Perfecting the Work”",
+    tagline: "Protect the work, then perfect it",
     summary:
-      "Sovereign narrative infrastructure for authors. HAL Ledger biometric proof, Vault Pact zero-training NDA, Cool Down revision locks, bicameral Librarian + Critic audit, and the Publisher Hub anonymized scouting feed.",
+      "Manuscript workspace for authors: authorship attestation, no-training agreement (Vault Pact), revision cooldown, dual Librarian + Critic review, and a publisher discovery feed.",
     bullets: [
-      "Phase 1 — HAL v2 Certificate, Author RAG, unified registration",
-      "Phase 2 — Cool Down lock, revision reports, Editor Suite, Guild",
-      "Phase 3 — Multimedia Vault, sales graphs, Personality Lore Bots",
+      "Phase 1 — authorship certificate, manuscript RAG, unified registration",
+      "Phase 2 — revision cooldown, revision reports, editor suite",
+      "Phase 3 — multimedia library, sales graphs, character lore bots",
     ],
     detailHref: "/products/author",
     liveUrl: AUTHOR_APP_URL,

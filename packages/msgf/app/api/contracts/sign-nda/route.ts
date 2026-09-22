@@ -8,11 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import { ContractAutomationService, clientIpFromHeaders, type LegalContractParty } from "@msgf/lib/ContractAutomationBridge";
 import { createServiceRoleClient } from "@msgf/lib/supabase/service-role";
 import { createClient } from "@/utils/supabase/server";
@@ -31,6 +32,9 @@ function parseParty(v: unknown): LegalContractParty | null {
  * on full execution stores receipt hash and POSTs optional `CONTRACT_RECEIPT_EMAIL_WEBHOOK_URL`.
  */
 export async function POST(req: Request) {
+  if (!isPostMvpFeatureEnabled("author_helper")) {
+    return NextResponse.json(postMvpDisabledPayload("author_helper"), { status: 404 });
+  }
   const cookieStore = await cookies();
   const authClient = createClient(cookieStore);
   const {

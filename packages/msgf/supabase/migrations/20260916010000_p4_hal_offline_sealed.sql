@@ -2,6 +2,11 @@
 -- @msgf-license-header
 -- Proprietary and Confidential
 -- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
 -- =============================================================================
 -- HAL offline sealed lease + accepted batch replay protection.
 -- Verified offline_sealed sessions are full-value authorship (same rolling-5 as live).

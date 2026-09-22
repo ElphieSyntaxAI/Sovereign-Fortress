@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -25,7 +25,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Workspace · Elphie's Gated AI",
+  title: "Workspace · MSGF",
   description: "Map projects, mint IDE tokens, and connect Pulse Guard in one place.",
 };
 

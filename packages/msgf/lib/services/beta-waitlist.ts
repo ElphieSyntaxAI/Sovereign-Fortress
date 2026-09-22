@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Beta / foundational testing waitlist — MSGF, Author, Education interest.
@@ -39,7 +39,7 @@ export type BetaWaitlistRow = {
 };
 
 const PRODUCT_LABEL: Record<BetaWaitlistProduct, string> = {
-  msgf: "MSGF — Gated AI (beta testing)",
+  msgf: "MSGF — AI gateway (beta testing)",
   author: "Author Ecosystem (foundational testing)",
   education: "Syntax Education (in development)",
 };

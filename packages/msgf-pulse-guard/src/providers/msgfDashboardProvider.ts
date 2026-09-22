@@ -276,7 +276,7 @@ export class MSGFDashboardProvider implements vscode.WebviewViewProvider {
       return {
         tone: "connected",
         label: "Live · tenant mapped",
-        detail: `${tenantKey} · Gated AI connected`,
+        detail: `${tenantKey} · MSGF connected`,
       };
     }
 

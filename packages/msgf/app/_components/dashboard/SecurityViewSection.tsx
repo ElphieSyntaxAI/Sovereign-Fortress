@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -535,7 +547,7 @@ function DevSecurityPanel({
           <SecurityMetricCard
             label="IDE dev-events"
             value={d.dev_events}
-            hint={`${d.dev_event_vault_hits} vault hits · Heal Cheap path`}
+            hint={`${d.dev_event_vault_hits} vault hits · low-cost remediation`}
             accent="cyan"
           />
           <SecurityMetricCard
@@ -593,8 +605,8 @@ function TenantSecurityPanel({
       aria-label="Tenant security"
     >
       <p className="text-sm text-slate-400">
-        Routine pulses stay on <strong className="text-emerald-200/90">Small Brain</strong>. Global
-        CONVERGE and DNA promotion stay operator-gated — your tenant silo learns locally via Vault/Hall.
+        Routine requests stay on <strong className="text-emerald-200/90">cost-efficient routing</strong>. Global
+        consensus and DNA promotion stay operator-gated — your tenant silo learns locally via Vault/Hall.
       </p>
       {error ? (
         <p className="text-sm text-amber-200/90">{error}</p>
@@ -607,7 +619,7 @@ function TenantSecurityPanel({
           <SecurityMetricCard
             label="Incident queue"
             value={governance.pendingTotal}
-            hint="Pending ARBITRATE items across pillars"
+            hint="Pending human-review items across policy domains"
             accent={governance.pendingTotal > 0 ? "amber" : "emerald"}
           />
           <SecurityMetricCard
@@ -638,7 +650,7 @@ function TenantSecurityPanel({
       {t ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <SecurityMetricCard
-            label="Small Brain share"
+            label="Cost-efficient share"
             value={t.total_pulses > 0 ? `${t.local_or_bypass_pct}%` : "—"}
             hint={
               t.total_pulses > 0
@@ -652,7 +664,7 @@ function TenantSecurityPanel({
             value={t.global_converge}
             hint={
               t.global_converge === 0
-                ? "Big Brain idle — expected for IDE-heavy work"
+                ? "Frontier routing idle — expected for IDE-heavy work"
                 : "Escalations — operators review global DNA"
             }
             accent={t.global_converge > 0 ? "violet" : "emerald"}
@@ -671,7 +683,7 @@ function TenantSecurityPanel({
           />
           {bigBrainPending != null && bigBrainPending > 0 ? (
             <SecurityMetricCard
-              label="Big Brain pending"
+              label="Frontier pending"
               value={bigBrainPending}
               hint="Items escalated — see heal console below"
               accent="violet"

@@ -55,10 +55,14 @@ Algorithm claim: **ML-DSA-65 (FIPS 204 algorithm family)**. Not a FIPS-validated
 
 ## 6. Platform PQ-TLS checklist
 
-- [ ] Cloud Run / HTTPS LB: enable hybrid PQ when Google offers it for the region
-- [ ] Confirm client (browser / Node) support for negotiated PQ KEMs
+Google Cloud Application / proxy load balancers support frontend hybrid KEX **`X25519MLKEM768`** via SSL policy `post-quantum-key-exchange` (`ENABLED` | `DEFAULT` | `DEFERRED`). Docs: [Post-quantum TLS](https://docs.cloud.google.com/load-balancing/docs/post-quantum-tls). Google plans **default ENABLED October 2026**. This is **client → load balancer only**, not Cloud Run→Supabase or Redis.
+
+- [ ] Confirm `elphiesgatedai` terminates on a `TargetHttpsProxy` we control (required to attach SSL policy)
+- [ ] Create SSL policy with `--post-quantum-key-exchange ENABLED` (min TLS 1.3 recommended) and attach to the proxy
+- [ ] Confirm a PQ-capable client negotiates the hybrid group; non-PQ clients still connect
 - [ ] Upstash / Redis TLS: reject unauthorized CAs in prod
-- [ ] Document that app hybrid envelopes complement, not replace, transport TLS
+- [ ] Document that app hybrid envelopes (`0x03`) complement, not replace, transport TLS
+- [ ] **Do not claim** Pulse bodies, Supabase, or Redis are post-quantum because the LB is
 
 ## 7. Implementation map (this delivery)
 

@@ -8,19 +8,21 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Sustainable Compute Layer telemetry service.
  *
- * REDIS_URL is treated as the live-stream boundary. When it is unmapped in
- * local development or client staging, this service returns deterministic green
- * metrics so dashboard rendering and V3.2 tests stay stable.
+ * Live streams read Supabase. Fabricated demo tenants/events are local/staging
+ * only (`allowMockTelemetry`). Production returns empty live data instead.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { allowMockTelemetry } from "@/lib/deploy-env";
 import {
+  emptyDashboardHealthReport,
+  emptyTenantTelemetry24h,
   fetchTenantTelemetry24hFromSupabase,
   hasLiveDashboardDatabaseEnv,
   mapHealthReportToTickerEvents,
@@ -49,7 +51,7 @@ export type DailyDigestResult = {
 
 export class TelemetryService {
   private shouldUseMockData(): boolean {
-    return !process.env.REDIS_URL?.trim() || !hasLiveDashboardDatabaseEnv();
+    return allowMockTelemetry() && !hasLiveDashboardDatabaseEnv();
   }
 
   private mode(): TelemetryServiceMode {
@@ -57,28 +59,27 @@ export class TelemetryService {
   }
 
   async getNotificationStream(adminSupabase?: SupabaseClient): Promise<NotificationStreamResult> {
-    const useMock = this.shouldUseMockData() || !adminSupabase;
+    const useMock = this.shouldUseMockData() || (allowMockTelemetry() && !adminSupabase);
     const report = useMock
       ? mockDashboardHealthReport()
-      : await healthService.getPillarHealth(adminSupabase, { userId: null, lookbackHours: 24 });
+      : adminSupabase
+        ? await healthService.getPillarHealth(adminSupabase, { userId: null, lookbackHours: 24 })
+        : emptyDashboardHealthReport();
 
     return {
       mode: useMock ? "mock" : "live",
       generated_at: report.generated_at,
-      events: mapHealthReportToTickerEvents(report).map((event) => ({
-        ...event,
-        eco_metrics:
-          event.eco_metrics ??
-          (event.type === "INFO" ? this.greenFallbackEcoMetrics() : undefined),
-      })),
+      events: mapHealthReportToTickerEvents(report),
     };
   }
 
   async generateDailyDigest(adminSupabase?: SupabaseClient): Promise<DailyDigestResult> {
-    const useMock = this.shouldUseMockData() || !adminSupabase;
+    const useMock = this.shouldUseMockData() || (allowMockTelemetry() && !adminSupabase);
     const telemetry = useMock
       ? mockTenantTelemetry24h()
-      : await fetchTenantTelemetry24hFromSupabase(adminSupabase);
+      : adminSupabase
+        ? await fetchTenantTelemetry24hFromSupabase(adminSupabase)
+        : emptyTenantTelemetry24h();
     const report = transformDailyNetworkReport(telemetry);
 
     if (!useMock && adminSupabase) {
@@ -89,12 +90,6 @@ export class TelemetryService {
       mode: useMock ? "mock" : "live",
       report,
     };
-  }
-
-  private greenFallbackEcoMetrics(): EcoMetrics {
-    return calculateEcoSavings(
-      mockTenantTelemetry24h().reduce((sum, tenant) => sum + tenant.token_compute_saved_by_p5, 0)
-    );
   }
 
   private async persistEcoMetrics(

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 
@@ -27,62 +27,62 @@ import { PublicSiblingProductsSection } from "./PublicSiblingProductsSection";
 const PILLARS = [
   {
     id: "P1",
-    title: "Human Authorship Ledger",
-    body: "Rhythm telemetry and HAL signals — how input arrived, sealed for every gated interaction.",
+    title: "Policy & compliance",
+    body: "Blocking rules for unsafe or out-of-policy changes before they reach the model.",
     accent: "emerald" as const,
   },
   {
     id: "P2",
-    title: "Flow & Consensus",
-    body: "Ordered gates: ingest, verify, dual or TRI-majority arbitrate, persist — no step-skipping.",
+    title: "Change flow",
+    body: "Deployment order, multi-file dependencies, and verify-before-ship gates.",
     accent: "purple" as const,
   },
   {
     id: "P3",
-    title: "Entity Profiles",
-    body: "Tenant roles, entitlements, and credit metering tied to sovereign identity.",
+    title: "Identity & tenancy",
+    body: "Roles, tokens, entitlements, and tenant isolation.",
     accent: "emerald" as const,
   },
   {
     id: "P4",
-    title: "State Ledger",
-    body: "Hot-layer beats and revision locks — nanosecond validation before AI acts.",
+    title: "Session state",
+    body: "Live session telemetry and revision locks before the model acts.",
     accent: "purple" as const,
   },
   {
     id: "P5",
-    title: "Narrative Audit",
-    body: "Forensic bundles and audit lines you can read, not hidden model chatter.",
+    title: "Local context",
+    body: "Sharded module context so prompts do not carry unused files.",
     accent: "emerald" as const,
   },
   {
     id: "P6",
-    title: "Vault & Hall",
-    body: "Proven fixes in the Vault; failed logic in the Hall — lineage you can inspect.",
+    title: "Approved vs rejected memory",
+    body: "Vault stores approved outcomes; Hall stores failed outcomes — inspectable lineage.",
     accent: "purple" as const,
   },
 ];
 
-const BRAIN_COMPARISON = [
+const GATEWAY_COMPARISON = [
   {
-    human: "Prefrontal cortex",
-    msgf: "DEFEND / GATE",
+    ungoverned: "Calls go straight to the model",
+    msgf: "AI gateway in front of the provider",
   },
   {
-    human: "Working memory",
-    msgf: "Hot SHARD / State Ledger",
+    ungoverned: "Unbounded prompt context",
+    msgf: "Policy checks before spend",
   },
   {
-    human: "Long-term learning",
-    msgf: "Vault + Hall",
+    ungoverned: "No record of what worked or failed",
+    msgf: "Approved vs rejected stores (Vault / Hall)",
   },
   {
-    human: "Habit vs deliberation",
-    msgf: "Small Brain vs Big Brain",
+    ungoverned: "One model for every request",
+    msgf: "Cost-efficient vs frontier routing",
   },
   {
-    human: "Error memory",
-    msgf: "Source reputation (P7) + quarantine",
+    ungoverned: "No source provenance",
+    msgf: "Source reputation and quarantine",
   },
 ] as const;
 
@@ -107,55 +107,36 @@ export function HomeLanding() {
         <section className="mx-auto max-w-6xl px-5 pb-16 pt-12 sm:pt-20">
           <div className="glass-panel glass-panel-emerald mx-auto max-w-4xl rounded-3xl px-6 py-10 sm:px-10 sm:py-14">
             <p className="text-center text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300/90">
-              MSGF V3.2 · Gated AI
+              MSGF · AI gateway
             </p>
             <h1 className="mt-4 text-center text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-              <span className="text-gradient-jewel">Prefrontal cortex</span>
-              <span className="text-slate-100"> for AI</span>
-              <br className="hidden sm:block" />
-              <span className="text-slate-300">from IDE to cloud.</span>
+              <span className="text-gradient-jewel">The layer between you</span>
+              <span className="text-slate-100"> and the model</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-center text-base leading-relaxed text-slate-400 sm:text-lg">
-              Six pillars, Grok-aware model presets, TRI majority CONVERGE when drift demands it,
-              human-proof HITL with Session Replay and SIEM export, Sentry→Vault quarantine, DocuSign /
-              Dropbox Sign team gates, and{" "}
-              <strong className="font-medium text-slate-200">quantum-ready</strong> hybrid envelopes
-              for vault secrets — plus a native{" "}
-              <strong className="font-medium text-slate-200">Command Center</strong> that optimizes
-              prompts locally and feeds a defensible token savings dashboard.
+              MSGF is an AI gateway. It inspects and organizes context so low-quality data does not
+              poison the next prompt.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <Link
                 href="/shadow-trial"
                 className="w-full rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-violet-600 px-8 py-3.5 text-center text-sm font-semibold text-white shadow-xl shadow-emerald-900/25 transition hover:brightness-110 sm:w-auto"
               >
-                Try free 7-day Shadow Proxy
-              </Link>
-              <Link
-                href="/sign-up"
-                className="w-full rounded-full border border-emerald-400/30 bg-emerald-500/10 px-8 py-3.5 text-center text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/20 sm:w-auto"
-              >
-                Join beta
-              </Link>
-              <Link
-                href="/getting-started"
-                className="w-full rounded-full border border-emerald-400/30 bg-emerald-500/10 px-8 py-3.5 text-center text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/20 sm:w-auto"
-              >
-                Install the extension
+                Start 7-day shadow-mode trial
               </Link>
               <Link
                 href="/features"
                 className="w-full rounded-full border border-violet-400/30 bg-violet-500/10 px-8 py-3.5 text-center text-sm font-semibold text-violet-100 transition hover:bg-violet-500/20 sm:w-auto"
               >
-                See what ships
-              </Link>
-              <Link
-                href="/roadmap"
-                className="w-full rounded-full border border-slate-600/50 bg-slate-900/40 px-8 py-3.5 text-center text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800/50 sm:w-auto"
-              >
-                Explore full roadmap
+                How it works
               </Link>
             </div>
+            <p className="mt-4 text-center text-sm text-slate-500">
+              Console seats are waitlist-only.{" "}
+              <Link href="/sign-up" className="text-emerald-400/90 underline-offset-4 hover:underline">
+                Join the beta waitlist
+              </Link>
+            </p>
           </div>
         </section>
 
@@ -181,26 +162,26 @@ export function HomeLanding() {
           <div className="grid gap-6 lg:grid-cols-2">
             <article className="glass-panel rounded-2xl p-6 sm:p-8">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-                Opaque LLM stack
+                Ungoverned LLM stack
               </p>
               <h2 className="mt-2 text-xl font-semibold text-slate-400 line-through decoration-slate-600">
-                No gate before spend.
+                Direct to the model.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-500">
-                Prompts hit the model first. You pay for every call — no DEFEND check, no state
-                prune, no lineage when something fails.
+                Prompts hit the provider first. You pay for every call — no policy check, no context
+                pruning, no record when something fails.
               </p>
             </article>
             <article className="glass-panel glass-panel-emerald rounded-2xl p-6 sm:p-8 ring-1 ring-emerald-500/20">
               <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-                Prefrontal cortex for AI
+                AI gateway
               </p>
               <h2 className="mt-2 text-xl font-semibold text-slate-50">
-                DEFEND / GATE before model spend.
+                Policy and routing before spend.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                MSGF runs pillar checks, Vault/Hall memory, and consensus before tokens burn — so
-                compliance and engineering share the same truth.
+                MSGF runs policy checks, approved and rejected memory, and model routing before
+                tokens are billed — so security and engineering share the same audit trail.
               </p>
             </article>
           </div>
@@ -209,31 +190,31 @@ export function HomeLanding() {
         <section className="mx-auto max-w-6xl px-5 py-8">
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-300/85">
-              Analogy
+              Comparison
             </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-              Human brain <span className="text-slate-500">vs</span>{" "}
+              Ungoverned stack <span className="text-slate-500">vs</span>{" "}
               <span className="text-gradient-jewel">MSGF</span>
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-slate-400">
-              The same control loops biology uses — mapped onto gated AI infrastructure.
+              Policy, routing, memory, and provenance — the jobs every AI gateway is expected to do.
             </p>
           </div>
           <div className="glass-panel mt-8 overflow-hidden rounded-2xl border border-violet-500/15">
             <div className="grid grid-cols-[1fr_auto_1fr] gap-x-3 border-b border-slate-800/80 bg-slate-950/40 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:px-6">
-              <span>Human brain</span>
+              <span>Without a gateway</span>
               <span className="text-center text-slate-700" aria-hidden>
                 →
               </span>
               <span className="text-emerald-400/80">MSGF</span>
             </div>
             <ul className="divide-y divide-slate-800/70" role="list">
-              {BRAIN_COMPARISON.map((row) => (
+              {GATEWAY_COMPARISON.map((row) => (
                 <li
-                  key={row.human}
+                  key={row.ungoverned}
                   className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 px-5 py-4 text-sm sm:px-6"
                 >
-                  <span className="text-slate-400">{row.human}</span>
+                  <span className="text-slate-400">{row.ungoverned}</span>
                   <span className="text-slate-700" aria-hidden>
                     →
                   </span>
@@ -251,11 +232,10 @@ export function HomeLanding() {
         <section className="mx-auto max-w-6xl px-5 py-16">
           <div className="text-center">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Shipped for <span className="text-gradient-jewel">production dev</span>
+              Shipped for <span className="text-gradient-jewel">production</span>
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-slate-400 sm:text-base">
-              Not a roadmap slide — these capabilities run in Cloud Run and the Pulse Guard
-              extension today.
+              These capabilities run in production Cloud Run and the Pulse Guard IDE extension today.
             </p>
           </div>
           <div className="mt-10">
@@ -271,16 +251,16 @@ export function HomeLanding() {
 
         <section id="six-pillars" className="mx-auto max-w-6xl scroll-mt-24 px-5 pb-20">
           <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
-            Six pillars. <span className="text-emerald-400">One</span>{" "}
-            <span className="text-violet-400">framework.</span>
+            Six policy domains. <span className="text-emerald-400">One</span>{" "}
+            <span className="text-violet-400">gateway.</span>
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-center text-sm text-slate-400">
-            MSGF V3.2 — modular state gates that never mix contexts.{" "}
+            Isolated context partitions so prompts never mix projects.{" "}
             <Link
               href="/getting-started#six-pillars"
               className="text-emerald-400/90 underline-offset-4 hover:underline"
             >
-              Full pillar guide
+              Full policy-domain guide
             </Link>
           </p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -308,18 +288,18 @@ export function HomeLanding() {
         <section className="border-t border-violet-500/10 bg-slate-950/40">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 py-14 text-center">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Ready to gate your AI?
+              Put a gateway in front of your models
             </h2>
             <p className="max-w-md text-sm text-slate-400">
-              Map a repo, install Pulse Guard, and open your governance dashboard with live token
-              savings.
+              Map a repo, install the Pulse Guard IDE extension, and open the dashboard for live
+              token-cost visibility.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/shadow-trial"
                 className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-10 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:brightness-110"
               >
-                Try free 7-day Shadow Proxy
+                Start 7-day shadow-mode trial
               </Link>
               <Link
                 href="/sign-in?next=/dashboard"

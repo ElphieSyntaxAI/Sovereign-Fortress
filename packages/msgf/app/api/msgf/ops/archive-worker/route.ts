@@ -8,10 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import { processDropboxArchiveJobs } from "@/lib/services/dropbox-archive-worker";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -22,6 +23,9 @@ function authorized(req: NextRequest): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isPostMvpFeatureEnabled("dropbox_archive")) {
+    return NextResponse.json(postMvpDisabledPayload("dropbox_archive"), { status: 404 });
+  }
   if (!authorized(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });
   }

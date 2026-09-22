@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -450,9 +462,9 @@ export function DashboardNav({
             />
             <div className="hidden leading-tight sm:block">
               <span className="block text-sm font-semibold tracking-tight text-slate-100 group-hover:text-emerald-200">
-                Elphie&apos;s Gated AI
+                Elphie Syntax
               </span>
-              <span className="block text-[11px] text-slate-500">Governance dashboard</span>
+              <span className="block text-[11px] text-slate-500">MSGF dashboard</span>
             </div>
           </Link>
 

@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+-- Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
 -- =============================================================================
 -- =============================================================================
 -- CROSS-REF hardening — Postgres ENUMs + DOMAINs + pillar_vectors typed columns
@@ -514,9 +514,17 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_msgf_incidents_bug_index_enforce ON public.msgf_incidents;
-CREATE TRIGGER trg_msgf_incidents_bug_index_enforce
-  BEFORE INSERT OR UPDATE OF bug_index
-  ON public.msgf_incidents
-  FOR EACH ROW
-  EXECUTE FUNCTION public.msgf_incidents_bug_index_enforce();
+DO $$
+BEGIN
+  IF to_regclass('public.msgf_incidents') IS NULL THEN
+    RETURN;
+  END IF;
+  EXECUTE 'DROP TRIGGER IF EXISTS trg_msgf_incidents_bug_index_enforce ON public.msgf_incidents';
+  EXECUTE $trg$
+    CREATE TRIGGER trg_msgf_incidents_bug_index_enforce
+      BEFORE INSERT OR UPDATE OF bug_index
+      ON public.msgf_incidents
+      FOR EACH ROW
+      EXECUTE FUNCTION public.msgf_incidents_bug_index_enforce()
+  $trg$;
+END $$;

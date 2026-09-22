@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import { createHash } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
@@ -17,6 +17,7 @@ import path from "path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { appendVaultLog } from "@/lib/services/tenant-onboarding-vault";
+import { isProductionDeploy } from "@/lib/deploy-env";
 
 export type DropboxArchiveUploadInput = {
   companyId: string;
@@ -38,6 +39,7 @@ export type DropboxArchiveUploadResult = {
 };
 
 export function dropboxArchiveMockMode(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (isProductionDeploy(env)) return false;
   const v = env.MSGF_DROPBOX_ARCHIVE_MOCK?.trim().toLowerCase();
   if (v === "1" || v === "true") return true;
   if (v === "0" || v === "false") return false;

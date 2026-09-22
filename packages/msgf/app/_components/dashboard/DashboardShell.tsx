@@ -9,6 +9,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -1334,7 +1346,7 @@ export function DashboardShell({
                     href="/getting-started#six-pillars"
                     className="text-emerald-400/90 underline-offset-4 hover:underline"
                   >
-                    How pillars work
+                    How policy domains work
                   </Link>
                 </>
               ) : (
@@ -1344,7 +1356,7 @@ export function DashboardShell({
                     href="/getting-started#six-pillars"
                     className="text-emerald-400/90 underline-offset-4 hover:underline"
                   >
-                    How pillars work
+                    How policy domains work
                   </Link>
                 </>
               )}
@@ -1531,8 +1543,8 @@ export function DashboardShell({
               Start your first project
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-slate-400 sm:text-base">
-              Your six-pillar governance matrix stays empty until you map a repository. No demo
-              data is loaded for new sign-ups — add a project, run the IDE extension, and pillars
+              Your policy-domain matrix stays empty until you map a repository. No demo
+              data is loaded for new sign-ups — add a project, run the IDE extension, and domains
               will light up from your real activity.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -1546,7 +1558,7 @@ export function DashboardShell({
                 href="/getting-started#six-pillars"
                 className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-6 py-2.5 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
               >
-                How pillars work
+                How policy domains work
               </Link>
               <Link
                 href="/workspace"

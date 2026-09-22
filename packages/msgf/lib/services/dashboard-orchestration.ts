@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * MSGF V3.2-ULTRA front-end dashboard orchestration contracts.
@@ -196,8 +196,6 @@ export function mapHealthReportToTickerEvents(
               ? `P6 anomaly/self-heal trace: ${event.summary}`
               : `P2/Consensus lockout awaiting Human Arbitrate: ${event.summary}`,
         lineage: event.bug_index,
-        token_savings_pct: type === "INFO" ? 18.4 : undefined,
-        eco_metrics: type === "INFO" ? calculateEcoSavings(46_000) : undefined,
         attempt_count: type === "WARNING" ? 2 : undefined,
         action_url: type === "ACTION_REQUIRED" ? "/admin/dashboard" : undefined,
       });
@@ -392,9 +390,10 @@ function buildEnvironmentalFootprintSeries(
   telemetry: TenantTelemetry24h[],
   generatedAt: string
 ): EnvironmentalFootprintPoint[] {
+  const totalSaved = telemetry.reduce((sum, t) => sum + t.token_compute_saved_by_p5, 0);
+  if (telemetry.length === 0 || totalSaved <= 0) return [];
   const end = new Date(generatedAt).getTime();
   const safeEnd = Number.isFinite(end) ? end : Date.now();
-  const totalSaved = telemetry.reduce((sum, t) => sum + t.token_compute_saved_by_p5, 0);
   const points = 8;
 
   return Array.from({ length: points }, (_, index) => {
@@ -408,6 +407,33 @@ function buildEnvironmentalFootprintSeries(
       freshwater_conserved_gallons: metrics.freshwater_conserved_gallons,
     };
   });
+}
+
+export function emptyDashboardHealthReport(): PillarHealthReport {
+  const generatedAt = nowIso();
+  return {
+    generated_at: generatedAt,
+    scope: { user_id: null, global: true, dashboard_view: "tenant_health" },
+    logic_drift: computeLogicDriftTrend([]),
+    overall_status: "green",
+    pillars: MSGF_GOVERNANCE_PILLARS.map((pillar) => ({
+      pillar,
+      label: `${pillar} live governance`,
+      status: "green",
+      status_label: "Green",
+      pending_incidents: 0,
+      recent_hall_events: 0,
+      recent_vault_events: 0,
+      self_healing_note: null,
+      predicted_future_issue: false,
+      summary: "No telemetry in this window.",
+      latest_events: [],
+    })),
+  };
+}
+
+export function emptyTenantTelemetry24h(): TenantTelemetry24h[] {
+  return [];
 }
 
 export function mockDashboardHealthReport(): PillarHealthReport {

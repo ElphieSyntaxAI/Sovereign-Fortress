@@ -34,10 +34,15 @@ In [Supabase Dashboard](https://supabase.com/dashboard):
 
 ```bash
 cp packages/msgf/.env.staging.example packages/msgf/.env.staging.local
-# Fill DATABASE_URL (session pooler :5432), SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD
+# Fill DATABASE_URL (session pooler :5432), SUPABASE_PROJECT_REF, password,
+# publishable key, AND service role. YOUR_STAGING_REF is not a project.
 ```
 
-Mirror the same `NEXT_PUBLIC_SUPABASE_*` / `SUPABASE_*` values in repo-root `.env.cloudrun.staging` (from `env.cloudrun.staging.example`).
+Mirror the same `NEXT_PUBLIC_SUPABASE_*` / `SUPABASE_*` values via:
+
+```bash
+npm run staging:prepare
+```
 
 ### 3. Apply migrations to staging
 
@@ -64,9 +69,10 @@ Production project keeps production Site URL + redirect URLs unchanged.
 ### 5. Deploy staging Cloud Run
 
 ```bash
-cp env.cloudrun.staging.example .env.cloudrun.staging
-# Fill staging Supabase + Upstash + staging public URLs
-./deploy-staging.sh
+npm run staging:prepare
+# Fails until .env.staging.local has a real project (not YOUR_STAGING_REF)
+npm run db:push:staging
+npm run deploy:staging
 ```
 
 ---
@@ -77,7 +83,9 @@ cp env.cloudrun.staging.example .env.cloudrun.staging
 |---------|--------|
 | `npm run db:push` | Production (`packages/msgf/.env.local`) |
 | `npm run db:push:staging` | Staging (`packages/msgf/.env.staging.local`) |
-| `./deploy-staging.sh` | Cloud Run `*-staging` services |
+| `npm run staging:prepare` | Writes `.env.cloudrun.staging` + isolation preflight |
+| `npm run deploy:staging` | Cloud Run `*-staging` services |
+| `npm run smoke:staging` | Assert `/health` `deploy_env=staging` |
 | `./setup-cloud.sh` | Production promote (unchanged) |
 
 ---
@@ -85,7 +93,11 @@ cp env.cloudrun.staging.example .env.cloudrun.staging
 ## Checklist before first staging deploy
 
 - [ ] Staging Supabase project created (not a clone of prod with prod keys pasted into staging env)
+- [ ] `packages/msgf/.env.staging.local` has a real project ref + service role
+- [ ] `npm run staging:prepare` exits 0
 - [ ] `npm run db:push:staging` succeeded
 - [ ] `.env.cloudrun.staging` uses staging `NEXT_PUBLIC_SUPABASE_URL` and **Stripe test** keys
 - [ ] Production `.env.cloudrun` unchanged — beta + shadow trial APIs still hit prod Supabase
 - [ ] Staging auth redirect URLs configured in **staging** Supabase project only
+- [ ] `gcloud auth login` then `npm run deploy:staging`
+- [ ] `npm run smoke:staging` (or pass the `*.run.app` URL)

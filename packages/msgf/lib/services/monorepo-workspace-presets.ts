@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Monorepo app → workspace presets: each customer-facing app is its own `msgf_user_projects` row.
@@ -36,7 +36,7 @@ export type MonorepoWorkspacePreset = {
 export const MONOREPO_WORKSPACE_PRESETS: readonly MonorepoWorkspacePreset[] = [
   {
     id: "msgf-gated-ai",
-    display_name: "MSGF Gated AI (platform)",
+    display_name: "MSGF (platform)",
     project_origin: "elphiesyntax/msgf",
     suggested_local_path: "packages/msgf",
     product_url: "https://elphiesgatedai.elphiesyntax.com",

@@ -55,10 +55,10 @@ export const AUTHOR_PROGRESS_PULSE: readonly AuthorProgressPulse[] = [
   {
     label: "Phase 2 — Professionalization",
     percent: 42,
-    hint: "Cool Down locks, bicameral audit, editor suite, guild",
+    hint: "Revision cooldown, dual review, editor suite, guild",
   },
   {
-    label: "Phase 3 — Scaling & sovereignty",
+    label: "Phase 3 — Scaling & discovery",
     percent: 5,
     hint: "Publisher Hub, multimedia vault, lore bots, growth analytics",
   },
@@ -77,9 +77,9 @@ export const AUTHOR_PROGRESS_PULSE: readonly AuthorProgressPulse[] = [
 export const AUTHOR_FLYWHEEL: readonly AuthorFlywheelStep[] = [
   {
     phase: "Protect",
-    headline: "Sovereignty first",
+    headline: "Protect the work first",
     body:
-      "Vault Pact NDA, HAL Ledger biometric proof, and manuscript isolation — your IP never trains a model and never gets human-browsed without contract.",
+      "Vault Pact (no-training agreement), authorship attestation, and manuscript isolation — your IP never trains a model and never gets human-browsed without contract.",
   },
   {
     phase: "Ingest",
@@ -89,37 +89,37 @@ export const AUTHOR_FLYWHEEL: readonly AuthorFlywheelStep[] = [
   },
   {
     phase: "Govern",
-    headline: "MSGF prefrontal cortex",
+    headline: "MSGF as AI gateway",
     body:
-      "Librarian + Critic route through Shadow/Active gateway — token savings visible on elphiesgatedai, verify-result on commit and unlock.",
+      "Librarian + Critic route through shadow / enforcement — token cost visible on elphiesgatedai, verify-result on commit and unlock.",
   },
   {
     phase: "Perfect",
     headline: "Professional distance",
     body:
-      "Cool Down locks force revision distance; bicameral audit receipts give publishers logic proof — from WIP to discovery without exposing identity early.",
+      "Revision cooldown forces professional distance; dual Librarian + Critic receipts give publishers a logic audit — from WIP to discovery without exposing identity early.",
   },
 ];
 
 export const AUTHOR_LEXICON: readonly AuthorLexiconEntry[] = [
   {
     term: "HAL Ledger",
-    definition: "Human Authorship Ledger — rhythm telemetry and biometric interaction proof.",
+    definition: "Human Authorship Ledger — rhythm telemetry and interaction proof (authorship attestation).",
     impact: "Chain of Origin for copyright defense.",
   },
   {
     term: "Vault Pact",
-    definition: "Bilateral NDA enforcing zero-training and no-human-browsing.",
-    impact: "Contractual data sovereignty — Hybrid KEM seal when enabled.",
+    definition: "Bilateral NDA enforcing no model training and no human browsing of tenant content.",
+    impact: "Contractual no-training agreement — Hybrid KEM seal when enabled.",
   },
   {
-    term: "Cool Down Lock",
-    definition: "Mandatory read-only period (4w / 6w / 8w tiers + 24h planning-sync gate).",
+    term: "Revision cooldown",
+    definition: "Mandatory read-only period after a draft is finished (4w / 6w / 8w tiers + 24h planning-sync gate).",
     impact: "Professional revision distance; unlock posts MSGF verify-result.",
   },
   {
-    term: "Bicameral Audit",
-    definition: "Librarian (logic) + Critic (sensitivity) dual-AI revision dossier.",
+    term: "Dual review",
+    definition: "Librarian (logic) + Critic (sensitivity) dual-model revision dossier.",
     impact: "Publisher-ready logic audit receipt.",
   },
   {
@@ -188,11 +188,11 @@ export const AUTHOR_PHASE_1_DETAIL: readonly AuthorPhaseDetailRow[] = [
   },
   {
     feature: "MSGF Pulse bridge",
-    description: "HAL chunk-pulse → Gated AI routing; savings on tenant_id=author_ecosystem.",
+    description: "Authorship telemetry → MSGF routing; token cost on tenant_id=author_ecosystem.",
     percent: 90,
   },
   {
-    feature: "MSGF governance (Shadow/Active)",
+    feature: "MSGF governance (shadow / enforcement)",
     description: "Librarian + Critic gateway, verify-result, deploy-gate advisory, quarantine links.",
     percent: 85,
   },
@@ -210,7 +210,7 @@ export const AUTHOR_PHASE_1_DETAIL: readonly AuthorPhaseDetailRow[] = [
 
 export const AUTHOR_PHASE_2_DETAIL: readonly AuthorPhaseDetailRow[] = [
   {
-    feature: "Cool Down revision lock",
+    feature: "Revision cooldown",
     description: "Read-only state gate; timer unlocks post MSGF verify-result.",
     percent: 70,
   },
@@ -257,10 +257,10 @@ export const AUTHOR_PHASE_3_DETAIL: readonly AuthorPhaseDetailRow[] = [
 export const AUTHOR_MSGF_STATES: readonly AuthorMsgfState[] = [
   { state: "STATE_SOVEREIGN", meaning: "Vault Pact signed; HAL active." },
   { state: "STATE_COOLDOWN", meaning: "Manuscript locked; revision logic active." },
-  { state: "STATE_AUDIT", meaning: "Librarian / Critic generating bicameral reports." },
+  { state: "STATE_AUDIT", meaning: "Librarian / Critic generating dual-review reports." },
   { state: "STATE_DISCOVERY", meaning: "Anonymized manuscript visible in Publisher Hub." },
 ];
 
 export function authorRoadmapHeroBlurb(): string {
-  return "From Protecting the Work to Perfecting the Work — sovereign narrative infrastructure with HAL proof, Vault Pact sovereignty, and MSGF-gated revision intelligence. Foundational testing is open on authorecosystem; join the waitlist for a seat.";
+  return "Protect the work, then perfect it — manuscript workspace with authorship attestation, Vault Pact no-training agreement, and MSGF-governed revision intelligence. Foundational testing is open on authorecosystem; join the waitlist for a seat.";
 }

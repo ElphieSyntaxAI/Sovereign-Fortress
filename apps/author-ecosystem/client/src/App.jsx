@@ -5,6 +5,7 @@ import VaultProtector from "./components/VaultProtector";
 import { RequireAuthorLens } from "./components/RequireAuthorLens";
 import AuthorAppLayout from "./layouts/AuthorAppLayout";
 import { isApexHubHost, shouldUseAuthorSignInAtRoot } from "./lib/authorHostRouting";
+import { isAuthorFanHubEnabled, isAuthorHelperEnabled } from "./lib/postMvpGates";
 
 /** Route-level code split — avoid loading dashboard/msgf on the hub and sign-in pages. */
 function lazyPage(importer, label) {
@@ -60,6 +61,10 @@ const PublishingRequestsPage = lazyPage(
 const FanManagementPage = lazyPage(
   () => import("./pages/FanManagementPage.tsx"),
   "fan-management"
+);
+const PostMvpPlaceholder = lazyPage(
+  () => import("./pages/PostMvpPlaceholder.tsx"),
+  "post-mvp"
 );
 const NotificationsPage = lazyPage(() => import("./pages/NotificationsPage.tsx"), "notifications");
 const SettingsPage = lazyPage(() => import("./pages/SettingsPage.tsx"), "settings");
@@ -206,7 +211,11 @@ export default function App() {
             path="/guild"
             element={
               <RequireAuthorLens lens="business">
-                <CreativeGuildPage />
+                {isAuthorHelperEnabled() ? (
+                  <CreativeGuildPage />
+                ) : (
+                  <PostMvpPlaceholder title="Creative Guild" />
+                )}
               </RequireAuthorLens>
             }
           />
@@ -214,7 +223,11 @@ export default function App() {
             path="/fan-management"
             element={
               <RequireAuthorLens lens="business">
-                <FanManagementPage />
+                {isAuthorFanHubEnabled() ? (
+                  <FanManagementPage />
+                ) : (
+                  <PostMvpPlaceholder title="Fan hub" />
+                )}
               </RequireAuthorLens>
             }
           />

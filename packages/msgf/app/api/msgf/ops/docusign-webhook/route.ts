@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * POST /api/msgf/ops/docusign-webhook — DocuSign Connect events (idempotent I5)
@@ -16,6 +16,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import {
   verifyDocuSignWebhookAuth,
   type DocuSignConnectPayload,
@@ -24,6 +25,9 @@ import { processSigningWebhookCompletion } from "@/lib/services/signing/processS
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function POST(req: NextRequest) {
+  if (!isPostMvpFeatureEnabled("signing")) {
+    return NextResponse.json(postMvpDisabledPayload("signing"), { status: 404 });
+  }
   const rawBody = await req.text();
   if (!verifyDocuSignWebhookAuth(req, rawBody)) {
     return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });

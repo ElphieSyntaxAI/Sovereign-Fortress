@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Demo bootstrap — one-shot test-ready tenant objects (catalog, lesson, instance).
@@ -24,8 +24,10 @@ import { buildCatalogLayoutFromText } from "@/lib/education/layout-from-text";
 import { acceptUtahDisclosure } from "@/lib/education/utah-disclosure";
 import { createTeacherLesson } from "@/lib/education/teacher-lessons";
 import { classroomOAuthConfigured } from "@/lib/education/classroom-oauth";
+import { isProductionDeploy } from "@/lib/deploy-env";
 
 export function isEducationDemoBootstrapEnabled(): boolean {
+  if (isProductionDeploy()) return false;
   return (
     process.env.EDUCATION_DEMO_BOOTSTRAP === "1" ||
     process.env.NODE_ENV === "test" ||

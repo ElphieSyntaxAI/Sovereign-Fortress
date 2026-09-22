@@ -8,11 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { listCompanyDomains } from "@/lib/services/company-domains";
+import { isPostMvpFeatureEnabled } from "@/lib/post-mvp-gates";
 import { envSigningProviderDefault } from "@/lib/services/signing/resolveSigningProvider";
 import type { SigningProviderId } from "@/lib/services/signing/SigningProvider";
 
@@ -89,6 +90,9 @@ export async function getTeamReadiness(
   const archivePath =
     (company as { dropbox_archive_path?: string | null } | null)?.dropbox_archive_path ?? null;
 
+  const signingLive = isPostMvpFeatureEnabled("signing");
+  const archiveLive = isPostMvpFeatureEnabled("dropbox_archive");
+
   const checklist = [
     {
       id: "domains",
@@ -96,30 +100,42 @@ export async function getTeamReadiness(
       done: domains.length > 0,
       hint: "POST /api/msgf/workspace/company-domains",
     },
-    {
-      id: "signing",
-      label: `Signing provider set (${signingProvider})`,
-      done: Boolean(signingProvider),
-      hint: `Env default: ${envSigningProviderDefault()}`,
-    },
-    {
-      id: "archive",
-      label: "Dropbox archive path configured",
-      done: Boolean(archivePath?.trim()),
-      hint: "Optional — defaults to DROPBOX_ARCHIVE_ROOT",
-    },
+    ...(signingLive
+      ? [
+          {
+            id: "signing",
+            label: `Signing provider set (${signingProvider})`,
+            done: Boolean(signingProvider),
+            hint: `Env default: ${envSigningProviderDefault()}`,
+          },
+        ]
+      : []),
+    ...(archiveLive
+      ? [
+          {
+            id: "archive",
+            label: "Dropbox archive path configured",
+            done: Boolean(archivePath?.trim()),
+            hint: "Optional — defaults to DROPBOX_ARCHIVE_ROOT",
+          },
+        ]
+      : []),
     {
       id: "projects",
       label: "Company projects mapped",
       done: mappedProjects > 0,
       hint: "Setup Projects + assign origins on invite",
     },
-    {
-      id: "signatures",
-      label: "No pending signatures blocking IDE",
-      done: (pendingSig ?? 0) === 0,
-      hint: `${pendingSig ?? 0} pending`,
-    },
+    ...(signingLive
+      ? [
+          {
+            id: "signatures",
+            label: "No pending signatures blocking IDE",
+            done: (pendingSig ?? 0) === 0,
+            hint: `${pendingSig ?? 0} pending`,
+          },
+        ]
+      : []),
   ];
 
   return {

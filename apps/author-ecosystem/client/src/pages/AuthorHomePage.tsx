@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { BusinessCreativeToggle } from "../components/BusinessCreativeToggle";
 import { useAuthorRole } from "../context/AuthorRoleContext";
 import { useAuthorWorkspaceLens } from "../context/AuthorWorkspaceLensContext";
-import { CREATIVE_NAV, BUSINESS_NAV } from "../lib/authorNavConfig";
+import { navItemsForLens } from "../lib/authorNavConfig";
 import { MsgfConnectionStatus } from "../components/MsgfConnectionStatus";
 import { OperatorAdminPanel } from "../components/OperatorAdminPanel";
 
@@ -13,7 +13,7 @@ export default function AuthorHomePage() {
   const { lens, meta, setLens } = useAuthorWorkspaceLens();
   const persona = user?.persona ?? "author";
 
-  const links = lens === "business" ? BUSINESS_NAV : CREATIVE_NAV;
+  const links = navItemsForLens(lens);
   const otherLens = lens === "business" ? "creative" : "business";
 
   return (

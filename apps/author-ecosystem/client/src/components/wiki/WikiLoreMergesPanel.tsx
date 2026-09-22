@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getPreferredBffBearer } from "../lib/authAccessToken";
-import { bffAuthHeaders, bffCredentials, bffUrl } from "../lib/bffFetch";
+import { getPreferredBffBearer } from "../../lib/authAccessToken";
+import { bffAuthHeaders, bffCredentials, bffUrl } from "../../lib/bffFetch";
 
 type MergeSide = {
   title: string;

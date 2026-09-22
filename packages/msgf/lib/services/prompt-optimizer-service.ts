@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Structured V1 prompt optimizer — deterministic markdown, no LLM calls.
@@ -197,7 +197,7 @@ function formatMappedProjectsSection(
   const rows = relevant.length ? relevant : projects.slice(0, 5);
   if (!rows.length) {
     lines.push(
-      `- No rows in **msgf_user_projects** for this account. Map the repo at Gated AI → Setup → Projects.`
+      `- No rows in **msgf_user_projects** for this account. Map the repo at MSGF → Setup → Projects.`
     );
     return lines;
   }

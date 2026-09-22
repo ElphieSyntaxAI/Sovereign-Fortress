@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -230,6 +242,7 @@
  */
 import { useCallback, useRef, useState } from "react";
 
+import { usePostMvpGates } from "@/app/_components/feature-gates/usePostMvpGates";
 import { InfoTip } from "@/app/_components/workspace/workspace-ui";
 
 export type OnboardingFormState = {
@@ -247,6 +260,7 @@ type Props = {
 };
 
 export function TeamInviteOnboardingSection({ value, onChange, uploading = false }: Props) {
+  const gates = usePostMvpGates();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -314,6 +328,7 @@ export function TeamInviteOnboardingSection({ value, onChange, uploading = false
           />
           <span>Include Architecture Best Practices Template</span>
         </label>
+        {gates.signing ? (
         <label className="flex cursor-pointer items-start gap-2 border-t border-slate-800/80 pt-4">
           <input
             type="checkbox"
@@ -331,6 +346,7 @@ export function TeamInviteOnboardingSection({ value, onChange, uploading = false
             </InfoTip>
           </span>
         </label>
+        ) : null}
       </div>
 
       <div className="mt-4">

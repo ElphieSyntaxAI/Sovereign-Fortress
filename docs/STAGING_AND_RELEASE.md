@@ -4,6 +4,42 @@
 
 **Production today:** [`DEPLOY_PRODUCT_DOMAINS.md`](./DEPLOY_PRODUCT_DOMAINS.md)
 
+**Status (2026-09-22):** Staging Cloud Run is live. Domain mappings exist for `staging.elphiesgatedai.elphiesyntax.com`, `staging.authorecosystem.elphiesyntax.com`, and `staging-api.authorecosystem.elphiesyntax.com` → the matching `*-staging` services. HTTPS certs stay pending until Squarespace DNS CNAMEs to `ghs.googlehosted.com.` exist. Until then use `https://msgf-api-staging-504003558298.us-central1.run.app`.
+
+---
+
+## Operator bootstrap (do this once)
+
+Staging is a **separate stack**: separate Supabase, separate Upstash, Stripe **test** keys, Cloud Run `msgf-api-staging` / `author-*-staging`. Production beta waitlist and Shadow trial stay on production.
+
+1. **Create Supabase project** `elphie-staging` at [supabase.com/dashboard](https://supabase.com/dashboard). Save the DB password.
+2. Fill `packages/msgf/.env.staging.local` from `.env.staging.example`:
+   - `DATABASE_URL` session pooler `:5432`
+   - `NEXT_PUBLIC_SUPABASE_URL` + publishable key + **service role**
+   - `SUPABASE_PROJECT_REF` (not `YOUR_STAGING_REF`)
+3. Create a **separate Upstash** Redis and put REST URL + token aside for step 5.
+4. Stripe Dashboard → **test** mode: copy `sk_test_…` (never `sk_live_`).
+5. Generate Cloud Run env and refuse prod bleed:
+
+```bash
+npm run staging:prepare
+```
+
+That writes gitignored `.env.cloudrun.staging` and runs `staging:preflight`. It **must fail** until step 2 is a real project.
+
+6. Apply schema: `npm run db:push:staging`
+7. Re-auth GCP: `gcloud auth login` (account `jessicapickens@elphiesyntax.com`, project `msgf-shield`)
+8. Deploy: `npm run deploy:staging` or `.\deploy-staging.ps1`
+9. Optional DNS: `./map-staging-domains.sh` then CNAME the three `staging.*` hosts. First smoke can use the `*.run.app` URL:
+
+```bash
+npm run smoke:staging -- https://msgf-api-staging-XXXX-uc.a.run.app
+```
+
+10. Staging Supabase → Auth → URL configuration: Site URL = `https://staging.elphiesgatedai.elphiesyntax.com` (or the run.app URL until DNS exists).
+
+**Never** paste production `NEXT_PUBLIC_SUPABASE_URL` into staging env. Preflight blocks that.
+
 ---
 
 ## 1. Architecture (recommended)
@@ -48,9 +84,12 @@ Sharing production Supabase with staging pollutes prod (waitlists, shadow trials
 ### 2.2 Staging env file
 
 ```bash
-cp env.cloudrun.staging.example .env.cloudrun.staging
-# Fill staging Supabase, Upstash (separate DB prefix), URLs pointing at staging hosts
+npm run staging:prepare          # writes .env.cloudrun.staging + isolation gate
+npm run db:push:staging
+npm run deploy:staging           # or .\deploy-staging.ps1 on Windows
+npm run smoke:staging            # or pass the Cloud Run URL
 ```
+
 
 Key differences from production:
 
@@ -70,13 +109,22 @@ First staging deploy creates services automatically:
 Optional: map staging subdomains (after first deploy):
 
 ```bash
-# Example — add to map-product-domains.sh or run manually once:
-gcloud run domain-mappings create --service=msgf-api-staging --domain=staging.elphiesgatedai.elphiesyntax.com --region=us-central1 --project=msgf-shield
-gcloud run domain-mappings create --service=author-client-staging --domain=staging.elphiesyntax.com --region=us-central1 --project=msgf-shield
-gcloud run domain-mappings create --service=author-bff-staging --domain=staging-api.authorecosystem.elphiesyntax.com --region=us-central1 --project=msgf-shield
+./map-staging-domains.sh
 ```
 
-Add DNS CNAME/A records from `gcloud run domain-mappings describe`.
+Then add these **CNAME** records on the `elphiesyntax.com` zone (Squarespace DNS). Do not remap production hosts.
+
+| Host | Type | Value |
+|------|------|-------|
+| `staging.elphiesgatedai` | CNAME | `ghs.googlehosted.com.` |
+| `staging.authorecosystem` | CNAME | `ghs.googlehosted.com.` |
+| `staging-api.authorecosystem` | CNAME | `ghs.googlehosted.com.` |
+
+Google issues the managed cert after those records resolve. Until then smoke:
+
+```bash
+npm run smoke:staging -- https://msgf-api-staging-504003558298.us-central1.run.app
+```
 
 ---
 
@@ -132,7 +180,7 @@ curl -s "https://STAGING_BFF_URL/api/ping"
 # - Sign-in with a staging test user
 ```
 
-Optional: wire GitHub Actions to run `./deploy-staging.sh` on push to `main`, and production only on tag `release-*` or manual `workflow_dispatch`.
+Optional: GitHub Action `staging-smoke.yml` (`workflow_dispatch`) curls `/health` and asserts `deploy_env=staging`. Production deploy stays `./deploy-product-domains.sh` after staging sign-off.
 
 ### Production (after staging sign-off)
 
@@ -223,7 +271,11 @@ Secrets: `GCP_SA_KEY`, staging + prod env as GitHub Environments (`staging`, `pr
 
 | File | Purpose |
 |------|---------|
-| `deploy-staging.sh` | Staging deploy wrapper |
+| `deploy-staging.sh` / `deploy-staging.ps1` | Staging deploy wrapper (preflight first) |
+| `scripts/staging-preflight.mjs` | Isolation gate (no prod Supabase / live Stripe / signing mocks) |
+| `scripts/smoke-staging.mjs` | `/health` must report `deploy_env=staging` |
+| `scripts/prepare-cloudrun-env.mjs --staging` | Writes `.env.cloudrun.staging` |
+| `map-staging-domains.sh` | Staging hosts only — refuses production apex |
 | `deploy-product-domains.sh` | Production deploy |
 | `.env.cloudrun` | Production secrets (gitignored) |
 | `.env.cloudrun.staging` | Staging secrets (gitignored) |

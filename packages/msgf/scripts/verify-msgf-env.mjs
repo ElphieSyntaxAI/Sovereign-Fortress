@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * Phase 0 — MSGF environment verification (modular path).
@@ -239,6 +239,25 @@ function main() {
   }
 
   let failed = 0;
+
+  const deployEnv = process.env.DEPLOY_ENV?.trim().toLowerCase();
+  if (deployEnv === "production" || deployEnv === "prod") {
+    for (const k of [
+      "MSGF_SIGNING_MOCK",
+      "MSGF_DOCUSIGN_MOCK",
+      "MSGF_DROPBOX_ARCHIVE_MOCK",
+      "MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE",
+      "ALLOW_DEMO_TENANT",
+      "EDUCATION_DEMO_BOOTSTRAP",
+    ]) {
+      const v = process.env[k]?.trim().toLowerCase();
+      if (v === "1" || v === "true" || v === "yes") {
+        console.error(`FAIL: ${k}=${v} is not allowed when DEPLOY_ENV=production`);
+        failed += 1;
+      }
+    }
+  }
+
   failed += checkEnvGroup(
     REQUIRED_ENV.filter((e) => !e.label.includes("Redis")),
     { required: true }

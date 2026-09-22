@@ -188,8 +188,8 @@ export async function executeSafeDiagnostic(
 
   void vscode.window.showWarningMessage(
     asyncMode
-      ? "❌ Build Failed! Heal Cheap triggered (async sync)…"
-      : "❌ Build Failed! Heal Cheap triggered via dev-event. Check your MSGF dashboard for the self-heal pack."
+      ? "❌ Build Failed! Low-cost remediation triggered (async sync)…"
+      : "❌ Build Failed! Low-cost remediation triggered via dev-event. Check your MSGF dashboard for the self-heal pack."
   );
 
   const syncFail = async () => {

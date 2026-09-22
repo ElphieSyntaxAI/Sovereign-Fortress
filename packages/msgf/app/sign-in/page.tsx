@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 
@@ -30,10 +30,10 @@ export default async function SignInPage({ searchParams }: Props) {
       <main className="mx-auto flex max-w-md flex-col gap-6 px-5 py-12 sm:py-16">
         <div className="space-y-2 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-            Elphie&apos;s Gated AI
+            MSGF
           </p>
           <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
-          <p className="text-sm text-slate-400">Access your tenant workspace and MSGF gates.</p>
+          <p className="text-sm text-slate-400">Access your tenant workspace and the MSGF gateway.</p>
         </div>
         <AuthForm mode="sign-in" postLoginPath={postLoginPath} />
         <p className="text-center text-sm text-slate-500">

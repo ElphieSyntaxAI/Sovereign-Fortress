@@ -10,7 +10,7 @@ export default function RevisionPage() {
     <div className="space-y-6">
       <CreativePageHeader
         title="Revision passes"
-        description="Cooldown lock, bicameral audit, and comprehensive consistency for"
+        description="Revision cooldown, dual Librarian + Critic review, and consistency checks for"
       />
       {selection ? (
         <CreativeManuscriptShell useRevisionLock>

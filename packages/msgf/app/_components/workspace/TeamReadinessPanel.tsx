@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 /**
@@ -122,6 +134,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
+import { usePostMvpGates } from "@/app/_components/feature-gates/usePostMvpGates";
+
 type ChecklistItem = {
   id: string;
   label: string;
@@ -144,6 +158,7 @@ type Readiness = {
 };
 
 export function TeamReadinessPanel() {
+  const gates = usePostMvpGates();
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -188,8 +203,10 @@ export function TeamReadinessPanel() {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          signing_provider: provider,
-          dropbox_archive_path: archivePath.trim() || null,
+          ...(gates.signing ? { signing_provider: provider } : {}),
+          ...(gates.dropbox_archive
+            ? { dropbox_archive_path: archivePath.trim() || null }
+            : {}),
         }),
       });
       const json = (await res.json()) as { ok?: boolean; error?: string; readiness?: Readiness };
@@ -239,7 +256,7 @@ export function TeamReadinessPanel() {
           </p>
           <p className="mt-1 text-sm text-slate-300">
             {readiness?.company_name ?? "Your company"} · {doneCount}/{total} ready
-            {readiness ? ` · ${readiness.pending_signatures} pending signatures` : ""}
+            {readiness && gates.signing ? ` · ${readiness.pending_signatures} pending signatures` : ""}
           </p>
         </div>
         <button
@@ -274,26 +291,30 @@ export function TeamReadinessPanel() {
       ) : null}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="block text-xs text-slate-400">
-          Signing provider
-          <select
-            value={provider}
-            onChange={(e) => setProvider(e.target.value as typeof provider)}
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100"
-          >
-            <option value="docusign">DocuSign</option>
-            <option value="dropbox_sign">Dropbox Sign</option>
-          </select>
-        </label>
-        <label className="block text-xs text-slate-400">
-          Dropbox archive path
-          <input
-            value={archivePath}
-            onChange={(e) => setArchivePath(e.target.value)}
-            placeholder="/MSGF-Audit"
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100"
-          />
-        </label>
+        {gates.signing ? (
+          <label className="block text-xs text-slate-400">
+            Signing provider
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as typeof provider)}
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100"
+            >
+              <option value="docusign">DocuSign</option>
+              <option value="dropbox_sign">Dropbox Sign</option>
+            </select>
+          </label>
+        ) : null}
+        {gates.dropbox_archive ? (
+          <label className="block text-xs text-slate-400">
+            Dropbox archive path
+            <input
+              value={archivePath}
+              onChange={(e) => setArchivePath(e.target.value)}
+              placeholder="/MSGF-Audit"
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-sm text-slate-100"
+            />
+          </label>
+        ) : null}
         <label className="block text-xs text-slate-400 sm:col-span-2">
           Add Workspace domain
           <div className="mt-1 flex gap-2">
@@ -315,6 +336,7 @@ export function TeamReadinessPanel() {
         </label>
       </div>
 
+      {(gates.signing || gates.dropbox_archive) ? (
       <button
         type="button"
         disabled={saving}
@@ -323,6 +345,7 @@ export function TeamReadinessPanel() {
       >
         {saving ? "Saving…" : "Save signing / archive settings"}
       </button>
+      ) : null}
     </div>
   );
 }

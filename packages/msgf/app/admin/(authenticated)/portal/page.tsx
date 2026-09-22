@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -19,7 +19,7 @@ import { getAdminProductSurfaces } from "@/lib/admin-product-surfaces";
 import { probeLocalDevStack } from "@/lib/dev-stack-status";
 
 export const metadata: Metadata = {
-  title: "Admin portal · Elphie's Gated AI",
+  title: "Admin portal · MSGF",
   description: "MSGF operator launchpad for Author Ecosystem and Syntax Education prelaunch testing.",
 };
 

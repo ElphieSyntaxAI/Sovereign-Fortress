@@ -49,8 +49,8 @@ const PLATFORM_TABS: {
   },
   {
     id: "gatedai",
-    label: "Elphie's Gated AI",
-    tagline: "Ethical AI for Software",
+    label: "MSGF",
+    tagline: "AI gateway for software teams",
   },
 ];
 
@@ -64,7 +64,7 @@ export function PlatformLoginMatrix({
   className,
   onSubmit,
   title = "Elphie Syntax",
-  subtitle = "Unified access across sovereign platforms",
+  subtitle = "Unified access across Elphie Syntax products",
 }: PlatformLoginMatrixProps) {
   const [platform, setPlatform] = useState<PlatformId>("author");
   const personas = PERSONAS_BY_PLATFORM[platform];

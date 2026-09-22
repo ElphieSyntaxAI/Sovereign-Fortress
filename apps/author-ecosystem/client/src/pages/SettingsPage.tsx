@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { BusinessCreativeToggle } from "../components/BusinessCreativeToggle";
 import {
-  AUTHOR_ROLE_OPTIONS,
+  visibleAuthorRoleOptions,
   type AuthorRoleId,
   useAuthorRole,
 } from "../context/AuthorRoleContext";
@@ -74,11 +74,13 @@ export default function SettingsPage() {
       <section className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-4">
         <h2 className="text-sm font-semibold text-zinc-100">Roles on this email</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Activate schedules you have signed (author, editor, helper, publisher). Switch active role from the top
+          Activate schedules you have signed (author, editor, publisher). Switch active role from the top
           nav.
         </p>
         <ul className="mt-4 space-y-2">
-          {AUTHOR_ROLE_OPTIONS.filter((r) => r.id !== "fan").map((opt) => {
+          {visibleAuthorRoleOptions()
+            .filter((r) => r.id !== "fan")
+            .map((opt) => {
             const on = activated.has(opt.id);
             return (
               <li

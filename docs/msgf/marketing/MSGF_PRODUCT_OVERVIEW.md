@@ -2,7 +2,7 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-09-18 (P7 closed loop + Shadow apply-on-activate; Global Brain zero-text swarm telemetry; buyer waitlist/invite; local :3001; Stripe mock may still be ON)
+**Last updated:** 2026-09-22 (buyer language: AI gateway / shadow mode / policy domains; 1.0 **hide** DocuSign/Dropbox/MCP; **implement+test** SSO + SIEM + Sentry/TRI/GitHub/PQ)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
 **Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** Indie · **$99** Pro perpetual · **$49**/user/mo Startup Team  
@@ -24,25 +24,50 @@ Largest remaining gap: **Sept 18 schema apply + one-tenant staging smoke**, not 
 
 ## 1. What MSGF is
 
-**MSGF (Modular State-Gate Framework)** is a **stateful AI governance engine** for software teams. It watches how code and logic change (Pulse), ingests project structure into six isolated pillars (SWEEP), defends against bad deltas before they spread (DEFEND preflight / CROSS-REF), escalates only when drift is high (Small Brain vs Big Brain CONVERGE), can sit in front of OpenAI/Anthropic SDKs as a Shadow Proxy or Active Governance gateway, quarantines poisoned wins when Apex models still disagree, and remembers what worked (Vault) vs what failed (Hall).
+**MSGF (Modular State-Gate Framework)** is an **AI gateway** for software teams. It sits between your application and the model: it inspects and organizes context, applies policy before spend, routes cost-efficient vs frontier inference, and stores approved vs rejected outcomes so low-quality data does not poison the next prompt.
 
 MSGF ships as:
 
 | Mode | Who | How |
 | :--- | :--- | :--- |
-| **Standalone SaaS** | Buyers & indie / team leads | Sign up at Gated AI, dashboard, IDE extension |
+| **Standalone SaaS** | Buyers & indie / team leads | Sign up at MSGF, dashboard, IDE extension |
 | **Embedded engine** | Author, Education, custom BFFs | HTTP APIs + tenant keys / licenses |
 | **BYOK / Solo** | Integrators | `msgf_live_*` license, Redis + Supabase |
 
-**One-line sales pitch:** *Point your OpenAI/Anthropic SDK at MSGF to prove projected bill savings in Shadow mode — then flip Active Governance so Small Brain, cache, and state-gating cut spend before TRI consensus is ever needed.*
+**One-line sales pitch:** *Point your OpenAI/Anthropic SDK at MSGF to prove projected bill savings in shadow mode — then switch to enforcement so cache, policy, and cost-efficient routing cut spend before three-model consensus is ever needed.*
+
+### Buyer language (industry terms vs internal names)
+
+Keep branded product names **Vault**, **Hall**, and **Pulse Guard** with a first-mention gloss. Do **not** rename APIs, env vars, or internal IDs (`gatedai`, Pulse, CONVERGE).
+
+| Say this (buyer / marketing) | Not this (internal slang) | Notes |
+| :--- | :--- | :--- |
+| **MSGF** | Elphie's Gated AI / Gated AI | Product display name |
+| **AI gateway** | prefrontal cortex / sandwich | Category |
+| **Shadow mode** | Shadow Proxy | Observe-only `/api/v1` pass-through |
+| **Enforcement** | Active Governance | Policy applied before the model |
+| **Policy domains** | six pillars | Isolated context partitions P1–P6 |
+| **Cost-efficient routing** | Small Brain | Local / cache / dual-preset path |
+| **Frontier / three-model consensus** | Big Brain / TRI / CONVERGE | Claude + Gemini + Grok on high drift |
+| **Low-cost remediation** | Heal Cheap | Vault-first IDE build heal |
+| **Human-in-the-loop** | HITL / ARBITRATE | Signed human review |
+| **Verification credits** | verification slices | Metered consensus budget |
+| **Approved vs rejected memory** | wins / garbage | **Vault** stores approved; **Hall** stores failed |
+| **Source reputation** | P7 | Promote / block hashed resources |
+| **IDE extension panel** | Command Center | Pulse Guard UI |
+| **Post-quantum envelopes** | quantum-ready | Hybrid KEM on Vault secrets; PQ-TLS is infra |
+| **No-training agreement** | glass-box sovereignty | **Vault Pact** is the legal name |
+| **Manuscript workspace** | sovereign narrative | Author Ecosystem |
+| **Revision cooldown** | Cool Down | Author Phase 2 gate |
+| **Dual review** | bicameral | Librarian + Critic |
 
 ### Naming note — three different “shadow” words
 
 | Term | Meaning | Do not confuse with |
 | :--- | :--- | :--- |
-| **DEFEND preflight** | Vault/Hall safety gate before Pulse / ingest | Gateway Shadow Proxy |
-| **Passive IDE Scan** | Background IDE policy/shard scan (`.msgf/shadow-scan/`) | Gateway Shadow Proxy |
-| **Shadow Proxy** | `/api/v1` pass-through + **projected** savings (`x-msgf-mode: shadow`) | DEFEND / Passive IDE Scan |
+| **DEFEND preflight** | Vault/Hall safety gate before ingest | Gateway shadow mode |
+| **Passive IDE Scan** | Background IDE policy/shard scan (`.msgf/shadow-scan/`) | Gateway shadow mode |
+| **Shadow mode** | `/api/v1` pass-through + **projected** savings (`x-msgf-mode: shadow`) | DEFEND / Passive IDE Scan |
 
 ---
 
@@ -53,13 +78,13 @@ Marketing (/ · /features · /pricing)
         ↓
 Workspace (/workspace · /setup/projects · team · IDE tokens)
         ↓
-Dashboard (#token-savings · Reports · heal · security · Shadow Proxy panel)
+Dashboard (#token-savings · Reports · heal · security · shadow-mode panel)
         ↓
-Provider gateway (/api/v1 — Shadow Proxy · Active Governance)
+Provider gateway (/api/v1 — shadow mode · enforcement)
         ↓
-Pulse Guard IDE (Command Center · Safe Build · Passive IDE Scan)
+Pulse Guard IDE (extension panel · Safe Build · Passive IDE Scan)
         ↓
-Ops (/admin/ops — audit hub · Session Replay · budgets · SIEM · ARBITRATE · quarantine · Sentry · signing)
+Ops (/admin/ops — audit hub · Session Replay · budgets · SIEM · ARBITRATE · quarantine · Sentry · SSO)
         ↓
 Deploy gate (GET /api/msgf/deploy-gate · project_origin green · optional diff-impact)
 ```
@@ -67,11 +92,11 @@ Deploy gate (GET /api/msgf/deploy-gate · project_origin green · optional diff-
 | Layer | Customer-facing | Operator-facing |
 | :--- | :--- | :--- |
 | **Connect** | Map projects, IDE token, GitHub picker | Portal launch matrix |
-| **Prove** | Shadow Proxy: SDK `baseURL` → projected $ without latency | Shadow Eval ledger + Reports PDF |
-| **Optimize** | Active Governance: cache + state-gate + sharded upstream | Proven avoidance + period history + model fitness |
+| **Prove** | Shadow mode: SDK `baseURL` → projected $ without latency | Shadow Eval ledger + Reports PDF |
+| **Optimize** | Enforcement: cache + state-gate + sharded upstream | Proven avoidance + period history + model fitness |
 | **Govern** | Pulse, ingest, DEFEND RED short-circuit | Compound tenant isolation (`project_origin` + `subpath_hash`) |
 | **Verify** | Safe Build / Run Scripts → Vault/Hall | Skip-MSGF signed audit (A5) |
-| **Escalate** | Small Brain → CONVERGE tiers T1–T3 | ARBITRATE HITL + signed audit chain (A6) + trusted-OSS bulk |
+| **Escalate** | Cost-efficient routing → consensus tiers T1–T3 | Human-in-the-loop + signed audit chain (A6) + trusted-OSS bulk |
 | **Contain** | Quarantined wins excluded from retrieval | Vault quarantine panel (Sentry + T3) |
 | **Audit** | Retention notice for Session Replay (purge-exempt) | Audit hub · Session Replay / harm · most-used · SIEM |
 | **Secure** | Hybrid PQ envelopes for vault secrets; gateway key never trusts spoofed tenant | CryptoService `0x03` + HAL v2 ML-DSA when enabled |
@@ -224,9 +249,9 @@ Point OpenAI or Anthropic SDKs at MSGF without rewriting app code. Full integrat
 
 | ID | Capability | Buyer value |
 | :--- | :--- | :--- |
-| **I1** | Company domains + signing provider | Corporate email gates; DocuSign / Dropbox Sign |
+| **I1** | Company domains | Corporate email allowlist. **Hide 1.0:** DocuSign / Dropbox Sign (code stays) |
 | **I2–I3** | Sentry → Vault quarantine + ops HITL | Crash-linked wins pulled from positive context |
-| **I4** | Dropbox archive worker | Signed artifacts archived off-platform |
+| **I4** | Dropbox archive worker | **Hide 1.0.** 1.1 after live signing exists |
 | **I5** | Webhook inbox + queue | Idempotent signing / Sentry / archive webhooks |
 | **I6** | Team readiness + deploy gate | “Ready to ship?” checklist per `project_origin` |
 | **A4** | Compound tenant isolation | Vector scope = origin + subpath — no cross-project bleed |
@@ -288,7 +313,7 @@ Every activated workspace gets a **self-serve integration folder**: `api-cookboo
 
 Optimizer output includes **MANDATORY AGENT EXECUTION RULES**: attach `@` files, extend existing tests, run verify command, output pass/fail table.
 
-**Optional Cursor MCP** ([`MSGF_IDE_MCP.md`](../../integrations/technical-specs/MSGF_IDE_MCP.md)) exposes `testConnection`, `getContextPack`, `startDevHealCycle`, and `submitVerifyResult` as agent tools. Treat as a **power-user extra, not a 1.0 promise** — it needs manual `.cursor/mcp.json` wiring.
+**Optional Cursor MCP** ([`MSGF_IDE_MCP.md`](../../integrations/technical-specs/MSGF_IDE_MCP.md)) exposes `testConnection`, `getContextPack`, `startDevHealCycle`, and `submitVerifyResult` as agent tools. **Hide from 1.0 claims.** Integrator kit / `.cursor/mcp.json` only — no SLA.
 
 ---
 
@@ -420,7 +445,7 @@ Dashboard APIs that accept `tenant_id` enforce membership (or `GLOBAL_ADMIN`) �
 | **Agency** | “Per-client silos + savings you can invoice” | `project_origin` isolation, ROI rollup, period PDF | Startup / agency tier ($49/user/mo) |
 | **Integrator** | “Drop in the consensus brain — or just the SDK baseURL” | Pulse, ingest, solo license, `/api/v1` Shadow Proxy | `MSGF_SOLO_INTEGRATION` · `MSGF_SHADOW_PROXY` |
 | **Ops / founder** | “See whether Small Brain is winning” | Admin savings catalog, Big Brain queue, model fitness, Shadow projected vs proven | `/admin/ops` walkthrough |
-| **Enterprise IT** | “Workspace SSO + signing + SIEM + budgets” | Google Workspace SSO, DocuSign/Dropbox Sign, company domains, tenant budgets, SIEM webhook | Contact / Startup Team |
+| **Enterprise IT** | “Workspace SSO + SIEM + budgets + signed HITL” | Google Workspace SSO, company domains, tenant budgets, OTel SIEM webhook, A6 audits | Contact / Startup Team |
 
 ### 9.1 Packaging (live on `/pricing`)
 
@@ -430,7 +455,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | :--- | :--- | :--- | :--- |
 | **Individual Indie (BYOK)** | **$0** forever | Full local six-pillar tracking + project isolation; customer supplies Redis + Supabase env and model keys in `.msgf/keys/` | Land-and-expand. No credit card, no cloud consensus. Say “free, you run the infra” — not “free trial.” |
 | **Individual Pro (perpetual)** | **$99** one-time | Own it forever; Year 1 managed cloud consensus (**1,200 verification slices / month**); zero config on our infra; graceful fallback to 100% BYOK after Year 1 | The differentiator vs subscriptions. Be precise: the fallback is BYOK, not a shutoff. |
-| **Startup Team** | **$49** / user / mo | Multi-tenant workspace scopes; global ARBITRATE + trusted-OSS bulk; audit hub; Session Replay / harm; most-used; model fitness; diff impact; tenant budgets; SIEM export; Sentry quarantine; DocuSign/Dropbox Sign; company P1 rulebooks; Workspace SSO | Where compliance + ops consoles earn their keep. Quote **$49/user/mo** exactly — never invent seat packs. |
+| **Startup Team** | **$49** / user / mo | Multi-tenant workspace scopes; global ARBITRATE + trusted-OSS bulk; audit hub; Session Replay / harm; most-used; model fitness; diff impact; tenant budgets; SIEM export; Sentry quarantine; company P1 rulebooks; Workspace SSO | Where compliance + ops consoles earn their keep. Quote **$49/user/mo** exactly — never invent seat packs. **Do not sell DocuSign / MCP in 1.0.** |
 
 **Checkout status:** Stripe Checkout **code is shipped** for Pro perpetual (`$99`) and Startup Team subscription (`$49`/user/mo). Live keys may already be on `msgf-api`; **mock entitlements may still be ON** until [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §2b live smoke + mock-off is green. Until then, do not promise self-serve card success on a sales call — offer assisted checkout / waitlist.
 
@@ -467,14 +492,17 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | :--- | :--- |
 | Self-serve Stripe Checkout as production-ready | **In plan (M3 / P0-M3)** — finish DEV_TODO §2b before claiming it |
 | Nanosecond hot-layer SLO as a hard SLA | 1.1 polish (infra wired) |
-| Cursor MCP as a supported install | Optional power-user path — needs manual `.cursor/mcp.json` ([`MSGF_IDE_MCP.md`](../../integrations/technical-specs/MSGF_IDE_MCP.md)) |
+| Cursor MCP as a supported install | **Hide 1.0.** Integrator kit only — [`MSGF_IDE_MCP.md`](../../integrations/technical-specs/MSGF_IDE_MCP.md) |
+| Live DocuSign / Dropbox Sign / Dropbox archive | **Hide 1.0.** Code stays; mocks off in prod |
 | Embedding semantic similarity cache on `/api/v1` | Launch Active uses **prompt-hash** cache; true semantic similarity is post-1.0 |
 | Dual/TRI chat wire synthesis on every Active escalate | Launch labels high drift; Pulse dual remains pulse-shaped |
 | Boss-demo layered theater silos | Parked — [`MSGF_BOSS_DEMO_RUNBOOK.md`](./MSGF_BOSS_DEMO_RUNBOOK.md) |
 | Author / Education product completion | Separate roadmaps |
 | Shadow projected $ as public eco / utility bills | Projected ≠ proven — keep separate in every deck |
 
-**Configured vs shipped.** Several capabilities in §4 are code-complete but only work once **that tenant's credentials are set** — Sentry (`SENTRY_AUTH_TOKEN` + org slug), DocuSign / Dropbox Sign, Dropbox archive, GitHub picker (OAuth app + key encryption), Google Workspace SSO, and Part B tiers (`MSGF_CONVERGE_TIER_ENABLED=1`). Unconfigured panels degrade to *unconfigured* rather than breaking, which is a good demo story — but demo the surface you have actually configured. Engineering status per surface: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §5 (M7) and [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md).
+**1 Nov claim set (launch cut).** Demo and sell: Shadow → Active, Pulse/ingest/HITL, paid seats, **Sentry ops + crash→Vault quarantine**, **TRI majority on high-drift Big Brain**, **GitHub repo picker**, **Workspace SSO**, **SIEM webhook**, **hybrid PQ KEX on the gatedai load balancer when we own the proxy** (plus app-layer KEM envelopes). Default CONVERGE stays dual / Small Brain. **Do not demo or sell DocuSign, Dropbox Sign, Dropbox archive, or MCP.** See [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §0.1.
+
+**Configured vs shipped.** **Hide (code stays):** DocuSign / Dropbox Sign, Dropbox archive, Cursor MCP-as-supported. **Implement & test before you headline:** Sentry, TRI, GitHub picker, PQ-TLS (honest frontend scope), Workspace SSO, SIEM webhook (Lanes A3–A8). Part B tiers stay flagged (`MSGF_CONVERGE_TIER_ENABLED=1`). Unconfigured signing/SSO panels must still degrade rather than break. Engineering status: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §5 (M7/M8) and [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md).
 
 ---
 
@@ -509,6 +537,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-21 | **Hide vs implement:** 1.0 sells SSO + SIEM + Sentry/TRI/GitHub/PQ. Hide DocuSign / Dropbox Sign / archive / MCP. Pricing Startup bullets + §10 claim set updated. |
 | 2026-09-18 | **P7 closed loop** (§3.1a): live writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; 30-day decay; `prompt:{hash}`. Session Replay stays. Soft-RC still ~90% (schema + staging smoke). |
 | 2026-09-17 | **Global Brain zero-text swarm telemetry** + honest ToS split (Session Replay stays tenant legal/security). Also docs re-sync with V1 roadmap: `/sign-up` is waitlist; buyer walkthrough rewritten; local MSGF is :3001. |
 | 2026-09-14 | **Governance audit platform** (§3.2a): resource ledger, audit hub, Session Replay/harm, trusted-OSS bulk, model fitness, budgets, SIEM, diff impact, human-proof HITL. Marketing + Startup pricing bullets synced. Pricing SSOT remains **$0 / $99 / $49**. |

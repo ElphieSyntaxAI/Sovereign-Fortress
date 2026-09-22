@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
+ * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
  * POST /api/msgf/workspace/docusign/mock-complete — dev-only signing completion
@@ -17,6 +17,7 @@
 
 import { NextResponse } from "next/server";
 
+import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
 import type { SigningProviderId } from "@/lib/services/signing/SigningProvider";
 import { processSigningWebhookCompletion } from "@/lib/services/signing/processSigningWebhook";
 import { signingMockMode } from "@/lib/services/signing/resolveSigningProvider";
@@ -24,6 +25,9 @@ import { requireWorkspaceTeamSession } from "@/lib/workspace-team-auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function POST(req: Request) {
+  if (!isPostMvpFeatureEnabled("signing")) {
+    return NextResponse.json(postMvpDisabledPayload("signing"), { status: 404 });
+  }
   if (!signingMockMode()) {
     return NextResponse.json(
       {
