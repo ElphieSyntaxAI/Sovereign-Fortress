@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
+-- Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
 -- =============================================================================
 -- Unified Author Ecosystem + Syntax-Educates (schools) scaffold
 -- Hybrid multi-tenant: authors in public (RLS + tenant_id UUID); schools in per-school schemas.

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
+ * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 import type { EcoMetrics } from "@/lib/utils/ecoCalculator";
 import { formatDisplayNumber } from "@/lib/utils/formatLocale";

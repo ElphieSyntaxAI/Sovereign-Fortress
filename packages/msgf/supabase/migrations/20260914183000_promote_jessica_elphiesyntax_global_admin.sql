@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
+-- Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
 -- =============================================================================
 -- Elphie Syntax Workspace operator: GLOBAL_ADMIN so Google SSO / password can
 -- open /admin without a msgf_company_domains row.
