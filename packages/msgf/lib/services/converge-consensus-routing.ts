@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
 /**
  * Step 5 (CONVERGE) — Individual Free, INDIVIDUAL_PERPETUAL, Corporate routing.
@@ -508,11 +508,19 @@ export async function resolveConvergeConsensusRouting(params: {
   }
 
   if (segment === "individual_perpetual") {
-    const managedWindow = evaluateManagedCloudWindow(
-      perpetualProfile.licensePurchaseDate,
-      new Date(),
-      managedCloudWindowMsForLicenseType(perpetualProfile.licenseType)
-    );
+    const subscriptionManaged = perpetualProfile.billingLicenseType === "monthly";
+    const managedWindow = subscriptionManaged
+      ? {
+          withinManagedCloudYear: true,
+          managedCloudExpired: false,
+          daysSincePurchase: 0,
+          purchaseDateIso: perpetualProfile.licensePurchaseDate?.toISOString() ?? null,
+        }
+      : evaluateManagedCloudWindow(
+          perpetualProfile.licensePurchaseDate,
+          new Date(),
+          managedCloudWindowMsForLicenseType(perpetualProfile.licenseType)
+        );
 
     if (managedWindow.managedCloudExpired) {
       if (byokForRouting.bothPresent) {

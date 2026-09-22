@@ -7,7 +7,7 @@
 
 **Contrast:** [`MSGF_SOLO_INTEGRATION.md`](../../integrations/technical-specs/MSGF_SOLO_INTEGRATION.md) is for **third-party apps** calling MSGF with `msgf_live_…` keys. This doc is for **you** using the MSGF web product.
 
-**Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** Indie · **$99** Pro perpetual · **$49**/user/mo Startup Team.
+**Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** BYOK (hosted) · **$29**/mo or **$290**/yr Pro · **$49**/workspace/mo or **$490**/yr Startup · **$199**/workspace/mo or **$1,990**/yr Enterprise.
 
 **Privacy:** Global Brain swarm telemetry is **zero-text** (how a wave failed, never the prompt). Session Replay remains tenant legal/security retention — not training. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
 
@@ -34,14 +34,14 @@ Walk these **unauthenticated** surfaces first (prod or local). They are the publ
 | :--- | :--- | :--- |
 | Home / platform hub | `/` | Marketing chooser, not the signed-in dashboard |
 | Features | `/features` | Shipped capability map |
-| Pricing | `/pricing` | Indie $0 · Pro $99 one-time · Startup $49/user/mo |
+| Pricing | `/pricing` | BYOK $0 · Pro $29/mo or $290/yr · Startup $49/mo or $490/yr · Enterprise $199/mo or $1,990/yr |
 | Getting started | `/getting-started` | Workspace → Pulse Guard → map a project. Step 1 “Sign up” still links here; that is the **waitlist**, not account creation. |
 | Waitlist | `/sign-up` | “Join MSGF beta testing” — email goes to the waitlist, **not** `auth.users` |
 | Shadow trial | `/shadow-trial` | Header **Free 7-day trial** CTA. No console seat. Clock starts on first SDK call. Proof email includes projected $ plus **would have promoted / blocked** hashed resource counts. Starting 3-day full access applies those scores once. |
 | Sign in | `/sign-in` | Invited / minted buyers. Email/password, or Google Workspace if the domain is allowlisted. |
 | Status | `/status` | Public health |
 
-Indie CTA on `/pricing` is **Download IDE extension**, not Stripe. Pro / Startup CTAs POST `/api/billing/checkout` (`pro_individual` / `startup_team`).
+Indie CTA on `/pricing` is **Start 7-day shadow-mode trial**, not Stripe. Pro / Startup / Enterprise CTAs POST `/api/billing/checkout` with `plan` + `interval` (`month` | `year`).
 
 ---
 
@@ -66,8 +66,9 @@ MSGF_REGISTRATION_BILLING_LICENSE=monthly
 Stripe (real “purchase” path):
 
 - `STRIPE_SECRET_KEY`
-- `STRIPE_PRICE_PRO_INDIVIDUAL` ($99 perpetual)
-- `STRIPE_PRICE_STARTUP_TEAM` ($49/user/mo)
+- `STRIPE_PRICE_PRO_INDIVIDUAL` ($29/mo) and `STRIPE_PRICE_PRO_INDIVIDUAL_YEARLY` ($290/yr)
+- `STRIPE_PRICE_STARTUP_TEAM` ($49/workspace/mo) and `STRIPE_PRICE_STARTUP_TEAM_YEARLY` ($490/yr)
+- `STRIPE_PRICE_ENTERPRISE` ($199/workspace/mo) and `STRIPE_PRICE_ENTERPRISE_YEARLY` ($1,990/yr)
 - `STRIPE_WEBHOOK_SECRET`
 - `stripe listen --forward-to localhost:3001/api/webhooks/stripe`
 
@@ -102,8 +103,8 @@ npm run create:buyer-user -w msgf
    - Independent buyers land in a personal sandbox (workspace + dashboard both allowed).
 8. **Workspace** — `/workspace` → map a folder / GitHub repo (`/setup/projects`). Copy the `.vscode/settings.json` / IDE token block. Download Pulse Guard from pricing or `/getting-started`.
 9. **Purchase (optional but realistic)** — stay signed in, then `/pricing`:
-   - **Indie ($0)** — extension download only.
-   - **Individual Pro ($99 one-time)** or **Startup Team ($49 / user / mo)** → Stripe Checkout (test card `4242 4242 4242 4242`).
+   - **Free ($0)** — hosted tenant; CTA is shadow-mode trial.
+   - **Pro ($29 / mo)** or **Team ($49 / workspace / mo)** → Stripe Checkout (test card `4242 4242 4242 4242`).
    - Success: `/pricing?checkout=success&plan=…` — then `/account` for Stripe Customer Portal when a customer id exists.
 10. **Pulse** — from dashboard / workspace / extension after baseline typing (cookie capture: README Phase 0 Steps D–E, but hit **:3001**).
     - Session Pulse uses **`p4_profiles`** (no `msgf_live_` key in the browser).
@@ -158,12 +159,12 @@ Restart the dev server. Sign in as a **fresh** minted user (existing profiles al
 
 | Step | Signal |
 | :--- | :--- |
-| Public funnel | `/pricing` shows $0 / $99 / $49; `/sign-up` is waitlist; `/shadow-trial` loads |
+| Public funnel | `/pricing` shows $0 / $29 / $49; `/sign-up` is waitlist; `/shadow-trial` loads |
 | New auth user | Script output UUID, or Supabase Dashboard → Authentication |
 | Sign-in | `/sign-in` → `/dashboard` or `/workspace` (not waitlist) |
 | Onboarding | Row in `p4_profiles` (`tenant_gated`); pledge in `state_beats`; pillars empty until a project exists |
 | Workspace | `/workspace` + `/setup/projects` mapping; IDE token copy block |
-| Indie $0 | Pricing CTA downloads `.vsix` (no Stripe) |
+| BYOK $0 | Pricing CTA opens `/shadow-trial` (hosted Redis/Supabase; no Stripe) |
 | Checkout | Stripe session success; webhook log `STRIPE_PAYMENT_SUCCESS`; `/account` portal when customer id exists |
 | Pulse | `POST /api/msgf/pulse` **200 or 202** with session cookie, no license header |
 | Reports | Period history loads; foreign `tenant_id` → 403 |

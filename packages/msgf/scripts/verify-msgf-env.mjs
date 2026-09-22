@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
 /**
  * Phase 0 — MSGF environment verification (modular path).
@@ -93,13 +93,33 @@ if (stripeWebhookLive) {
     },
     {
       keys: ["STRIPE_PRICE_PRO_INDIVIDUAL"],
-      label: "Stripe Price ID for Pro Individual ($99 one-time)",
-      hint: "Dashboard → Products → Price ID for perpetual Pro checkout",
+      label: "Stripe Price ID for Pro ($29/mo subscription)",
+      hint: "Dashboard → Products → recurring $29/mo. Do not reuse the old $99 one-time Price ID.",
+    },
+    {
+      keys: ["STRIPE_PRICE_PRO_INDIVIDUAL_YEARLY"],
+      label: "Stripe Price ID for Pro ($290/yr subscription)",
+      hint: "Dashboard → Products → recurring $290/yr. Annual = 10× monthly.",
     },
     {
       keys: ["STRIPE_PRICE_STARTUP_TEAM"],
-      label: "Stripe Price ID for Startup Team ($49/user/mo)",
-      hint: "Dashboard → Products → Price ID for Startup Team subscription",
+      label: "Stripe Price ID for Startup ($49/workspace/mo)",
+      hint: "Dashboard → Products → recurring $49/mo workspace. Recreate if the live ID is still per-seat.",
+    },
+    {
+      keys: ["STRIPE_PRICE_STARTUP_TEAM_YEARLY"],
+      label: "Stripe Price ID for Startup ($490/workspace/yr)",
+      hint: "Dashboard → Products → recurring $490/yr workspace.",
+    },
+    {
+      keys: ["STRIPE_PRICE_ENTERPRISE"],
+      label: "Stripe Price ID for Enterprise ($199/workspace/mo)",
+      hint: "Dashboard → Products → recurring $199/mo workspace with SSO/SIEM.",
+    },
+    {
+      keys: ["STRIPE_PRICE_ENTERPRISE_YEARLY"],
+      label: "Stripe Price ID for Enterprise ($1,990/workspace/yr)",
+      hint: "Dashboard → Products → recurring $1,990/yr workspace.",
     }
   );
 }

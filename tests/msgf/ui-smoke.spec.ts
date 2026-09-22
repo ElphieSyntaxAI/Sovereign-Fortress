@@ -6,7 +6,7 @@ test.describe("MSGF UI smoke", () => {
     page.on("pageerror", (err) => errors.push(err.message));
     const res = await page.goto("/");
     expect(res?.ok(), `landing HTTP ${res?.status()}`).toBeTruthy();
-    await expect(page.getByRole("heading", { name: /Prefrontal cortex/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /The layer between you/i })).toBeVisible();
     const real = errors.filter((e) => !/Minified React error #418/.test(e));
     expect(real, real.join("\n")).toEqual([]);
   });
@@ -15,13 +15,18 @@ test.describe("MSGF UI smoke", () => {
     const res = await page.goto("/pricing");
     expect(res?.ok(), `pricing HTTP ${res?.status()}`).toBeTruthy();
     await expect(page.getByRole("heading", { name: /Clear pricing/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Buy once — \$99/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Subscribe to Pro — \$29\/mo/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Start Startup — \$49\/mo/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Start Enterprise — \$199\/mo/i })).toBeVisible();
+    await page.getByRole("button", { name: /^Yearly$/ }).click();
+    await expect(page.getByRole("button", { name: /Start Startup — \$490\/yr/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Start Enterprise — \$1,990\/yr/i })).toBeVisible();
   });
 
   test("shadow trial page loads without mutating", async ({ page }) => {
     const res = await page.goto("/shadow-trial");
     expect(res?.ok(), `shadow-trial HTTP ${res?.status()}`).toBeTruthy();
-    await expect(page.getByRole("heading", { name: /Shadow Proxy trial/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Shadow-mode trial/i })).toBeVisible();
   });
 
   test("health endpoint is reachable", async ({ request }) => {

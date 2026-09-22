@@ -214,21 +214,29 @@ test.describe("MSGF RC API contracts", () => {
     }
   });
 
-  test("Stripe Checkout API mints Pro and Startup test sessions", async ({ request }) => {
+  test("Stripe Checkout API mints Pro, Startup, and Enterprise test sessions", async ({ request }) => {
     test.skip(!stripeE2eEnabled(), "Set MSGF_STRIPE_E2E=1");
     test.skip(isProductionHost(), "Refuse production Checkout");
-    for (const plan of ["pro_individual", "startup_team"] as const) {
+    const cases = [
+      { plan: "pro_individual" },
+      { plan: "startup_team" },
+      { plan: "startup_team", interval: "year" },
+      { plan: "enterprise" },
+      { plan: "enterprise", interval: "year" },
+    ] as const;
+    for (const data of cases) {
+      const label = `${data.plan}${data.interval ? `_${data.interval}` : ""}`;
       const res = await request.post("/api/billing/checkout", {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        data: { plan },
+        data,
         timeout: 60_000,
       });
       const text = await res.text();
       if (!res.ok()) {
-        test.skip(true, `Checkout ${plan} HTTP ${res.status()} ${text.slice(0, 180)}`);
+        test.skip(true, `Checkout ${label} HTTP ${res.status()} ${text.slice(0, 180)}`);
       }
       const payload = JSON.parse(text) as { url?: string };
-      expect(payload.url, `${plan} checkout URL`).toMatch(/stripe\.com/);
+      expect(payload.url, `${label} checkout URL`).toMatch(/stripe\.com/);
     }
   });
 });

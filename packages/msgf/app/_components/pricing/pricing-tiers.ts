@@ -8,66 +8,103 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
+import type { CheckoutInterval } from "@/lib/billing/stripe-checkout-types";
 import type { PricingTierConfig } from "./PricingCard";
 
-export const PRICING_TIERS: PricingTierConfig[] = [
-  {
-    id: "indie",
-    name: "Individual Indie (BYOK)",
-    priceLabel: "$0",
-    priceSuffix: "/ forever",
-    description:
-      "Local six-domain tracking with complete project data isolation.",
-    bullets: [
-      "Local 6-domain tracking metrics",
-      "Complete local project data isolation",
-      "Bring your own keys for Claude, Gemini, and optional Grok — dual or three-model consensus when you wire keys",
-    ],
-    cta: {
-      kind: "extension_download",
-      label: "Download IDE extension",
+export type { CheckoutInterval };
+
+const YEARLY_NOTE = "Pay yearly and get 2 months free.";
+
+export function pricingTiersForInterval(interval: CheckoutInterval): PricingTierConfig[] {
+  const yearly = interval === "year";
+
+  return [
+    {
+      id: "indie",
+      name: "BYOK",
+      priceLabel: "$0",
+      priceSuffix: yearly ? "/ yr" : "/ mo",
+      description:
+        "Hosted AI gateway on our Redis and Supabase. Bring your own model keys — no local database to stand up.",
+      bullets: [
+        "Hosted tenant — Redis and Supabase included",
+        "Shadow mode + Pulse Guard on 1 mapped project",
+        "Bring your own Claude, Gemini, and optional Grok keys",
+        "Managed three-model consensus stays on Pro",
+      ],
+      cta: {
+        kind: "link",
+        label: "Start 7-day shadow-mode trial",
+        href: "/shadow-trial",
+      },
     },
-  },
-  {
-    id: "pro",
-    name: "Individual Pro (Perpetual License)",
-    priceLabel: "$99",
-    priceSuffix: "one-time",
-    description: "Own the software forever. Year 1 managed cloud consensus included.",
-    bullets: [
-      "Own the software forever",
-      "Includes 1 year of managed cloud consensus (1,200 verification credits / month)",
-      "Zero configuration — Claude / Gemini / Grok three-model path on our cloud when enabled",
-      "Falls back gracefully to 100% BYOK mode after Year 1 if you skip cloud maintenance renewal",
-    ],
-    featured: true,
-    cta: {
-      kind: "stripe_checkout",
-      label: "Buy once — $99",
-      plan: "pro_individual",
+    {
+      id: "pro",
+      name: "Pro",
+      priceLabel: yearly ? "$290" : "$29",
+      priceSuffix: yearly ? "/ yr" : "/ mo",
+      description: yearly
+        ? "Enforcement for independent developers. Billed annually."
+        : "Enforcement for independent developers. $290 / year if you pay annually.",
+      bullets: [
+        "Enforcement mode, Vault, and Hall on the hosted gateway",
+        "1,200 verification credits / month of managed consensus",
+        "1 seat · Pulse Guard + policy-domain dashboard",
+        "Still bring your own model keys for day-to-day routing",
+      ],
+      featured: true,
+      cta: {
+        kind: "stripe_checkout",
+        label: yearly ? "Subscribe to Pro — $290/yr" : "Subscribe to Pro — $29/mo",
+        plan: "pro_individual",
+        interval,
+      },
     },
-  },
-  {
-    id: "startup",
-    name: "Startup Team Tier",
-    priceLabel: "$49",
-    priceSuffix: "/ user / mo",
-    description:
-      "Multi-tenant corporate workspace with human review, audit console, Session Replay, budgets, and SIEM.",
-    bullets: [
-      "Multi-tenant corporate workspace scopes",
-      "Global human review + trusted-OSS bulk triage + signed audit snapshots",
-      "Audit console, Session Replay, security event log, most-used resources, model fitness, diff impact",
-      "Tenant budgets / circuit breaker + SIEM webhook export",
-      "Sentry quarantine + Workspace SSO",
-      "Custom company policy packs, Workspace SSO, and shared incident review logs",
-    ],
-    cta: {
-      kind: "stripe_checkout",
-      label: "Start team checkout",
-      plan: "startup_team",
+    {
+      id: "startup",
+      name: "Startup",
+      priceLabel: yearly ? "$490" : "$49",
+      priceSuffix: yearly ? "/ workspace / yr" : "/ workspace / mo",
+      description: yearly
+        ? `One workspace for a small team — up to 5 people. ${YEARLY_NOTE}`
+        : "One workspace for a small team — not per seat. Up to 5 people included.",
+      bullets: [
+        "Shared projects, audit console, Session Replay, and tenant budgets",
+        "Up to 5 people on one workspace",
+        yearly ? "Extra seats $150 / yr — contact us" : "Extra seats $15 / mo — contact us",
+        "Workspace SSO, SIEM, and Sentry quarantine are on Enterprise",
+      ],
+      cta: {
+        kind: "stripe_checkout",
+        label: yearly ? "Start Startup — $490/yr" : "Start Startup — $49/mo",
+        plan: "startup_team",
+        interval,
+      },
     },
-  },
-];
+    {
+      id: "enterprise",
+      name: "Enterprise",
+      priceLabel: yearly ? "$1,990" : "$199",
+      priceSuffix: yearly ? "/ workspace / yr" : "/ workspace / mo",
+      description: yearly
+        ? `SSO, SIEM, and Sentry quarantine on a dedicated workspace. ${YEARLY_NOTE}`
+        : "SSO, SIEM, and Sentry quarantine on a dedicated workspace.",
+      bullets: [
+        "Everything in Startup",
+        "Workspace SSO and company domains",
+        "SIEM webhook export and Sentry → Vault quarantine",
+        "Priority review queue · extra seats included in quote if you outgrow 25",
+      ],
+      cta: {
+        kind: "stripe_checkout",
+        label: yearly ? "Start Enterprise — $1,990/yr" : "Start Enterprise — $199/mo",
+        plan: "enterprise",
+        interval,
+      },
+    },
+  ];
+}
+
+export const PRICING_TIERS: PricingTierConfig[] = pricingTiersForInterval("month");

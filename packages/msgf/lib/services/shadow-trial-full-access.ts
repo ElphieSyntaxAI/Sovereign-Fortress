@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
 /**
  * Sequential 3-day Individual Pro full access after Shadow Proxy proof.
@@ -382,8 +382,8 @@ export async function expireShadowTrialFullAccess(
     subject: "Your 3-day MSGF Individual Pro trial ended",
     html: `
 <p>${greeting}</p>
-<p>Your <strong>3-day Individual Pro</strong> trial has ended. Active Governance, Pulse, and cloud CONVERGE on that trial key are off.</p>
-<p>Keep the proof — buy <strong>Individual Pro for $99</strong> (perpetual): <a href="${pricingUrl}">${pricingUrl}</a></p>
+<p>Your <strong>3-day Individual Pro</strong> trial has ended. Enforcement mode, ingest, and cloud consensus on that trial key are off.</p>
+<p>Keep the proof — subscribe to <strong>Pro for $29/mo</strong>: <a href="${pricingUrl}">${pricingUrl}</a></p>
 <p>— Elphie Syntax · MSGF</p>
 `.trim(),
     text: [

@@ -8,14 +8,16 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
 import { headers } from "next/headers";
 import type Stripe from "stripe";
 
-import { activateIndividualPerpetualLicense } from "@/lib/services/individual-perpetual-license";
+import { checkoutProductFromPlanId } from "@/lib/billing/stripe-checkout-types";
+import { activateIndividualProSubscription } from "@/lib/services/individual-perpetual-license";
 import {
   activateStartupTeamSubscription,
+  ENTERPRISE_PLAN_ID,
   entityIdFromStripeMetadata,
   markProfilesPastDueFromInvoice,
   PRO_INDIVIDUAL_PLAN_ID,
@@ -62,6 +64,7 @@ export async function POST(req: Request) {
       const tenantId = tenantFrom(session);
       const entityId = resolveCheckoutEntityId(session);
       const plan = resolveCheckoutPlanId(session);
+      const product = checkoutProductFromPlanId(plan);
       const subscriptionId = stripeIdFromExpandable(session.subscription);
       const customerId = stripeIdFromExpandable(session.customer);
       const seatQuantity = resolveSeatQuantity({
@@ -69,13 +72,15 @@ export async function POST(req: Request) {
         fallback: 1,
       });
 
-      if (entityId && plan === PRO_INDIVIDUAL_PLAN_ID) {
+      if (entityId && product === PRO_INDIVIDUAL_PLAN_ID) {
         try {
           const admin = createAdminClient();
-          await activateIndividualPerpetualLicense({
+          await activateIndividualProSubscription({
             adminSupabase: admin,
             entityId,
             purchaseDate: new Date(),
+            subscriptionId,
+            customerId,
           });
           if (customerId) {
             await admin
@@ -87,11 +92,11 @@ export async function POST(req: Request) {
               .eq("user_id", entityId);
           }
         } catch (e) {
-          console.error("[stripe-webhook] INDIVIDUAL_PERPETUAL activation failed:", e);
+          console.error("[stripe-webhook] Individual Pro activation failed:", e);
         }
       }
 
-      if (entityId && plan === STARTUP_TEAM_PLAN_ID) {
+      if (entityId && (product === STARTUP_TEAM_PLAN_ID || product === ENTERPRISE_PLAN_ID)) {
         try {
           const admin = createAdminClient();
           await activateStartupTeamSubscription({
@@ -102,7 +107,7 @@ export async function POST(req: Request) {
             customerId,
           });
         } catch (e) {
-          console.error("[stripe-webhook] startup_team activation failed:", e);
+          console.error(`[stripe-webhook] ${product} activation failed:`, e);
         }
       }
 

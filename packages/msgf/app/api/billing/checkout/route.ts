@@ -8,10 +8,10 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
 /**
- * POST /api/billing/checkout — initialize Stripe Checkout for Pro / Startup tiers.
+ * POST /api/billing/checkout — initialize Stripe Checkout for Pro / Startup / Enterprise.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -19,13 +19,14 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import {
+  checkoutPlanIdFor,
   createStripeCheckoutSession,
-  type CheckoutPlanId,
 } from "@/lib/billing/stripe-checkout-plans";
 import { createClient as createSupabaseServerClient } from "@/utils/supabase/server";
 
 const BodySchema = z.object({
-  plan: z.enum(["pro_individual", "startup_team"]),
+  plan: z.enum(["pro_individual", "startup_team", "enterprise"]),
+  interval: z.enum(["month", "year"]).optional().default("month"),
   quantity: z.number().int().min(1).max(99).optional(),
 });
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const planId = parsed.data.plan as CheckoutPlanId;
+  const planId = checkoutPlanIdFor(parsed.data.plan, parsed.data.interval);
   const origin = req.nextUrl.origin;
 
   let customerEmail: string | null = null;

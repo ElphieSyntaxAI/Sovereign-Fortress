@@ -166,9 +166,9 @@ Full detail: [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b.
 - [x] Subscription updated/deleted + payment_failed update profile status (code)
 - [x] Apply `20260802010000_p4_profiles_stripe_subscription.sql` on remote (2026-08-02)
 - [x] Stripe **identity verification** complete (charges + payouts enabled; `details_submitted`)
-- [ ] Live Checkout smoke: Pro $99 → perpetual; Startup Team $49/mo → webhook entitlements
+- [ ] Live Checkout smoke: Pro $29/mo → monthly; Startup $49/mo|$490/yr; Enterprise $199/mo|$1,990/yr → webhook entitlements
 - [ ] Prod flip: `MSGF_STRIPE_WEBHOOK_LIVE=1` + `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0`
-- [ ] Indie $0 BYOK path still works without Stripe
+- [ ] Indie $0 hosted BYOK path still works without Stripe
 
 ---
 

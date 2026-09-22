@@ -8,8 +8,9 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
+import type { CheckoutInterval, CheckoutProductId } from "@/lib/billing/stripe-checkout-types";
 import { PricingCtaButton, type PricingCtaKind } from "./PricingCtaButton";
 
 export type PricingTierConfig = {
@@ -23,7 +24,9 @@ export type PricingTierConfig = {
   cta: {
     kind: PricingCtaKind;
     label: string;
-    plan?: "pro_individual" | "startup_team";
+    plan?: CheckoutProductId;
+    interval?: CheckoutInterval;
+    href?: string;
   };
 };
 
@@ -76,6 +79,8 @@ function CardSheet({ tier }: Props) {
         kind={tier.cta.kind}
         label={tier.cta.label}
         plan={tier.cta.plan}
+        interval={tier.cta.interval}
+        href={tier.cta.href}
         variant={tier.featured ? "featured" : tier.id === "indie" ? "outline" : "primary"}
       />
     </div>

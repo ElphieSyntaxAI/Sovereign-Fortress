@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
 /** Keep in sync with `lib/runtime/msgf-dev-defaults.ts` (port 3001 — :3000 reserved for other local apps). */
 export const MSGF_DEV_DEFAULT_PORT = 3001;

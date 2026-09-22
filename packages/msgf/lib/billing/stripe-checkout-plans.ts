@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
 /**
  * Stripe Checkout session initialization for MSGF pricing tiers.
@@ -16,7 +16,18 @@
 
 import { getStripe } from "@msgf/lib/stripe";
 
-export type CheckoutPlanId = "pro_individual" | "startup_team";
+import type {
+  CheckoutInterval,
+  CheckoutPlanId,
+  CheckoutProductId,
+} from "./stripe-checkout-types";
+
+export type {
+  CheckoutInterval,
+  CheckoutPlanId,
+  CheckoutProductId,
+} from "./stripe-checkout-types";
+export { checkoutPlanIdFor, checkoutProductFromPlanId } from "./stripe-checkout-types";
 
 export type CheckoutPlanConfig = {
   planId: CheckoutPlanId;
@@ -24,21 +35,65 @@ export type CheckoutPlanConfig = {
   tierMetadata: string;
   defaultQuantity: number;
   mode: "subscription" | "payment";
+  interval: CheckoutInterval;
+  product: CheckoutProductId;
 };
 
 export const CHECKOUT_PLANS: Record<CheckoutPlanId, CheckoutPlanConfig> = {
   pro_individual: {
     planId: "pro_individual",
+    product: "pro_individual",
+    interval: "month",
     priceEnvKey: "STRIPE_PRICE_PRO_INDIVIDUAL",
-    tierMetadata: "individual_perpetual",
+    /** Monthly Pro. Recreate this Stripe Price as $29/mo subscription — do not reuse the old $99 one-time ID. */
+    tierMetadata: "individual_pro",
     defaultQuantity: 1,
-    mode: "payment",
+    mode: "subscription",
+  },
+  pro_individual_yearly: {
+    planId: "pro_individual_yearly",
+    product: "pro_individual",
+    interval: "year",
+    priceEnvKey: "STRIPE_PRICE_PRO_INDIVIDUAL_YEARLY",
+    tierMetadata: "individual_pro",
+    defaultQuantity: 1,
+    mode: "subscription",
   },
   startup_team: {
     planId: "startup_team",
+    product: "startup_team",
+    interval: "month",
     priceEnvKey: "STRIPE_PRICE_STARTUP_TEAM",
+    /** Workspace subscription ($49/mo). Recreate if the live ID is still per-seat. */
     tierMetadata: "corporate_startup",
-    defaultQuantity: 1,
+    defaultQuantity: 5,
+    mode: "subscription",
+  },
+  startup_team_yearly: {
+    planId: "startup_team_yearly",
+    product: "startup_team",
+    interval: "year",
+    priceEnvKey: "STRIPE_PRICE_STARTUP_TEAM_YEARLY",
+    tierMetadata: "corporate_startup",
+    defaultQuantity: 5,
+    mode: "subscription",
+  },
+  enterprise: {
+    planId: "enterprise",
+    product: "enterprise",
+    interval: "month",
+    priceEnvKey: "STRIPE_PRICE_ENTERPRISE",
+    tierMetadata: "corporate_enterprise",
+    defaultQuantity: 25,
+    mode: "subscription",
+  },
+  enterprise_yearly: {
+    planId: "enterprise_yearly",
+    product: "enterprise",
+    interval: "year",
+    priceEnvKey: "STRIPE_PRICE_ENTERPRISE_YEARLY",
+    tierMetadata: "corporate_enterprise",
+    defaultQuantity: 25,
     mode: "subscription",
   },
 };
@@ -55,6 +110,14 @@ export async function createStripeCheckoutSession(params: {
   quantity?: number;
 }): Promise<CheckoutSessionResult> {
   const plan = CHECKOUT_PLANS[params.planId];
+  if (!plan) {
+    return {
+      ok: false,
+      error: "Invalid checkout plan.",
+      code: "STRIPE_PLAN_INVALID",
+      status: 400,
+    };
+  }
   const priceId = process.env[plan.priceEnvKey]?.trim();
 
   if (!process.env.STRIPE_SECRET_KEY?.trim()) {
@@ -93,6 +156,8 @@ export async function createStripeCheckoutSession(params: {
   const entityId = params.entityId?.trim() || "";
   const sharedMetadata: Record<string, string> = {
     msgf_plan: params.planId,
+    msgf_product: plan.product,
+    msgf_interval: plan.interval,
     msgf_tier: plan.tierMetadata,
     msgf_seat_quantity: String(quantity),
     ...(entityId ? { msgf_entity_id: entityId } : {}),

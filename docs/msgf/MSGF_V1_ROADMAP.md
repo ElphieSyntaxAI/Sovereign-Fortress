@@ -15,7 +15,7 @@
 
 **Last updated:** 2026-09-18 (P7 closed loop + Shadow apply-on-activate; Global Brain zero-text swarm telemetry; remaining = Sept 18 schema apply + staging smoke + Checkout smoke + mock-off)
 
-**Picker status (public):** **Beta testing** — console seats invite-only; free 7-day Shadow Proxy at `/shadow-trial` (clock starts on first call; then 3-day Individual Pro full access). Pricing SSOT: **$0** Indie · **$99** Pro · **$49**/user/mo Startup Team (`pricing-tiers.ts`).
+**Picker status (public):** **Beta testing** — console seats invite-only; free 7-day shadow-mode trial at `/shadow-trial` (clock starts on first call; then 3-day Individual Pro full access). Pricing SSOT: **$0** BYOK (hosted) · **$29**/mo or **$290**/yr Pro · **$49**/workspace/mo or **$490**/yr Startup · **$199**/workspace/mo or **$1,990**/yr Enterprise (`pricing-tiers.ts`).
 
 **Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./marketing/MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles, **launch readiness %**. Ops panel map: [`MSGF_ADMIN_HUB.md`](./technical-specs/MSGF_ADMIN_HUB.md).
 
@@ -468,7 +468,7 @@ Shipped since 0.1.8 (M4d): `.msgf/dev/` integrator kit (**MSGF: Open / Sync deve
 | :--- | :--- |
 | `NEXT_PUBLIC_SUPABASE_URL`, keys | Auth + data plane |
 | `GOOGLE_APPLICATION_CREDENTIALS` / `service-account.json` | Vertex / Pulse |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, Price IDs | Billing — `STRIPE_PRICE_PRO_INDIVIDUAL`, `STRIPE_PRICE_STARTUP_TEAM` (M3) |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, Price IDs | Billing — Pro / Startup / Enterprise monthly + yearly (M3) |
 | `MSGF_STRIPE_WEBHOOK_LIVE` · `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE` | Live webhook truth vs mock entitlements (flip together at paid go-live) |
 | `MSGF_AUTH_COOKIE_DOMAIN` | Cross-subdomain session with Author |
 | `MSGF_BILLING_SOFT_CAP_USD`, `MSGF_CREDIT_GUARD_DISABLED` | Ops caps |
@@ -541,7 +541,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | :---: | :--- | :--- |
 | 1 | Products + Price IDs in test mode | **Done** |
 | 2 | Webhook entitlement writers | **Done** (code) |
-| 3 | Live Checkout smoke (Pro $99 + Startup $49/mo) | **Open** |
+| 3 | Live Checkout smoke (Pro $29/mo + Startup monthly/yearly + Enterprise monthly/yearly) | **Open** |
 | 4 | Stripe identity verification | **Done** (2026-09-11) |
 | 5 | Live keys on Cloud Run (Secret Manager) | **Done** (`msgf-api-00077-7qx`) |
 | 6 | Prod flip: `MSGF_STRIPE_WEBHOOK_LIVE=1` + mock off | **After Checkout smoke** |

@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T170731Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
@@ -961,13 +985,18 @@
  * Distribution Build ID: MSGF-ee924ab-20260518T235305Z-internal
  */
 import { useCallback, useState } from "react";
+import Link from "next/link";
 
-export type PricingCtaKind = "extension_download" | "stripe_checkout";
+import type { CheckoutInterval, CheckoutProductId } from "@/lib/billing/stripe-checkout-types";
+
+export type PricingCtaKind = "extension_download" | "stripe_checkout" | "link";
 
 type Props = {
   kind: PricingCtaKind;
   label: string;
-  plan?: "pro_individual" | "startup_team";
+  plan?: CheckoutProductId;
+  interval?: CheckoutInterval;
+  href?: string;
   variant?: "primary" | "featured" | "outline";
   className?: string;
 };
@@ -1001,6 +1030,8 @@ export function PricingCtaButton({
   kind,
   label,
   plan,
+  interval = "month",
+  href,
   variant = "primary",
   className = "",
 }: Props) {
@@ -1051,7 +1082,7 @@ export function PricingCtaButton({
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, interval }),
       });
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
@@ -1062,16 +1093,29 @@ export function PricingCtaButton({
       setError(e instanceof Error ? e.message : "Checkout failed.");
       setLoading(false);
     }
-  }, [plan]);
+  }, [plan, interval]);
 
   const onClick = () => {
     if (loading) return;
     if (kind === "extension_download") {
       void handleExtensionDownload();
-    } else {
+    } else if (kind === "stripe_checkout") {
       void handleStripeCheckout();
     }
   };
+
+  if (kind === "link" && href) {
+    return (
+      <div className="w-full">
+        <Link
+          href={href}
+          className={`pricing-cta flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-semibold tracking-wide transition ${variantClasses} ${className}`}
+        >
+          {label}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

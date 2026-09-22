@@ -387,7 +387,7 @@ const MSGF_HYPE: readonly PlatformHypeFeature[] = [
     id: "stripe-entitlements",
     title: "Stripe entitlements + team seats",
     tagline:
-      "Checkout code for $99 Pro perpetual and $49/user/mo Startup Team — flip mock off after live smoke on elphiesgatedai.",
+      "Checkout code for Pro, Startup, and Enterprise (monthly + yearly) — recreate Stripe Price IDs, then flip mock off after live smoke.",
     stage: "beta_live",
     category: "Billing",
     ctaPath: "/pricing",

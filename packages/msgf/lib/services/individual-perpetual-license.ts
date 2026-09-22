@@ -8,10 +8,10 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
  */
 /**
- * INDIVIDUAL_PERPETUAL — 365-day managed cloud window + profile activation.
+ * Individual Pro — monthly subscription activation + 1,200-credit managed-consensus window.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -144,27 +144,49 @@ export async function loadIndividualPerpetualProfile(params: {
 
 /**
  * Stripe checkout / webhook — stamp perpetual license on the purchaser profile.
+ * @deprecated Pro is monthly. Use {@link activateIndividualProSubscription}.
  */
 export async function activateIndividualPerpetualLicense(params: {
   adminSupabase: SupabaseClient;
   entityId: string;
   purchaseDate?: Date;
 }): Promise<void> {
+  return activateIndividualProSubscription(params);
+}
+
+/**
+ * Stripe Checkout — activate Individual Pro as a monthly subscription.
+ * Routing still uses `INDIVIDUAL_PERPETUAL` license_type for the 1,200-credit
+ * managed-consensus path; Pulse entitlement is gated on Stripe `active`.
+ */
+export async function activateIndividualProSubscription(params: {
+  adminSupabase: SupabaseClient;
+  entityId: string;
+  purchaseDate?: Date;
+  subscriptionId?: string | null;
+  customerId?: string | null;
+}): Promise<void> {
   const entityId = params.entityId.trim();
   if (!entityId) return;
 
   const purchasedAt = params.purchaseDate ?? new Date();
+  const subscriptionId = params.subscriptionId?.trim() || null;
+  const customerId = params.customerId?.trim() || null;
 
   const { error } = await params.adminSupabase
     .from("p4_profiles")
     .update({
       license_type: INDIVIDUAL_PERPETUAL_LICENSE_TYPE,
       license_purchase_date: purchasedAt.toISOString(),
-      billing_license_type: "lifetime",
+      billing_license_type: "monthly",
+      stripe_subscription_status: "active",
+      updated_at: purchasedAt.toISOString(),
+      ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {}),
+      ...(customerId ? { stripe_customer_id: customerId } : {}),
     })
     .eq("user_id", entityId);
 
   if (error) {
-    console.warn("[individual-perpetual-license] activation failed:", error.message);
+    console.warn("[individual-pro-subscription] activation failed:", error.message);
   }
 }

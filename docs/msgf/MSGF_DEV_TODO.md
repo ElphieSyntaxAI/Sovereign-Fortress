@@ -51,7 +51,7 @@ Do **not** delete these. Turn mocks **off** in prod. Ops panels may stay as *unc
 | Lane | What “done” means | Smoke |
 | :--- | :--- | :--- |
 | **A Core** | Sandwich works; no mock dashboards; A6 signs; heartbeat | §1.4 Pulse/ingest/heal/Shadow/Active/spoof/swarm/P7 |
-| **A2 Paid** | Real card → entitlement; Indie $0 without Stripe | Checkout Pro + Startup; mock off |
+| **A2 Paid** | Real card → entitlement; BYOK $0 without Stripe | Checkout Pro + Startup + Enterprise monthly/yearly; mock off |
 | **A3 Sentry** | Ops Load issues + crash→Vault quarantine | `sentry-test` then **delete route** |
 | **A4 TRI** | High-drift Big Brain 2-of-3; default stays `balanced_dual` | One majority Pulse/CONVERGE; HITL still on ≥0.45 / no majority |
 | **A5 GitHub picker** | Connect GitHub → map repos → `project_origin` | `/setup/projects` bulk-add |
@@ -74,7 +74,7 @@ Code stays. Claims and buyer-facing copy go. Prod mocks off.
 
 - [x] Homepage / layout meta: no DocuSign, Dropbox Sign, Dropbox archive, MCP-as-included (2026-09-21)
 - [x] `/features` + shipped-capability cards: same (2026-09-21)
-- [x] `/pricing` + `pricing-tiers.ts` Startup bullets: SIEM + Workspace SSO stay; **removed** DocuSign / Dropbox Sign (2026-09-21)
+- [x] `/pricing` + `pricing-tiers.ts`: hosted BYOK; Pro $29/mo; Startup $49/workspace monthly+yearly; Enterprise $199/workspace monthly+yearly (2026-09-22)
 - [x] Getting Started / pillar guide: already no “complete DocuSign”; MCP not a required step
 - [x] Password-reset / invite: 1.0 never sets `enforce_docusign` (`createTeamInvite` forces false; reset UI only if flag) — 2026-09-21
 - [x] Prod: `MSGF_SIGNING_MOCK=0`, `MSGF_DOCUSIGN_MOCK` unset, `MSGF_DROPBOX_ARCHIVE_MOCK` unset (code-level refuse on `DEPLOY_ENV=production` / `NODE_ENV=production`, 2026-09-22)
@@ -95,9 +95,10 @@ Code stays. Claims and buyer-facing copy go. Prod mocks off.
 
 ### Lane A2 — Paid (P0-M3) — §2b
 
-- [ ] Live Checkout smoke: Pro $99 + Startup $49 → webhook entitlements
+- [ ] Live Checkout smoke: Pro $29/mo + Startup $49/mo|$490/yr + Enterprise $199/mo|$1,990/yr → webhook entitlements
+- [ ] Recreate Stripe Price IDs (`STRIPE_PRICE_PRO_INDIVIDUAL` $29/mo, `_YEARLY` $290/yr; `STRIPE_PRICE_STARTUP_TEAM` $49/mo, `_YEARLY` $490/yr; `STRIPE_PRICE_ENTERPRISE` $199/mo, `_YEARLY` $1,990/yr — do not reuse $99 one-time)
 - [x] Prod mock entitlements hard-off in code (2026-09-22). Still set `MSGF_STRIPE_WEBHOOK_LIVE=1` on Cloud Run after Checkout smoke
-- [ ] Indie $0 BYOK still works without Stripe
+- [ ] Indie $0 hosted Free still works without Stripe
 - [ ] Archive leftover live Stripe **Test product** ($19.99/mo) if unused
 
 ### Lane A3 — Sentry (P0-Sentry) — **in 1.0**
@@ -369,9 +370,10 @@ Keep `msgf-ide-mcp-server.mjs`. No 1.0 SLA, pricing bullet, or homepage claim. T
 - [x] Live secret + publishable keys in Secret Manager (`stripe-secret-key` / `stripe-publishable-key`)
 - [x] Live Dashboard webhook + `STRIPE_WEBHOOK_SECRET` in Secret Manager
 - [x] Stripe **identity verification** (account `details_submitted`; charges + payouts enabled)
-- [ ] Live Checkout smoke: Pro $99 perpetual + Startup Team $49/mo → webhook writes entitlements
+- [ ] Live Checkout smoke: Pro $29/mo + Startup $49/mo|$490/yr + Enterprise $199/mo|$1,990/yr → webhook writes entitlements
+- [ ] Recreate Stripe Price IDs before smoke (do not reuse $99 one-time / per-seat IDs)
 - [ ] Prod flip: `MSGF_STRIPE_WEBHOOK_LIVE=1` + `MSGF_ENTITLEMENT_MOCK_STRIPE_ACTIVE=0` (after smoke)
-- [ ] Indie $0 BYOK still works without Stripe
+- [ ] Indie $0 hosted Free still works without Stripe
 - [ ] Archive leftover live Stripe product **Test product** ($19.99/mo) if unused
 
 ---
@@ -432,6 +434,8 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./marketing/MSGF_BOSS_DE
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-22 | **Pricing:** BYOK **$0** hosted. Pro **$29/mo** or **$290/yr**. Startup **$49/mo** or **$490/yr** (≤5 people). Enterprise **$199/mo** or **$1,990/yr** with SSO/SIEM. Recreate Stripe Price IDs (do not reuse $99 one-time). |
+| 2026-09-22 | **Pricing:** Free is hosted (Redis/Supabase included, BYOK = model keys only). Pro **$29/mo** subscription (not $99 perpetual). Team **$49/workspace/mo** up to 5 people. SSO/SIEM are Enterprise. Recreate Stripe Price IDs before Checkout smoke. |
 | 2026-09-22 | **Buyer language:** storefront + hub + emails use industry terms (AI gateway, shadow mode, policy domains, cost-efficient vs frontier routing). Vault / Hall / Pulse Guard kept with gloss. APIs and env IDs unchanged. Restage required for live MSGF. |
 | 2026-09-22 | **Prod mock-data prune:** production never returns fabricated ticker/eco/pillar/daily-report streams (empty live instead). Signing/archive mocks and Stripe entitlement mock are hard-off on production Cloud Run. Staging/local can still mock. Restage `msgf-api` to pick up. |
 | 2026-09-21 | **Staging live + front door:** Cloud Run `msgf-api-staging` / `author-*-staging` + isolated Supabase/Upstash. `/health` `deploy_env=staging`. Lane B hero = Shadow trial + How it works. Invite `enforce_docusign` forced off. Remaining Lane S = Stripe test keys, Auth URLs, robots restage, optional DNS. |

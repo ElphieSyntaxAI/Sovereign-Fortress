@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T171835Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-b4dfaf97-20260922T170731Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-191e80fa-20260921T055901Z-internal
  */
 /**
@@ -1131,22 +1155,17 @@ export function WorkspaceIdeSetup({
 
       <details className="mt-6 rounded-xl border border-slate-700/50 bg-slate-900/30 px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium text-slate-300">
-          BYOK (free indie) — model keys + local infra
+          Model keys (BYOK) and self-host
         </summary>
         <p className="mt-3 text-sm text-slate-400">
-          For the <strong className="text-slate-200">Individual Indie (BYOK)</strong> tier ($0),
-          MSGF runs with <strong className="text-slate-200">your</strong> infrastructure.
-          Provide your own Redis + Supabase env for the MSGF instance you point the extension at
-          (e.g. <code className="text-violet-200">REDIS_URL</code> and{" "}
-          <code className="text-violet-200">NEXT_PUBLIC_SUPABASE_URL</code> /
-          <code className="text-violet-200">SUPABASE_SERVICE_ROLE_KEY</code>), plus your model keys for
-          dual or TRI consensus under{" "}
+          Free and Pro run on <strong className="text-slate-200">hosted</strong> Redis and
+          Supabase. Put Claude / Gemini / optional Grok keys in{" "}
           <code className="text-violet-200">.msgf/keys/gemini.key</code>,{" "}
           <code className="text-violet-200">.msgf/keys/claude.key</code>, and optional{" "}
-          <code className="text-violet-200">.msgf/keys/xai.key</code>.
-          Or use a managed Pro license —{" "}
+          <code className="text-violet-200">.msgf/keys/xai.key</code>. Self-hosting Redis and
+          Supabase is an integrator option — see{" "}
           <Link href="/pricing" className="text-violet-300 hover:underline">
-            compare tiers
+            pricing
           </Link>
           .
         </p>

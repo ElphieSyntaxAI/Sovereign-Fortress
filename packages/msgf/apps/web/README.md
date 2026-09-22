@@ -7,7 +7,7 @@
 ## Intended scope (MSGF 1.0 — M2)
 
 - Public marketing pages for standalone Gated AI
-- Pricing + Stripe Checkout (Indie $0 / Pro $99 perpetual / Startup $49/user/mo)
+- Pricing + Stripe Checkout (BYOK $0 / Pro $29/mo or $290/yr / Startup $49/mo or $490/yr / Enterprise $199/mo or $1,990/yr)
 - Authenticated dashboard shell in `packages/msgf` (this package is **not** a second app)
 - Docs for external integrators (BYOK, API keys, tenant IDs)
 

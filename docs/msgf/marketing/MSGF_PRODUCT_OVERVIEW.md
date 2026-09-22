@@ -5,7 +5,7 @@
 **Last updated:** 2026-09-22 (buyer language: AI gateway / shadow mode / policy domains; 1.0 **hide** DocuSign/Dropbox/MCP; **implement+test** SSO + SIEM + Sentry/TRI/GitHub/PQ)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
-**Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** Indie · **$99** Pro perpetual · **$49**/user/mo Startup Team  
+**Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** BYOK (hosted) · **$29**/mo or **$290**/yr Pro · **$49**/workspace/mo or **$490**/yr Startup · **$199**/workspace/mo or **$1,990**/yr Enterprise  
 **RC / deploy:** [`MSGF_RC_CHECKLIST.md`](../MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](../MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md)  
 **Provider gateway:** [`MSGF_SHADOW_PROXY.md`](../technical-specs/MSGF_SHADOW_PROXY.md)  
 **Ops map:** [`MSGF_ADMIN_HUB.md`](../technical-specs/MSGF_ADMIN_HUB.md)  
@@ -442,10 +442,10 @@ Dashboard APIs that accept `tenant_id` enforce membership (or `GLOBAL_ADMIN`) �
 | **Indie / Cursor power user** | “Stop paying to re-paste your repo” | 0-token prompt, Run Scripts, Small Brain % | Download Pulse Guard |
 | **Tech lead** | “Governance that doesn’t slow the sprint” | Verify loop, heal queue, deploy gate, Shadow→Active gateway | Team workspace / demo |
 | **CTO / security** | “Prefrontal cortex for AI with quarantine + signed HITL + Session Replay” | DEFEND preflight, A5/A6 audits, T3 quarantine, audit hub, harm ledger, SIEM | Pilot / security brief |
-| **Agency** | “Per-client silos + savings you can invoice” | `project_origin` isolation, ROI rollup, period PDF | Startup / agency tier ($49/user/mo) |
+| **Agency** | “Per-client silos + savings you can invoice” | `project_origin` isolation, ROI rollup, period PDF | Team workspace ($49/mo) |
 | **Integrator** | “Drop in the consensus brain — or just the SDK baseURL” | Pulse, ingest, solo license, `/api/v1` Shadow Proxy | `MSGF_SOLO_INTEGRATION` · `MSGF_SHADOW_PROXY` |
 | **Ops / founder** | “See whether Small Brain is winning” | Admin savings catalog, Big Brain queue, model fitness, Shadow projected vs proven | `/admin/ops` walkthrough |
-| **Enterprise IT** | “Workspace SSO + SIEM + budgets + signed HITL” | Google Workspace SSO, company domains, tenant budgets, OTel SIEM webhook, A6 audits | Contact / Startup Team |
+| **Enterprise IT** | “Workspace SSO + SIEM + budgets + signed HITL” | Google Workspace SSO, company domains, tenant budgets, OTel SIEM webhook, A6 audits | Contact / Enterprise |
 
 ### 9.1 Packaging (live on `/pricing`)
 
@@ -453,11 +453,12 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Tier | Price | What it actually includes | Sales note |
 | :--- | :--- | :--- | :--- |
-| **Individual Indie (BYOK)** | **$0** forever | Full local six-pillar tracking + project isolation; customer supplies Redis + Supabase env and model keys in `.msgf/keys/` | Land-and-expand. No credit card, no cloud consensus. Say “free, you run the infra” — not “free trial.” |
-| **Individual Pro (perpetual)** | **$99** one-time | Own it forever; Year 1 managed cloud consensus (**1,200 verification slices / month**); zero config on our infra; graceful fallback to 100% BYOK after Year 1 | The differentiator vs subscriptions. Be precise: the fallback is BYOK, not a shutoff. |
-| **Startup Team** | **$49** / user / mo | Multi-tenant workspace scopes; global ARBITRATE + trusted-OSS bulk; audit hub; Session Replay / harm; most-used; model fitness; diff impact; tenant budgets; SIEM export; Sentry quarantine; company P1 rulebooks; Workspace SSO | Where compliance + ops consoles earn their keep. Quote **$49/user/mo** exactly — never invent seat packs. **Do not sell DocuSign / MCP in 1.0.** |
+| **BYOK** | **$0** | Hosted Redis + Supabase, shadow mode, Pulse Guard, 1 project, customer model keys | Front door. Not self-host. Caps keep TRI off BYOK. |
+| **Pro** | **$29** / mo or **$290** / yr | Enforcement, Vault/Hall, 1,200 verification credits / month, 1 seat | Recreate Stripe Prices. Do not reuse $99 one-time. |
+| **Startup** | **$49** / workspace / mo or **$490** / yr | Audit console, Session Replay, budgets; up to 5 people; extra seats $15/mo or $150/yr | Not per user. SSO / SIEM / Sentry quarantine are **Enterprise**. |
+| **Enterprise** | **$199** / workspace / mo or **$1,990** / yr | Workspace SSO, SIEM, Sentry quarantine, up to 25 seats | Self-serve checkout. Extra seats beyond 25 are quoted. **Do not sell DocuSign / MCP in 1.0.** |
 
-**Checkout status:** Stripe Checkout **code is shipped** for Pro perpetual (`$99`) and Startup Team subscription (`$49`/user/mo). Live keys may already be on `msgf-api`; **mock entitlements may still be ON** until [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §2b live smoke + mock-off is green. Until then, do not promise self-serve card success on a sales call — offer assisted checkout / waitlist.
+**Checkout status:** Stripe Checkout **code is shipped** for Pro, Startup, and Enterprise (monthly + yearly). **Recreate Stripe Price IDs** — old live IDs were $99 one-time and $49/user. Live keys may already be on `msgf-api`; **mock entitlements may still be ON** until [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §2b live smoke + mock-off is green. Until then, do not promise self-serve card success on a sales call — offer assisted checkout / waitlist.
 
 ### Objection handling (sales)
 
@@ -468,9 +469,9 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | “Will it block my team?” | DEFEND can short-circuit unsafe deltas; Safe Build is local; skip path is audited (A5); HITL is ops, not every commit. Shadow Proxy adds zero latency until you flip Active. |
 | “Trust / compliance?” | Signed skip + ARBITRATE audits; quarantine without auto-demote; tenant compound scope; **Session Replay + harm HITL**; SIEM export; gateway never trusts spoofed tenant headers; **Global Brain swarm telemetry is zero-text** (prompts never train models). Author Chain of Origin exports can use **ML-DSA-65** signatures (algorithm per FIPS 204) — not a claim that HTTPS itself is post-quantum; see [`MSGF_PQC_CRYPTO_AUDIT.md`](../technical-specs/MSGF_PQC_CRYPTO_AUDIT.md). |
 | “We already have Sentry” | MSGF links crashes to **governance memory** (Vault wins) — Sentry owns runtime; MSGF owns what the AI should remember. |
-| “We can’t send code to your models” | Two separate answers — don’t blur them. **BYOK:** the Small Brain runs on the customer’s provider and key (OpenAI / Anthropic / Ollama / DeepSeek / Gemini); we never bill or read their model account. **Self-hosted:** the Indie tier runs against the customer’s own Redis + Supabase. Note that BYOK alone still routes the Pulse through the MSGF API — only the self-hosted path keeps data off our infrastructure. |
-| “How hard is integration?” | Two paths: (1) Pulse Guard scaffolds `.msgf/dev/` with an API cookbook; (2) change OpenAI/Anthropic `baseURL` to MSGF Shadow Proxy — prove savings before Active. |
-| “What if we stop paying?” | Pro is a perpetual license: after Year 1 it degrades to BYOK, it does not brick. |
+| “We can’t send code to your models” | Two separate answers — don’t blur them. **BYOK:** inference runs on the customer’s provider and key; we never bill their model account. **Self-hosted:** optional integrator path with the customer’s own Redis + Supabase. Hosted Free/Pro still route through the MSGF API. |
+| “How hard is integration?” | Two paths: (1) Pulse Guard scaffolds `.msgf/dev/` with an API cookbook; (2) change OpenAI/Anthropic `baseURL` to MSGF in shadow mode — prove savings before enforcement. |
+| “What if we stop paying?” | Pro is monthly. Cancel and the hosted tenant stays on Free/shadow + their keys; managed consensus credits stop. |
 | “Are projected savings real bills?” | Shadow $ is a **projection**. Active mode + Pulse proven avoidance move the **proven** ledger and public eco. Never merge them in a customer slide. |
 
 ### Channel ideas
@@ -537,6 +538,7 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-22 | **Pricing:** BYOK **$0** hosted. Pro **$29/mo** or **$290/yr**. Startup **$49/mo** or **$490/yr**. Enterprise **$199/mo** or **$1,990/yr** (SSO/SIEM). Recreate Stripe Price IDs. |
 | 2026-09-21 | **Hide vs implement:** 1.0 sells SSO + SIEM + Sentry/TRI/GitHub/PQ. Hide DocuSign / Dropbox Sign / archive / MCP. Pricing Startup bullets + §10 claim set updated. |
 | 2026-09-18 | **P7 closed loop** (§3.1a): live writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; 30-day decay; `prompt:{hash}`. Session Replay stays. Soft-RC still ~90% (schema + staging smoke). |
 | 2026-09-17 | **Global Brain zero-text swarm telemetry** + honest ToS split (Session Replay stays tenant legal/security). Also docs re-sync with V1 roadmap: `/sign-up` is waitlist; buyer walkthrough rewritten; local MSGF is :3001. |

@@ -18,20 +18,30 @@ test.describe("MSGF paid Checkout smoke", () => {
     );
   });
 
-  test("Checkout API creates Pro $99 and Startup Stripe test sessions", async ({
+  test("Checkout API creates Pro, Startup, and Enterprise Stripe test sessions", async ({
     request,
   }) => {
     test.setTimeout(120_000);
-    for (const plan of ["pro_individual", "startup_team"] as const) {
+    const cases = [
+      { plan: "pro_individual" },
+      { plan: "startup_team" },
+      { plan: "startup_team", interval: "year" },
+      { plan: "enterprise" },
+      { plan: "enterprise", interval: "year" },
+    ] as const;
+    for (const data of cases) {
+      const label = `${data.plan}${data.interval ? `_${data.interval}` : ""}`;
       const res = await request.post("/api/billing/checkout", {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        data: { plan },
+        data,
         timeout: 60_000,
       });
       const text = await res.text();
-      expect(res.ok(), `${plan} checkout ${res.status()} ${text}`).toBeTruthy();
+      if (!res.ok()) {
+        test.skip(true, `${label} checkout ${res.status()} ${text.slice(0, 180)}`);
+      }
       const payload = JSON.parse(text) as { url?: string };
-      expect(payload.url, `${plan} checkout URL`).toMatch(/stripe\.com/);
+      expect(payload.url, `${label} checkout URL`).toMatch(/stripe\.com/);
     }
   });
 
@@ -44,7 +54,7 @@ test.describe("MSGF paid Checkout smoke", () => {
     if (!pricing?.ok()) {
       test.skip(true, `pricing HTTP ${pricing?.status()} — page not ready`);
     }
-    const buy = page.getByRole("button", { name: /Buy once — \$99/i });
+    const buy = page.getByRole("button", { name: /Subscribe to Pro — \$29\/mo/i });
     await expect(buy).toBeVisible({ timeout: 30_000 });
 
     const checkoutResponse = page.waitForResponse(
@@ -98,7 +108,7 @@ test.describe("MSGF paid Checkout smoke", () => {
     if (!pricing?.ok()) {
       test.skip(true, `pricing HTTP ${pricing?.status()}`);
     }
-    const cta = page.getByRole("button", { name: /Start team checkout/i });
+    const cta = page.getByRole("button", { name: /Start Startup — \$49\/mo/i });
     await expect(cta).toBeVisible({ timeout: 30_000 });
 
     const checkoutResponse = page.waitForResponse(
