@@ -6,7 +6,9 @@
     }
   ],
   "settings": {
+    "msgf.enabled": true,
     "msgf.apiUrl": "https://elphiesgatedai.elphiesyntax.com",
+    "msgf.productPath": "packages/msgf",
     "msgf.tenantKey": "elphiesyntax/msgf",
     "msgf.role": "dev",
     "msgf.devSession": true

@@ -6,9 +6,9 @@
 
 **SSoT context:** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) · [`MSGF_TESTING.md`](./technical-specs/MSGF_TESTING.md) · [`MSGF_BRAIN_ROUTING.md`](./technical-specs/MSGF_BRAIN_ROUTING.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) · [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §2b
 
-**Last updated:** 2026-09-21 (hide vs implement/test split)  
-**Focus:** Lane H hide pass (DocuSign / Dropbox / MCP off storefront) → staging smoke → Checkout + mock-off → **Sentry** → **TRI** → **GitHub Connect** → **PQ-TLS if TargetHttpsProxy** → **Workspace SSO** → **SIEM webhook**. Signing/MCP are **hide**, not RC blockers. SSO/SIEM **are** 1.0 claim blockers — [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §0.1. Confirm Sept 2026 schema (`20260914200000_shadow_trial_*`, `20260915120000_governance_audit_platform.sql`, `20260915130000_trusted_license_allowlist.sql`, `20260918010000_tenant_default_ai_provider.sql`, `20260918120000_p7_prompt_shadow_deferred.sql`) on staging/prod.  
-**Readiness:** Technical soft-RC **~90%** · Paid self-serve **~82%** — P7/swarm/Shadow loop is **code-complete**; remaining = live schema + staging smoke. See [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
+**Last updated:** 2026-09-22 (staging smoke partial)  
+**Focus:** Finish remaining one-tenant gaps (Shadow eval row, Shadow CTA/`p7_applied_at`, Sentry, HITL POST, `/setup/projects`) → Checkout + mock-off → **Sentry** → **TRI** → **GitHub Connect** → **PQ-TLS if TargetHttpsProxy** → **Workspace SSO** → **SIEM webhook**. Signing/MCP are **hide**, not RC blockers. SSO/SIEM **are** 1.0 claim blockers — [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md) §0.1.  
+**Readiness:** Technical soft-RC **~90%** · Paid self-serve **~82%** — those two numbers do **not** move until the full §10.A item 5 bundle and Checkout+mock-off land. Staging smoke is **partial** 2026-09-22 (see changelog). See [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10.
 
 ---
 
@@ -40,7 +40,7 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 - [ ] `npm run test:integration -w msgf`
 - [ ] `npm run test:ingest-workflow -w msgf`
 - [ ] `npm run test:v32-ultra -w msgf`
-- [ ] `npm run bootstrap:solo -w msgf` → `npm run probe:solo -w msgf` (staging URL)
+- [x] `npm run probe:solo -w msgf` against staging gatedai (2026-09-22; health + Pulse 200 + heal-queue 200). Staging seed used instead of `bootstrap:solo`.
 
 **Heal / brain / HAL:**
 
@@ -58,21 +58,21 @@ Run from monorepo root. All must pass on a clean machine with env filled.
 
 Document date + operator + tenant id in changelog when done.
 
-- [ ] Sign pledge → Pulse baseline (cookie or license)
-- [ ] `POST /api/msgf/ingest` — confirm `lineage_map`, `brain_readiness`
-- [ ] `GET /api/msgf/heal-queue` — user session: `audience_scope: user`, no arbitration packages
-- [ ] Admin session: full queue + `POST .../human-arbitration` on circuit-open row (if present)
-- [ ] `/admin/dashboard#token-savings` + `#big-brain-issues` load live data
-- [ ] Reports: period history + Shadow Proxy panel; PDF download for own tenant
-- [ ] `POST /api/v1/chat/completions` shadow mode with valid `x-msgf-key` → projected eval row
-- [ ] Active mode returns `x-msgf-routing`; spoofed `x-msgf-tenant-id` does not change attribution
-- [ ] Foreign `tenant_id` on period-reports / shadow-eval → 403
-- [ ] `POST /api/msgf/ops/v32-heartbeat` with `{"dry_run":true}` — 200 + expected summary
+- [x] Sign pledge → Pulse baseline (cookie or license) — 2026-09-22 seed + `probe:solo` Pulse 200 on tenant `staging_readiness`
+- [x] `POST /api/msgf/ingest` — confirm `lineage_map`, `brain_readiness` — 2026-09-22 HTTP 200 + `lineage_map` (empty-files path: `readiness_score` 85, `brain_fully_initialized` false)
+- [x] `GET /api/msgf/heal-queue` — user session: `audience_scope: user`, no arbitration packages — 2026-09-22
+- [ ] Admin session: full queue + `POST .../human-arbitration` on circuit-open row (if present) — **queue 200** 2026-09-22 (admin audience, 1 `PENDING_HUMAN_ARBITRATION` swarm row). **POST still open:** 500 `unrecognized_keys: arbitrate_audit_id`
+- [x] `/admin/dashboard#token-savings` + `#big-brain-issues` load live data — 2026-09-22 operator cookie (token savings + Big Brain queue + live ticker)
+- [x] Reports: period history + Shadow Proxy panel; PDF download for own tenant — 2026-09-22 period-reports 200 + PDF 200. Shadow panel API 200 with **empty** projected row (no OpenAI key)
+- [ ] `POST /api/v1/chat/completions` shadow mode with valid `x-msgf-key` → projected eval row — blocked: staging completions 401 `invalid_api_key` (no live OpenAI key)
+- [x] Active mode returns `x-msgf-routing`; spoofed `x-msgf-tenant-id` does not change attribution — 2026-09-22 `x-msgf-routing: SMALL_BRAIN_UPSTREAM`; spoofed tenant not in body
+- [x] Foreign `tenant_id` on period-reports / shadow-eval → 403 — 2026-09-22 buyer cookie (“Not allowed for this tenant.”)
+- [x] `POST /api/msgf/ops/v32-heartbeat` with `{"dry_run":true}` — 200 + expected summary — 2026-09-22 staging-only cron (`auth_method: cron_secret`)
 - [ ] `/setup/projects` — monorepo preset creates row with correct `project_origin`
-- [ ] Sentry SDK: `GET /api/sentry-test` → issue in project `msgf` → delete route
-- [ ] Swarm abort (Active or Pulse with child-agent headers) → HITL + tenant audit `blocked_keys`; Global Brain JSON has **no** key lists
-- [ ] Shadow trial proof shows would-have promoted/blocked counts; **Start 3-day full access** applies deferred P7 once (`p7_applied_at` set)
-- [ ] `/admin/ops` audit hub: `p7=promoted` / `p7=blocked` chips + `q=` matches `promoted_keys` / `blocked_keys`
+- [ ] Sentry SDK: `GET /api/sentry-test` → issue in project `msgf` → delete route — staging 503 (DSN not on `msgf-api-staging`)
+- [x] Swarm abort (Active or Pulse with child-agent headers) → HITL + tenant audit `blocked_keys`; Global Brain JSON has **no** key lists — 2026-09-22 Pulse 409 `BOT_SWARM_DETECTED`, no key lists in body, heal-queue HITL row present. Audit hub `p7=blocked` API 200 but **0 events** (blocked_keys row not proven)
+- [ ] Shadow trial proof shows would-have promoted/blocked counts; **Start 3-day full access** applies deferred P7 once (`p7_applied_at` set) — needs 3-day clock + working Shadow completions
+- [x] `/admin/ops` audit hub: `p7=promoted` / `p7=blocked` chips + `q=` matches `promoted_keys` / `blocked_keys` — 2026-09-22 chips + filter API 200. **0 matching events**, so `q=` content match not proven
 
 ---
 
@@ -209,6 +209,7 @@ MSGF can RC without these; include if your gate requires M5:
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-22 | **Staging smoke partial** on `https://staging.elphiesgatedai.elphiesyntax.com` (`msgf-api-staging-00008-np6`, tenant `staging_readiness`). Verified: `probe:solo` (Pulse/heal-queue), ingest + `lineage_map`, user heal-queue, admin queue load, dashboard live, period + PDF, buyer foreign 403, Active `x-msgf-routing` + spoof ignored, swarm 409 / no key lists, heartbeat dry_run 200, audit hub `p7=` chips. Still open: Shadow projected eval (no OpenAI key), Shadow 3-day CTA / `p7_applied_at`, Sentry 503, `/setup/projects`, HITL POST 500 `arbitrate_audit_id`. Soft-RC stays **~90%**; paid stays **~82%**. |
 | 2026-09-18 | **P7 closed loop:** live writes across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; `test:p7-observe`. Schema `20260918120000` + staging smokes still open. Soft-RC stays ~90%. |
 | 2026-09-17 | **Global Brain zero-text swarm telemetry** + `test:swarm-guard` / `test:global-brain-swarm` in `test:unit`. Docs re-sync with V1 roadmap: heal-queue unit tests marked covered by `test:unit`; remaining P0 = savings/brain/hal-word + integration + staging smoke. |
 | 2026-09-11 | **P0-M3:** live Stripe keys + webhook + live Price IDs on `msgf-api-00077-7qx`; identity done. Mock still ON. Remaining paid: Checkout smoke + mock-off + BYOK. **P0 automated:** `validate:deployment`, `deep-test:solo`, `verify:msgf-env` green. |

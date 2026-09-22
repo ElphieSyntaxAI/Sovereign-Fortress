@@ -521,9 +521,9 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | **0** | Confirm clean production build | **Done** 2026-09-11 — `npm run validate:deployment` (clear locked `.next` on Windows if flake) |
 | 1 | Offline unit suite (incl. TRI) | **Done** 2026-09-11 via `test:unit` (includes TRI / PQC / stripe / shadow-proxy / swarm / **p7-observe** 2026-09-18). Still open: `test:savings` / `test:brain-routing` / `test:heal-queue-audience` / `test:hal-word-chunk` |
 | 2 | Solo deep-test gate | **Done** 2026-09-11 — `npm run deep-test:solo` |
-| 3 | Solo integrator bootstrap | **Open on staging URL** — local `bootstrap:solo` → `probe:solo` still required against gatedai |
+| 3 | Solo integrator bootstrap | **Partial** 2026-09-22 — `probe:solo` green on staging gatedai (Pulse 200). Staging seed used instead of `bootstrap:solo`. |
 | 4 | Env + schema | **Done** 2026-09-18 — `db:push:verify` applied `20260918010000` + `20260918120000`; P7 prompt CHECK + Shadow deferred columns green |
-| 5 | Staging smoke | **Open** — pledge → Pulse → ingest → heal-queue → heartbeat dry-run → `/features` → swarm abort → Shadow CTA apply → audit hub `p7=` chips |
+| 5 | Staging smoke | **Partial** 2026-09-22 — done: Pulse, ingest + `lineage_map`, heal-queue user/admin load, `/features`, heartbeat dry-run 200, Active routing + spoof ignored, buyer foreign 403, swarm 409 / no key lists, dashboard live, period + PDF, audit hub `p7=` chips. Still open: Shadow projected eval (no OpenAI key), Shadow CTA / `p7_applied_at`, Sentry 503, `/setup/projects`, HITL POST 500. Soft-RC stays ~90% until this bundle is green. |
 
 ### B. Finish before `msgf-v1.0.0` tag (engine + ops)
 
@@ -550,20 +550,20 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 - Hot-layer nanosecond SLO claim · Stripe Customer Portal **invoice UI** (portal session API + `/account` already shipped) · Sentry product Replay · Author healing popout · Education add-ons · Platform PQ-TLS
 
-### Readiness snapshot (2026-09-17)
+### Readiness snapshot (2026-09-22)
 
 | Bucket | ~% | Notes |
 | :--- | :---: | :--- |
 | **Engine (§2.6 + TRI)** | **~92%** | Behavior done; thin-handler polish → 1.1 |
-| **Ops / heal / IDE** | **~90%** | Pulse Guard 0.2.3; Cloud Run secrets **Done**; GH Actions heartbeat still open |
-| **Enterprise (M7)** | **~75%** | Code + Sentry SDK; staging smokes open |
+| **Ops / heal / IDE** | **~92%** | Pulse Guard 0.2.3; Cloud Run secrets **Done**; staging heartbeat dry-run 200; GH Actions heartbeat still open |
+| **Enterprise (M7)** | **~75%** | Code + Sentry SDK; staging Sentry 503 (DSN not on `msgf-api-staging`) |
 | **PQC (app layer)** | **~85%** | Hybrid KEM + ML-DSA code; flag off by default; PQ-TLS → infra |
-| **Solo / BYOK** | **~70%** | Bootstrap tools; prod probe open |
+| **Solo / BYOK** | **~80%** | Staging seed + `probe:solo` green 2026-09-22; prod probe still open |
 | **Ecosystem (Author/Edu)** | **~55%** | Not blocking MSGF-only soft-RC |
 | **Commercial (Stripe)** | **~80%** | Live keys + identity + webhook + live Prices done; Checkout smoke + mock-off open |
-| **Verification / staging** | **~55%** | Local P0 gates green 2026-09-11; P7 unit tests 2026-09-18; live tenant smoke still open |
+| **Verification / staging** | **~72%** | Most one-tenant smokes green 2026-09-22; leftover = Shadow eval/CTA, Sentry, HITL POST, `/setup/projects` |
 | **Marketing / docs** | **~99%** | Overview + features + pricing + admin hub + buyer walkthrough + **2026-09-18 P7 closed loop** |
-| **Technical soft-RC** | **~90%** | Validate + deep-test + env green; P7/swarm **code** landed; remaining = Sept 18 schema + staging smoke (mock OK) |
+| **Technical soft-RC** | **~90%** | Validate + deep-test + env green; P7/swarm **code** landed; **does not move** until §10.A item 5 is fully green |
 | **Paid self-serve launch** | **~82%** | Soft-RC + live Checkout smoke + mock-off |
 
 ---
@@ -572,6 +572,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-22 | **Staging smoke partial** on gatedai (`msgf-api-staging-00008-np6`, tenant `staging_readiness`). §10.A item 3 probe Done; item 5 Partial. Verification/staging ~72%. Soft-RC stays **~90%**; paid stays **~82%**. |
 | 2026-09-18 | **P7 closed loop:** reputation writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; decay + `prompt:{hash}`. Schema `20260918120000` still to apply. Soft-RC stays ~90% (staging smoke). |
 | 2026-09-17 | **Global Brain zero-text swarm telemetry** ([`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)): structural `bot_swarm_detected` envelope, synthetic stress catalog, pledge `2026.09.18-UTAH-SAFE` (Session Replay stays tenant legal/security, not training). Also docs re-sync: buyer waitlist/invite + local **:3001**; remaining = staging smoke + Checkout smoke + mock-off. |
 | 2026-09-14 | **Governance audit platform** shipped (resource ledger, audit hub, Session Replay/harm, fitness, budgets, SIEM, diff impact, trusted-OSS bulk). Docs + marketing + Startup tier bullets updated. Pricing remains **$0 / $99 / $49**. |
