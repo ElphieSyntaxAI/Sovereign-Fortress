@@ -44,9 +44,10 @@
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
+import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 import { PROMPT_SESSION_RETENTION_NOTICE } from "@/lib/msgf-legal";
 
 type SessionRow = {
@@ -64,6 +65,7 @@ type SessionRow = {
 };
 
 export function AdminSessionReplayPanel() {
+  const projectOrigin = useSharedProjectOrigin();
   const [q, setQ] = useState("");
   const [harmOnly, setHarmOnly] = useState(false);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
@@ -81,6 +83,7 @@ export function AdminSessionReplayPanel() {
       const params = new URLSearchParams();
       if (q.trim()) params.set("q", q.trim());
       if (harmOnly) params.set("harm_only", "1");
+      if (projectOrigin) params.set("project_origin", projectOrigin);
       params.set("limit", "25");
       const res = await fetch(`/api/msgf/admin/prompt-sessions/search?${params}`, {
         credentials: "include",
@@ -101,7 +104,12 @@ export function AdminSessionReplayPanel() {
     } finally {
       setLoading(false);
     }
-  }, [q, harmOnly]);
+  }, [q, harmOnly, projectOrigin]);
+
+  useEffect(() => {
+    if (!projectOrigin) return;
+    void runSearch();
+  }, [projectOrigin, runSearch]);
 
   return (
     <div id="session-replay">

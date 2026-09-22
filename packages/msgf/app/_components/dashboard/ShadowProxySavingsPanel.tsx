@@ -251,6 +251,11 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
           <dd className="mt-1 text-xl font-semibold text-slate-100">
             {(summary.proof?.retry_loop_prompts ?? 0).toLocaleString()}
           </dd>
+          <p className="mt-1 text-[11px] text-slate-500">
+            <a href="/dashboard#PostIngestHealingConsole" className="text-emerald-300 hover:underline">
+              Build a local context pack
+            </a>
+          </p>
         </div>
         <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
           <dt className="text-[11px] uppercase tracking-wide text-slate-500">
@@ -300,6 +305,14 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
       </p>
       <p className="mt-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-100/90">
         {SHADOW_PROOF_SCOPE_DISCLAIMER}
+      </p>
+      <p className="mt-3 text-sm text-slate-300">
+        Next: set <code className="text-sky-200">x-msgf-mode: active</code> on the same{" "}
+        <code className="text-sky-200">x-msgf-key</code>, then review proven savings. Projected
+        dollars stay on this panel.{" "}
+        <a href="/dashboard#token-savings" className="font-semibold text-emerald-300 hover:underline">
+          Open proven savings
+        </a>
       </p>
       {recent.length > 0 ? (
         <ul className="mt-4 space-y-1.5 text-xs text-slate-400">

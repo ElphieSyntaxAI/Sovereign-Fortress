@@ -324,6 +324,31 @@ export async function activateShadowTrialFullAccess(
   };
 }
 
+/** Expiry copy for the 3-day Individual Pro window. Price matches /pricing. */
+export function buildFullAccessExpiryEmail(input: { name?: string | null }): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const origin = resolveMsgfAppOrigin().replace(/\/$/, "");
+  const pricingUrl = `${origin}/pricing`;
+  const greeting = input.name ? `Hi ${input.name},` : "Hi there,";
+  return {
+    subject: "Your 3-day MSGF Individual Pro trial ended",
+    html: `
+<p>${greeting}</p>
+<p>Your <strong>3-day Individual Pro</strong> trial has ended. Enforcement mode, ingest, and cloud consensus on that trial key are off.</p>
+<p>Keep the proof — subscribe to <strong>Individual Pro for $29/mo</strong> or <strong>$290/yr</strong>: <a href="${pricingUrl}">${pricingUrl}</a></p>
+<p>— Elphie Syntax · MSGF</p>
+`.trim(),
+    text: [
+      "Your 3-day MSGF Individual Pro trial ended.",
+      "",
+      `Subscribe to Individual Pro — $29/mo or $290/yr: ${pricingUrl}`,
+    ].join("\n"),
+  };
+}
+
 export async function expireShadowTrialFullAccess(
   admin: SupabaseClient,
   trial: {
@@ -374,23 +399,12 @@ export async function expireShadowTrialFullAccess(
     return { ok: true, skipped: true };
   }
 
-  const origin = resolveMsgfAppOrigin().replace(/\/$/, "");
-  const pricingUrl = `${origin}/pricing`;
-  const greeting = trial.name ? `Hi ${trial.name},` : "Hi there,";
+  const email = buildFullAccessExpiryEmail({ name: trial.name });
   const result = await sendTransactionalEmail({
     to: trial.email,
-    subject: "Your 3-day MSGF Individual Pro trial ended",
-    html: `
-<p>${greeting}</p>
-<p>Your <strong>3-day Individual Pro</strong> trial has ended. Enforcement mode, ingest, and cloud consensus on that trial key are off.</p>
-<p>Keep the proof — subscribe to <strong>Pro for $29/mo</strong>: <a href="${pricingUrl}">${pricingUrl}</a></p>
-<p>— Elphie Syntax · MSGF</p>
-`.trim(),
-    text: [
-      "Your 3-day MSGF Individual Pro trial ended.",
-      "",
-      `Buy Individual Pro $99: ${pricingUrl}`,
-    ].join("\n"),
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
   });
 
   if (!result.ok && !result.skipped) {

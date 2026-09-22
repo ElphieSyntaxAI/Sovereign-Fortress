@@ -44,9 +44,10 @@
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
+import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 type RankRow = {
   resource_key: string;
@@ -57,6 +58,7 @@ type RankRow = {
 };
 
 export function AdminMostUsedResourcesPanel(props: { tenantId?: string }) {
+  const projectOrigin = useSharedProjectOrigin();
   const [q, setQ] = useState("");
   const [kind, setKind] = useState("");
   const [rows, setRows] = useState<RankRow[]>([]);
@@ -75,6 +77,7 @@ export function AdminMostUsedResourcesPanel(props: { tenantId?: string }) {
       params.set("limit", "30");
       if (q.trim()) params.set("q", q.trim());
       if (kind.trim()) params.set("kind", kind.trim());
+      if (projectOrigin) params.set("project_origin", projectOrigin);
       if (props.tenantId?.trim()) params.set("tenant_id", props.tenantId.trim());
       const res = await fetch(`/api/msgf/dashboard/source-audit?${params}`, {
         credentials: "include",
@@ -93,7 +96,12 @@ export function AdminMostUsedResourcesPanel(props: { tenantId?: string }) {
     } finally {
       setLoading(false);
     }
-  }, [q, kind, props.tenantId]);
+  }, [q, kind, props.tenantId, projectOrigin]);
+
+  useEffect(() => {
+    if (!projectOrigin) return;
+    void runSearch();
+  }, [projectOrigin, runSearch]);
 
   return (
     <div id="most-used">

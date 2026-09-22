@@ -1,9 +1,8 @@
 import * as vscode from "vscode";
 
 /** Verbatim from docs/msgf/build-plans/MSGF_DX_ELEVATION_PLAN.md */
-export const HAL_FRICTION_NOTICE_TEXT = `[MSGF P4 Telemetry Notice]: High keystroke friction detected over the last 15 minutes.
-Your local logic drift slope is fluctuating.
-Action Recommended: Click 'Generate 0-Token Context Pack' to unblock this function without cloud token drain.`;
+export const HAL_FRICTION_NOTICE_TEXT =
+  "You have been editing hard for 15 minutes. Build a local context pack before another model call.";
 
 const WINDOW_MS = 15 * 60 * 1000;
 /** Keystroke-equivalent change events in 15m before notice. */

@@ -44,9 +44,10 @@
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
+import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 type AuditEvent = {
   id: string;
@@ -62,6 +63,7 @@ type AuditEvent = {
 };
 
 export function AdminAuditHubPanel() {
+  const projectOrigin = useSharedProjectOrigin();
   const [q, setQ] = useState("");
   const [kind, setKind] = useState("");
   const [severity, setSeverity] = useState("");
@@ -83,6 +85,7 @@ export function AdminAuditHubPanel() {
       if (kind.trim()) params.set("kind", kind.trim());
       if (severity.trim()) params.set("severity", severity.trim());
       if (p7Filter.trim()) params.set("p7", p7Filter.trim());
+      if (projectOrigin) params.set("project_origin", projectOrigin);
       params.set("limit", "40");
       const res = await fetch(`/api/msgf/admin/audit-hub?${params}`, {
         credentials: "include",
@@ -103,7 +106,12 @@ export function AdminAuditHubPanel() {
     } finally {
       setLoading(false);
     }
-  }, [q, kind, severity, p7Filter]);
+  }, [q, kind, severity, p7Filter, projectOrigin]);
+
+  useEffect(() => {
+    if (!projectOrigin) return;
+    void runSearch();
+  }, [projectOrigin, runSearch]);
 
   return (
     <div id="audit-hub">

@@ -44,7 +44,9 @@
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
 
@@ -59,12 +61,17 @@ type DiffReport = {
 };
 
 export function AdminDiffImpactPanel() {
+  const sharedOrigin = useSharedProjectOrigin();
   const [pathsText, setPathsText] = useState("");
-  const [projectOrigin, setProjectOrigin] = useState("");
+  const [projectOrigin, setProjectOrigin] = useState(sharedOrigin);
   const [report, setReport] = useState<DiffReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+
+  useEffect(() => {
+    if (sharedOrigin) setProjectOrigin(sharedOrigin);
+  }, [sharedOrigin]);
 
   const run = useCallback(async () => {
     setLoading(true);

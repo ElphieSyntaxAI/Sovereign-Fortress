@@ -44,9 +44,10 @@
  * Distribution Build ID: MSGF-c122f849-20260911T161212Z-internal
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AdminGovernanceSearchShell } from "@/app/_components/admin/ops/AdminGovernanceSearchShell";
+import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
 
 type Rollup = {
   model_id: string;
@@ -62,6 +63,7 @@ type Rollup = {
 };
 
 export function AdminModelFitnessPanel() {
+  const projectOrigin = useSharedProjectOrigin();
   const [tenantId, setTenantId] = useState("");
   const [rollups, setRollups] = useState<Rollup[]>([]);
   const [preferred, setPreferred] = useState<{
@@ -81,6 +83,7 @@ export function AdminModelFitnessPanel() {
     try {
       const params = new URLSearchParams();
       if (tenantId.trim()) params.set("tenant_id", tenantId.trim());
+      if (projectOrigin) params.set("project_origin", projectOrigin);
       params.set("limit", "40");
       const res = await fetch(`/api/msgf/admin/model-fitness?${params}`, {
         credentials: "include",
@@ -108,7 +111,12 @@ export function AdminModelFitnessPanel() {
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, projectOrigin]);
+
+  useEffect(() => {
+    if (!projectOrigin) return;
+    void run();
+  }, [projectOrigin, run]);
 
   return (
     <div id="model-fitness">

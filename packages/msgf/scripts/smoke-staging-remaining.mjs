@@ -27,9 +27,13 @@ function parseEnv(file) {
 }
 
 const env = {
+  ...parseEnv(path.join(ROOT, ".env.local")),
+  ...parseEnv(path.join(ROOT, "packages/msgf/.env.local")),
   ...parseEnv(path.join(ROOT, "packages/msgf/.env.staging.local")),
   ...process.env,
 };
+const OPENAI_KEY = (env.OPENAI_API_KEY || "").trim();
+const ANTHROPIC_KEY = (env.ANTHROPIC_API_KEY || env.MASTER_ANTHROPIC_KEY || "").trim();
 
 const LICENSE = (env.MSGF_CONTRACT_LICENSE_KEY || "").trim();
 const TENANT = (env.MSGF_SOLO_TENANT_ID || "staging_readiness").trim();
@@ -193,33 +197,80 @@ const completionsBody = JSON.stringify({
   stream: false,
 });
 
-const shadow = await hit("POST completions shadow", `${BASE}/api/v1/chat/completions`, {
-  method: "POST",
-  headers: licenseHeaders({
-    "x-msgf-mode": "shadow",
-    Authorization: "Bearer sk-staging-placeholder-no-live-spend",
-  }),
-  body: completionsBody,
+const anthropicBody = JSON.stringify({
+  model: "claude-haiku-4-5-20251001",
+  max_tokens: 8,
+  messages: [{ role: "user", content: "MSGF staging shadow eval — do not spend." }],
 });
+
+let shadow;
+let active;
+if (OPENAI_KEY) {
+  shadow = await hit("POST completions shadow", `${BASE}/api/v1/chat/completions`, {
+    method: "POST",
+    headers: licenseHeaders({
+      "x-msgf-mode": "shadow",
+      Authorization: `Bearer ${OPENAI_KEY}`,
+    }),
+    body: completionsBody,
+  });
+  active = await hit("POST completions active", `${BASE}/api/v1/chat/completions`, {
+    method: "POST",
+    headers: licenseHeaders({
+      "x-msgf-mode": "active",
+      "x-msgf-tenant-id": "spoofed-rc-tenant",
+      "X-MSGF-Tenant-Key": "spoofed-rc-tenant",
+      Authorization: `Bearer ${OPENAI_KEY}`,
+    }),
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: "MSGF staging active routing check." }],
+      max_tokens: 8,
+      stream: false,
+    }),
+  });
+} else if (ANTHROPIC_KEY) {
+  console.log("[INFO] completions via Anthropic — no OPENAI_API_KEY in .env.local");
+  shadow = await hit("POST messages shadow", `${BASE}/api/v1/messages`, {
+    method: "POST",
+    headers: licenseHeaders({
+      "x-msgf-mode": "shadow",
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+    }),
+    body: anthropicBody,
+  });
+  active = await hit("POST messages active", `${BASE}/api/v1/messages`, {
+    method: "POST",
+    headers: licenseHeaders({
+      "x-msgf-mode": "active",
+      "x-msgf-tenant-id": "spoofed-rc-tenant",
+      "X-MSGF-Tenant-Key": "spoofed-rc-tenant",
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+    }),
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 8,
+      messages: [{ role: "user", content: "MSGF staging active routing check." }],
+    }),
+  });
+} else {
+  console.log("[SKIP] completions — no OPENAI_API_KEY or ANTHROPIC_API_KEY");
+  shadow = {
+    name: "completions skipped",
+    status: 0,
+    ok: false,
+    ms: 0,
+    json: null,
+    text: "missing upstream key",
+    headers: {},
+  };
+  active = shadow;
+}
 summarize(shadow, {
   code: shadow.json?.error?.code || shadow.json?.error,
   spoofed: /spoofed-rc-tenant/i.test(shadow.text),
-});
-
-const active = await hit("POST completions active", `${BASE}/api/v1/chat/completions`, {
-  method: "POST",
-  headers: licenseHeaders({
-    "x-msgf-mode": "active",
-    "x-msgf-tenant-id": "spoofed-rc-tenant",
-    "X-MSGF-Tenant-Key": "spoofed-rc-tenant",
-    Authorization: "Bearer sk-staging-placeholder-no-live-spend",
-  }),
-  body: JSON.stringify({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: "MSGF staging active routing check." }],
-    max_tokens: 8,
-    stream: false,
-  }),
 });
 summarize(active, {
   code: active.json?.error?.code || active.json?.error,
@@ -260,15 +311,18 @@ if (CRON) {
   console.log("[SKIP] v32-heartbeat — no staging cron secret in env");
 }
 
+await new Promise((resolve) => setTimeout(resolve, 2500));
 const shadowEvalOwn = await hit(
   "GET shadow-eval own after gateway",
   `${BASE}/api/msgf/dashboard/shadow-eval?tenant_id=${encodeURIComponent(TENANT)}`,
   { headers: licenseHeaders() }
 );
+const recent = Array.isArray(shadowEvalOwn.json?.recent) ? shadowEvalOwn.json.recent : [];
 summarize(shadowEvalOwn, {
   tenant: shadowEvalOwn.json?.tenant_id,
   err: shadowEvalOwn.json?.error,
-  rows: shadowEvalOwn.json?.rows?.length ?? shadowEvalOwn.json?.items?.length,
+  recent: recent.length,
+  projected: shadowEvalOwn.json?.summary?.projected_savings_usd ?? shadowEvalOwn.json?.summary?.proof?.projected_usd,
 });
 
 const out = {

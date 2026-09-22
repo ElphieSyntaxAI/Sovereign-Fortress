@@ -357,9 +357,11 @@ export function ShadowTrialPanel({
   }, [startFullAccess, token, activateFullAccess]);
 
   const snippet = useMemo(() => {
-    if (!activeKey) return OPENAI_SNIPPET.replace("process.env.MSGF_TRIAL_KEY!", "YOUR_MSGF_KEY");
-    return OPENAI_SNIPPET.replace("process.env.MSGF_TRIAL_KEY!", `"${activeKey}"`);
-  }, [activeKey]);
+    const mode = summary?.full_access_live ? "active" : "shadow";
+    const base = OPENAI_SNIPPET.replace('"x-msgf-mode": "shadow"', `"x-msgf-mode": "${mode}"`);
+    if (!activeKey) return base.replace("process.env.MSGF_TRIAL_KEY!", "YOUR_MSGF_KEY");
+    return base.replace("process.env.MSGF_TRIAL_KEY!", `"${activeKey}"`);
+  }, [activeKey, summary?.full_access_live]);
 
   const onStart = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -542,7 +544,10 @@ export function ShadowTrialPanel({
                   {(summary.proof?.retry_loop_prompts ?? 0).toLocaleString()}
                 </dd>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Rejected-outcome store would stop the known-bad path
+                  Rejected-outcome store would stop the known-bad path.{" "}
+                  <Link href="/dashboard#PostIngestHealingConsole" className="text-emerald-300 hover:underline">
+                    Build a local context pack
+                  </Link>
                 </p>
               </div>
               <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
@@ -632,10 +637,16 @@ export function ShadowTrialPanel({
             ) : null}
             {summary.full_access_live ? (
               <p className="mt-3 text-sm text-slate-300">
-                Enforcement mode is unlocked on your trial key. Cloud consensus is capped at{" "}
-                <strong>200 verification credits</strong> for this 72-hour window.{" "}
-                <Link href="/dashboard" className="font-semibold text-emerald-300 hover:underline">
-                  Open dashboard
+                Enforcement mode is unlocked on your trial key. Set{" "}
+                <code className="text-emerald-200">x-msgf-mode: active</code> on the same{" "}
+                <code className="text-emerald-200">x-msgf-key</code>, then open proven savings. Cloud
+                consensus is capped at <strong>200 verification credits</strong> for this 72-hour
+                window. Projected Shadow dollars stay off that board.{" "}
+                <Link
+                  href="/dashboard#token-savings"
+                  className="font-semibold text-emerald-300 hover:underline"
+                >
+                  Open proven savings
                 </Link>
               </p>
             ) : (

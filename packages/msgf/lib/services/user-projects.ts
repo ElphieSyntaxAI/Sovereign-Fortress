@@ -256,3 +256,70 @@ export async function createUserProjectsBulk(
 
   return { created, skipped, errors };
 }
+
+export type ProjectActivity = {
+  last_pulse_at: string | null;
+  last_verify_at: string | null;
+  sentry_quarantine_count: number;
+};
+
+/** Read-only activity for mapped projects. Missing tables return empty fields. */
+export async function loadProjectActivity(
+  admin: SupabaseClient,
+  origins: string[]
+): Promise<Record<string, ProjectActivity>> {
+  const keys = [...new Set(origins.map((o) => o.trim()).filter(Boolean))];
+  const out: Record<string, ProjectActivity> = {};
+  for (const origin of keys) {
+    out[origin] = {
+      last_pulse_at: null,
+      last_verify_at: null,
+      sentry_quarantine_count: 0,
+    };
+  }
+  if (!keys.length) return out;
+
+  try {
+    const { data } = await admin
+      .from("msgf_prompt_sessions")
+      .select("project_origin, observed_at, product")
+      .in("project_origin", keys)
+      .order("observed_at", { ascending: false })
+      .limit(200);
+    for (const row of data ?? []) {
+      const origin = String(row.project_origin ?? "");
+      const slot = out[origin];
+      if (!slot) continue;
+      const at = typeof row.observed_at === "string" ? row.observed_at : null;
+      const product = String(row.product ?? "");
+      if (product === "verify") {
+        if (!slot.last_verify_at) slot.last_verify_at = at;
+      } else if (!slot.last_pulse_at) {
+        slot.last_pulse_at = at;
+      }
+    }
+  } catch {
+    /* activity is optional */
+  }
+
+  try {
+    const { data } = await admin
+      .from("pillar_vectors")
+      .select("metadata, quarantine_status")
+      .eq("quarantine_status", "QUARANTINED")
+      .limit(200);
+    for (const row of data ?? []) {
+      const meta =
+        row.metadata && typeof row.metadata === "object"
+          ? (row.metadata as Record<string, unknown>)
+          : null;
+      const origin = typeof meta?.project_origin === "string" ? meta.project_origin : "";
+      const slot = out[origin];
+      if (slot) slot.sentry_quarantine_count += 1;
+    }
+  } catch {
+    /* quarantine table is optional for this summary */
+  }
+
+  return out;
+}

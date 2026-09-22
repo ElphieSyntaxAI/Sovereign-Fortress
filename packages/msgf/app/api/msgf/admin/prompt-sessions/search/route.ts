@@ -96,6 +96,11 @@ export async function GET(req: NextRequest) {
       limit: Number(sp.get("limit") || 25) || 25,
     });
 
+    const projectOrigin = sp.get("project_origin")?.trim();
+    if (projectOrigin) {
+      sessions = sessions.filter((s) => s.project_origin === projectOrigin);
+    }
+
     if (!isGlobal && op.companyId) {
       const allow = await companyTenantAllowlist(admin, op.companyId);
       sessions = sessions.filter((s) => {

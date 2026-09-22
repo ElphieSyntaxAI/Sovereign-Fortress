@@ -341,6 +341,7 @@ function buildReportEmailHtml(input: {
   const greeting = input.name ? `Hi ${input.name},` : "Hi there,";
   const proof = input.summary.proof;
   const fullCta = `${input.statusUrl}${input.statusUrl.includes("?") ? "&" : "?"}full=1`;
+  const provenUrl = `${resolveMsgfAppOrigin().replace(/\/$/, "")}/dashboard#token-savings`;
   return `
 <p>${greeting}</p>
 <p>Your <strong>7-day Shadow Proxy</strong> window has ended.</p>
@@ -358,6 +359,7 @@ function buildReportEmailHtml(input: {
 <p><em>Disclaimer:</em> ${SHADOW_PROOF_SCOPE_DISCLAIMER}</p>
 <p>Review the live ledger: <a href="${input.statusUrl}">${input.statusUrl}</a></p>
 <p><strong>Next:</strong> <a href="${fullCta}">Start 3-day full access</a> — apply these reputation promotes/blocks immediately, then Individual Pro cloud (dashboard, Pulse, IDE token, Active Governance, Vault/Hall) on the same tenant as this proof ledger.</p>
+<p>When that grant is live, set <code>x-msgf-mode: active</code> on the same <code>x-msgf-key</code>, then open proven savings at <a href="${provenUrl}">${provenUrl}</a>. Projected dollars stay off that board.</p>
 <p>— Elphie Syntax · MSGF</p>
 `.trim();
 }
@@ -368,6 +370,7 @@ function buildReportEmailText(input: {
 }): string {
   const proof = input.summary.proof;
   const fullCta = `${input.statusUrl}${input.statusUrl.includes("?") ? "&" : "?"}full=1`;
+  const provenUrl = `${resolveMsgfAppOrigin().replace(/\/$/, "")}/dashboard#token-savings`;
   return [
     "MSGF Shadow Proxy — trial proof report",
     "",
@@ -389,6 +392,7 @@ function buildReportEmailText(input: {
     "",
     `Dashboard: ${input.statusUrl}`,
     `Start 3-day full access to apply these reputation promotes/blocks immediately: ${fullCta}`,
+    `When that grant is live, set x-msgf-mode: active on the same x-msgf-key, then open proven savings: ${provenUrl}. Projected dollars stay off that board.`,
     "",
     "Duplicate $ is money already spent on identical prompts. Hall/policy counts are pattern matches — not a hallucination detector. Runaway agent waves are cheap swarm-monitor trips (mandate drift, fan-out, sibling edges) — not a tenant freeze.",
   ].join("\n");

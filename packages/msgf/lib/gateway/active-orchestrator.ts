@@ -37,7 +37,19 @@ import {
 } from "@/lib/gateway/shadow-fast-path";
 import { resolveTenantActivePolicy } from "@/lib/gateway/tenant-policy";
 import type { CapturedProviderUsage, MsgfGatewayProvider } from "@/lib/gateway/types";
+import { generateEmbedding } from "@/lib/ai-utils";
+import {
+  activeConsensusWidth,
+  loadExtraConsensusTexts,
+  majorityFromCompletions,
+  triEnabledForActive,
+} from "@/lib/gateway/active-chat-majority";
+import {
+  findSimilarTenantCompletion,
+  rememberTenantPromptEmbedding,
+} from "@/lib/gateway/semantic-completion-cache";
 import { MSGF_PROJECT_ORIGIN_HEADER, MSGF_PROMPT_HASH_HEADER } from "@/lib/msgf-http-headers";
+import { getTenantConsensusConfig } from "@/lib/services/tenant-consensus-config";
 import {
   recordProvenAvoidance,
   type ProvenAvoidanceRecord,
@@ -48,13 +60,34 @@ import { observeP7ForPrompt, writeLiveP7, type P7ObserveResult } from "@/lib/ser
 function auditHeaders(params: {
   routing: string;
   tokensSaved: number;
-  cacheHit: boolean;
+  cacheHit: boolean | "semantic";
 }): Record<string, string> {
   return {
     "x-msgf-routing": params.routing,
     "x-msgf-tokens-saved": String(Math.max(0, Math.floor(params.tokensSaved))),
-    "x-msgf-cache-hit": params.cacheHit ? "1" : "0",
+    "x-msgf-cache-hit":
+      params.cacheHit === "semantic" ? "semantic" : params.cacheHit ? "1" : "0",
   };
+}
+
+async function readAssistantText(
+  provider: MsgfGatewayProvider,
+  response: Response
+): Promise<string> {
+  const clone = response.clone();
+  const text = await clone.text();
+  const json = JSON.parse(text) as Record<string, unknown>;
+  if (provider === "openai") {
+    const choices = json.choices as Array<{ message?: { content?: string } }> | undefined;
+    return choices?.[0]?.message?.content ?? "";
+  }
+  const content = json.content as Array<{ type?: string; text?: string }> | undefined;
+  return (
+    content
+      ?.filter((c) => c.type === "text")
+      .map((c) => c.text ?? "")
+      .join("") ?? ""
+  );
 }
 
 function withAuditHeaders(
@@ -225,6 +258,63 @@ export async function runActiveOrchestrator(params: {
       };
     }
 
+    try {
+      const embedding = await generateEmbedding(params.promptText);
+      const similar = await findSimilarTenantCompletion({
+        tenantId: params.tenantId,
+        embedding,
+        exceptHash: ir.promptHash,
+      });
+      if (similar) {
+        const baseline = await getRollingConvergeBaselineTokens(params.tenantId, 1);
+        const tokensSaved = Math.max(
+          0,
+          (baseline?.tokens ?? Math.ceil(params.promptText.length / 4)) -
+            Math.ceil(similar.entry.text.length / 4)
+        );
+        const avoided = tokensSaved || Math.ceil(params.promptText.length / 4);
+        void recordGatewayProven({
+          tenantId: params.tenantId,
+          reason: "gateway_semantic_cache_hit",
+          tokensAvoided: avoided,
+          baselineTokens: baseline?.tokens ?? Math.ceil(params.promptText.length / 4),
+          localTokens: Math.ceil(similar.entry.text.length / 4),
+          projectOrigin: projectOrigin ?? undefined,
+          admin: params.admin,
+          promptHash: ir.promptHash,
+          endpoint: params.endpointLabel,
+          provider: params.provider,
+        });
+        const response = formatResponseFromPromptIR(
+          ir,
+          { text: similar.entry.text, model: similar.entry.model || ir.model },
+          auditHeaders({
+            routing: "SEMANTIC_SIMILAR_HIT",
+            tokensSaved: avoided,
+            cacheHit: "semantic",
+          })
+        );
+        writeObservedP7("SEMANTIC_SIMILAR_HIT");
+        return {
+          response,
+          usagePromise: Promise.resolve({
+            input_tokens: 0,
+            output_tokens: Math.max(1, Math.floor(similar.entry.text.length / 4)),
+            total_tokens: Math.max(1, Math.floor(similar.entry.text.length / 4)),
+            usage_source: "provider" as const,
+            model: similar.entry.model || ir.model,
+          }),
+          skipShadowEval: false,
+          skipBackgroundMeter: true,
+          promptHash: ir.promptHash,
+          routing: "SEMANTIC_SIMILAR_HIT",
+          tokensSaved: avoided,
+        };
+      }
+    } catch {
+      /* similar-prompt lookup must never block the upstream call */
+    }
+
     // Step B — state-gating
     const gated = applyStateGatingToPromptIR(ir);
     ir = gated.ir;
@@ -282,31 +372,76 @@ export async function runActiveOrchestrator(params: {
         /* fitness emit must never block */
       }
     }
-    const wantConsensus =
+    const singleRouting = gated.applied
+      ? drift.escalate && !preferSmallFromFitness && !p7Poison
+        ? "STATE_GATED_ESCALATE_UPSTREAM"
+        : "STATE_GATED_SMALL_BRAIN"
+      : "SMALL_BRAIN_UPSTREAM";
+
+    let consensusWidth: 1 | 2 | 3 = 1;
+    if (
       policy.active_aggressiveness === "full-consensus" &&
       drift.escalate &&
       !preferSmallFromFitness &&
-      !p7Poison;
+      !p7Poison &&
+      params.admin &&
+      !ir.stream
+    ) {
+      try {
+        const preset = await getTenantConsensusConfig({
+          admin: params.admin,
+          tenantId: params.tenantId,
+        });
+        consensusWidth = activeConsensusWidth({
+          aggressiveness: policy.active_aggressiveness,
+          escalate: true,
+          triEnabled: triEnabledForActive(),
+          presetId: preset.profileId ?? null,
+        });
+      } catch {
+        consensusWidth = 1;
+      }
+    }
 
-    // Step D — sharded single-model upstream
-    const routing = wantConsensus
-      ? "STATE_GATED_CONVERGE"
-      : gated.applied
-        ? drift.escalate && !preferSmallFromFitness && !p7Poison
-          ? "STATE_GATED_ESCALATE_UPSTREAM"
-          : "STATE_GATED_SMALL_BRAIN"
-        : "SMALL_BRAIN_UPSTREAM";
-
-    writeObservedP7(routing);
-    return await passThroughSharded({
+    // Step D — one model, unless full-consensus has enough extra completions for a majority.
+    writeObservedP7(singleRouting);
+    const forwarded = await passThroughSharded({
       ...params,
       ir,
-      routing,
+      routing: singleRouting,
       tokensSaved: gateSaved,
       reason: gated.applied ? "gateway_state_gate" : "gateway_small_brain",
       cacheOnSuccess: true,
       aggressiveness: policy.active_aggressiveness,
     });
+
+    if (consensusWidth < 2 || !params.admin) return forwarded;
+    const width: 2 | 3 = consensusWidth === 3 ? 3 : 2;
+
+    try {
+      const primary = await readAssistantText(params.provider, forwarded.response);
+      const extras = await loadExtraConsensusTexts({
+        admin: params.admin,
+        tenantId: params.tenantId,
+        prompt: params.promptText,
+        width,
+      });
+      const decision = majorityFromCompletions([primary, ...extras]);
+      const agreed = extras.length >= width - 1 && decision.majority;
+      const routing = agreed ? "STATE_GATED_CONVERGE" : "NO_MAJORITY_HITL";
+      writeObservedP7(routing);
+      return {
+        ...forwarded,
+        response: withAuditHeaders(
+          forwarded.response,
+          auditHeaders({ routing, tokensSaved: gateSaved, cacheHit: false })
+        ),
+        routing,
+      };
+    } catch (e) {
+      console.warn("[active-orchestrator] consensus majority skipped:", e);
+      return forwarded;
+    }
   } catch (e) {
     console.warn("[active-orchestrator] falling back to pass-through:", e);
     if (!policy.passthrough_fallback) {
@@ -412,6 +547,14 @@ async function passThroughSharded(params: {
             params.aggressiveness!,
             { text: assistant, model: params.model }
           );
+          const embedding = await generateEmbedding(params.promptText);
+          await rememberTenantPromptEmbedding({
+            tenantId: params.tenantId,
+            promptHash: params.ir.promptHash,
+            embedding,
+            text: assistant,
+            model: params.model,
+          });
         }
       } catch {
         /* ignore cache warm failures */

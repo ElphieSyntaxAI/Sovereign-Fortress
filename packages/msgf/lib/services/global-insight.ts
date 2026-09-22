@@ -57,6 +57,26 @@ export type GlobalInsightFeedItem = {
   already_absorbed: boolean;
 };
 
+/** Cross-tenant Big Brain absorb: hashes and scores only. Pattern text is hashed, not stored. */
+export function toCrossTenantBrainMetadata(input: {
+  sourceLogId: string;
+  tenantId: string;
+  strategyId: string | null;
+  driftScore: number | null;
+  patternText: string;
+}): string {
+  const content_hash = createHash("sha256")
+    .update(input.patternText || "", "utf8")
+    .digest("hex");
+  return JSON.stringify({
+    content_hash,
+    strategy_id: input.strategyId,
+    drift_score: input.driftScore,
+    silo_ref: siloRefFromTenantId(input.tenantId),
+    source_log_hash: createHash("sha256").update(input.sourceLogId, "utf8").digest("hex"),
+  });
+}
+
 export function siloRefFromTenantId(tenantId: string): string {
   const t = tenantId.trim();
   if (!t) return "unknown";
@@ -227,11 +247,15 @@ export async function absorbGlobalInsightIntoBrain(params: {
 
   const rawPattern = extractLogicPatternFromHealMetadata(meta!);
   const msg = typeof logRow.message === "string" ? logRow.message.trim() : "";
-  const logicPattern = anonymizeInsightText(rawPattern || msg || "Absorbed local heal pattern.");
-
-  if (!logicPattern.trim()) {
-    throw new Error("No logic pattern could be derived for absorption.");
-  }
+  const strategyId =
+    typeof meta?.local_delta_strategy_id === "string" ? meta.local_delta_strategy_id : null;
+  const metadataOnly = toCrossTenantBrainMetadata({
+    sourceLogId: sid,
+    tenantId: String(logRow.tenant_id ?? ""),
+    strategyId,
+    driftScore: parseDriftScore(meta!),
+    patternText: rawPattern || msg,
+  });
 
   const vaultTenant = MSGF_VAULT_CORE_TENANT_ID.trim();
   if (!vaultTenant) {
@@ -250,7 +274,7 @@ export async function absorbGlobalInsightIntoBrain(params: {
     supabase: params.admin,
     entityId: MSGF_GLOBAL_INSIGHT_SYSTEM_ENTITY_ID,
     tenantId: vaultTenant,
-    content: logicPattern.slice(0, 12000),
+    content: metadataOnly,
     bugIndex: GLOBAL_INSIGHT_VAULT_BUG_INDEX,
     summaryBeat,
     legalVersion: CURRENT_LEGAL_VERSION,

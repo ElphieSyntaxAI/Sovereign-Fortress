@@ -915,9 +915,12 @@ export function PublicEcoMetricsWidget() {
               </>
             ) : (
               <>
-                Live proven totals are building as tenants establish metered CONVERGE baselines.
-                Until then we show zeros here — not illustrative placeholders — so marketing stays
-                auditable.
+                The first number appears after an Active cache hit or a verify pack that avoided
+                provider tokens. Shadow projected dollars stay off this board.{" "}
+                <a href="/shadow-trial" className="underline">
+                  Start in shadow mode
+                </a>
+                , then set enforcement mode and open proven savings.
               </>
             )}
           </p>

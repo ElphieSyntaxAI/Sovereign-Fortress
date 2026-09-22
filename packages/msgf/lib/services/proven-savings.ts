@@ -52,6 +52,7 @@ export type ProvenAvoidanceReason =
   | "run_script_rerun"
   | "confirm_pack"
   | "gateway_cache_hit"
+  | "gateway_semantic_cache_hit"
   | "gateway_state_gate"
   | "gateway_small_brain"
   | "other";

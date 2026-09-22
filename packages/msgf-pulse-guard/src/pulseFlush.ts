@@ -1,6 +1,7 @@
 import { classifyHttpError } from "./classifyHttpError";
 import type { IdeStatusBarSnapshot } from "./ide-types";
-import { MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
+import { MSGF_PROMPT_HASH_HEADER, MSGF_RBAC_FORBIDDEN_WARNING } from "./constants";
+import { hashPulsePayload } from "./pulsePromptHash";
 import type { MsgfGuardSettings } from "./config";
 import type { PulseFlushContext } from "./devSessionPulse";
 import { buildPulseAuthHeaders } from "./pulseAuth";
@@ -10,6 +11,8 @@ import { telemetryToKeystrokes } from "./keystrokeCapture";
 import type { TelemetryChangeEvent } from "./telemetryTypes";
 
 const LOG_PREFIX = "[MSGF Guard]";
+
+export { hashPulsePayload } from "./pulsePromptHash";
 
 export type PulseFlushResult = {
   ok: boolean;
@@ -114,6 +117,8 @@ export async function flushTelemetryBatch(params: {
       snapshot: emptySnapshot("error", "msgf.authToken is required for Pulse."),
     };
   }
+
+  headers[MSGF_PROMPT_HASH_HEADER] = hashPulsePayload(keystrokes);
 
   const projectOrigin = resolveMappedProjectOrigin(params.settings.tenantKey);
   const pulseBody: Record<string, unknown> = { keystrokes };

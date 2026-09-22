@@ -17,6 +17,7 @@ import {
   CreateUserProjectBodySchema,
   createUserProject,
   listUserProjects,
+  loadProjectActivity,
 } from "@/lib/services/user-projects";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -41,7 +42,11 @@ export async function GET() {
   try {
     const admin = createAdminClient();
     const projects = await listUserProjects(admin, user.id);
-    return NextResponse.json({ ok: true, projects });
+    const activity = await loadProjectActivity(
+      admin,
+      projects.map((project) => project.project_origin)
+    );
+    return NextResponse.json({ ok: true, projects, activity });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to list projects.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

@@ -66,6 +66,21 @@ export type ConvergeCacheEntry = {
   cached_at: string;
 };
 
+/** Metadata safe to leave the tenant. Drops verdict and reason text. */
+export function convergeCacheTrainingMetadata(entry: ConvergeCacheEntry): {
+  agreement_score: number;
+  resolution_hash: string;
+  consensus_mode: string | null;
+  provider_count: number;
+} {
+  return {
+    agreement_score: entry.agreement_score,
+    resolution_hash: createHash("sha256").update(entry.resolution, "utf8").digest("hex"),
+    consensus_mode: entry.consensus[0]?.consensus_mode ?? null,
+    provider_count: entry.consensus[0]?.consensus_providers?.length ?? 0,
+  };
+}
+
 export type GetOrSetConvergeCacheResult = {
   cacheHit: boolean;
   resolution: string;

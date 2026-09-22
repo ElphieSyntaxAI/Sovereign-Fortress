@@ -163,6 +163,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
+import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+
 type SentryIssue = {
   id: string;
   shortId: string;
@@ -190,6 +192,7 @@ type StatusPayload = {
 };
 
 export function AdminSentryPanel() {
+  const projectOrigin = useSharedProjectOrigin();
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [issues, setIssues] = useState<SentryIssue[]>([]);
   const [query, setQuery] = useState("is:unresolved");
@@ -226,6 +229,7 @@ export function AdminSentryPanel() {
     try {
       const params = new URLSearchParams({ issues: "1", limit: "25" });
       if (query.trim()) params.set("query", query.trim());
+      if (projectOrigin) params.set("project_origin", projectOrigin);
       const res = await fetch(`/api/msgf/admin/sentry?${params}`, {
         credentials: "include",
         cache: "no-store",
@@ -248,7 +252,7 @@ export function AdminSentryPanel() {
     } finally {
       setLoadingIssues(false);
     }
-  }, [query]);
+  }, [query, projectOrigin]);
 
   useEffect(() => {
     void loadStatus();

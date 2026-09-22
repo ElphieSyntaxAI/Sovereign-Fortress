@@ -523,7 +523,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | 2 | Solo deep-test gate | **Done** 2026-09-11 — `npm run deep-test:solo` |
 | 3 | Solo integrator bootstrap | **Partial** 2026-09-22 — `probe:solo` green on staging gatedai (Pulse 200). Staging seed used instead of `bootstrap:solo`. |
 | 4 | Env + schema | **Done** 2026-09-18 — `db:push:verify` applied `20260918010000` + `20260918120000`; P7 prompt CHECK + Shadow deferred columns green |
-| 5 | Staging smoke | **Partial** 2026-09-22 — done: Pulse, ingest + `lineage_map`, heal-queue user/admin load, `/features`, heartbeat dry-run 200, Active routing + spoof ignored, buyer foreign 403, swarm 409 / no key lists, dashboard live, period + PDF, audit hub `p7=` chips. Still open: Shadow projected eval (no OpenAI key), Shadow CTA / `p7_applied_at`, Sentry 503, `/setup/projects`, HITL POST 500. Soft-RC stays ~90% until this bundle is green. |
+| 5 | Staging smoke | **Partial** 2026-09-22 — done: Pulse, ingest + `lineage_map`, heal-queue user/admin load, `/features`, heartbeat dry-run 200, Active routing + spoof ignored, buyer foreign 403, swarm 409 / no key lists, dashboard live, period + PDF, audit hub `p7=` chips, **Shadow projected eval** (Anthropic `/v1/messages` 200). Still open: Shadow CTA / `p7_applied_at`, Sentry 503, `/setup/projects`, HITL POST 500. Soft-RC stays ~90% until this bundle is green. |
 
 ### B. Finish before `msgf-v1.0.0` tag (engine + ops)
 
@@ -561,7 +561,7 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | **Solo / BYOK** | **~80%** | Staging seed + `probe:solo` green 2026-09-22; prod probe still open |
 | **Ecosystem (Author/Edu)** | **~55%** | Not blocking MSGF-only soft-RC |
 | **Commercial (Stripe)** | **~80%** | Live keys + identity + webhook + live Prices done; Checkout smoke + mock-off open |
-| **Verification / staging** | **~72%** | Most one-tenant smokes green 2026-09-22; leftover = Shadow eval/CTA, Sentry, HITL POST, `/setup/projects` |
+| **Verification / staging** | **~78%** | One-tenant smokes include Shadow projected eval 2026-09-22; leftover = Shadow CTA, Sentry, HITL POST, `/setup/projects` |
 | **Marketing / docs** | **~99%** | Overview + features + pricing + admin hub + buyer walkthrough + **2026-09-18 P7 closed loop** |
 | **Technical soft-RC** | **~90%** | Validate + deep-test + env green; P7/swarm **code** landed; **does not move** until §10.A item 5 is fully green |
 | **Paid self-serve launch** | **~82%** | Soft-RC + live Checkout smoke + mock-off |
@@ -572,7 +572,8 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
-| 2026-09-22 | **Staging smoke partial** on gatedai (`msgf-api-staging-00008-np6`, tenant `staging_readiness`). §10.A item 3 probe Done; item 5 Partial. Verification/staging ~72%. Soft-RC stays **~90%**; paid stays **~82%**. |
+| 2026-09-22 | **Staging AI keys** from `.env.local` on `msgf-api-staging-00009-bvf`. Shadow projected eval checked (Anthropic). Verification/staging ~78%. Soft-RC stays **~90%**; paid stays **~82%**. |
+| 2026-09-22 | **Staging smoke partial** on gatedai (`msgf-api-staging-00008-np6`, tenant `staging_readiness`). §10.A item 3 probe Done; item 5 Partial. Soft-RC stays **~90%**; paid stays **~82%**. |
 | 2026-09-18 | **P7 closed loop:** reputation writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; decay + `prompt:{hash}`. Schema `20260918120000` still to apply. Soft-RC stays ~90% (staging smoke). |
 | 2026-09-17 | **Global Brain zero-text swarm telemetry** ([`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)): structural `bot_swarm_detected` envelope, synthetic stress catalog, pledge `2026.09.18-UTAH-SAFE` (Session Replay stays tenant legal/security, not training). Also docs re-sync: buyer waitlist/invite + local **:3001**; remaining = staging smoke + Checkout smoke + mock-off. |
 | 2026-09-14 | **Governance audit platform** shipped (resource ledger, audit hub, Session Replay/harm, fitness, budgets, SIEM, diff impact, trusted-OSS bulk). Docs + marketing + Startup tier bullets updated. Pricing remains **$0 / $99 / $49**. |

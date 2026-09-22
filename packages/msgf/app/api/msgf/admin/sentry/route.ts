@@ -53,7 +53,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const query = req.nextUrl.searchParams.get("query") ?? undefined;
+    const projectOrigin = req.nextUrl.searchParams.get("project_origin")?.trim() || "";
+    const rawQuery = req.nextUrl.searchParams.get("query")?.trim() || "";
+    const query = [rawQuery, projectOrigin].filter(Boolean).join(" ") || undefined;
     const limitRaw = req.nextUrl.searchParams.get("limit");
     const limit = limitRaw ? Number(limitRaw) : 25;
     const issues = await listSentryIssues({

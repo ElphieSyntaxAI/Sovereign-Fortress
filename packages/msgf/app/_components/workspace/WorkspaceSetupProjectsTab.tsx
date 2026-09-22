@@ -310,6 +310,12 @@ export function WorkspaceSetupProjectsTab({
   onProjectsUpdated,
 }: Props) {
   const [projects, setProjects] = useState<UserProjectRow[]>([]);
+  const [activity, setActivity] = useState<
+    Record<
+      string,
+      { last_pulse_at: string | null; last_verify_at: string | null; sentry_quarantine_count: number }
+    >
+  >({});
   const [sourceType, setSourceType] = useState<"local" | "github">("local");
   const [displayName, setDisplayName] = useState("");
   const [localPath, setLocalPath] = useState("");
@@ -327,12 +333,25 @@ export function WorkspaceSetupProjectsTab({
     setLoading(true);
     try {
       const res = await fetch("/api/msgf/projects", { credentials: "include", cache: "no-store" });
-      const json = (await res.json()) as { ok: boolean; projects?: UserProjectRow[]; error?: string };
+      const json = (await res.json()) as {
+        ok: boolean;
+        projects?: UserProjectRow[];
+        activity?: Record<
+          string,
+          {
+            last_pulse_at: string | null;
+            last_verify_at: string | null;
+            sentry_quarantine_count: number;
+          }
+        >;
+        error?: string;
+      };
       if (!res.ok || !json.ok) {
         throw new Error(json.error ?? `HTTP ${res.status}`);
       }
       const list = json.projects ?? [];
       setProjects(list);
+      setActivity(json.activity ?? {});
       onProjectsUpdated?.(list);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load projects.");
@@ -695,6 +714,11 @@ export function WorkspaceSetupProjectsTab({
               <div className="min-w-0">
                 <p className="font-medium text-slate-100">{project.display_name}</p>
                 <p className="font-mono text-xs text-slate-500">{project.project_origin}</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Last Pulse {activity[project.project_origin]?.last_pulse_at ?? "—"} · Last verify{" "}
+                  {activity[project.project_origin]?.last_verify_at ?? "—"} · Sentry quarantine{" "}
+                  {activity[project.project_origin]?.sentry_quarantine_count ?? 0}
+                </p>
                 <p className="mt-0.5 truncate text-xs text-slate-600">
                   {project.source_type === "local" ? project.local_path : project.github_url}
                 </p>

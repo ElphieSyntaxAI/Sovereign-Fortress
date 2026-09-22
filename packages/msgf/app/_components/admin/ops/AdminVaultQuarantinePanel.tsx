@@ -158,6 +158,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
+import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+
 type QuarantineRow = {
   id: string;
   quarantine_status: string | null;
@@ -177,6 +179,7 @@ type ListPayload = {
 };
 
 export function AdminVaultQuarantinePanel() {
+  const projectOrigin = useSharedProjectOrigin();
   const [rows, setRows] = useState<QuarantineRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -188,7 +191,9 @@ export function AdminVaultQuarantinePanel() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/msgf/admin/vault-quarantine?limit=40", {
+      const params = new URLSearchParams({ limit: "40" });
+      if (projectOrigin) params.set("project_origin", projectOrigin);
+      const res = await fetch(`/api/msgf/admin/vault-quarantine?${params}`, {
         credentials: "include",
         cache: "no-store",
       });
@@ -204,7 +209,7 @@ export function AdminVaultQuarantinePanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectOrigin]);
 
   useEffect(() => {
     void load();

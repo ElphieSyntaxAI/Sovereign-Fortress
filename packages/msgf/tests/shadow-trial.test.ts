@@ -38,6 +38,7 @@ import {
   isIndividualTrial3dLicenseType,
   managedCloudWindowMsForLicenseType,
 } from "../lib/services/individual-perpetual-license.js";
+import { buildFullAccessExpiryEmail } from "../lib/services/shadow-trial-full-access.js";
 import { MSGF_TRIAL_3D_SLICE_SOFT_CAP } from "../lib/services/paid-individual-usage.js";
 import { evaluatePulseEntitlement } from "../lib/middleware/entitlementGuard.ts";
 
@@ -188,12 +189,26 @@ describe("shadow-trial", () => {
     });
     assert.match(html, /Runaway agent waves/);
     assert.match(html, /HITL/);
+    assert.match(html, /x-msgf-mode: active/);
+    assert.match(html, /dashboard#token-savings/);
     assert.match(text, /Runaway agent waves: 1/);
+    assert.match(text, /x-msgf-mode: active/);
+    assert.match(text, /dashboard#token-savings/);
     assert.match(proof.headline, /runaway secondary-agent wave/);
   });
 });
 
 describe("3-day Individual Pro full access", () => {
+  it("prices the expiry email at Individual Pro $29/mo", () => {
+    const email = buildFullAccessExpiryEmail({ name: "Jess" });
+    assert.match(email.html, /\$29\/mo/);
+    assert.match(email.html, /\$290\/yr/);
+    assert.match(email.html, /\/pricing/);
+    assert.match(email.text, /\$29\/mo or \$290\/yr/);
+    assert.equal(email.html.includes("$99"), false);
+    assert.equal(email.text.includes("$99"), false);
+  });
+
   it("treats INDIVIDUAL_TRIAL_3D as a 72h managed-cloud window", () => {
     assert.equal(INDIVIDUAL_TRIAL_3D_HOURS, 72);
     assert.equal(isIndividualTrial3dLicenseType(INDIVIDUAL_TRIAL_3D_LICENSE_TYPE), true);

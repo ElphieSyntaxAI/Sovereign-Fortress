@@ -54,7 +54,9 @@ import {
   MSGF_ALLOWANCE_STATE_HEADER,
   MSGF_AUTHOR_HAL_HEADER,
   MSGF_HUMAN_NOTIFY_THRESHOLD_HEADER,
+  MSGF_PROMPT_HASH_HEADER,
 } from "@/lib/msgf-http-headers";
+import { hitFromPromptHash, writeLiveP7 } from "@/lib/services/p7-observe";
 import {
   evaluateAndMaybeAbortSwarm,
   parseAgentIdentityFromRequest,
@@ -461,6 +463,20 @@ export async function POST(req: NextRequest) {
         throw e;
       } finally {
         await hotSession.release();
+      }
+
+      const promptHit = hitFromPromptHash(req.headers.get(MSGF_PROMPT_HASH_HEADER));
+      if (promptHit) {
+        writeLiveP7({
+          admin: adminSupabase,
+          tenantId,
+          entityId,
+          traceId,
+          promoteHits: [promptHit],
+          outcome: "pass",
+          decisionKind: "local_gateway",
+          routing: "pulse",
+        });
       }
 
       const withHotLayer = (

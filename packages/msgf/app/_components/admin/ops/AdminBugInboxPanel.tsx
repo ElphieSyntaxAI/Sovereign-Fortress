@@ -141,6 +141,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
+import { useSharedProjectOrigin } from "@/app/_components/admin/ops/useSharedProjectOrigin";
+
 type InboxStatus = "open" | "promoted" | "dismissed" | "all";
 
 type BugRow = {
@@ -158,6 +160,7 @@ type BugRow = {
 };
 
 export function AdminBugInboxPanel() {
+  const projectOrigin = useSharedProjectOrigin();
   const [status, setStatus] = useState<InboxStatus>("open");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<BugRow[]>([]);
@@ -176,6 +179,7 @@ export function AdminBugInboxPanel() {
         limit: "40",
       });
       if (q.trim()) params.set("q", q.trim());
+      if (projectOrigin) params.set("project_origin", projectOrigin);
       const res = await fetch(`/api/msgf/admin/bug-inbox?${params}`, {
         credentials: "include",
         cache: "no-store",
@@ -198,7 +202,7 @@ export function AdminBugInboxPanel() {
     } finally {
       setLoading(false);
     }
-  }, [q, status]);
+  }, [q, status, projectOrigin]);
 
   useEffect(() => {
     void load();

@@ -63,7 +63,8 @@ export async function GET(req: NextRequest) {
     const tenantId = req.nextUrl.searchParams.get("tenant_id");
     const limit = Number(req.nextUrl.searchParams.get("limit") || "40");
 
-    const { rows, count } = await listBugInbox({
+    const projectOrigin = req.nextUrl.searchParams.get("project_origin")?.trim() || "";
+    const listed = await listBugInbox({
       admin,
       status,
       q,
@@ -71,10 +72,13 @@ export async function GET(req: NextRequest) {
       companyId: op.role === "COMPANY_ADMIN" ? op.companyId : null,
       limit: Number.isFinite(limit) ? limit : 40,
     });
+    const rows = projectOrigin
+      ? listed.rows.filter((row) => String(row.location ?? "").includes(projectOrigin))
+      : listed.rows;
 
     return adminJson(req, {
       ok: true,
-      count,
+      count: projectOrigin ? rows.length : listed.count,
       rows,
       operator_role: op.role,
     });

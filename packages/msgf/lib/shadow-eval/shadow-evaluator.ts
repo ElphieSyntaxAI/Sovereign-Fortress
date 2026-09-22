@@ -101,7 +101,18 @@ async function probeSemanticCacheHit(
 ): Promise<boolean> {
   try {
     const hit = await redisGet(shadowSimCacheKey(tenantId, promptText));
-    return Boolean(hit?.trim());
+    if (hit?.trim()) return true;
+  } catch {
+    /* exact probe must not throw */
+  }
+  try {
+    const { generateEmbedding } = await import("@/lib/ai-utils");
+    const { findSimilarTenantCompletion } = await import(
+      "@/lib/gateway/semantic-completion-cache"
+    );
+    const embedding = await generateEmbedding(promptText);
+    const similar = await findSimilarTenantCompletion({ tenantId, embedding });
+    return Boolean(similar);
   } catch {
     return false;
   }

@@ -38,9 +38,17 @@ export async function GET(req: NextRequest) {
     const companyId =
       op.role === "COMPANY_ADMIN" ? (op.companyId ?? null) : req.nextUrl.searchParams.get("company_id");
 
-    const rows = await listQuarantinedVaultRows(admin, {
+    const projectOrigin = req.nextUrl.searchParams.get("project_origin")?.trim() || "";
+    const rows = (await listQuarantinedVaultRows(admin, {
       companyId,
       limit: Number.isFinite(limit) ? limit : 40,
+    })).filter((r) => {
+      if (!projectOrigin) return true;
+      const origin =
+        r.metadata && typeof r.metadata.project_origin === "string"
+          ? r.metadata.project_origin
+          : "";
+      return origin === projectOrigin;
     });
 
     return NextResponse.json({

@@ -4,7 +4,7 @@
 **Status:** Living checklist for **MSGF 1.0 production readiness** (gatedai + Pulse Guard + ops).  
 **Last updated:** 2026-09-22 (staging smoke partial on gatedai; Post-MVP gates + prod mock prune still apply.)
 
-**Priority now:** Remaining §1.4 gaps (Shadow eval row, Shadow CTA, Sentry, HITL POST, `/setup/projects`) → Checkout + mock-off → Lanes A3–A8. Signing stays in the repo for 1.1.
+**Priority now:** Remaining §1.4 gaps (Shadow CTA, Sentry, HITL POST, `/setup/projects`) → Checkout + mock-off → Lanes A3–A8. Signing stays in the repo for 1.1.
 
 **Launch readiness (SSoT):** [`MSGF_V1_ROADMAP.md`](./MSGF_V1_ROADMAP.md) §10 — **soft-RC ~90%** · **paid self-serve ~82%**. Those two do not move on this partial smoke. Remaining = leftover staging gaps + Checkout + mock-off + Lanes A3–A8. Lane H hide + Lane B hero copy are in-repo.
 
@@ -86,7 +86,7 @@ Code stays. Claims and buyer-facing copy go. Prod mocks off.
 
 - [ ] Feature freeze except Sentry / TRI / GitHub / PQ / SSO / SIEM smokes + hide pass + front-door copy
 - [x] Prod: no mock eco / ticker / pillar health / `v32_mock_stream` (empty live fallbacks, 2026-09-22; restage `msgf-api` to pick up)
-- [~] One-tenant staging smoke (Pulse, ingest, heal, Shadow, Active, spoof-tenant 403, swarm, P7 CTA) — §1.4 **partial** 2026-09-22 (Shadow eval / CTA / Sentry / HITL POST / `/setup/projects` still open)
+- [~] One-tenant staging smoke (Pulse, ingest, heal, Shadow, Active, spoof-tenant 403, swarm, P7 CTA) — §1.4 **partial** 2026-09-22 (Shadow CTA / Sentry / HITL POST / `/setup/projects` still open)
 - [ ] A6 audit key required in prod (HITL must not skip signing)
 - [ ] GH Actions `msgf-tier-heartbeat.yml` + `v32-heartbeat` dry-run 200 — **dry-run 200 on staging** 2026-09-22; GH Actions still open
 - [x] `probe:solo` against staging gatedai URL — 2026-09-22
@@ -279,7 +279,7 @@ Canonical: [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md).
 - [ ] SDK: `GET /api/sentry-test` → delete route after — staging 503 (DSN not on staging)
 - [ ] CONVERGE preset UI `/dashboard#token-savings` saves balanced_dual — dashboard live 2026-09-22; **save** not exercised
 - [x] `probe:solo` against staging gatedai URL — 2026-09-22
-- [ ] Shadow Proxy: OpenAI client → `/api/v1/chat/completions` with `x-msgf-key` → shadow-eval panel shows projected row — completions 401 `invalid_api_key` (no live OpenAI key)
+- [x] Shadow Proxy: OpenAI client → `/api/v1/chat/completions` with `x-msgf-key` → shadow-eval panel shows projected row — 2026-09-22 OpenAI 200 + Anthropic 200; operator shadow-eval `recent` ≥ 1 projected row
 - [x] Active mode: same request with `x-msgf-mode: active` → `x-msgf-routing` header present; spoofed `x-msgf-tenant-id` ignored — 2026-09-22 `SMALL_BRAIN_UPSTREAM`
 - [x] Period reports PDF downloads for caller’s tenant only (403 on foreign tenant_id) — 2026-09-22 own PDF 200; buyer foreign 403
 - [x] Swarm abort writes tenant `blocked_keys`; Global Brain JSON has no key lists — 2026-09-22 Pulse 409 `BOT_SWARM_DETECTED`, no key lists, HITL row present. Audit hub `p7=blocked` 200 / **0 events**
@@ -435,7 +435,8 @@ Not on critical path. See [`MSGF_BOSS_DEMO_RUNBOOK.md`](./marketing/MSGF_BOSS_DE
 
 | Date | Note |
 | :--- | :--- |
-| 2026-09-22 | **Staging smoke partial** on gatedai (`staging_readiness`). Checked: Pulse, ingest, user heal-queue, admin queue load, dashboard, period+PDF, buyer 403, Active routing, swarm 409, heartbeat dry-run, `p7=` chips, `probe:solo`. Still open: Shadow eval/CTA, Sentry, HITL POST 500, `/setup/projects`. Soft-RC stays ~90%; paid stays ~82%. |
+| 2026-09-22 | **Staging AI keys** from `.env.local` on `msgf-api-staging-00009-bvf`. Shadow/Active Anthropic 200 + projected eval rows. No `OPENAI_API_KEY` in `.env.local`. Still open: Shadow CTA, Sentry, HITL POST, `/setup/projects`. Soft-RC stays ~90%. |
+| 2026-09-22 | **Staging smoke partial** on gatedai (`staging_readiness`). Checked: Pulse, ingest, user heal-queue, admin queue load, dashboard, period+PDF, buyer 403, Active routing, swarm 409, heartbeat dry-run, `p7=` chips, `probe:solo`. Still open: Shadow CTA, Sentry, HITL POST 500, `/setup/projects`. Soft-RC stays ~90%; paid stays ~82%. |
 | 2026-09-22 | **Pricing:** BYOK **$0** hosted. Pro **$29/mo** or **$290/yr**. Startup **$49/mo** or **$490/yr** (≤5 people). Enterprise **$199/mo** or **$1,990/yr** with SSO/SIEM. Recreate Stripe Price IDs (do not reuse $99 one-time). |
 | 2026-09-22 | **Pricing:** Free is hosted (Redis/Supabase included, BYOK = model keys only). Pro **$29/mo** subscription (not $99 perpetual). Team **$49/workspace/mo** up to 5 people. SSO/SIEM are Enterprise. Recreate Stripe Price IDs before Checkout smoke. |
 | 2026-09-22 | **Buyer language:** storefront + hub + emails use industry terms (AI gateway, shadow mode, policy domains, cost-efficient vs frontier routing). Vault / Hall / Pulse Guard kept with gloss. APIs and env IDs unchanged. Restage required for live MSGF. |

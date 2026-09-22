@@ -51,3 +51,6 @@ export const MSGF_AGENT_ID_HEADER = "x-msgf-agent-id";
 export const MSGF_PARENT_AGENT_ID_HEADER = "x-msgf-parent-agent-id";
 export const MSGF_AGENT_ROLE_HEADER = "x-msgf-agent-role";
 export const MSGF_MANDATE_HASH_HEADER = "x-msgf-mandate-hash";
+
+/** SHA-256 of the Pulse keystroke payload. Reputation joins this; the body is unchanged. */
+export const MSGF_PROMPT_HASH_HEADER = "x-msgf-prompt-hash";

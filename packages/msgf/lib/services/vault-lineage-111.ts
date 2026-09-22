@@ -21,6 +21,8 @@ import {
   type CompoundVectorScope,
 } from "@/lib/services/tenant-query-scope";
 import { filterVaultRowsForRetrieval } from "@/lib/services/vault-quarantine";
+import { generateEmbedding } from "@/lib/ai-utils";
+import { scoreMemoryMatch } from "@/lib/gateway/memory-similarity";
 import type { SourceHit } from "@/lib/schemas/source-audit";
 import {
   applyReputationToHits,
@@ -31,21 +33,19 @@ import {
 const LINEAGE_INSTANCE = "1.1.1";
 const LINEAGE_CATEGORY = "P6";
 
-function overlapScore(a: string, b: string): number {
-  const tokenize = (t: string) =>
-    t
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .split(/\s+/)
-      .filter((x) => x.length > 2);
-  const at = new Set(tokenize(a));
-  const bt = new Set(tokenize(b));
-  if (!at.size || !bt.size) return 0;
-  let overlap = 0;
-  for (const token of at) {
-    if (bt.has(token)) overlap++;
+function asEmbedding(value: unknown): number[] | null {
+  if (Array.isArray(value)) {
+    const nums = value.map((n) => Number(n)).filter((n) => Number.isFinite(n));
+    return nums.length ? nums : null;
   }
-  return overlap / Math.max(at.size, bt.size);
+  if (typeof value === "string" && value.trim().startsWith("[")) {
+    try {
+      return asEmbedding(JSON.parse(value) as unknown);
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 export type VaultLineageFetchResult = {
@@ -103,7 +103,7 @@ export async function fetchVaultLineage111WithScores(
     type FilterEq = { eq: (column: string, value: string) => FilterEq };
 
     let query: FilterEq = fromPillarVectors(supabase, tid)
-      .select("id, content, metadata")
+      .select("id, content, metadata, embedding")
       .eq("metadata->>pillar", LINEAGE_CATEGORY)
       .eq("metadata->>ledger", "vault")
       .eq("metadata->>instance", LINEAGE_INSTANCE)
@@ -132,13 +132,31 @@ export async function fetchVaultLineage111WithScores(
   }
 
   const rows = [...merged.values()];
-  const rawHits = rows.map((row) =>
+  let queryEmbedding: number[] | null = null;
+  try {
+    queryEmbedding = await generateEmbedding(pulseText);
+  } catch {
+    queryEmbedding = null;
+  }
+  const scoredRows = rows
+    .map((row) => {
+      const embedding = asEmbedding((row as { embedding?: unknown }).embedding);
+      const score = scoreMemoryMatch({
+        queryText: pulseText,
+        rowText: row.content || "",
+        queryEmbedding,
+        rowEmbedding: embedding,
+      });
+      return { row, score };
+    })
+    .filter((item): item is { row: VaultLineageRow; score: number } => item.score != null);
+  const rawHits = scoredRows.map(({ row, score }) =>
     hitFromLedgerRow({
       id: String(row.id ?? ""),
       content: row.content || "",
       metadata: row.metadata,
       ledger: "vault",
-      score: overlapScore(pulseText, row.content || ""),
+      score,
     })
   );
 
@@ -159,11 +177,12 @@ export async function fetchVaultLineage111WithScores(
   const contextIds = new Set(
     contextHits.map((h) => h.resource_id).filter((id): id is string => Boolean(id))
   );
+  const matchedRows = scoredRows.map((item) => item.row);
   const contextRows =
-    contextIds.size > 0 ? rows.filter((r) => contextIds.has(r.id)) : rows;
+    contextIds.size > 0 ? matchedRows.filter((r) => contextIds.has(r.id)) : matchedRows;
 
   return {
-    rows: contextRows.length > 0 ? contextRows : rows,
+    rows: contextRows,
     scoredHits,
     contextHits,
     prunedHits,

@@ -110,6 +110,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    const projectOrigin = sp.get("project_origin")?.trim();
+    if (projectOrigin) {
+      filtered = filtered.filter((e) => {
+        const meta = (e.metadata ?? {}) as Record<string, unknown>;
+        return meta.project_origin === projectOrigin;
+      });
+    }
+
     const p7 = sp.get("p7")?.trim().toLowerCase();
     if (p7 === "promoted" || p7 === "blocked") {
       const field = p7 === "promoted" ? "promoted_keys" : "blocked_keys";
