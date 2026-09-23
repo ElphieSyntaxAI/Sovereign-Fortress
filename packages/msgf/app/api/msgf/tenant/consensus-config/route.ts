@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 /**
  * Tenant Small Brain CONVERGE presets (dual / tri / custom BYOK).
@@ -34,6 +34,12 @@ import {
   type TenantConsensusPresetId,
 } from "@/lib/services/consensus/msgf-consensus-config";
 import {
+  CUSTOM_ANTHROPIC,
+  CUSTOM_OPENAI_COMPATIBLE,
+  type CustomEndpointInput,
+  type CustomEndpointKind,
+} from "@/lib/services/model-routing/types";
+import {
   getTenantConsensusConfig,
   upsertTenantConsensusConfig,
 } from "@/lib/services/tenant-consensus-config";
@@ -45,6 +51,33 @@ import {
 
 function json(data: unknown, init?: ResponseInit) {
   return NextResponse.json(data, init);
+}
+
+function parseEcoEndpoint(item: unknown, index: number): CustomEndpointInput {
+  const row = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+  const kindRaw = typeof row.providerKind === "string" ? row.providerKind : CUSTOM_OPENAI_COMPATIBLE;
+  const providerKind: CustomEndpointKind =
+    kindRaw === CUSTOM_ANTHROPIC ? CUSTOM_ANTHROPIC : CUSTOM_OPENAI_COMPATIBLE;
+  const displayName =
+    typeof row.displayName === "string" && row.displayName.trim()
+      ? row.displayName.trim()
+      : `Eco ${index + 1}`;
+  return {
+    providerId:
+      typeof row.providerId === "string" && row.providerId.trim()
+        ? row.providerId.trim()
+        : `eco-${index + 1}`,
+    displayName,
+    baseURL: typeof row.baseURL === "string" ? row.baseURL.trim() : "",
+    apiKey: typeof row.apiKey === "string" ? row.apiKey : undefined,
+    modelName: typeof row.modelName === "string" ? row.modelName.trim() : "",
+    maxTokens: Number(row.maxTokens) > 0 ? Number(row.maxTokens) : 4096,
+    costPer1kInput: Number.isFinite(Number(row.costPer1kInput)) ? Number(row.costPer1kInput) : 0,
+    costPer1kOutput: Number.isFinite(Number(row.costPer1kOutput)) ? Number(row.costPer1kOutput) : 0,
+    isEcoModel: row.isEcoModel !== false,
+    providerKind,
+    privateHostAllowed: row.privateHostAllowed === true,
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -79,7 +112,9 @@ export async function GET(req: NextRequest) {
         profileId: id,
         ...(id === "custom_byok"
           ? { mode: "DUAL_OR_TRI", providers: [] as string[], strictness: "varies" }
-          : CONSENSUS_PRESET_CATALOG[id as keyof typeof CONSENSUS_PRESET_CATALOG]),
+          : id === "eco_trio"
+            ? { mode: "TRI", providers: [] as string[], strictness: "MAJORITY", profileId: "eco_trio" }
+            : CONSENSUS_PRESET_CATALOG[id as keyof typeof CONSENSUS_PRESET_CATALOG]),
         tri_requires_entitlement: id === "tri_tribunal",
       })),
       tri_entitlement_enabled: isTenantTriConsensusEnabled(),
@@ -166,6 +201,18 @@ export async function PUT(req: NextRequest) {
 
     const projectOrigin =
       typeof body?.["project_origin"] === "string" ? body["project_origin"].trim() : "";
+
+    let ecoEndpoints: CustomEndpointInput[] | undefined;
+    if (profileId === "eco_trio") {
+      const current = await getTenantConsensusConfig({ admin, tenantId, projectOrigin });
+      customProviders = current.providers;
+      const raw = body?.["customEcoEndpoints"] ?? body?.["custom_eco_endpoints"];
+      if (!Array.isArray(raw)) {
+        return json({ error: "Eco Trio requires 3 eco models" }, { status: 400 });
+      }
+      ecoEndpoints = raw.map((item, index) => parseEcoEndpoint(item, index));
+    }
+
     const config = await upsertTenantConsensusConfig({
       admin,
       tenantId,
@@ -173,6 +220,7 @@ export async function PUT(req: NextRequest) {
       customProviders,
       defaultProvider: defaultProvider ?? undefined,
       projectOrigin,
+      ecoEndpoints,
     });
 
     return json({ tenant_id: tenantId, config });

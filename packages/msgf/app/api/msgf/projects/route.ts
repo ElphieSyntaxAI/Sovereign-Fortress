@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   CreateUserProjectBodySchema,
   createUserProject,
+  isProjectAlreadyMappedError,
   listUserProjects,
   loadProjectActivity,
 } from "@/lib/services/user-projects";
@@ -73,6 +74,9 @@ export async function POST(req: NextRequest) {
     const project = await createUserProject(admin, user.id, parsed.data);
     return NextResponse.json({ ok: true, project }, { status: 201 });
   } catch (error) {
+    if (isProjectAlreadyMappedError(error)) {
+      return NextResponse.json({ ok: false, error: "Already mapped" }, { status: 409 });
+    }
     const message = error instanceof Error ? error.message : "Failed to create project.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

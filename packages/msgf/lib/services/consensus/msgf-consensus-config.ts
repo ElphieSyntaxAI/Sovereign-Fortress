@@ -8,11 +8,13 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 /**
  * MSGF consensus config — Big Brain TRI defaults + Small Brain tenant presets.
  */
+
+import type { PublicCustomEndpoint } from "@/lib/services/model-routing/types";
 
 export type MsgfConsensusProvider = "anthropic" | "google" | "xai";
 export type MsgfConsensusMode = "DUAL" | "TRI" | "SOLO_FAST";
@@ -25,6 +27,8 @@ export type MSGFConsensusConfig = {
   profileId?: string;
   /** Small Brain / SOLO_FAST lead. Must be in `providers`. */
   defaultProvider?: MsgfConsensusProvider;
+  /** Present on eco_trio reads. Never mixed into `providers`. */
+  customEcoEndpoints?: PublicCustomEndpoint[];
 };
 
 /** Platform Small Brain lead — Gemini (Vertex + IDE default). */
@@ -43,7 +47,8 @@ export type MsgfConsensusProfileId =
   | "gemini_grok_dual"
   | "tri_tribunal"
   | "custom_byok"
-  | "solo_fast";
+  | "solo_fast"
+  | "eco_trio";
 
 export const BIG_BRAIN_DEFAULT: MSGFConsensusConfig = {
   mode: "TRI",
@@ -61,7 +66,7 @@ export const SMALL_BRAIN_DEFAULT: MSGFConsensusConfig = {
 };
 
 export const CONSENSUS_PRESET_CATALOG: Record<
-  Exclude<MsgfConsensusProfileId, "custom_byok" | "platform_tri_tribunal">,
+  Exclude<MsgfConsensusProfileId, "custom_byok" | "platform_tri_tribunal" | "eco_trio">,
   MSGFConsensusConfig
 > = {
   balanced_dual: {
@@ -108,6 +113,7 @@ export const TENANT_PRESET_IDS = [
   "gemini_grok_dual",
   "tri_tribunal",
   "custom_byok",
+  "eco_trio",
 ] as const;
 
 export type TenantConsensusPresetId = (typeof TENANT_PRESET_IDS)[number];
@@ -236,6 +242,19 @@ export function configFromTenantPreset(
   customProviders?: MsgfConsensusProvider[],
   defaultProvider?: MsgfConsensusProvider
 ): MSGFConsensusConfig | { error: string } {
+  if (profileId === "eco_trio") {
+    const providers =
+      customProviders && customProviders.length > 0
+        ? orderProvidersWithDefault(customProviders, defaultProvider).providers
+        : [...SMALL_BRAIN_DEFAULT.providers];
+    return {
+      mode: "TRI",
+      providers,
+      strictness: "MAJORITY",
+      profileId: "eco_trio",
+      defaultProvider: "google",
+    };
+  }
   if (profileId === "custom_byok" || profileId === "solo_fast") {
     const ordered = orderProvidersWithDefault(
       customProviders?.length ? customProviders : defaultProvider ? [defaultProvider] : [],

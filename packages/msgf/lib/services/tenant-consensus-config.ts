@@ -8,10 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { CryptoService } from "@/lib/crypto/CryptoService";
 import {
   SMALL_BRAIN_DEFAULT,
   TENANT_PRESET_IDS,
@@ -22,6 +23,12 @@ import {
   type TenantConsensusPresetId,
   validateConsensusConfig,
 } from "@/lib/services/consensus/msgf-consensus-config";
+import {
+  publicCustomEndpoint,
+  validateEcoTrioEndpoints,
+  type CustomEndpointInput,
+  type StoredCustomEndpoint,
+} from "@/lib/services/model-routing/types";
 
 export type TenantConsensusConfigRow = {
   tenant_id: string;
@@ -39,16 +46,49 @@ function parseDefaultProvider(value: unknown): MsgfConsensusProvider | undefined
   return undefined;
 }
 
-function rowToConfig(row: {
+const SELECT_COLUMNS =
+  "profile_id, mode, providers, strictness, default_provider, custom_eco_endpoints";
+
+function asProviders(value: unknown): MsgfConsensusProvider[] {
+  if (!Array.isArray(value)) return [...SMALL_BRAIN_DEFAULT.providers];
+  const providers: MsgfConsensusProvider[] = [];
+  for (const item of value) {
+    if (item === "anthropic" || item === "google" || item === "xai") providers.push(item);
+  }
+  return providers.length ? providers : [...SMALL_BRAIN_DEFAULT.providers];
+}
+
+function parseStoredEcoEndpoints(value: unknown): StoredCustomEndpoint[] {
+  if (!Array.isArray(value)) return [];
+  const rows: StoredCustomEndpoint[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as StoredCustomEndpoint;
+    if (!row.providerId || !row.baseURL || !row.modelName) continue;
+    rows.push(row);
+  }
+  return rows;
+}
+
+export function consensusConfigFromStoredRow(row: {
   profile_id: string;
   mode: string;
   providers: unknown;
   strictness: string;
   default_provider?: unknown;
+  custom_eco_endpoints?: unknown;
 }): MSGFConsensusConfig {
-  const providers = Array.isArray(row.providers)
-    ? (row.providers as MsgfConsensusProvider[])
-    : SMALL_BRAIN_DEFAULT.providers;
+  const providers = asProviders(row.providers);
+  if (row.profile_id === "eco_trio") {
+    return {
+      mode: "TRI",
+      providers,
+      strictness: "MAJORITY",
+      profileId: "eco_trio",
+      defaultProvider: parseDefaultProvider(row.default_provider) ?? "google",
+      customEcoEndpoints: parseStoredEcoEndpoints(row.custom_eco_endpoints).map(publicCustomEndpoint),
+    };
+  }
   const v = validateConsensusConfig({
     mode: row.mode as MSGFConsensusConfig["mode"],
     providers,
@@ -59,6 +99,51 @@ function rowToConfig(row: {
   if (!v.ok) return { ...SMALL_BRAIN_DEFAULT };
   const ordered = orderProvidersWithDefault(v.config.providers, v.config.defaultProvider);
   return { ...v.config, ...ordered };
+}
+
+function rowToConfig(row: {
+  profile_id: string;
+  mode: string;
+  providers: unknown;
+  strictness: string;
+  default_provider?: unknown;
+  custom_eco_endpoints?: unknown;
+}): MSGFConsensusConfig {
+  return consensusConfigFromStoredRow(row);
+}
+
+export async function readStoredEcoEndpointsForScope(params: {
+  admin: SupabaseClient;
+  tenantId: string;
+  projectOrigin?: string;
+}): Promise<StoredCustomEndpoint[]> {
+  const tid = params.tenantId.trim();
+  const origin = params.projectOrigin?.trim() ?? "";
+  const load = async (projectOrigin: string) => {
+    const row = await params.admin
+      .from("msgf_tenant_consensus_config")
+      .select("profile_id, custom_eco_endpoints")
+      .eq("tenant_id", tid)
+      .eq("project_origin", projectOrigin)
+      .maybeSingle();
+    if (row.error || !row.data) return null;
+    if (row.data.profile_id !== "eco_trio") return [];
+    return parseStoredEcoEndpoints(row.data.custom_eco_endpoints);
+  };
+  if (origin) {
+    const project = await load(origin);
+    if (project && project.length) return project;
+    if (project && project.length === 0) {
+      const scoped = await params.admin
+        .from("msgf_tenant_consensus_config")
+        .select("profile_id")
+        .eq("tenant_id", tid)
+        .eq("project_origin", origin)
+        .maybeSingle();
+      if (!scoped.error && scoped.data?.profile_id === "eco_trio") return [];
+    }
+  }
+  return (await load("")) ?? [];
 }
 
 export async function getTenantConsensusConfig(params: {
@@ -81,7 +166,7 @@ async function readConsensusRow(
 ): Promise<MSGFConsensusConfig | null> {
   const scoped = await admin
     .from("msgf_tenant_consensus_config")
-    .select("profile_id, mode, providers, strictness, default_provider")
+    .select(SELECT_COLUMNS)
     .eq("tenant_id", tenantId)
     .eq("project_origin", projectOrigin)
     .maybeSingle();
@@ -93,6 +178,16 @@ async function readConsensusRow(
       .eq("tenant_id", tenantId)
       .maybeSingle();
     if (!legacy.error && legacy.data) return rowToConfig(legacy.data);
+    return null;
+  }
+  if (scoped.error && /custom_eco_endpoints/i.test(scoped.error.message)) {
+    const retry = await admin
+      .from("msgf_tenant_consensus_config")
+      .select("profile_id, mode, providers, strictness, default_provider")
+      .eq("tenant_id", tenantId)
+      .eq("project_origin", projectOrigin)
+      .maybeSingle();
+    if (!retry.error && retry.data) return rowToConfig(retry.data);
     return null;
   }
   if (scoped.error && /default_provider/i.test(scoped.error.message)) {
@@ -113,6 +208,26 @@ async function readConsensusRow(
   return rowToConfig(scoped.data);
 }
 
+async function encryptEcoEndpoints(
+  endpoints: CustomEndpointInput[] | undefined,
+  previous: StoredCustomEndpoint[]
+): Promise<StoredCustomEndpoint[] | null> {
+  if (!endpoints) return null;
+  const check = validateEcoTrioEndpoints(endpoints);
+  if (!check.ok) throw new Error(check.error);
+  const stored: StoredCustomEndpoint[] = [];
+  for (const endpoint of endpoints) {
+    const prior = previous.find((row) => row.providerId === endpoint.providerId);
+    let apiKeyCipher = prior?.apiKeyCipher;
+    if (endpoint.apiKey?.trim()) {
+      apiKeyCipher = await CryptoService.encryptKey(endpoint.apiKey.trim());
+    }
+    const { apiKey: _plain, ...rest } = endpoint;
+    stored.push({ ...rest, apiKeyCipher });
+  }
+  return stored;
+}
+
 export async function upsertTenantConsensusConfig(params: {
   admin: SupabaseClient;
   tenantId: string;
@@ -120,6 +235,7 @@ export async function upsertTenantConsensusConfig(params: {
   customProviders?: MsgfConsensusProvider[];
   defaultProvider?: MsgfConsensusProvider;
   projectOrigin?: string;
+  ecoEndpoints?: CustomEndpointInput[];
 }): Promise<MSGFConsensusConfig> {
   const tid = params.tenantId.trim();
   if (!TENANT_PRESET_IDS.includes(params.profileId)) {
@@ -134,16 +250,32 @@ export async function upsertTenantConsensusConfig(params: {
     throw new Error(resolved.error);
   }
 
-  const row = {
+  const origin = params.projectOrigin?.trim() ?? "";
+  let customEco: StoredCustomEndpoint[] | null = null;
+  if (params.profileId === "eco_trio") {
+    const existing = await params.admin
+      .from("msgf_tenant_consensus_config")
+      .select("custom_eco_endpoints")
+      .eq("tenant_id", tid)
+      .eq("project_origin", origin)
+      .maybeSingle();
+    const previous = parseStoredEcoEndpoints(existing.data?.custom_eco_endpoints);
+    customEco = await encryptEcoEndpoints(params.ecoEndpoints, previous);
+  }
+
+  const row: Record<string, unknown> = {
     tenant_id: tid,
-    project_origin: params.projectOrigin?.trim() ?? "",
+    project_origin: origin,
     profile_id: resolved.profileId ?? params.profileId,
     mode: resolved.mode,
     providers: resolved.providers,
     strictness: resolved.strictness,
-    default_provider: resolved.defaultProvider ?? resolved.providers[0],
+    default_provider: params.profileId === "eco_trio" ? "google" : resolved.defaultProvider ?? resolved.providers[0],
     updated_at: new Date().toISOString(),
   };
+  if (params.profileId === "eco_trio") {
+    row.custom_eco_endpoints = customEco;
+  }
   const { error } = await params.admin
     .from("msgf_tenant_consensus_config")
     .upsert(row, { onConflict: "tenant_id,project_origin" });

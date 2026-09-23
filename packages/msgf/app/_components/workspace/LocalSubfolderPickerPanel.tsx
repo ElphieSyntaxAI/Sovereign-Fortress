@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-08289e1a-20260923T145027Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /**
@@ -341,11 +365,15 @@ export function LocalSubfolderPickerPanel({ projects, onMapped, setError, setMes
         throw new Error(json.error ?? json.errors?.[0]?.error ?? `HTTP ${res.status}`);
       }
       setSelected(new Set());
-      setMessage(
-        `Mapped ${json.created_count ?? 0} local workspace(s)` +
-          (json.skipped_count ? ` (${json.skipped_count} skipped)` : "") +
-          "."
-      );
+      if ((json.created_count ?? 0) === 0 && (json.skipped_count ?? 0) > 0) {
+        setError("Already mapped");
+      } else {
+        setMessage(
+          `Mapped ${json.created_count ?? 0} local workspace(s)` +
+            (json.skipped_count ? ". Already mapped" : "") +
+            "."
+        );
+      }
       await onMapped();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to map local folders.");

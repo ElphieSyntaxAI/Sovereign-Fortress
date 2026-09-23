@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-08289e1a-20260923T145027Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /**
@@ -86,6 +110,13 @@
  */
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  CUSTOM_ANTHROPIC,
+  CUSTOM_OPENAI_COMPATIBLE,
+  ECO_TRIO_RECOMMENDED_SLOTS,
+  customEndpointTooltip,
+} from "@/lib/services/model-routing/types";
+
 type ConsensusProvider = "google" | "anthropic" | "xai";
 
 type ConsensusConfig = {
@@ -94,7 +125,24 @@ type ConsensusConfig = {
   strictness: string;
   profileId?: string;
   defaultProvider?: string;
+  customEcoEndpoints?: PublicEcoSlot[];
 };
+
+type PublicEcoSlot = {
+  providerId: string;
+  displayName: string;
+  baseURL: string;
+  modelName: string;
+  maxTokens: number;
+  costPer1kInput: number;
+  costPer1kOutput: number;
+  isEcoModel: boolean;
+  providerKind: "CUSTOM_OPENAI_COMPATIBLE" | "CUSTOM_ANTHROPIC";
+  apiKeyConfigured: boolean;
+  privateHostAllowed?: boolean;
+};
+
+type EcoDraft = PublicEcoSlot & { apiKey: string };
 
 type ApiPayload = {
   config: ConsensusConfig;
@@ -117,8 +165,9 @@ const PRESET_LABELS: Record<string, string> = {
   balanced_dual: "Balanced Dual (Gemini + Claude)",
   bias_mitigated_dual: "Bias-Mitigated Dual (Claude + Grok)",
   gemini_grok_dual: "Gemini + Grok Dual",
-  tri_tribunal: "Tri-Model Tribunal (premium)",
+  tri_tribunal: "Tri-Tribunal",
   custom_byok: "Custom pair",
+  eco_trio: "Eco Trio",
 };
 
 const PRESET_PROVIDERS: Record<string, ConsensusProvider[]> = {
@@ -154,6 +203,32 @@ function inferProfileId(providers: ConsensusProvider[]): string {
   return "custom_byok";
 }
 
+function emptyEcoDrafts(): EcoDraft[] {
+  return ECO_TRIO_RECOMMENDED_SLOTS.map((name, index) => ({
+    providerId: `eco-${index + 1}`,
+    displayName: name,
+    baseURL: "",
+    modelName: name.toLowerCase().replace(/\s+/g, "-"),
+    maxTokens: 4096,
+    costPer1kInput: index === 0 ? 0.05 : index === 1 ? 0.08 : 0.12,
+    costPer1kOutput: index === 0 ? 0.1 : index === 1 ? 0.16 : 0.2,
+    isEcoModel: true,
+    providerKind: CUSTOM_OPENAI_COMPATIBLE,
+    apiKeyConfigured: false,
+    privateHostAllowed: false,
+    apiKey: "",
+  }));
+}
+
+function activePresetBadge(config: ConsensusConfig): string {
+  if (config.profileId === "eco_trio") return "Eco Trio";
+  if (config.profileId === "tri_tribunal") return "Tri-Tribunal";
+  if (config.profileId === "solo_fast" || config.mode === "SOLO_FAST") return "SOLO_FAST";
+  if (config.profileId === "balanced_dual") return "Balanced Dual";
+  if (config.mode === "DUAL" && !config.profileId) return "Balanced Dual";
+  return PRESET_LABELS[config.profileId ?? ""] ?? config.mode;
+}
+
 function keyConfigured(keys: ApiPayload["keys"], id: ConsensusProvider): boolean {
   if (id === "google") return keys.gemini_configured;
   if (id === "anthropic") return keys.anthropic_configured;
@@ -172,6 +247,8 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [defaultProvider, setDefaultProvider] = useState<ConsensusProvider>("google");
   const [dualPartners, setDualPartners] = useState<ConsensusProvider[]>([]);
+  const [ecoSlots, setEcoSlots] = useState<EcoDraft[]>(emptyEcoDrafts);
+  const [keyDrafts, setKeyDrafts] = useState({ gemini: "", anthropic: "", xai: "" });
 
   async function load() {
     setError(null);
@@ -193,6 +270,15 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
     const lead = providers.includes(storedDefault) ? storedDefault : providers[0] ?? "google";
     setDefaultProvider(lead);
     setDualPartners(providers.filter((p) => p !== lead));
+    const saved = json.config.customEcoEndpoints;
+    if (saved && saved.length === 3) {
+      setEcoSlots(
+        saved.map((slot) => ({
+          ...slot,
+          apiKey: "",
+        }))
+      );
+    }
   }
 
   useEffect(() => {
@@ -245,7 +331,78 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
     }
   }
 
+  async function saveProviderKey(provider: "gemini" | "anthropic" | "xai") {
+    const apiKey = keyDrafts[provider].trim();
+    if (!apiKey) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (tenantId?.trim()) headers["x-msgf-tenant-id"] = tenantId.trim();
+      const res = await fetch("/api/msgf/tenant/provider-keys", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ provider, api_key: apiKey }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(json.error || "Key save failed");
+        return;
+      }
+      setKeyDrafts((prev) => ({ ...prev, [provider]: "" }));
+      setMessage(`${provider} key saved`);
+      await load();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveEcoTrio() {
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (tenantId?.trim()) headers["x-msgf-tenant-id"] = tenantId.trim();
+      const res = await fetch("/api/msgf/tenant/consensus-config", {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          profileId: "eco_trio",
+          project_origin: projectOrigin,
+          customEcoEndpoints: ecoSlots.map((slot) => ({
+            providerId: slot.providerId,
+            displayName: slot.displayName,
+            baseURL: slot.baseURL,
+            modelName: slot.modelName,
+            maxTokens: slot.maxTokens,
+            costPer1kInput: slot.costPer1kInput,
+            costPer1kOutput: slot.costPer1kOutput,
+            isEcoModel: true,
+            providerKind: slot.providerKind,
+            privateHostAllowed: Boolean(slot.privateHostAllowed),
+            ...(slot.apiKey.trim() ? { apiKey: slot.apiKey.trim() } : {}),
+          })),
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(json.error || "Eco Trio save failed");
+        return;
+      }
+      setEcoSlots((prev) => prev.map((slot) => ({ ...slot, apiKey: "" })));
+      setMessage("Saved: Eco Trio");
+      await load();
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function applyPreset(id: string) {
+    if (id === "eco_trio") {
+      void saveEcoTrio();
+      return;
+    }
     if (id === "solo_fast") {
       void save(defaultProvider, []);
       return;
@@ -283,24 +440,140 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
       id="converge-preset"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-        Select baseline and consensus models
+        Select baseline and consensus models.
       </p>
-      <h3 className="mt-1 text-lg font-semibold text-slate-50">Model Routing Presets</h3>
-      <p className="mt-2 text-sm text-slate-300">
-        Mode:{" "}
-        {data.config.mode === "SOLO_FAST"
-          ? "SOLO_FAST"
-          : data.config.mode === "TRI"
-            ? "Tri-Tribunal"
-            : "Balanced Dual"}
-      </p>
-      <div
-        className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400"
-        aria-label="Provider key presence"
-      >
-        <span>Gemini: {data.keys.gemini_configured ? "key set" : "missing"}</span>
-        <span>Claude: {data.keys.anthropic_configured ? "key set" : "missing"}</span>
-        <span>Grok: {data.keys.xai_configured ? "key set" : "missing"}</span>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h3 className="text-lg font-semibold text-slate-50">Model Routing Presets</h3>
+        <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-100">
+          {activePresetBadge(data.config)}
+        </span>
+      </div>
+      <div className="mt-3 grid gap-2 text-xs text-slate-300" aria-label="Provider key presence">
+        {(
+          [
+            ["gemini", "Gemini", data.keys.gemini_configured],
+            ["anthropic", "Anthropic", data.keys.anthropic_configured],
+            ["xai", "xAI", data.keys.xai_configured],
+          ] as const
+        ).map(([id, label, configured]) => (
+          <label key={id} className="flex flex-wrap items-center gap-2">
+            <span className="w-24">{label}: {configured ? "key set" : "missing"}</span>
+            <input
+              type="password"
+              autoComplete="off"
+              value={keyDrafts[id]}
+              placeholder="API key"
+              aria-label={`${label} API key`}
+              onChange={(event) => setKeyDrafts((prev) => ({ ...prev, [id]: event.target.value }))}
+              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-slate-100"
+            />
+            <button
+              type="button"
+              disabled={saving || !keyDrafts[id].trim()}
+              onClick={() => void saveProviderKey(id)}
+              className="rounded-full border border-slate-600 px-2 py-1 text-slate-200 disabled:opacity-50"
+            >
+              Save
+            </button>
+          </label>
+        ))}
+      </div>
+      <div className="mt-4 space-y-2">
+        <h4 className="text-sm font-semibold text-slate-200">Eco Trio</h4>
+        {ecoSlots.map((slot, index) => (
+          <div key={slot.providerId} className="grid gap-1 rounded-xl border border-slate-700/80 p-2">
+            <span className="text-xs text-slate-300">
+              {slot.displayName}
+              {slot.apiKeyConfigured ? " · key set" : ""}
+            </span>
+            <input
+              value={slot.baseURL}
+              placeholder="https://ollama.tenant.com/v1"
+              title={customEndpointTooltip()}
+              aria-label={`${slot.displayName} base URL`}
+              onChange={(event) =>
+                setEcoSlots((prev) =>
+                  prev.map((row, rowIndex) =>
+                    rowIndex === index ? { ...row, baseURL: event.target.value } : row
+                  )
+                )
+              }
+              className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
+            />
+            <input
+              value={slot.modelName}
+              aria-label={`${slot.displayName} model`}
+              onChange={(event) =>
+                setEcoSlots((prev) =>
+                  prev.map((row, rowIndex) =>
+                    rowIndex === index ? { ...row, modelName: event.target.value } : row
+                  )
+                )
+              }
+              className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
+            />
+            <input
+              type="password"
+              autoComplete="off"
+              value={slot.apiKey}
+              placeholder="Optional API key"
+              aria-label={`${slot.displayName} API key`}
+              onChange={(event) =>
+                setEcoSlots((prev) =>
+                  prev.map((row, rowIndex) =>
+                    rowIndex === index ? { ...row, apiKey: event.target.value } : row
+                  )
+                )
+              }
+              className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
+            />
+            <label className="flex items-center gap-2 text-[11px] text-slate-400">
+              <input
+                type="checkbox"
+                checked={Boolean(slot.privateHostAllowed)}
+                onChange={(event) =>
+                  setEcoSlots((prev) =>
+                    prev.map((row, rowIndex) =>
+                      rowIndex === index ? { ...row, privateHostAllowed: event.target.checked } : row
+                    )
+                  )
+                }
+              />
+              VPC endpoint
+              <select
+                aria-label={`${slot.displayName} protocol`}
+                value={slot.providerKind}
+                onChange={(event) =>
+                  setEcoSlots((prev) =>
+                    prev.map((row, rowIndex) =>
+                      rowIndex === index
+                        ? {
+                            ...row,
+                            providerKind:
+                              event.target.value === CUSTOM_ANTHROPIC
+                                ? CUSTOM_ANTHROPIC
+                                : CUSTOM_OPENAI_COMPATIBLE,
+                          }
+                        : row
+                    )
+                  )
+                }
+                className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-slate-200"
+              >
+                <option value={CUSTOM_OPENAI_COMPATIBLE}>OpenAI-compatible</option>
+                <option value={CUSTOM_ANTHROPIC}>Anthropic-compatible</option>
+              </select>
+            </label>
+          </div>
+        ))}
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => void saveEcoTrio()}
+          className="rounded-full border border-emerald-500/40 px-3 py-1 text-xs text-emerald-100 disabled:opacity-50"
+        >
+          Save Eco Trio
+        </button>
       </div>
 
       <h4 className="mt-5 text-sm font-semibold text-slate-200">Default AI</h4>
@@ -382,10 +655,12 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
             "bias_mitigated_dual",
             "gemini_grok_dual",
             "tri_tribunal",
+            "eco_trio",
           ] as const
         ).map((id) => {
           const locked = id === "tri_tribunal" && !data.tri_entitlement_enabled;
-          const selected = currentProfile === id;
+          const selected =
+            id === "eco_trio" ? data.config.profileId === "eco_trio" : currentProfile === id;
           return (
             <li key={id}>
               <button

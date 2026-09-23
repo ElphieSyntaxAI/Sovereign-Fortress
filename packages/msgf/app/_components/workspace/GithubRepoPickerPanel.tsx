@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-08289e1a-20260923T145027Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /**
@@ -421,11 +445,15 @@ export function GithubRepoPickerPanel({ projects, onMapped, setError, setMessage
         );
       }
       setSelected(new Set());
-      setMessage(
-        `Added ${json.created_count ?? 0} GitHub repo(s)` +
-          (json.skipped_count ? ` (${json.skipped_count} already mapped)` : "") +
-          "."
-      );
+      if ((json.created_count ?? 0) === 0 && (json.skipped_count ?? 0) > 0) {
+        setError("Already mapped");
+      } else {
+        setMessage(
+          `Added ${json.created_count ?? 0} GitHub repo(s)` +
+            (json.skipped_count ? ". Already mapped" : "") +
+            "."
+        );
+      }
       await onMapped();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add selected repos.");

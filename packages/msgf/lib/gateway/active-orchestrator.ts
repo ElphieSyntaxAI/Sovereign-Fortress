@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 /**
  * Phase 2 Active Governance Orchestrator — policy router for x-msgf-mode: active.
@@ -372,6 +372,43 @@ export async function runActiveOrchestrator(params: {
         /* fitness emit must never block */
       }
     }
+    if (params.admin) {
+      try {
+        const { maybeRoutePreset } = await import(
+          "@/lib/services/model-routing/active-preset-dispatch"
+        );
+        const routed = await maybeRoutePreset({
+          admin: params.admin,
+          tenantId: params.tenantId,
+          projectOrigin: projectOrigin ?? undefined,
+          promptText: params.promptText,
+          logicDriftScore: drift.score,
+          p1Risk: Boolean(p7Observed?.blockHits.length),
+          parsedBody: params.parsedBody,
+          promptHash,
+        });
+        if (routed) {
+          if (routed.tokensSaved && routed.tokensSaved > 0) {
+            void recordGatewayProven({
+              tenantId: params.tenantId,
+              reason: "gateway_small_brain",
+              tokensAvoided: routed.tokensSaved,
+              baselineTokens: Math.ceil(params.promptText.length / 4),
+              localTokens: Math.max(1, Math.ceil(params.promptText.length / 16)),
+              projectOrigin: projectOrigin ?? undefined,
+              admin: params.admin,
+              promptHash,
+              endpoint: params.endpointLabel,
+              provider: params.provider,
+            });
+          }
+          return routed;
+        }
+      } catch (routeErr) {
+        console.warn("[active-orchestrator] preset route skipped:", routeErr);
+      }
+    }
+
     const singleRouting = gated.applied
       ? drift.escalate && !preferSmallFromFitness && !p7Poison
         ? "STATE_GATED_ESCALATE_UPSTREAM"

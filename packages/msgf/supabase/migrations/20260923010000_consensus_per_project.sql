@@ -1,3 +1,13 @@
+-- =============================================================================
+-- @msgf-license-header
+-- Proprietary and Confidential
+-- Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+--
+-- Unauthorized copying, distribution, publication, or reverse-engineering
+-- is strictly prohibited without prior written consent from Elphie Syntax LLC.
+--
+-- Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+-- =============================================================================
 -- Per-project model routing. Empty project_origin is the tenant default.
 
 alter table public.msgf_tenant_consensus_config

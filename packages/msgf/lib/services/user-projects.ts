@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -72,6 +72,18 @@ export type BulkCreateUserProjectsResult = {
   skipped: Array<{ display_name: string; project_origin: string; reason: string }>;
   errors: Array<{ display_name: string; error: string }>;
 };
+
+export class ProjectAlreadyMappedError extends Error {
+  readonly status = 409;
+  constructor() {
+    super("Already mapped");
+    this.name = "ProjectAlreadyMappedError";
+  }
+}
+
+export function isProjectAlreadyMappedError(error: unknown): boolean {
+  return error instanceof ProjectAlreadyMappedError;
+}
 
 export {
   buildLocalChildProjectInput,
@@ -162,6 +174,25 @@ export async function createUserProject(
     repositoryFullName = parsed.fullName;
   }
 
+  const { data: existing, error: existingError } = await admin
+    .from("msgf_user_projects")
+    .select("project_origin, repository_full_name")
+    .eq("user_id", userId);
+
+  if (existingError) {
+    throw new Error(`create user project failed: ${existingError.message}`);
+  }
+
+  const originKey = projectOrigin.toLowerCase();
+  const repoKey = repositoryFullName?.toLowerCase() ?? null;
+  for (const row of existing ?? []) {
+    const mappedOrigin = String(row.project_origin ?? "").toLowerCase();
+    const mappedRepo = String(row.repository_full_name ?? "").toLowerCase();
+    if (mappedOrigin === originKey || (repoKey && mappedRepo === repoKey)) {
+      throw new ProjectAlreadyMappedError();
+    }
+  }
+
   const { data, error } = await admin
     .from("msgf_user_projects")
     .insert({
@@ -177,6 +208,9 @@ export async function createUserProject(
     .single();
 
   if (error) {
+    if (/duplicate|unique|23505/i.test(error.message)) {
+      throw new ProjectAlreadyMappedError();
+    }
     throw new Error(`create user project failed: ${error.message}`);
   }
 
@@ -211,6 +245,7 @@ export async function createUserProjectsBulk(
   const skipped: BulkCreateUserProjectsResult["skipped"] = [];
   const errors: BulkCreateUserProjectsResult["errors"] = [];
   const seenOrigins = new Set<string>();
+  const seenRepos = new Set<string>();
 
   for (const input of inputs) {
     let projectOrigin: string;
@@ -234,14 +269,29 @@ export async function createUserProjectsBulk(
     }
     seenOrigins.add(projectOrigin);
 
+    if (input.source_type === "github" && input.github_url) {
+      try {
+        const repoKey = parseGithubRepository(input.github_url.trim()).fullName.toLowerCase();
+        if (seenRepos.has(repoKey)) {
+          skipped.push({
+            display_name: input.display_name,
+            project_origin: projectOrigin,
+            reason: "already_mapped",
+          });
+          continue;
+        }
+        seenRepos.add(repoKey);
+      } catch {
+        /* origin resolution already succeeded; repo parse is best-effort here */
+      }
+    }
+
     try {
       const row = await createUserProject(admin, userId, input);
       created.push(row);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      const isDuplicate =
-        /duplicate|unique|msgf_user_projects_user_origin/i.test(message) ||
-        /23505/.test(message);
+      const isDuplicate = isProjectAlreadyMappedError(e) || /Already mapped/i.test(message);
       if (isDuplicate) {
         skipped.push({
           display_name: input.display_name,

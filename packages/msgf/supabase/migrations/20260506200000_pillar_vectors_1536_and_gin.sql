@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+-- Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
 -- =============================================================================
 -- Cold layer: pillar_vectors with OpenAI/Gemini text-embedding-3 / ada-class 1536 dims (not 768).
 

@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+-- Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
 -- =============================================================================
 -- DEV_TEST cold layer: mirrors pillar_vectors so sandbox writes never pollute production Hall/Vault.
 

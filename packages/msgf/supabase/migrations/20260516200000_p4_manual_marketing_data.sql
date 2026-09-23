@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+-- Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
 -- =============================================================================
 -- Phase 2 bridge: manual KDP / social metrics (author-entered) for correlation with HAL writing effort.
 

@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-08289e1a-20260923T145027Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /**
@@ -624,74 +648,6 @@ function DashboardNavClient({
             </div>
           </Link>
 
-          <div ref={projectsRef} className="relative hidden shrink-0 sm:block">
-            <button
-              type="button"
-              className="flex max-w-[12rem] items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/70 px-3 py-1.5 text-sm text-slate-200 hover:border-emerald-500/40"
-              aria-expanded={projectsOpen}
-              aria-controls={projectsMenuId}
-              aria-haspopup="listbox"
-              onClick={() => setProjectsOpen((open) => !open)}
-            >
-              <span className="truncate">
-                {projectOrigin
-                  ? projects.find((p) => p.project_origin === projectOrigin)?.display_name?.trim() ||
-                    projectOrigin
-                  : "All Projects"}
-              </span>
-              <span aria-hidden className="text-slate-500">
-                ▾
-              </span>
-            </button>
-            {projectsOpen ? (
-              <div
-                id={projectsMenuId}
-                role="listbox"
-                className="absolute left-0 top-[calc(100%+0.4rem)] z-50 max-h-80 w-64 overflow-y-auto rounded-xl border border-slate-700 bg-slate-950 p-1.5 shadow-xl"
-              >
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={!projectOrigin}
-                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
-                  onClick={() => selectProject("")}
-                >
-                  All Projects
-                </button>
-                {projectOrigin && !projects.some((p) => p.project_origin === projectOrigin) ? (
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected
-                    className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm text-emerald-100 hover:bg-white/5"
-                    onClick={() => selectProject(projectOrigin)}
-                  >
-                    {projectOrigin}
-                  </button>
-                ) : null}
-                {projects.map((project) => (
-                  <button
-                    key={project.project_origin}
-                    type="button"
-                    role="option"
-                    aria-selected={project.project_origin === projectOrigin}
-                    className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
-                    onClick={() => selectProject(project.project_origin)}
-                  >
-                    {project.display_name?.trim() || project.project_origin}
-                  </button>
-                ))}
-                <Link
-                  href="/workspace?tab=projects"
-                  className="mt-1 block border-t border-slate-800 px-3 py-2 text-sm text-emerald-300 hover:bg-white/5"
-                  onClick={() => setProjectsOpen(false)}
-                >
-                  Connect New Project
-                </Link>
-              </div>
-            ) : null}
-          </div>
-
           <nav
             className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto md:flex"
             aria-label="Navigation"
@@ -716,6 +672,73 @@ function DashboardNavClient({
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div ref={projectsRef} className="relative shrink-0">
+              <button
+                type="button"
+                className="flex max-w-[9rem] items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/70 px-2.5 py-1.5 text-sm text-slate-200 hover:border-emerald-500/40 sm:max-w-[12rem] sm:px-3"
+                aria-expanded={projectsOpen}
+                aria-controls={projectsMenuId}
+                aria-haspopup="listbox"
+                onClick={() => setProjectsOpen((open) => !open)}
+              >
+                <span className="truncate">
+                  {projectOrigin
+                    ? projects.find((p) => p.project_origin === projectOrigin)?.display_name?.trim() ||
+                      projectOrigin
+                    : "All Projects"}
+                </span>
+                <span aria-hidden className="text-slate-500">
+                  ▾
+                </span>
+              </button>
+              {projectsOpen ? (
+                <div
+                  id={projectsMenuId}
+                  role="listbox"
+                  className="absolute right-0 top-[calc(100%+0.4rem)] z-50 max-h-80 w-64 overflow-y-auto rounded-xl border border-slate-700 bg-slate-950 p-1.5 shadow-xl"
+                >
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={!projectOrigin}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                    onClick={() => selectProject("")}
+                  >
+                    All Projects
+                  </button>
+                  {projectOrigin && !projects.some((p) => p.project_origin === projectOrigin) ? (
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected
+                      className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm text-emerald-100 hover:bg-white/5"
+                      onClick={() => selectProject(projectOrigin)}
+                    >
+                      {projectOrigin}
+                    </button>
+                  ) : null}
+                  {projects.map((project) => (
+                    <button
+                      key={project.project_origin}
+                      type="button"
+                      role="option"
+                      aria-selected={project.project_origin === projectOrigin}
+                      className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                      onClick={() => selectProject(project.project_origin)}
+                    >
+                      {project.display_name?.trim() || project.project_origin}
+                    </button>
+                  ))}
+                  <Link
+                    href="/workspace?tab=projects"
+                    className="mt-1 block border-t border-slate-800 px-3 py-2 text-sm text-emerald-300 hover:bg-white/5"
+                    onClick={() => setProjectsOpen(false)}
+                  >
+                    Connect New Project
+                  </Link>
+                </div>
+              ) : null}
+            </div>
             <div ref={settingsRef} className="relative">
               <button
                 type="button"
@@ -806,20 +829,6 @@ function DashboardNavClient({
               </div>
             </div>
 
-            <span
-              className="hidden max-w-[11rem] truncate text-sm text-slate-500 lg:inline"
-              title={userEmail}
-            >
-              {userEmail}
-            </span>
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              disabled={signingOut}
-              className="hidden rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-60 sm:inline-flex"
-            >
-              {signingOut ? "Signing out…" : "Sign out"}
-            </button>
             <button
               type="button"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-600/50 bg-slate-900/60 text-slate-200 transition duration-200 hover:border-emerald-500/35 hover:bg-emerald-500/10 md:hidden"
@@ -957,19 +966,6 @@ function DashboardNavClient({
             ) : null}
           </nav>
 
-          <div className="border-t border-slate-800/80 px-4 py-4">
-            <p className="truncate text-xs text-slate-500" title={userEmail}>
-              {userEmail}
-            </p>
-            <button
-              type="button"
-              disabled={signingOut}
-              onClick={() => void signOut()}
-              className="mt-3 w-full rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-60"
-            >
-              {signingOut ? "Signing out…" : "Sign out"}
-            </button>
-          </div>
         </aside>
       </div>
       {catalogOpen ? (

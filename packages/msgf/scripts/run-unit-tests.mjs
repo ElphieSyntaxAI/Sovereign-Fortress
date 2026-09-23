@@ -9,6 +9,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-08289e1a-20260923T145027Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /**
@@ -814,6 +838,8 @@ const UNIT_TESTS = [
   { label: "test:hybrid-crypto", args: ["--test", "tests/hybrid-crypto-envelope.test.ts"] },
   { label: "test:hal-pqc", args: ["--test", "tests/hal-pqc-certificate.test.ts"] },
   { label: "test:tri-consensus", args: ["--test", "tests/tri-consensus.test.ts"] },
+  { label: "test:custom-endpoint-gateway", args: ["--test", "tests/custom-endpoint-gateway.test.ts"] },
+  { label: "test:preset-router", args: ["--test", "tests/preset-router.test.ts"] },
   { label: "test:source-audit", args: ["--test", "tests/source-audit.test.ts"] },
   { label: "test:p7-observe", args: ["--test", "tests/p7-observe.test.ts"] },
   { label: "test:swarm-guard", args: ["--test", "tests/swarm-guard.test.ts"] },

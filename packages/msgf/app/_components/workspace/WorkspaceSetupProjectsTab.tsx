@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-08289e1a-20260923T145027Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /**
@@ -440,7 +464,8 @@ export function WorkspaceSetupProjectsTab({
         }),
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
-      if (!res.ok || !json.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      if (res.status === 409) throw new Error("Already mapped");
+      if (!res.ok || !json.ok) throw new Error(typeof json.error === "string" ? json.error : `HTTP ${res.status}`);
       setMessage(`Mapped workspace: ${preset.display_name}`);
       await loadProjects();
     } catch (e) {
@@ -478,8 +503,9 @@ export function WorkspaceSetupProjectsTab({
         body: JSON.stringify(body),
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
+      if (res.status === 409) throw new Error("Already mapped");
       if (!res.ok || !json.ok) {
-        throw new Error(json.error ?? `HTTP ${res.status}`);
+        throw new Error(typeof json.error === "string" ? json.error : `HTTP ${res.status}`);
       }
       setDisplayName("");
       setLocalPath("");
