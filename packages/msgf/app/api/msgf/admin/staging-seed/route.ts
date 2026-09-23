@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
  */
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -19,6 +19,8 @@ import {
   resolveSessionDashboardOperator,
 } from "@/lib/msgf-admin-session";
 import {
+  STAGING_PLAN_PASSWORD,
+  STAGING_PLAN_PERSONAS,
   firstGlobalAdminEmail,
   getStagingSeedStatus,
   runStagingReadinessSeed,
@@ -67,6 +69,15 @@ export async function GET() {
       ok: true,
       deploy_env: "staging",
       stripe_test_ready: stripeTestReady(),
+      plan_password: STAGING_PLAN_PASSWORD,
+      plan_personas: {
+        pro: STAGING_PLAN_PERSONAS.pro.email,
+        startup_admin: STAGING_PLAN_PERSONAS.startupAdmin.email,
+        startup_dev: STAGING_PLAN_PERSONAS.startupDev.email,
+        startup_auditor: STAGING_PLAN_PERSONAS.startupAuditor.email,
+        startup_security: STAGING_PLAN_PERSONAS.startupSecurity.email,
+        enterprise_ciso: STAGING_PLAN_PERSONAS.enterprise.email,
+      },
       ...status,
     });
   } catch (e) {
@@ -97,7 +108,13 @@ export async function POST() {
       solo_license_key: result.soloLicense.plaintextKey,
       author_license_key: result.authorLicense.plaintextKey,
       buyer_password: result.buyer.password,
-      note: "Plaintext keys appear only when newly minted. Copy now; hashes only are stored.",
+      plan_password: result.planPassword,
+      pro_user_email: result.proUser.email,
+      startup_company_id: result.startupCompanyId,
+      startup_emails: result.startupMembers.map((m) => m.email),
+      enterprise_company_id: result.enterpriseCompanyId,
+      enterprise_ciso_email: result.enterpriseCiso.email,
+      note: "Plaintext keys appear only when newly minted. Plan personas always use StagingReady!2026.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "staging-seed failed";

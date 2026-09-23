@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
  */
 /**
  * Temporary Sentry verification endpoint — GET throws so the SDK captures a real server error.
@@ -34,8 +34,13 @@ export async function GET() {
     );
   }
 
-  const err = new Error("Sentry test error — delete /api/sentry-test after verification");
+  const err = new Error("Sentry test error — intentional capture for staging smoke");
   Sentry.captureException(err);
-  await Sentry.flush(2000);
-  throw err;
+  // Do not await flush — ingest can hang on Cloud Run and would fail the smoke.
+  void Sentry.flush(2000);
+  return NextResponse.json({
+    ok: true,
+    captured: true,
+    message: "Test error sent to Sentry",
+  });
 }

@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 /**
@@ -72,6 +96,15 @@ type SeedStatus = {
   authorLicenseReady?: boolean;
   stripeTestReady?: boolean;
   stripe_test_ready?: boolean;
+  proUserReady?: boolean;
+  startupAdminReady?: boolean;
+  enterpriseCisoReady?: boolean;
+  plan_password?: string;
+  plan_personas?: {
+    pro?: string;
+    startup_admin?: string;
+    enterprise_ciso?: string;
+  };
   error?: string;
 };
 
@@ -85,6 +118,10 @@ type SeedResult = {
   solo_license_key?: string | null;
   author_license_key?: string | null;
   buyer_password?: string | null;
+  plan_password?: string;
+  pro_user_email?: string;
+  startup_emails?: string[];
+  enterprise_ciso_email?: string;
   note?: string;
 };
 
@@ -143,8 +180,8 @@ export function StagingReadinessSeed() {
         <div>
           <h2 className="text-base font-semibold text-cyan-100">Staging seed</h2>
           <p className="mt-1 max-w-2xl text-slate-400">
-            One staging tenant for product-readiness: operator admin, Checkout buyer, Pulse license,
-            and Author pulse license. Staging only — this panel is hidden in production.
+            Staging product-readiness: operator, Checkout buyer, Pulse licenses, and Pro / Startup /
+            Enterprise plan personas (password StagingReady!2026, reset each seed). Staging only.
           </p>
         </div>
         <button
@@ -166,9 +203,24 @@ export function StagingReadinessSeed() {
         <Row ok={Boolean(status?.soloLicenseReady)} label="MSGF contract license" />
         <Row ok={Boolean(status?.authorLicenseReady)} label="Author pulse license" />
         <Row ok={stripeOk} label="Stripe test prices ($29 / $49 / $199 monthly + yearly)" />
+        <Row
+          ok={Boolean(status?.proUserReady)}
+          label={`Pro persona (${status?.plan_personas?.pro || "pro_user@msgf.dev"})`}
+        />
+        <Row
+          ok={Boolean(status?.startupAdminReady)}
+          label={`Startup admin (${status?.plan_personas?.startup_admin || "startup_admin@msgf.dev"})`}
+        />
+        <Row
+          ok={Boolean(status?.enterpriseCisoReady)}
+          label={`Enterprise CISO (${status?.plan_personas?.enterprise_ciso || "enterprise_ciso@msgf.dev"})`}
+        />
       </ul>
 
-      {result?.solo_license_key || result?.author_license_key || result?.buyer_password ? (
+      {result?.solo_license_key ||
+      result?.author_license_key ||
+      result?.buyer_password ||
+      result?.plan_password ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-50">
           <p className="font-medium">Newly minted secrets — copy now</p>
           {result.solo_license_key ? (
@@ -184,6 +236,15 @@ export function StagingReadinessSeed() {
           {result.buyer_password ? (
             <p className="mt-2">
               Buyer {result.buyer_email} password: {result.buyer_password}
+            </p>
+          ) : null}
+          {result.plan_password ? (
+            <p className="mt-2">
+              Plan personas password: {result.plan_password}
+              {result.pro_user_email ? ` (${result.pro_user_email}` : ""}
+              {result.enterprise_ciso_email ? `, ${result.enterprise_ciso_email}` : ""}
+              {result.startup_emails?.length ? `, ${result.startup_emails.join(", ")}` : ""}
+              {result.pro_user_email ? ")" : ""}
             </p>
           ) : null}
         </div>

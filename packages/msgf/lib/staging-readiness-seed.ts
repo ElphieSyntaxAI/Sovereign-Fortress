@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
  */
 /**
  * Staging product-readiness seed: operator, buyer, Pulse tenant, Author license.
@@ -29,6 +29,34 @@ import { ensureTenantWalletStarter } from "./services/tenant-token-wallet";
 export const STAGING_SOLO_TENANT_ID = "staging_readiness";
 export const STAGING_AUTHOR_TENANT_ID = "author_ecosystem";
 export const STAGING_BUYER_EMAIL_DEFAULT = "staging-buyer@elphiesyntax.test";
+
+/** Fixed password for commercial-plan smoke personas; reset on every seed run. */
+export const STAGING_PLAN_PASSWORD = "StagingReady!2026";
+
+export const STAGING_PLAN_PERSONAS = {
+  pro: { email: "pro_user@msgf.dev", commercialPlan: "pro" as const },
+  startupAdmin: {
+    email: "startup_admin@msgf.dev",
+    teamRole: "admin" as const,
+  },
+  startupDev: { email: "startup_dev@msgf.dev", teamRole: "dev" as const },
+  startupAuditor: {
+    email: "startup_auditor@msgf.dev",
+    teamRole: "auditor" as const,
+  },
+  startupSecurity: {
+    email: "startup_security@msgf.dev",
+    teamRole: "security" as const,
+  },
+  enterprise: {
+    email: "enterprise_ciso@msgf.dev",
+    commercialPlan: "enterprise" as const,
+    seatLimit: 25,
+  },
+} as const;
+
+export const STAGING_STARTUP_COMPANY_SLUG = "staging-startup-plan";
+export const STAGING_ENTERPRISE_COMPANY_SLUG = "staging-enterprise-plan";
 
 export type StagingSeedOptions = {
   operatorEmail: string;
@@ -52,6 +80,12 @@ export type SeededUser = {
   password: string | null;
 };
 
+export type SeededPlanPersona = SeededUser & {
+  commercialPlan: "pro" | "startup" | "enterprise";
+  teamRole: "admin" | "security" | "auditor" | "dev" | null;
+  companyId: string | null;
+};
+
 export type StagingSeedResult = {
   operator: SeededUser;
   buyer: SeededUser;
@@ -59,6 +93,12 @@ export type StagingSeedResult = {
   authorTenantId: string;
   soloLicense: LicenseMint;
   authorLicense: LicenseMint;
+  planPassword: string;
+  proUser: SeededPlanPersona;
+  startupCompanyId: string;
+  startupMembers: SeededPlanPersona[];
+  enterpriseCompanyId: string;
+  enterpriseCiso: SeededPlanPersona;
 };
 
 export type StagingSeedStatus = {
@@ -70,6 +110,9 @@ export type StagingSeedStatus = {
   soloLicenseReady: boolean;
   authorLicenseReady: boolean;
   stripeTestReady: boolean;
+  proUserReady: boolean;
+  startupAdminReady: boolean;
+  enterpriseCisoReady: boolean;
 };
 
 export function hostOf(url: string): string {
@@ -236,6 +279,103 @@ async function ensureActiveLicense(
   return { tenantId, created: true, plaintextKey: plainKey };
 }
 
+async function ensureCompanyBySlug(
+  admin: SupabaseClient,
+  params: {
+    slug: string;
+    displayName: string;
+    ownerUserId: string;
+    commercialPlan: "startup" | "enterprise";
+    seatLimit: number;
+  }
+): Promise<string> {
+  const { data: existing, error: readErr } = await admin
+    .from("msgf_companies")
+    .select("id")
+    .eq("slug", params.slug)
+    .maybeSingle();
+  if (readErr) throw new Error(`msgf_companies read: ${readErr.message}`);
+
+  if (existing?.id) {
+    const { error } = await admin
+      .from("msgf_companies")
+      .update({
+        display_name: params.displayName,
+        owner_user_id: params.ownerUserId,
+        commercial_plan: params.commercialPlan,
+        seat_limit: params.seatLimit,
+      })
+      .eq("id", existing.id);
+    if (error) throw new Error(`msgf_companies update: ${error.message}`);
+    return String(existing.id);
+  }
+
+  const { data: created, error } = await admin
+    .from("msgf_companies")
+    .insert({
+      display_name: params.displayName,
+      slug: params.slug,
+      owner_user_id: params.ownerUserId,
+      commercial_plan: params.commercialPlan,
+      seat_limit: params.seatLimit,
+    })
+    .select("id")
+    .single();
+  if (error || !created?.id) {
+    throw new Error(`msgf_companies insert: ${error?.message ?? "no id"}`);
+  }
+  return String(created.id);
+}
+
+async function attachPlanMember(
+  admin: SupabaseClient,
+  params: {
+    email: string;
+    password: string;
+    commercialPlan: "pro" | "startup" | "enterprise";
+    teamRole: "admin" | "security" | "auditor" | "dev" | null;
+    companyId: string | null;
+  }
+): Promise<SeededPlanPersona> {
+  const user = await ensureUser(admin, {
+    email: params.email,
+    password: params.password,
+    resetPassword: true,
+    appMetadata: { role: "DEVELOPER" },
+    userMetadata: {
+      persona: "developer",
+      platform: "gatedai",
+      commercial_plan: params.commercialPlan,
+    },
+  });
+
+  await ensureGatedAiBuyerAccount({
+    supabase: admin,
+    entityId: user.userId,
+    username: params.email.split("@")[0] || "staging-plan",
+  });
+
+  const { error } = await admin
+    .from("p4_profiles")
+    .update({
+      commercial_plan: params.commercialPlan,
+      company_id: params.companyId,
+      team_platform_role: params.teamRole,
+      account_status: "active",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.userId);
+  if (error) throw new Error(`p4_profiles plan attach: ${error.message}`);
+
+  return {
+    ...user,
+    password: params.password,
+    commercialPlan: params.commercialPlan,
+    teamRole: params.teamRole,
+    companyId: params.companyId,
+  };
+}
+
 export async function getStagingSeedStatus(
   admin: SupabaseClient,
   env: NodeJS.ProcessEnv = process.env
@@ -246,6 +386,15 @@ export async function getStagingSeedStatus(
   ).toLowerCase();
   const operator = await findUserByEmail(admin, operatorEmail);
   const buyer = await findUserByEmail(admin, buyerEmail);
+  const proUser = await findUserByEmail(admin, STAGING_PLAN_PERSONAS.pro.email);
+  const startupAdmin = await findUserByEmail(
+    admin,
+    STAGING_PLAN_PERSONAS.startupAdmin.email
+  );
+  const enterpriseCiso = await findUserByEmail(
+    admin,
+    STAGING_PLAN_PERSONAS.enterprise.email
+  );
 
   const { count: soloLicenses } = await admin
     .from("msgf_licenses")
@@ -273,6 +422,9 @@ export async function getStagingSeedStatus(
     soloLicenseReady: (soloLicenses ?? 0) > 0,
     authorLicenseReady: (authorLicenses ?? 0) > 0,
     stripeTestReady: stripeTestReady(env),
+    proUserReady: Boolean(proUser?.id),
+    startupAdminReady: Boolean(startupAdmin?.id),
+    enterpriseCisoReady: Boolean(enterpriseCiso?.id),
   };
 }
 
@@ -357,6 +509,84 @@ export async function runStagingReadinessSeed(
     credits
   );
 
+  const planPassword = STAGING_PLAN_PASSWORD;
+
+  const proUser = await attachPlanMember(admin, {
+    email: STAGING_PLAN_PERSONAS.pro.email,
+    password: planPassword,
+    commercialPlan: "pro",
+    teamRole: null,
+    companyId: null,
+  });
+
+  const startupAdminSeed = await attachPlanMember(admin, {
+    email: STAGING_PLAN_PERSONAS.startupAdmin.email,
+    password: planPassword,
+    commercialPlan: "startup",
+    teamRole: "admin",
+    companyId: null,
+  });
+  const startupCompanyId = await ensureCompanyBySlug(admin, {
+    slug: STAGING_STARTUP_COMPANY_SLUG,
+    displayName: "Staging Startup Co",
+    ownerUserId: startupAdminSeed.userId,
+    commercialPlan: "startup",
+    seatLimit: 5,
+  });
+  const startupAdmin = await attachPlanMember(admin, {
+    email: STAGING_PLAN_PERSONAS.startupAdmin.email,
+    password: planPassword,
+    commercialPlan: "startup",
+    teamRole: "admin",
+    companyId: startupCompanyId,
+  });
+  const startupMembers: SeededPlanPersona[] = [
+    startupAdmin,
+    await attachPlanMember(admin, {
+      email: STAGING_PLAN_PERSONAS.startupDev.email,
+      password: planPassword,
+      commercialPlan: "startup",
+      teamRole: "dev",
+      companyId: startupCompanyId,
+    }),
+    await attachPlanMember(admin, {
+      email: STAGING_PLAN_PERSONAS.startupAuditor.email,
+      password: planPassword,
+      commercialPlan: "startup",
+      teamRole: "auditor",
+      companyId: startupCompanyId,
+    }),
+    await attachPlanMember(admin, {
+      email: STAGING_PLAN_PERSONAS.startupSecurity.email,
+      password: planPassword,
+      commercialPlan: "startup",
+      teamRole: "security",
+      companyId: startupCompanyId,
+    }),
+  ];
+
+  const enterpriseSeed = await attachPlanMember(admin, {
+    email: STAGING_PLAN_PERSONAS.enterprise.email,
+    password: planPassword,
+    commercialPlan: "enterprise",
+    teamRole: "admin",
+    companyId: null,
+  });
+  const enterpriseCompanyId = await ensureCompanyBySlug(admin, {
+    slug: STAGING_ENTERPRISE_COMPANY_SLUG,
+    displayName: "Staging Enterprise Co",
+    ownerUserId: enterpriseSeed.userId,
+    commercialPlan: "enterprise",
+    seatLimit: STAGING_PLAN_PERSONAS.enterprise.seatLimit,
+  });
+  const enterpriseCiso = await attachPlanMember(admin, {
+    email: STAGING_PLAN_PERSONAS.enterprise.email,
+    password: planPassword,
+    commercialPlan: "enterprise",
+    teamRole: "admin",
+    companyId: enterpriseCompanyId,
+  });
+
   void gated;
   void pledge;
 
@@ -367,5 +597,11 @@ export async function runStagingReadinessSeed(
     authorTenantId: STAGING_AUTHOR_TENANT_ID,
     soloLicense,
     authorLicense,
+    planPassword,
+    proUser,
+    startupCompanyId,
+    startupMembers,
+    enterpriseCompanyId,
+    enterpriseCiso,
   };
 }

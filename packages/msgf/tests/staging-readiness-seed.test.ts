@@ -8,13 +8,15 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
  */
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import {
   STAGING_AUTHOR_TENANT_ID,
+  STAGING_PLAN_PASSWORD,
+  STAGING_PLAN_PERSONAS,
   STAGING_SOLO_TENANT_ID,
   assertStagingSeedTarget,
   firstGlobalAdminEmail,
@@ -75,5 +77,16 @@ describe("staging readiness seed isolation", () => {
       true
     );
     assert.equal(stripeTestReady({ STRIPE_SECRET_KEY: "sk_live_abc" }), false);
+  });
+
+  test("plan personas use fixed password and commercial emails", () => {
+    assert.equal(STAGING_PLAN_PASSWORD, "StagingReady!2026");
+    assert.equal(STAGING_PLAN_PERSONAS.pro.email, "pro_user@msgf.dev");
+    assert.equal(STAGING_PLAN_PERSONAS.startupAdmin.email, "startup_admin@msgf.dev");
+    assert.equal(STAGING_PLAN_PERSONAS.startupDev.email, "startup_dev@msgf.dev");
+    assert.equal(STAGING_PLAN_PERSONAS.startupAuditor.email, "startup_auditor@msgf.dev");
+    assert.equal(STAGING_PLAN_PERSONAS.startupSecurity.email, "startup_security@msgf.dev");
+    assert.equal(STAGING_PLAN_PERSONAS.enterprise.email, "enterprise_ciso@msgf.dev");
+    assert.equal(STAGING_PLAN_PERSONAS.enterprise.seatLimit, 25);
   });
 });

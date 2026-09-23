@@ -9,6 +9,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 /**
@@ -235,6 +259,14 @@ if (result.operator.password) {
 if (result.buyer.password) {
   console.log("  buyer password written to packages/msgf/.env.staging.local (STAGING_BUYER_PASSWORD)");
 }
+console.log(`  plan_password=${result.planPassword}`);
+console.log(`  pro=${result.proUser.email}`);
+console.log(
+  `  startup_company=${result.startupCompanyId} members=${result.startupMembers.map((m) => m.email).join(",")}`
+);
+console.log(
+  `  enterprise_company=${result.enterpriseCompanyId} ciso=${result.enterpriseCiso.email}`
+);
 console.log(`  sign in: ${msgfUrl}/admin/sign-in?next=/admin/seed`);
 console.log(`  seed UI: ${msgfUrl}/admin/seed`);
 console.log("  Next: npm run staging:prepare  then redeploy author-bff-staging if a new pulse license was minted.");
