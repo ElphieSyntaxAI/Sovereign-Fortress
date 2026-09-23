@@ -142,7 +142,10 @@ for (const k of [
   "MSGF_DROPBOX_ARCHIVE_MOCK",
 ]) {
   if (isOn(env[k])) {
-    failures.push(`${k}=1 is not allowed on staging/prod — mocks off (code stays, claims stay hidden)`);
+    // Staging may enable signing mocks for post-1.0 QA; production must keep them off.
+    warnings.push(
+      `${k}=1 on staging — signing mocks on for QA; keep off for production`
+    );
   }
 }
 
