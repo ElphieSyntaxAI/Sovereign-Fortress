@@ -9,7 +9,11 @@
 
 **Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** BYOK (hosted) · **$29**/mo or **$290**/yr Pro · **$49**/workspace/mo or **$490**/yr Startup · **$199**/workspace/mo or **$1,990**/yr Enterprise.
 
+**Plan gate (durable):** `commercial_plan` on the profile or company = `byok` \| `pro` \| `startup` \| `enterprise`. Workspace company plan **overrides** personal profile. APIs return **403 `PLAN_FEATURE_BLOCKED`** when a surface is above the plan (team invite, Tri-Tribunal, SSO, SIEM, Sentry quarantine, Signing/MCP).
+
 **Privacy:** Global Brain swarm telemetry is **zero-text** (how a wave failed, never the prompt). Session Replay remains tenant legal/security retention — not training. [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md).
+
+**Staging QA logins** (password `StagingReady!2026`, reset each seed): `pro_user@msgf.dev` · `startup_admin@msgf.dev` (+ `startup_dev` / `startup_auditor` / `startup_security`) · `enterprise_ciso@msgf.dev`. Seed via `/admin/seed` or `npm run seed:staging -w msgf`.
 
 ---
 
@@ -34,8 +38,8 @@ Walk these **unauthenticated** surfaces first (prod or local). They are the publ
 | :--- | :--- | :--- |
 | Home / platform hub | `/` | Marketing chooser, not the signed-in dashboard |
 | Features | `/features` | Shipped capability map |
-| Pricing | `/pricing` | BYOK $0 · Pro $29/mo or $290/yr · Startup $49/mo or $490/yr · Enterprise $199/mo or $1,990/yr |
-| Getting started | `/getting-started` | Workspace → Pulse Guard → map a project. Step 1 “Sign up” still links here; that is the **waitlist**, not account creation. |
+| Pricing | `/pricing` | BYOK $0 · Pro $29/mo or $290/yr · Startup $49/mo or $490/yr · Enterprise $199/mo or $1,990/yr. Pro includes Eco Trio + custom endpoints; Startup adds Tri-Tribunal; Enterprise adds SSO / SIEM / Sentry quarantine. |
+| Getting started | `/getting-started` | Workspace → Pulse Guard → map a project. Step 1 “Sign up” still links here; that is the **waitlist**, not account creation. Project setup CTAs land on `/workspace?tab=projects`. |
 | Waitlist | `/sign-up` | “Join MSGF beta testing” — email goes to the waitlist, **not** `auth.users` |
 | Shadow trial | `/shadow-trial` | Header **Free 7-day trial** CTA. No console seat. Clock starts on first SDK call. Proof email includes projected $ plus **would have promoted / blocked** hashed resource counts. Starting 3-day full access applies those scores once. |
 | Sign in | `/sign-in` | Invited / minted buyers. Email/password, or Google Workspace if the domain is allowlisted. |
@@ -43,7 +47,24 @@ Walk these **unauthenticated** surfaces first (prod or local). They are the publ
 
 Indie CTA on `/pricing` is **Start 7-day shadow-mode trial**, not Stripe. Pro / Startup / Enterprise CTAs POST `/api/billing/checkout` with `plan` + `interval` (`month` | `year`).
 
+Checkout **success** lands on **`/workspace?tab=projects`** (not `/pricing?checkout=success`). After Shadow trial full-access, **Subscribe to Pro** uses the same workspace landing.
+
 ---
+
+## 2a. What each paid plan unlocks (hard gates)
+
+| Capability | Pro | Startup | Enterprise |
+| :--- | :---: | :---: | :---: |
+| Core gateway, Eco Trio, custom endpoints, personal projects | yes | yes | yes |
+| Team invite / roles / shared company projects | — | yes | yes |
+| Audit console, tenant budgets, Session Replay | — | yes | yes |
+| Tri-Tribunal preset (also needs Tri env flags) | — | yes | yes |
+| Workspace SSO / company domains | — | — | yes |
+| SIEM export | — | — | yes |
+| Sentry → Vault quarantine | — | — | yes |
+| Signing / MCP / Dropbox archive (post-1.0 flags) | — | — | yes |
+
+There is **no** separate “Priority HITL” SKU — `/admin/ops` is one ops surface. Locked UI should point buyers to `/pricing`.
 
 ## 3. Dev environment (buyer console test)
 
@@ -72,7 +93,7 @@ Stripe (real “purchase” path):
 - `STRIPE_WEBHOOK_SECRET`
 - `stripe listen --forward-to localhost:3001/api/webhooks/stripe`
 
-Checkout success URL is `/pricing?checkout=success&plan=…`. Webhook logs `STRIPE_PAYMENT_SUCCESS` and stamps entitlements on `p4_profiles`.
+Checkout success URL is **`/workspace?tab=projects`**. Webhook logs `STRIPE_PAYMENT_SUCCESS` and stamps entitlements + **`commercial_plan`** on `p4_profiles` (and the company row for Startup/Enterprise).
 
 **Paid-launch honesty:** live Stripe keys may already be on `msgf-api`, but mock entitlements can still be ON. Do not promise self-serve card success on a sales call until [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §2b Checkout smoke + mock-off is green.
 
@@ -101,17 +122,20 @@ npm run create:buyer-user -w msgf
    - Creates **`p4_profiles` + pledge** (`state_beats`, tenant `tenant_gated` unless `MSGF_GATED_TENANT_ID` is set).
    - Does **not** seed P1–P6. Governance matrix stays empty until you map a project.
    - Independent buyers land in a personal sandbox (workspace + dashboard both allowed).
-8. **Workspace** — `/workspace` → map a folder / GitHub repo (`/setup/projects`). Copy the `.vscode/settings.json` / IDE token block. Download Pulse Guard from pricing or `/getting-started`.
+8. **Workspace** — `/workspace?tab=projects` → map a folder / GitHub repo. Copy the `.vscode/settings.json` / IDE token block. Download Pulse Guard from `/api/downloads/pulse-guard` (or getting-started). (`/setup/projects` redirects here.)
 9. **Purchase (optional but realistic)** — stay signed in, then `/pricing`:
    - **Free ($0)** — hosted tenant; CTA is shadow-mode trial.
-   - **Pro ($29 / mo)** or **Team ($49 / workspace / mo)** → Stripe Checkout (test card `4242 4242 4242 4242`).
-   - Success: `/pricing?checkout=success&plan=…` — then `/account` for Stripe Customer Portal when a customer id exists.
-10. **Pulse** — from dashboard / workspace / extension after baseline typing (cookie capture: README Phase 0 Steps D–E, but hit **:3001**).
+   - **Pro ($29 / mo)** — Eco Trio + custom endpoints + one seat → Stripe Checkout (test card `4242 4242 4242 4242`).
+   - **Startup ($49 / workspace / mo)** — team + Tri-Tribunal + audit/budgets/Session Replay.
+   - **Enterprise ($199 / workspace / mo)** — SSO + SIEM + Sentry quarantine.
+   - Success: **`/workspace?tab=projects`** — then `/account` for Stripe Customer Portal when a customer id exists.
+10. **Models (Pro+)** — dashboard Token Savings / consensus preset: Eco Trio defaults (Gemma 3, Qwen 3, Phi-3); optional DeepSeek R1 as **Use for reasoning**; each custom row defaults to **API key** with a **Use HTTPS** switch.
+11. **Pulse** — from dashboard / workspace / extension after baseline typing (cookie capture: README Phase 0 Steps D–E, but hit **:3001**).
     - Session Pulse uses **`p4_profiles`** (no `msgf_live_` key in the browser).
     - First `POST /api/msgf/pulse` may return **202** with `baseline_required: true`. Later calls **200**.
-11. **Reports** — `/dashboard/daily-reports`: metered vs proven; shadow-mode panel if you pointed an SDK at `/api/v1`. Also `/dashboard#token-savings` and Source Audit.
-12. **Heal queue** — dashboard drawer; API uses the profile tenant (`tenant_gated` by default), not `integration_sandbox`.
-13. **Skip `/admin/ops`** unless this user is `GLOBAL_ADMIN` / `COMPANY_ADMIN`. Buyers can file the onscreen FAB (`POST /api/msgf/report-issue`); operators triage `#bug-inbox`.
+12. **Reports** — `/dashboard/daily-reports`: metered vs proven; shadow-mode panel if you pointed an SDK at `/api/v1`. Also `/dashboard#token-savings` and **Source Audit** (P7).
+13. **Heal queue** — dashboard drawer; API uses the profile tenant (`tenant_gated` by default), not `integration_sandbox`.
+14. **Skip `/admin/ops`** unless this user is `GLOBAL_ADMIN` / `COMPANY_ADMIN`. Buyers can file the onscreen FAB (`POST /api/msgf/report-issue`); operators triage `#bug-inbox`.
 
 ---
 
@@ -163,11 +187,12 @@ Restart the dev server. Sign in as a **fresh** minted user (existing profiles al
 | New auth user | Script output UUID, or Supabase Dashboard → Authentication |
 | Sign-in | `/sign-in` → `/dashboard` or `/workspace` (not waitlist) |
 | Onboarding | Row in `p4_profiles` (`tenant_gated`); pledge in `state_beats`; pillars empty until a project exists |
-| Workspace | `/workspace` + `/setup/projects` mapping; IDE token copy block |
+| Workspace | `/workspace?tab=projects` mapping; IDE token copy block; Pulse Guard VSIX download |
 | BYOK $0 | Pricing CTA opens `/shadow-trial` (hosted Redis/Supabase; no Stripe) |
-| Checkout | Stripe session success; webhook log `STRIPE_PAYMENT_SUCCESS`; `/account` portal when customer id exists |
+| Checkout | Stripe session success → `/workspace?tab=projects`; webhook `STRIPE_PAYMENT_SUCCESS`; `commercial_plan` stamped; `/account` portal when customer id exists |
+| Plan lock | Pro user hitting team invite / Tri save → 403 `PLAN_FEATURE_BLOCKED` or upgrade CTA to `/pricing` |
 | Pulse | `POST /api/msgf/pulse` **200 or 202** with session cookie, no license header |
-| Reports | Period history loads; foreign `tenant_id` → 403 |
+| Reports | Period history loads; Source Audit (P7); foreign `tenant_id` → 403 |
 | Not integrator | No `MSGF_CONTRACT_LICENSE_KEY` in server env during test |
 
 ---
@@ -175,6 +200,11 @@ Restart the dev server. Sign in as a **fresh** minted user (existing profiles al
 ## Related
 
 - [`MSGF_PRODUCT_OVERVIEW.md`](./MSGF_PRODUCT_OVERVIEW.md) — packaging, sales claims, RC exclusions
+- [`MSGF_PLAN_ENTITLEMENTS.md`](../technical-specs/MSGF_PLAN_ENTITLEMENTS.md) — hard gates
+- [`MSGF_BILLING.md`](../technical-specs/MSGF_BILLING.md) — Checkout + webhook
+- [`MSGF_CUSTOM_MODELS.md`](../technical-specs/MSGF_CUSTOM_MODELS.md) — Eco Trio / DeepSeek
+- [`MSGF_STAGING_SEED.md`](../technical-specs/MSGF_STAGING_SEED.md) — staging personas
+- [`MSGF_P7_SOURCE_AUDIT.md`](../technical-specs/MSGF_P7_SOURCE_AUDIT.md) — Source Audit
 - [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) — zero-text swarm absorb vs Session Replay
 - [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §2b — live Checkout smoke + mock-off
 - [`packages/msgf/README.md`](../../../packages/msgf/README.md) — Pulse cookie + baseline curl (use port **3001**)
@@ -185,6 +215,7 @@ Restart the dev server. Sign in as a **fresh** minted user (existing profiles al
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-23 | Checkout success → `/workspace?tab=projects`; `commercial_plan` hard matrix; Eco Trio + DeepSeek on Pro; staging plan personas; Tri needs Startup/Enterprise. |
 | 2026-09-18 | Shadow trial proof includes would-have P7 promote/block counts; 3-day full access applies those scores once. |
 | 2026-09-17 | Port **3001**; `/sign-up` is beta waitlist; public funnel + Shadow trial; Indie $0 CTA; workspace / account; Pulse 202; strict test needs `MSGF_REGISTRATION_STRIPE_STATUS=inactive`. Global Brain telemetry is zero-text; Session Replay is not a training corpus. |
 | 2026-08-06 | Reports / Shadow Proxy awareness; tenant IDOR note. |

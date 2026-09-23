@@ -2,23 +2,23 @@
 
 **Status:** Living product reference (complements [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) engineering SSOT).  
 **Production:** https://elphiesgatedai.elphiesyntax.com  
-**Last updated:** 2026-09-22 (buyer language: AI gateway / shadow mode / policy domains; 1.0 **hide** DocuSign/Dropbox/MCP; **implement+test** SSO + SIEM + Sentry/TRI/GitHub/PQ)
+**Last updated:** 2026-09-23 (Eco Trio + DeepSeek; durable `commercial_plan` hard gates; P7 schema applied; staging Tri/post-MVP + plan personas; soft-RC ~93%)
 
 **Product map (UI):** `/features` + `packages/msgf/app/_components/marketing/shipped-capabilities.ts`  
-**Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** BYOK (hosted) · **$29**/mo or **$290**/yr Pro · **$49**/workspace/mo or **$490**/yr Startup · **$199**/workspace/mo or **$1,990**/yr Enterprise  
+**Pricing SSOT:** `packages/msgf/app/_components/pricing/pricing-tiers.ts` — **$0** BYOK (hosted) · **$29**/mo or **$290**/yr Pro · **$49**/workspace/mo or **$490**/yr Startup · **$199**/workspace/mo or **$1,990**/yr Enterprise. Durable gate: `commercial_plan` = `byok` \| `pro` \| `startup` \| `enterprise` (company overrides profile).  
 **RC / deploy:** [`MSGF_RC_CHECKLIST.md`](../MSGF_RC_CHECKLIST.md) · [`MSGF_DEPLOY_CHECKLIST.md`](../MSGF_DEPLOY_CHECKLIST.md) · [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md)  
 **Provider gateway:** [`MSGF_SHADOW_PROXY.md`](../technical-specs/MSGF_SHADOW_PROXY.md)  
 **Ops map:** [`MSGF_ADMIN_HUB.md`](../technical-specs/MSGF_ADMIN_HUB.md)  
 **Global Brain telemetry:** [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](../technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)
 
-### Launch readiness (2026-09-11)
+### Launch readiness (2026-09-23)
 
 | Gate | ~% | What “100%” means |
 | :--- | :---: | :--- |
-| **Technical soft-RC** (`msgf-v1.0.0` with mock entitlements OK) | **~90%** | Green `validate:deployment` + `deep-test:solo` + `verify:msgf-env` (2026-09-11); remaining = one-tenant staging smoke |
-| **Paid self-serve launch** | **~82%** | Soft-RC + live Checkout smoke + mock off (live keys + identity + webhook already on `msgf-api`) |
+| **Technical soft-RC** (`msgf-v1.0.0` with mock entitlements OK) | **~93%** | Green validate + deep-test + env; staging pulse-guard / sentry-test / HITL smokes green; remaining = Checkout card path polish |
+| **Paid self-serve launch** | **~86%** | Soft-RC + `commercial_plan` hard matrix shipped; still needs live Checkout smoke + mock-off |
 
-Largest remaining gap: **Sept 18 schema apply + one-tenant staging smoke**, not feature code. P7 closed loop landed 2026-09-18. Live Stripe keys landed 2026-09-11; mock entitlements still ON. Full bucket table: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §10.
+Largest remaining gap: **live Checkout smoke + mock-off**, not feature code. Eco Trio, commercial hard-blocks, and P7 closed loop (schema applied) landed. Full bucket table: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §10.
 
 ---
 
@@ -47,13 +47,15 @@ Keep branded product names **Vault**, **Hall**, and **Pulse Guard** with a first
 | **Shadow mode** | Shadow Proxy | Observe-only `/api/v1` pass-through |
 | **Enforcement** | Active Governance | Policy applied before the model |
 | **Policy domains** | six pillars | Isolated context partitions P1–P6 |
-| **Cost-efficient routing** | Small Brain | Local / cache / dual-preset path |
+| **Source reputation** | P7 / Source Audit | Promote / block hashed resources; closed-loop steer |
+| **Eco Trio** | custom eco endpoints | Gemma 3 · Qwen 3 · Phi-3 for day-to-day routing (Pro+) |
+| **Cost-efficient routing** | Small Brain | Local / cache / dual-preset / Eco Trio path |
 | **Frontier / three-model consensus** | Big Brain / TRI / CONVERGE | Claude + Gemini + Grok on high drift |
+| **Tri-Tribunal** | `tri_tribunal` preset | Startup/Enterprise only (env + plan gate) |
 | **Low-cost remediation** | Heal Cheap | Vault-first IDE build heal |
-| **Human-in-the-loop** | HITL / ARBITRATE | Signed human review |
+| **Human-in-the-loop** | HITL / ARBITRATE | Signed human review — one ops surface, not a separate SKU |
 | **Verification credits** | verification slices | Metered consensus budget |
 | **Approved vs rejected memory** | wins / garbage | **Vault** stores approved; **Hall** stores failed |
-| **Source reputation** | P7 | Promote / block hashed resources |
 | **IDE extension panel** | Command Center | Pulse Guard UI |
 | **Post-quantum envelopes** | quantum-ready | Hybrid KEM on Vault secrets; PQ-TLS is infra |
 | **No-training agreement** | glass-box sovereignty | **Vault Pact** is the legal name |
@@ -76,7 +78,7 @@ Keep branded product names **Vault**, **Hall**, and **Pulse Guard** with a first
 ```text
 Marketing (/ · /features · /pricing)
         ↓
-Workspace (/workspace · /setup/projects · team · IDE tokens)
+Workspace (/workspace?tab=projects · team · IDE tokens)
         ↓
 Dashboard (#token-savings · Reports · heal · security · shadow-mode panel)
         ↓
@@ -134,7 +136,7 @@ Pulse DEFEND / CROSS-REF now records **which sources** influenced a decision (Va
 | **Audit lists** | `p7_source_audit` and swarm audit metadata include capped `promoted_keys` / `blocked_keys` (searchable in Audit hub). Global Brain JSON stays zero-text — no key lists. |
 | **Hot path** | Audit + impact + reputation writes are **non-blocking** — never fail GATE/DEFEND |
 
-Dashboard: **Source Audit** panel on Governance home; API `GET /api/msgf/dashboard/source-audit`. Shadow Proxy projects promote/block counts and applies them on the 3-day full-access CTA. Migrations: `20260810010000_msgf_p7_source_reputation.sql`, `20260918120000_p7_prompt_shadow_deferred.sql`.
+Dashboard: **Source Audit** panel on Governance home; API `GET /api/msgf/dashboard/source-audit`. Shadow Proxy projects promote/block counts and applies them on the 3-day full-access CTA. Migrations: `20260810010000_msgf_p7_source_reputation.sql`, `20260918120000_p7_prompt_shadow_deferred.sql` (**applied**). **Engineering SSoT:** [`MSGF_P7_SOURCE_AUDIT.md`](../technical-specs/MSGF_P7_SOURCE_AUDIT.md) · Roadmap: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §2.1a.
 
 ### 3.2 Primary APIs
 
@@ -203,7 +205,20 @@ Migrations: `20260915120000_governance_audit_platform.sql`, `20260915130000_trus
 
 IDE **dev-event** and **dev-session** never invoke the full biometric Pulse → CONVERGE chain.
 
-Tenant presets: `balanced_dual` · `bias_mitigated_dual` (Claude+Grok) · `gemini_grok_dual` · `tri_tribunal` (premium) · `custom_byok`. API: `GET/PUT /api/msgf/tenant/consensus-config`.
+Tenant presets: `balanced_dual` · `bias_mitigated_dual` (Claude+Grok) · `gemini_grok_dual` · `tri_tribunal` (Startup/Enterprise + Tri env flags) · `custom_byok`. API: `GET/PUT /api/msgf/tenant/consensus-config`.
+
+### 3.3a Eco Trio & custom endpoints (shipped 2026-09-23)
+
+Pro+ tenants configure day-to-day routing without waiting on platform masters:
+
+| Piece | Behavior |
+| :--- | :--- |
+| **Eco Trio defaults** | Gemma 3 · Qwen 3 · Phi-3 (hosted API-key URLs for Gemma/Qwen; Phi-3 starts HTTPS with empty URL) |
+| **DeepSeek R1** | Separate **Use for reasoning** row → `custom_reasoning_endpoint` |
+| **API key vs HTTPS** | Rows default to API-key mode (catalog fills the base URL on save); **Use HTTPS** keeps a typed URL |
+| **Protocol** | OpenAI-compatible Bearer and Anthropic `x-api-key` on the dispatcher |
+
+Dashboard: Token Savings / consensus preset panel. Engineering: [`MSGF_CUSTOM_MODELS.md`](../technical-specs/MSGF_CUSTOM_MODELS.md) · `lib/services/model-routing/types.ts`.
 
 ### 3.4 Part B — 3-tier dual CONVERGE (flagged)
 
@@ -323,7 +338,7 @@ Optimizer output includes **MANDATORY AGENT EXECUTION RULES**: attach `@` files,
 | :--- | :--- | :--- |
 | Marketing | `/`, `/features`, `/pricing` | Prospects |
 | Workspace | `/dashboard`, `#token-savings`, Reports, `/workspace` | Tenants |
-| IDE setup | `/workspace#ide-setup`, `/setup/projects` | Developers |
+| IDE setup | `/workspace?tab=projects`, `/workspace#ide-setup` | Developers (`/setup/projects` redirects) |
 | Team | Workspace team + readiness | COMPANY_ADMIN |
 | Account | `/account` | Plan / seats · Stripe Customer Portal |
 | Admin ops | `/admin/ops` (audit hub · Session Replay · budgets · SIEM · ARBITRATE · …), `/admin/dashboard` | GLOBAL/COMPANY admins |
@@ -453,12 +468,14 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Tier | Price | What it actually includes | Sales note |
 | :--- | :--- | :--- | :--- |
-| **BYOK** | **$0** | Hosted Redis + Supabase, shadow mode, Pulse Guard, 1 project, customer model keys | Front door. Not self-host. Caps keep TRI off BYOK. |
-| **Pro** | **$29** / mo or **$290** / yr | Enforcement, Vault/Hall, 1,200 verification credits / month, 1 seat | Recreate Stripe Prices. Do not reuse $99 one-time. |
-| **Startup** | **$49** / workspace / mo or **$490** / yr | Audit console, Session Replay, budgets; up to 5 people; extra seats $15/mo or $150/yr | Not per user. SSO / SIEM / Sentry quarantine are **Enterprise**. |
-| **Enterprise** | **$199** / workspace / mo or **$1,990** / yr | Workspace SSO, SIEM, Sentry quarantine, up to 25 seats | Self-serve checkout. Extra seats beyond 25 are quoted. **Do not sell DocuSign / MCP in 1.0.** |
+| **BYOK** | **$0** | Hosted Redis + Supabase, shadow mode, Pulse Guard, 1 project, customer model keys | Front door. Not self-host. Managed TRI stays on Pro+. |
+| **Pro** | **$29** / mo or **$290** / yr | Enforcement, Vault/Hall, 1,200 verification credits / month, 1 seat, **Eco Trio + custom endpoints** | Recreate Stripe Prices. Do not reuse $99 one-time. No team invite / Tri. |
+| **Startup** | **$49** / workspace / mo or **$490** / yr | Shared projects + roles, audit console, Session Replay, budgets, **Tri-Tribunal**; up to 5 people; extra seats $15/mo or $150/yr | Not per user. SSO / SIEM / Sentry quarantine are **Enterprise**. |
+| **Enterprise** | **$199** / workspace / mo or **$1,990** / yr | Everything in Startup + Workspace SSO, company domains, SIEM, Sentry → Vault quarantine; up to 25 seats | Self-serve checkout. Extra seats beyond 25 are quoted. **Do not sell DocuSign / MCP in 1.0** (still Enterprise-gated when post-MVP flags are on). |
 
-**Checkout status:** Stripe Checkout **code is shipped** for Pro, Startup, and Enterprise (monthly + yearly). **Recreate Stripe Price IDs** — old live IDs were $99 one-time and $49/user. Live keys may already be on `msgf-api`; **mock entitlements may still be ON** until [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §2b live smoke + mock-off is green. Until then, do not promise self-serve card success on a sales call — offer assisted checkout / waitlist.
+**Hard gates:** Stripe metadata stays `individual_pro` / `corporate_startup` / `corporate_enterprise`; persisted field is `commercial_plan`. Workspace company plan overrides profile. Locked APIs return **403 `PLAN_FEATURE_BLOCKED`**. There is **no** separate Priority HITL line item. Spec: [`MSGF_PLAN_ENTITLEMENTS.md`](../technical-specs/MSGF_PLAN_ENTITLEMENTS.md).
+
+**Checkout status:** Stripe Checkout **code is shipped** for Pro, Startup, and Enterprise (monthly + yearly). Success URL is **`/workspace?tab=projects`**. Live keys may already be on `msgf-api`; **mock entitlements may still be ON** until [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §2b live smoke + mock-off is green. Until then, do not promise self-serve card success on a sales call — offer assisted checkout / waitlist. Spec: [`MSGF_BILLING.md`](../technical-specs/MSGF_BILLING.md).
 
 ### Objection handling (sales)
 
@@ -501,9 +518,9 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | Author / Education product completion | Separate roadmaps |
 | Shadow projected $ as public eco / utility bills | Projected ≠ proven — keep separate in every deck |
 
-**1 Nov claim set (launch cut).** Demo and sell: Shadow → Active, Pulse/ingest/HITL, paid seats, **Sentry ops + crash→Vault quarantine**, **TRI majority on high-drift Big Brain**, **GitHub repo picker**, **Workspace SSO**, **SIEM webhook**, **hybrid PQ KEX on the gatedai load balancer when we own the proxy** (plus app-layer KEM envelopes). Default CONVERGE stays dual / Small Brain. **Do not demo or sell DocuSign, Dropbox Sign, Dropbox archive, or MCP.** See [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §0.1.
+**1 Nov claim set (launch cut).** Demo and sell: Shadow → Active, Pulse/ingest/HITL, paid seats with **plan hard-blocks**, Eco Trio / custom endpoints, **Sentry ops + crash→Vault quarantine** (Enterprise), **TRI majority** (platform) + **Tri-Tribunal** (Startup+), **GitHub repo picker**, **Workspace SSO**, **SIEM webhook**, **hybrid PQ KEX on the gatedai load balancer when we own the proxy** (plus app-layer KEM envelopes). Default CONVERGE stays dual / Small Brain / Eco Trio. **Do not demo or sell DocuSign, Dropbox Sign, Dropbox archive, or MCP.** See [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md) §0.1.
 
-**Configured vs shipped.** **Hide (code stays):** DocuSign / Dropbox Sign, Dropbox archive, Cursor MCP-as-supported. **Implement & test before you headline:** Sentry, TRI, GitHub picker, PQ-TLS (honest frontend scope), Workspace SSO, SIEM webhook (Lanes A3–A8). Part B tiers stay flagged (`MSGF_CONVERGE_TIER_ENABLED=1`). Unconfigured signing/SSO panels must still degrade rather than break. Engineering status: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §5 (M7/M8) and [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md).
+**Configured vs shipped.** **Hide (code stays):** DocuSign / Dropbox Sign, Dropbox archive, Cursor MCP-as-supported. **Implement & test before you headline:** Sentry, TRI, GitHub picker, PQ-TLS (honest frontend scope), Workspace SSO, SIEM webhook (Lanes A3–A8). Part B tiers stay flagged (`MSGF_CONVERGE_TIER_ENABLED=1`). Unconfigured signing/SSO panels must still degrade rather than break. Engineering status: [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) §5 (M4a/M7/M8) and [`MSGF_DEV_TODO.md`](../MSGF_DEV_TODO.md).
 
 ---
 
@@ -512,6 +529,11 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 | Doc | Focus |
 | :--- | :--- |
 | [`MSGF_V1_ROADMAP.md`](../MSGF_V1_ROADMAP.md) | Engineering milestones & readiness |
+| [`MSGF_PLAN_ENTITLEMENTS.md`](../technical-specs/MSGF_PLAN_ENTITLEMENTS.md) | `commercial_plan` matrix + Tri/post-MVP gates |
+| [`MSGF_BILLING.md`](../technical-specs/MSGF_BILLING.md) | Stripe Checkout, webhook writers, mock/live |
+| [`MSGF_CUSTOM_MODELS.md`](../technical-specs/MSGF_CUSTOM_MODELS.md) | Eco Trio + DeepSeek + API-key/HTTPS |
+| [`MSGF_P7_SOURCE_AUDIT.md`](../technical-specs/MSGF_P7_SOURCE_AUDIT.md) | Source reputation closed loop |
+| [`MSGF_STAGING_SEED.md`](../technical-specs/MSGF_STAGING_SEED.md) | Staging personas + env flags |
 | [`MSGF_CONVERGE_TIER.md`](../technical-specs/MSGF_CONVERGE_TIER.md) | Part B tiers + T3 quarantine |
 | [`MSGF_TENANT_ISOLATION.md`](../technical-specs/MSGF_TENANT_ISOLATION.md) | A4 compound scope |
 | [`MSGF_ASYNC_PREFLIGHT.md`](../technical-specs/MSGF_ASYNC_PREFLIGHT.md) | A5 async Safe Build |
@@ -538,9 +560,10 @@ Source of truth for the numbers below is `packages/msgf/app/_components/pricing/
 
 | Date | Note |
 | :--- | :--- |
+| 2026-09-23 | **Eco Trio + DeepSeek**; durable **`commercial_plan`** hard gates (workspace overrides profile); packaging bullets synced; Checkout success → `/workspace?tab=projects`; P7 schema marked applied; soft-RC **~93%** / paid **~86%**. |
 | 2026-09-22 | **Pricing:** BYOK **$0** hosted. Pro **$29/mo** or **$290/yr**. Startup **$49/mo** or **$490/yr**. Enterprise **$199/mo** or **$1,990/yr** (SSO/SIEM). Recreate Stripe Price IDs. |
 | 2026-09-21 | **Hide vs implement:** 1.0 sells SSO + SIEM + Sentry/TRI/GitHub/PQ. Hide DocuSign / Dropbox Sign / archive / MCP. Pricing Startup bullets + §10 claim set updated. |
-| 2026-09-18 | **P7 closed loop** (§3.1a): live writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; 30-day decay; `prompt:{hash}`. Session Replay stays. Soft-RC still ~90% (schema + staging smoke). |
+| 2026-09-18 | **P7 closed loop** (§3.1a): live writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; 30-day decay; `prompt:{hash}`. Session Replay stays. Schema applied same day; soft-RC still ~90% on staging smoke. |
 | 2026-09-17 | **Global Brain zero-text swarm telemetry** + honest ToS split (Session Replay stays tenant legal/security). Also docs re-sync with V1 roadmap: `/sign-up` is waitlist; buyer walkthrough rewritten; local MSGF is :3001. |
 | 2026-09-14 | **Governance audit platform** (§3.2a): resource ledger, audit hub, Session Replay/harm, trusted-OSS bulk, model fitness, budgets, SIEM, diff impact, human-proof HITL. Marketing + Startup pricing bullets synced. Pricing SSOT remains **$0 / $99 / $49**. |
 | 2026-08-11 | **Bug inbox** closed loop (`p4_active_incidents` → promote/dismiss); onscreen FAB on dashboard + workspace; self-heal also upserts inbox; reopen-on-resubmit RPC. Earlier same day: nav consistency + `/account` portal + provenance search + prefrontal marketing + Shadow baseURL how-to. |

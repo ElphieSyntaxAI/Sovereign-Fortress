@@ -13,18 +13,20 @@
 
 **Production URL (MSGF):** **https://elphiesgatedai.elphiesyntax.com**
 
-**Last updated:** 2026-09-18 (P7 closed loop + Shadow apply-on-activate; Global Brain zero-text swarm telemetry; remaining = Sept 18 schema apply + staging smoke + Checkout smoke + mock-off)
+**Last updated:** 2026-09-23 (Eco Trio custom endpoints + DeepSeek reasoning slot; durable `commercial_plan` hard gates; staging Tri/post-MVP env + plan personas; staging smokes for pulse-guard / sentry-test / HITL. Remaining = live Checkout smoke + mock-off + GH Actions heartbeat.)
 
-**Picker status (public):** **Beta testing** — console seats invite-only; free 7-day shadow-mode trial at `/shadow-trial` (clock starts on first call; then 3-day Individual Pro full access). Pricing SSOT: **$0** BYOK (hosted) · **$29**/mo or **$290**/yr Pro · **$49**/workspace/mo or **$490**/yr Startup · **$199**/workspace/mo or **$1,990**/yr Enterprise (`pricing-tiers.ts`).
+**Picker status (public):** **Beta testing** — console seats invite-only; free 7-day shadow-mode trial at `/shadow-trial` (clock starts on first call; then 3-day Individual Pro full access). Pricing SSOT: **$0** BYOK (hosted) · **$29**/mo or **$290**/yr Pro · **$49**/workspace/mo or **$490**/yr Startup · **$199**/workspace/mo or **$1,990**/yr Enterprise (`pricing-tiers.ts`). Durable gate field: `commercial_plan` = `byok` \| `pro` \| `startup` \| `enterprise` (workspace company plan overrides profile).
 
 **Product capabilities (non-engineering):** [`MSGF_PRODUCT_OVERVIEW.md`](./marketing/MSGF_PRODUCT_OVERVIEW.md) — product map, full features, sales angles, **launch readiness %**. Ops panel map: [`MSGF_ADMIN_HUB.md`](./technical-specs/MSGF_ADMIN_HUB.md).
 
 **Testing & deploy:** [`MSGF_TESTING.md`](./technical-specs/MSGF_TESTING.md) · **Brain routing:** [`MSGF_BRAIN_ROUTING.md`](./technical-specs/MSGF_BRAIN_ROUTING.md) · **Global Brain telemetry:** [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) · **Solo integrators:** [`MSGF_SOLO_INTEGRATION.md`](../integrations/technical-specs/MSGF_SOLO_INTEGRATION.md) · **Buyer SaaS:** [`MSGF_BUYER_WALKTHROUGH.md`](./marketing/MSGF_BUYER_WALKTHROUGH.md) · `npm run deep-test:solo` · `npm run bootstrap:solo -w msgf` · `npm run create:buyer-user -w msgf`
 
+**Launch gating:** [`MSGF_PLAN_ENTITLEMENTS.md`](./technical-specs/MSGF_PLAN_ENTITLEMENTS.md) · [`MSGF_BILLING.md`](./technical-specs/MSGF_BILLING.md) · [`MSGF_CUSTOM_MODELS.md`](./technical-specs/MSGF_CUSTOM_MODELS.md) · [`MSGF_P7_SOURCE_AUDIT.md`](./technical-specs/MSGF_P7_SOURCE_AUDIT.md) · [`MSGF_STAGING_SEED.md`](./technical-specs/MSGF_STAGING_SEED.md)
+
 **Dev TODO (production-first):** [`MSGF_DEV_TODO.md`](./MSGF_DEV_TODO.md)  
 **RC gate:** [`MSGF_RC_CHECKLIST.md`](./MSGF_RC_CHECKLIST.md) · **Deploy:** [`MSGF_DEPLOY_CHECKLIST.md`](./MSGF_DEPLOY_CHECKLIST.md)  
 **Boss demo (parked):** [`MSGF_BOSS_DEMO_RUNBOOK.md`](./marketing/MSGF_BOSS_DEMO_RUNBOOK.md)  
-**Tenant isolation (A4):** [`MSGF_TENANT_ISOLATION.md`](./technical-specs/MSGF_TENANT_ISOLATION.md)  
+**Tenant isolation (A4):** [`MSGF_TENANT_ISOLATION.md`](./technical-specs/MSGF_TENANT_ISOLATION.md)
 **CONVERGE tiers (Part B):** [`MSGF_CONVERGE_TIER.md`](./technical-specs/MSGF_CONVERGE_TIER.md) · **TRI brains:** [`MSGF_BRAIN_ROUTING.md`](./technical-specs/MSGF_BRAIN_ROUTING.md)  
 **Integrations:** [`MSGF_GITHUB_PROJECTS.md`](../integrations/technical-specs/MSGF_GITHUB_PROJECTS.md) · [`MSGF_SENTRY.md`](../integrations/technical-specs/MSGF_SENTRY.md) · [`MSGF_SIGNING.md`](../integrations/technical-specs/MSGF_SIGNING.md) · [`MSGF_GOOGLE_WORKSPACE_SSO.md`](../integrations/technical-specs/MSGF_GOOGLE_WORKSPACE_SSO.md) · [`MSGF_PQC_CRYPTO_AUDIT.md`](./technical-specs/MSGF_PQC_CRYPTO_AUDIT.md) · [`MSGF_SHADOW_PROXY.md`](./technical-specs/MSGF_SHADOW_PROXY.md) · [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)
 **IDE surface:** [`MSGF_INTEGRATOR_DEV_KIT.md`](../integrations/technical-specs/MSGF_INTEGRATOR_DEV_KIT.md) · [`MSGF_IDE_MCP.md`](../integrations/technical-specs/MSGF_IDE_MCP.md) · [`MSGF_IDE_SETUP_RUNBOOK.md`](../integrations/technical-specs/MSGF_IDE_SETUP_RUNBOOK.md)
@@ -44,7 +46,7 @@ Design principle: **six isolated pillars** (V3.0 lineage), **1.1.1 genealogical 
 
 ---
 
-## 2. Architecture (MSGF V3.2-ULTRA + six-pillar core)
+## 2. Architecture (MSGF V3.2-ULTRA + six-pillar core + P7)
 
 ### 2.0 High-speed storage & sharding (V3.2)
 
@@ -69,6 +71,26 @@ Data and logic are segmented to reduce noise, isolate context, and optimize toke
 | **P6 — Constraint Ledger** | **Vault** (positive) vs **Hall** (negative) | `defend-preflight.ts` / `msgf-shadow.ts`, `msgf-index.ts`, `pillar_vectors`, Hall purge (30d LOW) |
 
 Pillar charters for AI/dev: `packages/msgf/.msgf/P1_HAL.md` … `P6_RAG.md` (authoring domain; **see [`MSGF_PILLAR_MAPPING_SSOT.md`](./technical-specs/MSGF_PILLAR_MAPPING_SSOT.md)** for filename ↔ V3.0 pillar crosswalk); engineering rules: `packages/msgf/.cursorrules`.
+
+### 2.1a Pillar 7 — Source Audit & Resource Reputation (shipped)
+
+P1–P6 segment **what** the brain stores. **P7** records **which sources** influenced a DEFEND / CROSS-REF decision and steers the next admission before tokens are spent. **Engineering SSoT:** [`MSGF_P7_SOURCE_AUDIT.md`](./technical-specs/MSGF_P7_SOURCE_AUDIT.md) · Product: [`MSGF_PRODUCT_OVERVIEW.md`](./marketing/MSGF_PRODUCT_OVERVIEW.md) §3.1a · Learning: [`MSGF_LEARNING_AND_BIG_BRAIN.md`](./technical-specs/MSGF_LEARNING_AND_BIG_BRAIN.md).
+
+| Capability | Behavior | 1.0 status |
+| :--- | :--- | :--- |
+| **Content hash** | `content_hash = sha256` of injected chunk (CRLF→LF + trim) so path/UUID churn does not break audit | **Done** |
+| **Reputation ledger** | Per-tenant `msgf_resource_reputation`; score in [-1, 1] from good / bad / high-drift. 30-day half-life (`MSGF_P7_REPUTATION_HALFLIFE_DAYS`, `0` disables) | **Done** |
+| **Active prune / boost** | Score `< -0.3` pruned from auto-GREEN (still audited `pruned: true`); `> 0.3` boosts match. P7 poison wins over model-fitness (stay Small Brain) | **Done** |
+| **Closed loop writes** | Swarm abort, ingest, HITL, Sentry quarantine, heal-queue APPROVE/DENY, confirm-pack, verify-result, Active gateway **write** hashed keys; next Pulse / Active / swarm **reads** them | **Done** (2026-09-18) |
+| **prompt_hash** | `x-msgf-prompt-hash` → `prompt:{sha256}` only. Session Replay holds full text; prompts never train models | **Done** |
+| **Attribution class** | `internal_spec` · `permissive_oss` · `copyleft_risk` · `untrusted_external` · `unknown`. Copyleft / untrusted **block auto-GREEN** | **Done** |
+| **Reverse impact** | `msgf_source_downstream_impact` answers “what used this source?” by `content_hash` / `resource_key` | **Done** |
+| **Shadow deferred** | Shadow Eval stores promote/block hits (`p7_deferred`); reputation **not** mutated during 7-day trial. **Start 3-day full access** applies once (`p7_applied_at`) | **Code Done** — CTA smoke still listed if failing |
+| **Hot path** | Audit + impact + reputation writes are **non-blocking** — never fail GATE/DEFEND | **Done** |
+
+**Surfaces:** Governance **Source Audit** panel · `GET /api/msgf/dashboard/source-audit` · Audit hub promoted/blocked lists · Shadow proof promote/block tiles.  
+**Migrations:** `20260810010000_msgf_p7_source_reputation.sql`, `20260918120000_p7_prompt_shadow_deferred.sql` (applied).  
+**Code:** `lib/schemas/source-audit.ts`, `lib/services/source-audit.ts`, `lib/services/p7-observe.ts`, `lib/services/emit-resource-usage.ts` · `npm run test:p7-observe -w msgf` (via unit suite).
 
 ### 2.2 Genealogical bug index (1.1.1 — V3.2)
 
@@ -111,7 +133,8 @@ Maps V3.0 defensive ideas to V3.2 **DEFEND** / **CROSS-REF** steps:
 4. **CONVERGE** — Dual / TRI consensus (`PulseEngine`, tenant presets, Big Brain majority when `MSGF_TRI_CONSENSUS_ENABLED=1`).
 5. **ARBITRATE** — HITL when human-notify threshold exceeded, no majority, NON_HUMAN, or retry **> 3** → `ERR_RECURSION_LIMIT`.
 6. **PERSIST** — Approved deltas to Vault; discard redundant hot state per retention policy.
-7. **PQC (app layer)** — Hybrid KEM envelopes `0x03` + optional HAL v2 ML-DSA-65 when flags on ([`MSGF_PQC_CRYPTO_AUDIT.md`](./technical-specs/MSGF_PQC_CRYPTO_AUDIT.md)).
+7. **P7 Source Audit** — Hashed provenance + reputation prune/boost on DEFEND/CROSS-REF; closed-loop writes from swarm/HITL/Sentry/heal/verify; Shadow deferred apply-on-activate (§2.1a).
+8. **PQC (app layer)** — Hybrid KEM envelopes `0x03` + optional HAL v2 ML-DSA-65 when flags on ([`MSGF_PQC_CRYPTO_AUDIT.md`](./technical-specs/MSGF_PQC_CRYPTO_AUDIT.md)).
 
 ### 2.6 V3.2-ULTRA master directive → 1.0 acceptance criteria
 
@@ -179,8 +202,11 @@ flowchart TB
 | **Post-Ingest Healing** | `GET/POST /api/msgf/heal-queue` (Zod); web pillar-card triggers + slide-out `PostIngestHealingConsole`; IDE `msgf-pulse-guard` sidebar console (BULK / INDIVIDUAL / SCHEDULED) |
 | **Ops cron** | `POST /api/msgf/ops/v32-heartbeat` — strict `MSGF_OPS_CRON_SECRET`; tier batches; **`6h`/`nightly`** scheduled heals via `RemediationEngine` LOM consensus (Vault persist); Hall cold + Redis purge |
 | **Human arbitration** | Circuit breaker `PENDING_HUMAN_ARBITRATION`; `GET` heal-queue packages + `POST /api/msgf/heal-queue/human-arbitration` (APPROVE_BYPASS / DENY_PURGE); web + IDE drawer |
+| **P7 Source Audit** | Content-hash provenance, `msgf_resource_reputation`, attribution-class auto-GREEN gate, reverse impact, Shadow deferred apply-on-activate, Source Audit dashboard |
 | **Public shell** | Marketing, pricing, workspace, `/shadow-trial` live in `packages/msgf` Next routes. `packages/msgf/apps/web` is an unused split (optional M2 polish). |
-| **Billing** | Stripe Checkout + webhook → `p4_profiles` — **code + live keys + identity done**; paid claims still need §10.C Checkout smoke + mock-off |
+| **Billing** | Stripe Checkout + webhook → `p4_profiles` / `msgf_companies.commercial_plan` — **code + live keys + identity + plan hard-blocks done**; paid claims still need §10.C Checkout smoke + mock-off |
+| **Custom models** | Eco Trio (Gemma 3 / Qwen 3 / Phi-3) + DeepSeek R1 reasoning slot; API-key or HTTPS mode; `custom_reasoning_endpoint` on consensus config |
+| **Commercial gates** | `assertPlanFeature` → 403 `PLAN_FEATURE_BLOCKED`; Tri-Tribunal needs env **and** `startup`\|`enterprise`; Signing/MCP/archive still Enterprise-only even when post-MVP flags are on |
 | **Security** | `security:prancer-pillars` on PR; service account + secrets documented |
 | **Author integration** | Author BFF documented path to Pulse/ingest; shared cookie domain option |
 
@@ -217,17 +243,18 @@ Aligned with `packages/msgf/.cursorrules`:
 | **M0** | Platform truth | This doc + [`MONOREPO_PRODUCTS.md`](../MONOREPO_PRODUCTS.md); root `.env.example` MSGF block; `npm run verify:msgf-env -w msgf`; Phase 0 smoke in [`packages/msgf/README.md`](../../packages/msgf/README.md) | **Done** |
 | **M1** | Engine hardening (V3.2) | SHARD hot/cold wiring; split Pulse into SWEEP→PERSIST handlers; Zod metadata; ARBITRATE/recursion in CI | **Partial** — SHARD/DEFEND/ingest + `pulse-pipeline/` done; strict Pulse metadata enums + full route thin-handler pass → 1.1 |
 | **M2** | Standalone surface | Public marketing, pricing, workspace, admin portal on gatedai | **Partial** — lives in `packages/msgf` Next app; `packages/msgf/apps/web` package still **not started** |
-| **M3** | Commercial gates | Checkout API, webhook → tier/credits, entitlement middleware | **Code + live keys Done** — Pro + Startup Team + lifecycle + `past_due`; identity + Secret Manager on `msgf-api-00077-7qx` (2026-09-11). **Open:** live Checkout smoke + mock-off |
+| **M3** | Commercial gates | Checkout API, webhook → tier/credits + `commercial_plan`, entitlement middleware + hard-blocks | **Code + live keys + plan matrix Done** — Stripe `msgf_tier` maps to `commercial_plan`; workspace overrides profile; team/SSO/SIEM/budgets/Tri/signing gated. **Open:** live Checkout smoke + mock-off |
 | **M4** | Multi-tenant ops | Dashboard live data; RED→HITL; tier cron; Hall purge; heal queue + human arbitration | **Partial** — heal queue + arbitration **Done**; prod `MSGF_OPS_CRON_SECRET` **Done**; remaining = live (non-mock) ops data + GH Actions heartbeat |
+| **M4a** | P7 Source Audit | Provenance + reputation ledger + closed-loop steer + Shadow deferred apply | **Code Done (2026-09-18)** — schema applied; audit hub lists; Source Audit panel. Open: Shadow CTA / `p7_applied_at` one-pass smoke if still failing |
 | **M5** | Ecosystem wiring | Author + Education smoke: register → pledge → Pulse | **Partial** — Author bridge + education routes exist; **prod Author deploy + probe green** open |
 | **M4b** | IDE remediation UX | `msgf-pulse-guard` stoplight + shadow scan → healing console | **Done** |
 | **M4c** | IDE Command Center + verify loop | Prompt optimizer, Run Scripts, Safe Build, verify-result → Vault/Hall | **Done** — extension **v0.2.3** |
 | **M4d** | IDE integrator surface | `.msgf/dev/` kit, setup wizard, monorepo product scoping, BYOK Small Brain, optional MCP | **Done (code)** |
 | **M7** | Enterprise integration wave | I1–I6, A4–A6, Part B CONVERGE tiers, Sentry SDK | **Code landed** — staging smoke + provider credentials open |
-| **M8** | TRI brains + PQC | Big Brain TRI majority; tenant Small Brain presets; hybrid KEM `0x03`; marketing/docs | **Code Done (2026-08-05)** — enable `MSGF_TRI_CONSENSUS_ENABLED` / `MSGF_HYBRID_KEM_ENABLED`; apply `20260805010000_tri_consensus_config.sql` |
-| **M6** | 1.0 RC | §2.6 green in staging; load test; Prancer; runbook | **Blocked on staging smoke** — `validate:deployment` + `deep-test:solo` + `verify:msgf-env` green 2026-09-11; remaining = one-tenant live smoke + P2 runbook |
+| **M8** | TRI brains + PQC | Big Brain TRI majority; tenant Small Brain presets; hybrid KEM `0x03`; marketing/docs | **Code Done** — platform `MSGF_TRI_CONSENSUS_ENABLED` + tenant `MSGF_TENANT_TRI_CONSENSUS_ENABLED` **on staging**; Tri save/runtime also requires `commercial_plan` in `startup`\|`enterprise`. Hybrid KEM flagged. |
+| **M6** | 1.0 RC | §2.6 green in staging; load test; Prancer; runbook | **Staging smoke largely green (2026-09-23)** — pulse-guard VSIX, sentry-test 200, HITL resolve (stray `arbitrate_audit_id` dropped), setup CTA → `/workspace?tab=projects`. Remaining = live Checkout smoke + mock-off + P2 runbook |
 
-**Suggested gate for tag `msgf-v1.0.0`:** M1, M4, M4b–M4d, M7 (one smoke per enabled surface), M8 flags documented, M6 sign-off with green `validate:deployment` + staging smoke. **M3 (Stripe)** — technical soft-RC OK with mock entitlements ON; **paid claims** require §10.C green + Stripe identity.
+**Suggested gate for tag `msgf-v1.0.0`:** M1, M4, **M4a (P7)**, M4b–M4d, M7 (one smoke per enabled surface), M8 flags documented, M6 sign-off with green `validate:deployment` + staging smoke. **M3 (Stripe)** — technical soft-RC OK with mock entitlements ON; **paid claims** require §10.C green + Stripe identity.
 
 ---
 
@@ -256,10 +283,16 @@ Aligned with `packages/msgf/.cursorrules`:
 | Product overview | `docs/msgf/marketing/MSGF_PRODUCT_OVERVIEW.md` |
 | Ops heartbeat | `packages/msgf/app/api/msgf/ops/v32-heartbeat/route.ts`, `.github/workflows/msgf-tier-heartbeat.yml` |
 | Credit guard | `packages/msgf/lib/creditGuard.ts`, `middleware.ts` |
-| Stripe | `packages/msgf/app/api/webhooks/stripe/route.ts`, `app/api/billing/checkout/route.ts`, `lib/billing/stripe-checkout-plans.ts`, `src/lib/stripe.ts` |
+| Stripe | `packages/msgf/app/api/webhooks/stripe/route.ts`, `app/api/billing/checkout/route.ts`, `lib/billing/stripe-checkout-plans.ts`, `lib/billing/plan-entitlements.ts`, `lib/services/stripe-entitlements.ts`, `src/lib/stripe.ts` |
+| Commercial plan matrix | `lib/billing/plan-entitlements.ts` · migration `20260923150000_commercial_plan.sql` · [`MSGF_PLAN_ENTITLEMENTS.md`](./technical-specs/MSGF_PLAN_ENTITLEMENTS.md) |
+| Eco Trio / custom endpoints | `lib/services/model-routing/types.ts` · `ConsensusPresetPanel.tsx` · [`MSGF_CUSTOM_MODELS.md`](./technical-specs/MSGF_CUSTOM_MODELS.md) |
+| Staging readiness seed | `lib/staging-readiness-seed.ts` · `/admin/seed` · [`MSGF_STAGING_SEED.md`](./technical-specs/MSGF_STAGING_SEED.md) |
+| Billing / Stripe | `lib/billing/stripe-checkout-plans.ts` · `lib/services/stripe-entitlements.ts` · [`MSGF_BILLING.md`](./technical-specs/MSGF_BILLING.md) |
 | Pre-ingestion audit (SWEEP) | `packages/msgf/pre_ingestion_audit.md` |
 | Hot layer (P4 slices) | `packages/msgf/lib/msgf-hot-layer.ts` |
 | Shadow / CROSS-REF | `packages/msgf/lib/defend-preflight.ts` (aliases `msgf-shadow.ts`), `lib/msgf-index.ts` |
+| **P7 Source Audit** | `lib/schemas/source-audit.ts`, `lib/services/source-audit.ts`, `lib/services/p7-observe.ts`, `lib/services/emit-resource-usage.ts`, `app/api/msgf/dashboard/source-audit/route.ts`, `app/_components/dashboard/SourceAuditPanel.tsx` · [`MSGF_P7_SOURCE_AUDIT.md`](./technical-specs/MSGF_P7_SOURCE_AUDIT.md) |
+| P7 migrations | `20260810010000_msgf_p7_source_reputation.sql`, `20260918120000_p7_prompt_shadow_deferred.sql` |
 | Provider gateway | `lib/gateway/*`, `lib/shadow-eval/*`, `docs/msgf/technical-specs/MSGF_SHADOW_PROXY.md` |
 | Swarm monitor + Global Brain telemetry | `lib/services/swarm-guard.ts`, `lib/schemas/global-brain-swarm-telemetry.ts`, [`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md) |
 | Tier batch + Hall purge | `packages/msgf/scripts/msgf-tier-processor.js` |
@@ -275,24 +308,26 @@ Aligned with `packages/msgf/.cursorrules`:
 
 ## 7. Current readiness (honest snapshot)
 
-*As of 2026-09-18 — Code completeness is high (includes Shadow Proxy + Active Governance + governance audit platform + launch security + **P7 closed loop** + swarm absorb). Remaining gap is **Sept 18 schema apply** (`20260918120000_p7_prompt_shadow_deferred.sql`, `20260918010000_tenant_default_ai_provider.sql`), **one-tenant staging smoke** (incl. swarm + Shadow CTA + audit hub chips), **live Checkout smoke + mock-off**, and GH Actions heartbeat wiring. Confirm Sept 14–15 schema (`shadow_trial` / governance audit / trusted-OSS) if not yet on the live DB.*
+*As of 2026-09-23 — Code completeness is high (includes Shadow Proxy + Active Governance + governance audit platform + launch security + P7 closed loop + swarm absorb + **Eco Trio custom models** + **durable `commercial_plan` hard gates**). Staging host has Tri + post-MVP MSGF flags, plan personas (`pro_user@msgf.dev` / startup_* / `enterprise_ciso@msgf.dev`, password `StagingReady!2026`), pulse-guard / sentry-test / HITL smokes green. Remaining gap is **live Checkout smoke + mock-off**, GH Actions heartbeat wiring, and leftover Shadow CTA / setup polish where still open.*
 
 | Capability | Status |
 | :--- | :--- |
 | **Jul 24 integration wave (I1–I6 / A4–A6)** | **Code landed** — migrations pushed; staging provider smokes open |
 | **Part B — 3-tier CONVERGE + T3 quarantine** | **Code landed (flagged)** — `MSGF_CONVERGE_TIER_ENABLED=1` |
-| **M8 — TRI consensus + tenant presets** | **Code landed (flagged)** — `MSGF_TRI_CONSENSUS_ENABLED`; migration `20260805010000_*`; `test:tri-consensus` |
+| **M8 — TRI consensus + tenant presets** | **Code landed + staging flags on** — `MSGF_TRI_CONSENSUS_ENABLED` + `MSGF_TENANT_TRI_CONSENSUS_ENABLED`; Tri also requires Startup/Enterprise `commercial_plan` |
 | **M8 — Hybrid PQC envelopes** | **Code landed (flagged)** — `MSGF_HYBRID_KEM_ENABLED=1`; HAL v2 ML-DSA; platform PQ-TLS still infra |
+| **Eco Trio + DeepSeek reasoning** | **Shipped 2026-09-23** — Gemma 3 / Qwen 3 / Phi-3 catalog; API-key or HTTPS; DeepSeek R1 reasoning slot; Gemma Bearer smoke on staging (non-auth failure path) |
+| **`commercial_plan` hard gates** | **Shipped 2026-09-23** — `byok`\|`pro`\|`startup`\|`enterprise`; workspace overrides profile; 403 `PLAN_FEATURE_BLOCKED` |
 | **Shadow Proxy + Active Governance** | **Code landed** — `/api/v1`; license-bound auth; PromptIR + cache + state-gate; usage/shadow/governance writers pushed 2026-08-06 |
 | **Secondary-agent swarm + zero-text Global Brain** | **Code landed** — abort-that-wave + HITL; `bot_swarm_detected` / `bot_swarm_observed`; `reputation_prune` cause; synthetic stress catalog; pledge `2026.09.18-UTAH-SAFE` |
-| **P7 Source Audit closed loop** | **Code landed 2026-09-18** — live writes + steer; Shadow deferred apply-on-activate; audit hub promoted/blocked lists. Live schema `20260918120000` still open |
+| **P7 Source Audit closed loop** | **Code landed 2026-09-18** — live writes + steer; Shadow deferred apply-on-activate; audit hub promoted/blocked lists. Live schema `20260918120000` applied |
 | **GitHub multi-repo project picker** | **Code landed** — needs OAuth App + crypto key on deploy |
 | **Production build gate** | **Green** `validate:deployment` 2026-09-11 (Windows `.next` EPERM if OneDrive locks the cache) |
 | **V3.2-ULTRA §2.6** (7 steps) | **~92%** — behavior Done; thin-handler polish → 1.1 |
-| **Sentry SDK + ops panel** | **Code + Cloud Run DSN/token** — panel Load issues smoke still open |
-| **Stripe billing (M3)** | **Live keys + identity + webhook Done** (2026-09-11); Checkout smoke + mock-off still open |
-| **Marketing / features copy** | **Updated 2026-09-18** — P7 closed loop + Shadow CTA apply; waitlist/invite, Shadow trial, $0/$99/$49 |
-| **Public gatedai site** | **Live** at elphiesgatedai — `/`, `/features`, `/pricing`, `/sign-up` (waitlist), `/shadow-trial`, `/sign-in`; staging URL smoke still listed as P1 |
+| **Sentry SDK + ops panel** | **Code + staging DSN** — `GET /api/sentry-test` 200 on staging 2026-09-23; panel Load issues smoke still open |
+| **Stripe billing (M3)** | **Live keys + identity + webhook + `commercial_plan` writers Done**; Checkout smoke + mock-off still open |
+| **Marketing / features copy** | **Updated 2026-09-23** — pricing bullets match plan matrix (no separate Priority HITL line); waitlist/invite, Shadow trial, $0/$29/$49/$199 |
+| **Public gatedai site** | **Live** at elphiesgatedai — `/`, `/features`, `/pricing`, `/sign-up` (waitlist), `/shadow-trial`, `/sign-in`, `/workspace?tab=projects`; staging URL smoke largely green |
 | HAL portable API | **Done** |
 | Author ↔ Pulse | **Partial** — prod probe open |
 | Education ↔ Pulse | **Tenant smoke only** — not Education product RC |
@@ -484,6 +519,11 @@ Shipped since 0.1.8 (M4d): `.msgf/dev/` integrator kit (**MSGF: Open / Sync deve
 | `SENTRY_AUTH_TOKEN` + `SENTRY_ORG_SLUG` | Ops Sentry panel + crash→Vault quarantine — panel degrades to *unconfigured* without them |
 | `DOCUSIGN_*` / `DROPBOX_SIGN_*` / `DROPBOX_ACCESS_TOKEN` | Signing + archive; only when those surfaces are live (mock flags otherwise) |
 | `MSGF_CONVERGE_TIER_ENABLED` | Part B 3-tier CONVERGE + T3 quarantine (off by default) |
+| `MSGF_TRI_CONSENSUS_ENABLED` · `MSGF_TENANT_TRI_CONSENSUS_ENABLED` | Platform Big Brain TRI + tenant Tri-Tribunal preset (both **1** on staging; Tri also needs Startup/Enterprise plan) |
+| `MSGF_POST_MVP_SIGNING` · `MSGF_POST_MVP_DROPBOX_ARCHIVE` · `MSGF_POST_MVP_MCP` | Post-1.0 process flags (**1** on staging for QA); APIs still call `assertPlanFeature(..., enterprise)` |
+| `MSGF_SIGNING_MOCK` | Signing mocks for staging QA (allowed as warning in staging preflight; keep **0** on production) |
+| `SENTRY_DSN` · `NEXT_PUBLIC_SENTRY_DSN` | Crash capture + `/api/sentry-test` smoke |
+| `MSGF_P7_REPUTATION_HALFLIFE_DAYS` | P7 count decay half-life (default 30; `0` disables) |
 
 Full variable-by-variable list with which surfaces are optional: [`packages/msgf/README.md`](../../packages/msgf/README.md) and root [`.env.example`](../../.env.example). Verify with `npm run verify:msgf-env -w msgf`.
 
@@ -523,16 +563,16 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 | 2 | Solo deep-test gate | **Done** 2026-09-11 — `npm run deep-test:solo` |
 | 3 | Solo integrator bootstrap | **Partial** 2026-09-22 — `probe:solo` green on staging gatedai (Pulse 200). Staging seed used instead of `bootstrap:solo`. |
 | 4 | Env + schema | **Done** 2026-09-18 — `db:push:verify` applied `20260918010000` + `20260918120000`; P7 prompt CHECK + Shadow deferred columns green |
-| 5 | Staging smoke | **Partial** 2026-09-22 — done: Pulse, ingest + `lineage_map`, heal-queue user/admin load, `/features`, heartbeat dry-run 200, Active routing + spoof ignored, buyer foreign 403, swarm 409 / no key lists, dashboard live, period + PDF, audit hub `p7=` chips, **Shadow projected eval** (Anthropic `/v1/messages` 200). Still open: Shadow CTA / `p7_applied_at`, Sentry 503, `/setup/projects`, HITL POST 500. Soft-RC stays ~90% until this bundle is green. |
+| 5 | Staging smoke | **Mostly green 2026-09-23** on gatedai (`msgf-api-staging`, release `24280069`). Done: Pulse/ingest/heal-queue prior smokes; **pulse-guard VSIX 200**; **sentry-test 200**; **HITL PATCH resolve 200** (unknown `arbitrate_audit_id` ignored by non-strict Zod); Checkout `success_url` → `/workspace?tab=projects`; plan personas seeded. Still open: live Stripe Checkout card path + mock-off; Shadow CTA / `p7_applied_at` polish if still failing. Soft-RC ~93%. |
 
 ### B. Finish before `msgf-v1.0.0` tag (engine + ops)
 
 | Area | Open items |
 | :--- | :--- |
-| **Secrets on Cloud Run** | Ops cron, Redis, Sentry, **live Stripe in Secret Manager** — **Done**; optional `XAI_API_KEY` / TRI flags |
-| **ARBITRATE E2E** | Heal-queue on live Cloud Run; dashboard live data (mocks gated off) |
-| **M7 smokes** | One smoke per **enabled** surface (Sentry panel, signing webhook, GitHub picker) |
-| **M8 flags** | Document TRI + hybrid KEM in runbook; do not claim PQ-TLS until LB supports it |
+| **Secrets on Cloud Run** | Ops cron, Redis, Sentry DSN (staging), **live Stripe in Secret Manager** — **Done**; Tri + post-MVP MSGF flags **on staging**; optional `XAI_API_KEY` |
+| **ARBITRATE E2E** | HITL resolve smoke **Done** 2026-09-23; dashboard live data (mocks gated off) still worth a second pass |
+| **M7 smokes** | Sentry test route **Done**; signing webhook + GitHub picker still open when those surfaces are claimed |
+| **M8 flags** | TRI + tenant Tri **on staging**; document hybrid KEM in runbook; do not claim PQ-TLS until LB supports it |
 | **M6 RC** | Runbook, load smoke, Prancer green on PR |
 
 ### C. Stripe / paid go-live (M3)
@@ -550,21 +590,21 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 - Hot-layer nanosecond SLO claim · Stripe Customer Portal **invoice UI** (portal session API + `/account` already shipped) · Sentry product Replay · Author healing popout · Education add-ons · Platform PQ-TLS
 
-### Readiness snapshot (2026-09-22)
+### Readiness snapshot (2026-09-23)
 
 | Bucket | ~% | Notes |
 | :--- | :---: | :--- |
-| **Engine (§2.6 + TRI)** | **~92%** | Behavior done; thin-handler polish → 1.1 |
-| **Ops / heal / IDE** | **~92%** | Pulse Guard 0.2.3; Cloud Run secrets **Done**; staging heartbeat dry-run 200; GH Actions heartbeat still open |
-| **Enterprise (M7)** | **~75%** | Code + Sentry SDK; staging Sentry 503 (DSN not on `msgf-api-staging`) |
+| **Engine (§2.6 + TRI)** | **~93%** | Behavior done; Tri on staging; thin-handler polish → 1.1 |
+| **Ops / heal / IDE** | **~94%** | Pulse Guard VSIX download green; HITL resolve green; GH Actions heartbeat still open |
+| **Enterprise (M7)** | **~82%** | Code + staging Sentry DSN + sentry-test 200; panel Load issues / signing webhook still open |
 | **PQC (app layer)** | **~85%** | Hybrid KEM + ML-DSA code; flag off by default; PQ-TLS → infra |
-| **Solo / BYOK** | **~80%** | Staging seed + `probe:solo` green 2026-09-22; prod probe still open |
+| **Solo / BYOK** | **~85%** | Staging seed + plan personas + `probe:solo` green; Eco Trio / BYOK endpoints shipped; prod probe still open |
 | **Ecosystem (Author/Edu)** | **~55%** | Not blocking MSGF-only soft-RC |
-| **Commercial (Stripe)** | **~80%** | Live keys + identity + webhook + live Prices done; Checkout smoke + mock-off open |
-| **Verification / staging** | **~78%** | One-tenant smokes include Shadow projected eval 2026-09-22; leftover = Shadow CTA, Sentry, HITL POST, `/setup/projects` |
-| **Marketing / docs** | **~99%** | Overview + features + pricing + admin hub + buyer walkthrough + **2026-09-18 P7 closed loop** |
-| **Technical soft-RC** | **~90%** | Validate + deep-test + env green; P7/swarm **code** landed; **does not move** until §10.A item 5 is fully green |
-| **Paid self-serve launch** | **~82%** | Soft-RC + live Checkout smoke + mock-off |
+| **Commercial (Stripe)** | **~88%** | Live keys + identity + webhook + **`commercial_plan` hard matrix** done; Checkout smoke + mock-off open |
+| **Verification / staging** | **~90%** | pulse-guard / sentry-test / HITL / workspace CTA green 2026-09-23; leftover = live Checkout card path |
+| **Marketing / docs** | **~99%** | Overview + features + pricing matrix + admin hub + buyer walkthrough |
+| **Technical soft-RC** | **~93%** | Validate + deep-test + env green; staging smoke bundle mostly closed |
+| **Paid self-serve launch** | **~86%** | Soft-RC + plan gates; still needs live Checkout smoke + mock-off |
 
 ---
 
@@ -572,9 +612,10 @@ Author releases should not duplicate MSGF guardrails — they **call** MSGF and 
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-23 | **Tech specs added:** [`MSGF_PLAN_ENTITLEMENTS.md`](./technical-specs/MSGF_PLAN_ENTITLEMENTS.md), [`MSGF_CUSTOM_MODELS.md`](./technical-specs/MSGF_CUSTOM_MODELS.md), [`MSGF_P7_SOURCE_AUDIT.md`](./technical-specs/MSGF_P7_SOURCE_AUDIT.md), [`MSGF_BILLING.md`](./technical-specs/MSGF_BILLING.md), [`MSGF_STAGING_SEED.md`](./technical-specs/MSGF_STAGING_SEED.md). Roadmap §2.1a P7 + three-PR launch gating (Eco Trio, `commercial_plan`, staging smokes). Soft-RC **~93%**; paid **~86%**. |
 | 2026-09-22 | **Staging AI keys** from `.env.local` on `msgf-api-staging-00009-bvf`. Shadow projected eval checked (Anthropic). Verification/staging ~78%. Soft-RC stays **~90%**; paid stays **~82%**. |
 | 2026-09-22 | **Staging smoke partial** on gatedai (`msgf-api-staging-00008-np6`, tenant `staging_readiness`). §10.A item 3 probe Done; item 5 Partial. Soft-RC stays **~90%**; paid stays **~82%**. |
-| 2026-09-18 | **P7 closed loop:** reputation writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; decay + `prompt:{hash}`. Schema `20260918120000` still to apply. Soft-RC stays ~90% (staging smoke). |
+| 2026-09-18 | **P7 closed loop:** reputation writes + steer across swarm/ingest/HITL/Sentry/heal-queue/confirm-pack/verify/Active; Shadow deferred apply-on-activate; audit hub promoted vs blocked lists; decay + `prompt:{hash}`. Schema `20260918120000` applied same day (`db:push:verify`). Soft-RC stays ~90% (staging smoke). |
 | 2026-09-17 | **Global Brain zero-text swarm telemetry** ([`MSGF_GLOBAL_BRAIN_TELEMETRY.md`](./technical-specs/MSGF_GLOBAL_BRAIN_TELEMETRY.md)): structural `bot_swarm_detected` envelope, synthetic stress catalog, pledge `2026.09.18-UTAH-SAFE` (Session Replay stays tenant legal/security, not training). Also docs re-sync: buyer waitlist/invite + local **:3001**; remaining = staging smoke + Checkout smoke + mock-off. |
 | 2026-09-14 | **Governance audit platform** shipped (resource ledger, audit hub, Session Replay/harm, fitness, budgets, SIEM, diff impact, trusted-OSS bulk). Docs + marketing + Startup tier bullets updated. Pricing remains **$0 / $99 / $49**. |
 | 2026-09-11 | **Stripe live:** identity done; live keys + webhook + Price IDs on `msgf-api-00077-7qx` via Secret Manager. Paid ~82%. Mock still ON until Checkout smoke. Supabase restored from pause. |

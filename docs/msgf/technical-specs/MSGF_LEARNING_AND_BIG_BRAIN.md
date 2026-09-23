@@ -25,7 +25,7 @@
 | **dev-event Heal Cheap** | Vault match or Flash heal narrative | IDE build failure |
 | **verify-result + pack** | Vault on pass; Hall after 3× same fail | Run Scripts / Safe Build |
 | **Heal queue** | Vault via remediation / scheduled cron | Post-ingest, operator actions. APPROVE writes P7 **good**; DENY writes **bad**. |
-| **P7 reputation** | Per-tenant hashed resource scores | Every write path above plus swarm/Active/Shadow-CTA. Next Pulse/Active/swarm **reads** before spending tokens. Not training data. |
+| **P7 reputation** | Per-tenant hashed resource scores | Every write path above plus swarm/Active/Shadow-CTA. Next Pulse/Active/swarm **reads** before spending tokens. Not training data. Spec: [`MSGF_P7_SOURCE_AUDIT.md`](./MSGF_P7_SOURCE_AUDIT.md). |
 | **Pulse local_gateway** | `state_beats`, tenant Vault on approved low-drift deltas | Normal typing |
 | **CONVERGE cache** | Replays a **prior** Big Brain verdict (no re-spend) | Same content hash again |
 
