@@ -114,7 +114,9 @@ import {
   CUSTOM_ANTHROPIC,
   CUSTOM_OPENAI_COMPATIBLE,
   ECO_TRIO_RECOMMENDED_SLOTS,
+  HOSTED_ENDPOINT_CATALOG,
   customEndpointTooltip,
+  type CredentialMode,
 } from "@/lib/services/model-routing/types";
 
 type ConsensusProvider = "google" | "anthropic" | "xai";
@@ -126,6 +128,7 @@ type ConsensusConfig = {
   profileId?: string;
   defaultProvider?: string;
   customEcoEndpoints?: PublicEcoSlot[];
+  customReasoningEndpoint?: PublicEcoSlot | null;
 };
 
 type PublicEcoSlot = {
@@ -140,6 +143,9 @@ type PublicEcoSlot = {
   providerKind: "CUSTOM_OPENAI_COMPATIBLE" | "CUSTOM_ANTHROPIC";
   apiKeyConfigured: boolean;
   privateHostAllowed?: boolean;
+  credentialMode?: CredentialMode;
+  useForReasoning?: boolean;
+  authHeaderStyle?: "bearer" | "x-goog-api-key";
 };
 
 type EcoDraft = PublicEcoSlot & { apiKey: string };
@@ -204,20 +210,47 @@ function inferProfileId(providers: ConsensusProvider[]): string {
 }
 
 function emptyEcoDrafts(): EcoDraft[] {
-  return ECO_TRIO_RECOMMENDED_SLOTS.map((name, index) => ({
-    providerId: `eco-${index + 1}`,
-    displayName: name,
-    baseURL: "",
-    modelName: name.toLowerCase().replace(/\s+/g, "-"),
-    maxTokens: 4096,
-    costPer1kInput: index === 0 ? 0.05 : index === 1 ? 0.08 : 0.12,
-    costPer1kOutput: index === 0 ? 0.1 : index === 1 ? 0.16 : 0.2,
-    isEcoModel: true,
+  return ECO_TRIO_RECOMMENDED_SLOTS.map((name, index) => {
+    const catalog = HOSTED_ENDPOINT_CATALOG[name];
+    const credentialMode: CredentialMode = catalog?.defaultCredentialMode ?? "https";
+    return {
+      providerId: `eco-${index + 1}`,
+      displayName: name,
+      baseURL: credentialMode === "api_key" && catalog ? catalog.baseURL : "",
+      modelName: catalog?.modelName ?? name.toLowerCase().replace(/\s+/g, "-"),
+      maxTokens: 4096,
+      costPer1kInput: index === 0 ? 0.05 : index === 1 ? 0.08 : 0.12,
+      costPer1kOutput: index === 0 ? 0.1 : index === 1 ? 0.16 : 0.2,
+      isEcoModel: true,
+      providerKind: CUSTOM_OPENAI_COMPATIBLE,
+      apiKeyConfigured: false,
+      privateHostAllowed: false,
+      credentialMode,
+      authHeaderStyle: catalog?.authHeaderStyle ?? "bearer",
+      apiKey: "",
+    };
+  });
+}
+
+function emptyReasoningDraft(): EcoDraft {
+  const catalog = HOSTED_ENDPOINT_CATALOG["DeepSeek R1"]!;
+  return {
+    providerId: "reasoning-1",
+    displayName: "DeepSeek R1",
+    baseURL: catalog.baseURL,
+    modelName: catalog.modelName,
+    maxTokens: 8192,
+    costPer1kInput: 0.55,
+    costPer1kOutput: 2.19,
+    isEcoModel: false,
     providerKind: CUSTOM_OPENAI_COMPATIBLE,
     apiKeyConfigured: false,
     privateHostAllowed: false,
+    credentialMode: "api_key",
+    useForReasoning: true,
+    authHeaderStyle: catalog.authHeaderStyle,
     apiKey: "",
-  }));
+  };
 }
 
 function activePresetBadge(config: ConsensusConfig): string {
@@ -248,6 +281,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
   const [defaultProvider, setDefaultProvider] = useState<ConsensusProvider>("google");
   const [dualPartners, setDualPartners] = useState<ConsensusProvider[]>([]);
   const [ecoSlots, setEcoSlots] = useState<EcoDraft[]>(emptyEcoDrafts);
+  const [reasoningSlot, setReasoningSlot] = useState<EcoDraft>(emptyReasoningDraft);
   const [keyDrafts, setKeyDrafts] = useState({ gemini: "", anthropic: "", xai: "" });
 
   async function load() {
@@ -275,9 +309,21 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
       setEcoSlots(
         saved.map((slot) => ({
           ...slot,
+          credentialMode: slot.credentialMode ?? (HOSTED_ENDPOINT_CATALOG[slot.displayName] ? "api_key" : "https"),
           apiKey: "",
         }))
       );
+    }
+    const savedReasoning = json.config.customReasoningEndpoint;
+    if (savedReasoning) {
+      setReasoningSlot({
+        ...savedReasoning,
+        credentialMode:
+          savedReasoning.credentialMode ??
+          (HOSTED_ENDPOINT_CATALOG[savedReasoning.displayName] ? "api_key" : "https"),
+        useForReasoning: savedReasoning.useForReasoning !== false,
+        apiKey: "",
+      });
     }
   }
 
@@ -381,8 +427,26 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
             isEcoModel: true,
             providerKind: slot.providerKind,
             privateHostAllowed: Boolean(slot.privateHostAllowed),
+            credentialMode: slot.credentialMode ?? "https",
+            authHeaderStyle: slot.authHeaderStyle ?? "bearer",
             ...(slot.apiKey.trim() ? { apiKey: slot.apiKey.trim() } : {}),
           })),
+          customReasoningEndpoint: {
+            providerId: reasoningSlot.providerId,
+            displayName: reasoningSlot.displayName,
+            baseURL: reasoningSlot.baseURL,
+            modelName: reasoningSlot.modelName,
+            maxTokens: reasoningSlot.maxTokens,
+            costPer1kInput: reasoningSlot.costPer1kInput,
+            costPer1kOutput: reasoningSlot.costPer1kOutput,
+            isEcoModel: false,
+            providerKind: reasoningSlot.providerKind,
+            privateHostAllowed: Boolean(reasoningSlot.privateHostAllowed),
+            credentialMode: reasoningSlot.credentialMode ?? "api_key",
+            authHeaderStyle: reasoningSlot.authHeaderStyle ?? "bearer",
+            useForReasoning: Boolean(reasoningSlot.useForReasoning),
+            ...(reasoningSlot.apiKey.trim() ? { apiKey: reasoningSlot.apiKey.trim() } : {}),
+          },
         }),
       });
       const json = (await res.json().catch(() => ({}))) as { error?: string };
@@ -391,6 +455,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
         return;
       }
       setEcoSlots((prev) => prev.map((slot) => ({ ...slot, apiKey: "" })));
+      setReasoningSlot((prev) => ({ ...prev, apiKey: "" }));
       setMessage("Saved: Eco Trio");
       await load();
     } finally {
@@ -457,7 +522,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
           ] as const
         ).map(([id, label, configured]) => (
           <label key={id} className="flex flex-wrap items-center gap-2">
-            <span className="w-24">{label}: {configured ? "key set" : "missing"}</span>
+            <span className="w-24">{label}{configured ? " · key set" : ""}</span>
             <input
               type="password"
               autoComplete="off"
@@ -480,12 +545,39 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
       </div>
       <div className="mt-4 space-y-2">
         <h4 className="text-sm font-semibold text-slate-200">Eco Trio</h4>
-        {ecoSlots.map((slot, index) => (
+        {ecoSlots.map((slot, index) => {
+          const mode = slot.credentialMode ?? "https";
+          return (
           <div key={slot.providerId} className="grid gap-1 rounded-xl border border-slate-700/80 p-2">
-            <span className="text-xs text-slate-300">
-              {slot.displayName}
-              {slot.apiKeyConfigured ? " · key set" : ""}
-            </span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-slate-300">
+                {slot.displayName}
+                {slot.apiKeyConfigured ? " · key set" : ""}
+              </span>
+              <button
+                type="button"
+                className="text-[11px] text-cyan-300 hover:underline"
+                onClick={() =>
+                  setEcoSlots((prev) =>
+                    prev.map((row, rowIndex) =>
+                      rowIndex === index
+                        ? {
+                            ...row,
+                            credentialMode: mode === "api_key" ? "https" : "api_key",
+                            baseURL:
+                              mode === "api_key"
+                                ? ""
+                                : HOSTED_ENDPOINT_CATALOG[row.displayName]?.baseURL ?? row.baseURL,
+                          }
+                        : row
+                    )
+                  )
+                }
+              >
+                {mode === "api_key" ? "Use HTTPS" : "Use API key"}
+              </button>
+            </div>
+            {mode === "https" ? (
             <input
               value={slot.baseURL}
               placeholder="https://ollama.tenant.com/v1"
@@ -500,6 +592,23 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
               }
               className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
             />
+            ) : (
+            <input
+              type="password"
+              autoComplete="off"
+              value={slot.apiKey}
+              placeholder="API key"
+              aria-label={`${slot.displayName} API key`}
+              onChange={(event) =>
+                setEcoSlots((prev) =>
+                  prev.map((row, rowIndex) =>
+                    rowIndex === index ? { ...row, apiKey: event.target.value } : row
+                  )
+                )
+              }
+              className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
+            />
+            )}
             <input
               value={slot.modelName}
               aria-label={`${slot.displayName} model`}
@@ -507,21 +616,6 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
                 setEcoSlots((prev) =>
                   prev.map((row, rowIndex) =>
                     rowIndex === index ? { ...row, modelName: event.target.value } : row
-                  )
-                )
-              }
-              className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
-            />
-            <input
-              type="password"
-              autoComplete="off"
-              value={slot.apiKey}
-              placeholder="Optional API key"
-              aria-label={`${slot.displayName} API key`}
-              onChange={(event) =>
-                setEcoSlots((prev) =>
-                  prev.map((row, rowIndex) =>
-                    rowIndex === index ? { ...row, apiKey: event.target.value } : row
                   )
                 )
               }
@@ -565,7 +659,70 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
               </select>
             </label>
           </div>
-        ))}
+          );
+        })}
+        <h4 className="pt-2 text-sm font-semibold text-slate-200">DeepSeek R1</h4>
+        <div className="grid gap-1 rounded-xl border border-slate-700/80 p-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-slate-300">
+              {reasoningSlot.displayName}
+              {reasoningSlot.apiKeyConfigured ? " · key set" : ""}
+            </span>
+            <button
+              type="button"
+              className="text-[11px] text-cyan-300 hover:underline"
+              onClick={() =>
+                setReasoningSlot((prev) => {
+                  const mode = prev.credentialMode ?? "api_key";
+                  return {
+                    ...prev,
+                    credentialMode: mode === "api_key" ? "https" : "api_key",
+                    baseURL:
+                      mode === "api_key"
+                        ? ""
+                        : HOSTED_ENDPOINT_CATALOG["DeepSeek R1"]?.baseURL ?? prev.baseURL,
+                  };
+                })
+              }
+            >
+              {(reasoningSlot.credentialMode ?? "api_key") === "api_key" ? "Use HTTPS" : "Use API key"}
+            </button>
+          </div>
+          {(reasoningSlot.credentialMode ?? "api_key") === "https" ? (
+            <input
+              value={reasoningSlot.baseURL}
+              placeholder="https://api.deepseek.com/v1"
+              title={customEndpointTooltip()}
+              aria-label="DeepSeek R1 base URL"
+              onChange={(event) =>
+                setReasoningSlot((prev) => ({ ...prev, baseURL: event.target.value }))
+              }
+              className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
+            />
+          ) : (
+            <input
+              type="password"
+              autoComplete="off"
+              value={reasoningSlot.apiKey}
+              placeholder="API key"
+              aria-label="DeepSeek R1 API key"
+              onChange={(event) =>
+                setReasoningSlot((prev) => ({ ...prev, apiKey: event.target.value }))
+              }
+              className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
+            />
+          )}
+          <label className="flex items-center gap-2 text-[11px] text-slate-400">
+            <input
+              type="checkbox"
+              checked={Boolean(reasoningSlot.useForReasoning)}
+              onChange={(event) =>
+                setReasoningSlot((prev) => ({ ...prev, useForReasoning: event.target.checked }))
+              }
+            />
+            Use for reasoning (medium drift)
+          </label>
+        </div>
         <button
           type="button"
           disabled={saving}

@@ -840,6 +840,7 @@ const UNIT_TESTS = [
   { label: "test:tri-consensus", args: ["--test", "tests/tri-consensus.test.ts"] },
   { label: "test:custom-endpoint-gateway", args: ["--test", "tests/custom-endpoint-gateway.test.ts"] },
   { label: "test:workspace-setup-prompt", args: ["--test", "tests/workspace-setup-prompt.test.ts"] },
+  { label: "test:hosted-endpoint-catalog", args: ["--test", "tests/hosted-endpoint-catalog.test.ts"] },
   { label: "test:preset-router", args: ["--test", "tests/preset-router.test.ts"] },
   { label: "test:source-audit", args: ["--test", "tests/source-audit.test.ts"] },
   { label: "test:p7-observe", args: ["--test", "tests/p7-observe.test.ts"] },

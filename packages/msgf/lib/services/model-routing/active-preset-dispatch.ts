@@ -28,6 +28,7 @@ import type { StoredCustomEndpoint } from "@/lib/services/model-routing/types";
 import {
   getTenantConsensusConfig,
   readStoredEcoEndpointsForScope,
+  readStoredReasoningEndpointForScope,
 } from "@/lib/services/tenant-consensus-config";
 
 function asPreset(profileId: string | undefined): PresetId {
@@ -90,6 +91,7 @@ export async function dispatchStoredEcoEndpoints(params: {
   p1Risk?: boolean;
   parsedBody: unknown;
   storedEndpoints?: StoredCustomEndpoint[];
+  reasoningEndpoint?: StoredCustomEndpoint | null;
   fetchImpl?: typeof fetch;
   cloudRun?: boolean;
 }): Promise<{ response: Response; tokensSaved: number; routing: string } | { hitl: true; preset: PresetId }> {
@@ -100,7 +102,12 @@ export async function dispatchStoredEcoEndpoints(params: {
     p1Risk: params.p1Risk,
   });
   const stored: StoredCustomEndpoint[] = params.storedEndpoints ?? [];
-  const decision = routeWithinPreset({ preset, band, ecoEndpoints: stored });
+  const decision = routeWithinPreset({
+    preset,
+    band,
+    ecoEndpoints: stored,
+    reasoningEndpoint: params.reasoningEndpoint,
+  });
   if (decision.action === "hitl") return { hitl: true, preset: decision.preset };
   if (decision.action !== "dispatch" || preset !== "eco_trio" || !decision.endpoints?.length) {
     return { hitl: true, preset };
@@ -117,10 +124,18 @@ export async function dispatchStoredEcoEndpoints(params: {
     },
   });
   const localChars = Math.max(1, Math.ceil(params.promptChars / 4));
+  const usedReasoning =
+    band === "medium" &&
+    Boolean(params.reasoningEndpoint?.useForReasoning) &&
+    decision.endpoints[0]?.providerId === params.reasoningEndpoint?.providerId;
   return {
     response: dispatched.response,
     tokensSaved: provenTokensFromEcoDelta(params.promptChars, localChars),
-    routing: band === "low" ? "ECO_TRIO_LOW" : "ECO_TRIO_MEDIUM",
+    routing: usedReasoning
+      ? "ECO_REASONING_MEDIUM"
+      : band === "low"
+        ? "ECO_TRIO_LOW"
+        : "ECO_TRIO_MEDIUM",
   };
 }
 
@@ -150,6 +165,9 @@ export async function maybeRoutePreset(params: {
     preset,
     band,
     ecoEndpoints: (config.customEcoEndpoints ?? []).map((endpoint) => ({ ...endpoint })),
+    reasoningEndpoint: config.customReasoningEndpoint
+      ? { ...config.customReasoningEndpoint }
+      : null,
   });
   if (decision.action === "frontier") return null;
   if (decision.action === "hitl") {
@@ -165,11 +183,17 @@ export async function maybeRoutePreset(params: {
     tenantId: params.tenantId,
     projectOrigin: params.projectOrigin,
   });
+  const reasoning = await readStoredReasoningEndpointForScope({
+    admin: params.admin,
+    tenantId: params.tenantId,
+    projectOrigin: params.projectOrigin,
+  });
   let eco: Awaited<ReturnType<typeof dispatchStoredEcoEndpoints>>;
   try {
     eco = await dispatchStoredEcoEndpoints({
       config,
       storedEndpoints: stored,
+      reasoningEndpoint: reasoning,
       promptChars: params.promptText.length,
       logicDriftScore: params.logicDriftScore,
       p1Risk: params.p1Risk,

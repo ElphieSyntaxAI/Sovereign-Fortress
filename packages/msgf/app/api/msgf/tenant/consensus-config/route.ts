@@ -62,6 +62,12 @@ function parseEcoEndpoint(item: unknown, index: number): CustomEndpointInput {
     typeof row.displayName === "string" && row.displayName.trim()
       ? row.displayName.trim()
       : `Eco ${index + 1}`;
+  const credentialMode =
+    row.credentialMode === "https" || row.credentialMode === "api_key"
+      ? row.credentialMode
+      : undefined;
+  const authHeaderStyle =
+    row.authHeaderStyle === "x-goog-api-key" ? "x-goog-api-key" : "bearer";
   return {
     providerId:
       typeof row.providerId === "string" && row.providerId.trim()
@@ -77,6 +83,9 @@ function parseEcoEndpoint(item: unknown, index: number): CustomEndpointInput {
     isEcoModel: row.isEcoModel !== false,
     providerKind,
     privateHostAllowed: row.privateHostAllowed === true,
+    credentialMode,
+    authHeaderStyle,
+    useForReasoning: row.useForReasoning === true,
   };
 }
 
@@ -213,6 +222,23 @@ export async function PUT(req: NextRequest) {
       ecoEndpoints = raw.map((item, index) => parseEcoEndpoint(item, index));
     }
 
+    let reasoningEndpoint: CustomEndpointInput | null | undefined;
+    if ("customReasoningEndpoint" in (body ?? {}) || "custom_reasoning_endpoint" in (body ?? {})) {
+      const raw = body?.["customReasoningEndpoint"] ?? body?.["custom_reasoning_endpoint"];
+      if (raw === null) {
+        reasoningEndpoint = null;
+      } else if (raw && typeof raw === "object") {
+        const parsed = parseEcoEndpoint(raw, 0);
+        reasoningEndpoint = {
+          ...parsed,
+          providerId: parsed.providerId || "reasoning-1",
+          displayName: parsed.displayName || "DeepSeek R1",
+          isEcoModel: false,
+          useForReasoning: parsed.useForReasoning !== false,
+        };
+      }
+    }
+
     const config = await upsertTenantConsensusConfig({
       admin,
       tenantId,
@@ -221,6 +247,7 @@ export async function PUT(req: NextRequest) {
       defaultProvider: defaultProvider ?? undefined,
       projectOrigin,
       ecoEndpoints,
+      reasoningEndpoint,
     });
 
     return json({ tenant_id: tenantId, config });

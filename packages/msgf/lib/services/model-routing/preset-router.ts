@@ -53,9 +53,22 @@ export function routeWithinPreset(input: {
   preset: PresetId;
   band: DriftBand;
   ecoEndpoints?: StoredCustomEndpoint[];
+  reasoningEndpoint?: StoredCustomEndpoint | null;
 }): RouteAction {
   if (input.preset === "eco_trio") {
     if (input.band === "high") return { action: "hitl", preset: "eco_trio", queue: "/admin/ops" };
+    if (
+      input.band === "medium" &&
+      input.reasoningEndpoint?.useForReasoning &&
+      input.reasoningEndpoint.baseURL?.trim()
+    ) {
+      return {
+        action: "dispatch",
+        preset: "eco_trio",
+        width: 1,
+        endpoints: [input.reasoningEndpoint],
+      };
+    }
     const ordered = cheapestEcoEndpoints(input.ecoEndpoints ?? []);
     const width: 1 | 2 = input.band === "low" ? 1 : 2;
     return {

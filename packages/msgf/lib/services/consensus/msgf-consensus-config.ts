@@ -29,6 +29,8 @@ export type MSGFConsensusConfig = {
   defaultProvider?: MsgfConsensusProvider;
   /** Present on eco_trio reads. Never mixed into `providers`. */
   customEcoEndpoints?: PublicCustomEndpoint[];
+  /** Optional DeepSeek R1 (or other) reasoning endpoint for medium drift when useForReasoning. */
+  customReasoningEndpoint?: PublicCustomEndpoint | null;
 };
 
 /** Platform Small Brain lead — Gemini (Vertex + IDE default). */

@@ -133,13 +133,16 @@ export function buildCustomEndpointBody(
 
 export function buildCustomEndpointHeaders(
   kind: CustomEndpointKind,
-  apiKey: string | null
+  apiKey: string | null,
+  authHeaderStyle: "bearer" | "x-goog-api-key" = "bearer"
 ): Headers {
   const headers = new Headers({ "content-type": "application/json" });
   if (!apiKey?.trim()) return headers;
   if (kind === CUSTOM_ANTHROPIC) {
     headers.set("x-api-key", apiKey);
     headers.set("anthropic-version", "2023-06-01");
+  } else if (authHeaderStyle === "x-goog-api-key") {
+    headers.set("x-goog-api-key", apiKey);
   } else {
     headers.set("authorization", `Bearer ${apiKey}`);
   }
@@ -178,7 +181,11 @@ export async function dispatchCustomEndpoints(params: {
     const apiKey = params.resolveApiKey ? await params.resolveApiKey(endpoint) : null;
     const response = await fetchImpl(customEndpointRequestUrl(endpoint.baseURL, endpoint.providerKind), {
       method: "POST",
-      headers: buildCustomEndpointHeaders(endpoint.providerKind, apiKey),
+      headers: buildCustomEndpointHeaders(
+        endpoint.providerKind,
+        apiKey,
+        endpoint.authHeaderStyle ?? "bearer"
+      ),
       body: JSON.stringify(
         buildCustomEndpointBody(endpoint.providerKind, endpoint.modelName, params.parsedBody)
       ),
