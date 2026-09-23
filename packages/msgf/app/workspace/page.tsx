@@ -66,7 +66,8 @@ export default async function WorkspacePage({
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    redirect("/sign-in?next=/workspace");
+    const nextTab = params.tab?.trim() === "access" ? "access" : "projects";
+    redirect(`/sign-in?next=${encodeURIComponent(`/workspace?tab=${nextTab}`)}`);
   }
 
   const admin = createAdminClient();

@@ -160,7 +160,7 @@ export const ENTERPRISE_FEATURE_CARDS: ShippedFeature[] = [
 
 export const DASHBOARD_QUICK_LINKS = [
   { label: "Workspace & extension", href: "/workspace" },
-  { label: "Map a project", href: "/setup/projects" },
+  { label: "Map a project", href: "/workspace?tab=projects" },
   { label: "Features & IDE", href: "/features" },
   { label: "Ops audit hub", href: "/admin/ops#audit-hub" },
   { label: "Session Replay", href: "/admin/ops#session-replay" },

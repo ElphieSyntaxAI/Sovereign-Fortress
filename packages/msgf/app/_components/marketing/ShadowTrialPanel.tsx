@@ -206,6 +206,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { PricingCtaButton } from "@/app/_components/pricing/PricingCtaButton";
 import { SHADOW_PROOF_SCOPE_DISCLAIMER } from "@/lib/shadow-eval/shadow-proof";
 
 const MSGF_HOST =
@@ -727,6 +728,25 @@ export function ShadowTrialPanel({
                   : null}
               </p>
             )}
+            {summary.expired || summary.full_access_started ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <div className="w-full max-w-xs">
+                  <PricingCtaButton
+                    kind="stripe_checkout"
+                    plan="pro_individual"
+                    interval="month"
+                    label="Subscribe to Pro — $29/mo"
+                    variant="featured"
+                  />
+                </div>
+                <Link
+                  href="/workspace?tab=projects"
+                  className="rounded-xl border border-emerald-500/35 px-5 py-3.5 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/10"
+                >
+                  Set up Pulse Guard
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <figure className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-slate-950/55">

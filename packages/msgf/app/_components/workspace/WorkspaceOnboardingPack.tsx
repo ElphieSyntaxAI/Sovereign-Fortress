@@ -330,7 +330,7 @@ import { CollapsiblePanel } from "@/app/_components/workspace/workspace-ui";
 import type { OnboardingDocumentMeta } from "@/lib/services/tenant-onboarding-vault";
 
 export function WorkspaceOnboardingPack() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [docs, setDocs] = useState<OnboardingDocumentMeta[]>([]);
   const [loading, setLoading] = useState(true);
 

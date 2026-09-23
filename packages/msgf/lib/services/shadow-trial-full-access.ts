@@ -332,6 +332,7 @@ export function buildFullAccessExpiryEmail(input: { name?: string | null }): {
 } {
   const origin = resolveMsgfAppOrigin().replace(/\/$/, "");
   const pricingUrl = `${origin}/pricing`;
+  const workspaceUrl = `${origin}/workspace?tab=projects`;
   const greeting = input.name ? `Hi ${input.name},` : "Hi there,";
   return {
     subject: "Your 3-day MSGF Individual Pro trial ended",
@@ -339,12 +340,14 @@ export function buildFullAccessExpiryEmail(input: { name?: string | null }): {
 <p>${greeting}</p>
 <p>Your <strong>3-day Individual Pro</strong> trial has ended. Enforcement mode, ingest, and cloud consensus on that trial key are off.</p>
 <p>Keep the proof — subscribe to <strong>Individual Pro for $29/mo</strong> or <strong>$290/yr</strong>: <a href="${pricingUrl}">${pricingUrl}</a></p>
+<p>Then set up Pulse Guard on <a href="${workspaceUrl}">Workspace Projects</a>.</p>
 <p>— Elphie Syntax · MSGF</p>
 `.trim(),
     text: [
       "Your 3-day MSGF Individual Pro trial ended.",
       "",
       `Subscribe to Individual Pro — $29/mo or $290/yr: ${pricingUrl}`,
+      `Set up Pulse Guard: ${workspaceUrl}`,
     ].join("\n"),
   };
 }

@@ -204,7 +204,9 @@ describe("3-day Individual Pro full access", () => {
     assert.match(email.html, /\$29\/mo/);
     assert.match(email.html, /\$290\/yr/);
     assert.match(email.html, /\/pricing/);
+    assert.match(email.html, /\/workspace\?tab=projects/);
     assert.match(email.text, /\$29\/mo or \$290\/yr/);
+    assert.match(email.text, /\/workspace\?tab=projects/);
     assert.equal(email.html.includes("$99"), false);
     assert.equal(email.text.includes("$99"), false);
   });

@@ -167,7 +167,7 @@ export async function createStripeCheckoutSession(params: {
     const session = await stripe.checkout.sessions.create({
       mode: plan.mode,
       line_items: [{ price: priceId, quantity }],
-      success_url: `${origin}/pricing?checkout=success&plan=${params.planId}`,
+      success_url: `${origin}/workspace?tab=projects`,
       cancel_url: `${origin}/pricing?checkout=cancelled&plan=${params.planId}`,
       customer_email: params.customerEmail?.trim() || undefined,
       allow_promotion_codes: true,

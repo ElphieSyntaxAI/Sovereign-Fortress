@@ -42,13 +42,13 @@ function QuickstartSteps() {
             </Link>{" "}
             to point an SDK at the MSGF gateway — no console seat required. Already invited?{" "}
             <Link
-              href="/sign-in?next=/workspace"
+              href="/sign-in?next=%2Fworkspace%3Ftab%3Dprojects"
               className="font-medium text-emerald-400 underline-offset-4 hover:underline"
             >
               Sign in
             </Link>{" "}
-            and open <strong className="text-[#f8fafc]">Workspace</strong> for a ready-made{" "}
-            <code className="text-violet-200">.vscode/settings.json</code> block.{" "}
+            and open <strong className="text-[#f8fafc]">Workspace Projects</strong> to download
+            Pulse Guard, copy the setup prompt, and add each app.{" "}
             <Link href="/sign-up" className="text-slate-400 underline-offset-4 hover:underline">
               Beta waitlist
             </Link>{" "}
@@ -78,7 +78,7 @@ function QuickstartSteps() {
         <MarketingSection eyebrow="Step 3" title="Map your repo & open the dashboard">
           <p>
             Register the folder you code in under{" "}
-            <Link href="/setup/projects" className="text-cyan-400 underline-offset-4 hover:underline">
+            <Link href="/workspace?tab=projects" className="text-cyan-400 underline-offset-4 hover:underline">
               Projects
             </Link>
             , then watch policy-domain health on your{" "}

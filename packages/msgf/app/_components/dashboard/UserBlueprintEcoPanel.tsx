@@ -858,7 +858,7 @@ export function UserBlueprintEcoPanel() {
           </p>
         </div>
         <Link
-          href="/setup/projects"
+          href="/workspace?tab=projects"
           className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-500/20"
         >
           Map projects →
@@ -921,7 +921,7 @@ export function UserBlueprintEcoPanel() {
           {data.mapped_projects.length === 0 ? (
             <p className="text-sm text-slate-400">
               No projects mapped yet.{" "}
-              <Link href="/setup/projects" className="text-cyan-300 underline-offset-4 hover:underline">
+              <Link href="/workspace?tab=projects" className="text-cyan-300 underline-offset-4 hover:underline">
                 Add your first local folder or GitHub repository
               </Link>{" "}
               to scope pillar health and eco metrics to your work only.

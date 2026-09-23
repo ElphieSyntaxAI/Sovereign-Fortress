@@ -340,12 +340,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { ConsensusPresetPanel } from "@/app/_components/dashboard/ConsensusPresetPanel";
+import { PricingCtaButton } from "@/app/_components/pricing/PricingCtaButton";
 import { GithubRepoPickerPanel } from "@/app/_components/workspace/GithubRepoPickerPanel";
 import { LocalSubfolderPickerPanel } from "@/app/_components/workspace/LocalSubfolderPickerPanel";
 import { InfoTip } from "@/app/_components/workspace/workspace-ui";
 import { TeamManagementModule } from "@/app/_components/workspace/TeamManagementModule";
 import { WorkspaceOnboardingPack } from "@/app/_components/workspace/WorkspaceOnboardingPack";
 import type { SessionPermissions } from "@/lib/platform-rbac";
+import { copyWorkspaceSetupPrompt } from "@/app/_components/workspace/copy-setup-prompt";
 import type { UserProjectRow } from "@/lib/services/user-projects";
 
 type MonorepoPreset = {
@@ -387,6 +389,7 @@ export function WorkspaceSetupProjectsTab({
   const [githubUrl, setGithubUrl] = useState("");
   const [projectOrigin, setProjectOrigin] = useState("");
   const [loading, setLoading] = useState(true);
+  const [promptCopied, setPromptCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -511,7 +514,7 @@ export function WorkspaceSetupProjectsTab({
       setLocalPath("");
       setGithubUrl("");
       setProjectOrigin("");
-      setMessage("Project mapped. Switch to Active IDE Workspace to mint tokens and connect your editor.");
+      setMessage("Project mapped. Mint its long-lived token in Active IDE below.");
       await loadProjects();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save project.");
@@ -555,21 +558,33 @@ export function WorkspaceSetupProjectsTab({
 
   return (
     <div className="space-y-6">
-      <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-slate-400">
-        Map your distributed monorepos into isolated project origins to track precise logic health
-        and map independent RAG data streams.
-      </p>
-
-      <WorkspaceOnboardingPack />
-
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => setWizard("choose")}
-          className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white"
-        >
-          Add Project
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <PricingCtaButton kind="extension_download" label="Download extension" variant="outline" />
+          <button
+            type="button"
+            title="Paste into Cursor in your repo. One origin per app."
+            onClick={() => {
+              void copyWorkspaceSetupPrompt({
+                tenantKey,
+                existingOrigins: projects.map((project) => project.project_origin),
+              }).then((text) => navigator.clipboard.writeText(text)).then(() => {
+                setPromptCopied(true);
+                window.setTimeout(() => setPromptCopied(false), 2000);
+              });
+            }}
+            className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+          >
+            {promptCopied ? "Copied" : "Copy setup prompt"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setWizard("choose")}
+            className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Add Project
+          </button>
+        </div>
         <details className="text-sm text-slate-400">
           <summary className="cursor-pointer text-slate-200">Developer / System Info</summary>
           <p className="mt-2">Access role: {accessRole}</p>
@@ -584,18 +599,6 @@ export function WorkspaceSetupProjectsTab({
           </button>
         </details>
       </div>
-
-      <section className="space-y-2">
-        <h2 className="text-base font-semibold text-slate-100">
-          {highlightOrigin ? "Model routing for this project" : "Tenant default model routing"}
-        </h2>
-        <p className="text-sm text-slate-400">
-          {highlightOrigin
-            ? `Editing ${highlightOrigin}. A project with no saved row keeps the tenant default.`
-            : "All Projects uses this tenant default. Choose a project in the top bar to override it."}
-        </p>
-        <ConsensusPresetPanel tenantId={tenantKey} projectOrigin={highlightOrigin ?? ""} />
-      </section>
 
       {wizard ? (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 p-4">
@@ -851,7 +854,7 @@ export function WorkspaceSetupProjectsTab({
         {loading ? <p className="mt-3 text-sm text-slate-500">Loading…</p> : null}
         {!loading && projects.length === 0 ? (
           <p className="mt-3 text-sm text-slate-400">
-            No projects yet — save a mapping above, then open the Active IDE Workspace tab.
+            No projects yet. Download the extension, copy the setup prompt, then add each app.
           </p>
         ) : null}
         <ul className="mt-4 space-y-2">
@@ -882,6 +885,20 @@ export function WorkspaceSetupProjectsTab({
             </li>
           ))}
         </ul>
+      </section>
+
+      <WorkspaceOnboardingPack />
+
+      <section className="space-y-2">
+        <h2 className="text-base font-semibold text-slate-100">
+          {highlightOrigin ? "Model routing for this project" : "Tenant default model routing"}
+        </h2>
+        <p className="text-sm text-slate-400">
+          {highlightOrigin
+            ? `Editing ${highlightOrigin}. A project with no saved row keeps the tenant default.`
+            : "All Projects uses this tenant default. Choose a project in the top bar to override it."}
+        </p>
+        <ConsensusPresetPanel tenantId={tenantKey} projectOrigin={highlightOrigin ?? ""} />
       </section>
     </div>
   );

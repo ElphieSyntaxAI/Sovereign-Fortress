@@ -1047,7 +1047,7 @@ export function WorkspaceIdeSetup({
             the guard extension, then open your repo. Do not put your browser session JWT (
             <code className="text-violet-200">eyJ…</code>) in the IDE — it expires in about an hour.
             Mapped projects can mint tokens on{" "}
-            <Link href="/setup/projects" className="text-cyan-300 hover:underline">
+            <Link href="/workspace?tab=projects" className="text-cyan-300 hover:underline">
               Setup projects
             </Link>{" "}
             without re-mapping.
@@ -1197,7 +1197,7 @@ export function WorkspaceIdeSetup({
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/setup/projects"
+                href="/workspace?tab=projects"
                 className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-500/20"
               >
                 {projectCount > 0 ? "Manage mapped projects" : "Map this project"} →

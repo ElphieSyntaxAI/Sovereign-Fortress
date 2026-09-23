@@ -1499,12 +1499,8 @@ export function DashboardShell({
               {report.scope.project_origins?.length
                 ? ` for ${report.scope.project_origins.length} mapped project(s).`
                 : " for your account."}{" "}
-              <Link href="/workspace?tab=ide" className="text-cyan-300 hover:underline">
-                IDE workspace
-              </Link>{" "}
-              ·{" "}
-              <Link href="/workspace?tab=setup" className="text-cyan-300 hover:underline">
-                Map projects
+              <Link href="/workspace?tab=projects" className="text-cyan-300 hover:underline">
+                Workspace Projects
               </Link>
             </p>
           </section>

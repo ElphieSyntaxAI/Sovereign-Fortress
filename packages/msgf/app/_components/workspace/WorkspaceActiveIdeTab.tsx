@@ -506,7 +506,7 @@ export function WorkspaceActiveIdeTab({
 
       <p className="text-center text-xs text-slate-600">
         Need another repo?{" "}
-        <Link href="/workspace?tab=architecture" className="text-cyan-300 hover:underline">
+        <Link href="/workspace?tab=projects" className="text-cyan-300 hover:underline">
           Add a project mapping
         </Link>
       </p>

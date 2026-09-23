@@ -421,8 +421,8 @@ function DevIdeSettingsPanel({
           </p>
           <p className="mt-1 text-sm text-slate-400">
             Same values as{" "}
-            <Link href="/workspace?tab=ide" className="text-cyan-300 hover:underline">
-              Workspace → IDE setup
+            <Link href="/workspace?tab=projects" className="text-cyan-300 hover:underline">
+              Workspace Projects
             </Link>
             . Paste into <code className="text-violet-300/90">{ide.settingsPath}</code>.
           </p>
@@ -657,16 +657,10 @@ function DevSecurityPanel({
       ) : null}
       <div className="flex flex-wrap gap-2 pt-2">
         <Link
-          href="/workspace?tab=ide"
+          href="/workspace?tab=projects"
           className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-xs font-medium text-cyan-100 transition hover:bg-cyan-500/20"
         >
-          Workspace & IDE setup
-        </Link>
-        <Link
-          href="/workspace?tab=setup"
-          className="rounded-full border border-slate-600/50 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5"
-        >
-          Map project
+          Workspace Projects
         </Link>
       </div>
       {snapshot ? <ProtectionStackList items={snapshot.protection_stack} /> : null}
