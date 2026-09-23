@@ -8,12 +8,16 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
+import {
+  assertPlanFeature,
+  resolveCommercialPlanForUser,
+} from "@/lib/billing/plan-entitlements";
 import { resolveOrCreateCompanyForAdmin } from "@/lib/services/company-team";
 import {
   getTeamReadiness,
@@ -79,6 +83,21 @@ export async function PATCH(req: NextRequest) {
     ) {
       return NextResponse.json(postMvpDisabledPayload("dropbox_archive"), { status: 404 });
     }
+
+    const plan = await resolveCommercialPlanForUser(session.admin, session.user.id);
+    if (parsed.data.signing_provider) {
+      const gate = assertPlanFeature(plan, "signing");
+      if (!gate.ok) {
+        return NextResponse.json(gate, { status: gate.status });
+      }
+    }
+    if (parsed.data.dropbox_archive_path !== undefined) {
+      const gate = assertPlanFeature(plan, "dropbox_archive");
+      if (!gate.ok) {
+        return NextResponse.json(gate, { status: gate.status });
+      }
+    }
+
     await updateCompanySigningSettings(session.admin, companyId, parsed.data);
     const readiness = await getTeamReadiness(session.admin, companyId);
     return NextResponse.json({ ok: true, readiness });

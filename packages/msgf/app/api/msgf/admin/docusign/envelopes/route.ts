@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 /**
  * GET /api/msgf/admin/docusign/envelopes — company DocuSign envelope status (session or Bearer admin).
@@ -17,6 +17,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isPostMvpFeatureEnabled, postMvpDisabledPayload } from "@/lib/post-mvp-gates";
+import {
+  assertPlanFeature,
+  resolveCommercialPlanForUser,
+} from "@/lib/billing/plan-entitlements";
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import { resolveOperatorForAdminRequest } from "@/lib/msgf-admin-request-operator";
 import { docuSignModeLabel } from "@/lib/services/docusign-gateway";
@@ -32,6 +36,14 @@ export async function GET(req: NextRequest) {
 
     if (op.role === "DEVELOPER") {
       return NextResponse.json({ ok: false, error: "Operators only." }, { status: 403 });
+    }
+
+    if (op.operatorUserId) {
+      const plan = await resolveCommercialPlanForUser(admin, op.operatorUserId);
+      const gate = assertPlanFeature(plan, "signing");
+      if (!gate.ok) {
+        return NextResponse.json(gate, { status: gate.status });
+      }
     }
 
     const companyId = op.companyId;
