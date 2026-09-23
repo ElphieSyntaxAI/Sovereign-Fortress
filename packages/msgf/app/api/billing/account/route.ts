@@ -1,4 +1,16 @@
 /**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
  * Account billing: up to 3 Stripe cards, invoices, plan change, and cancel.
  * Card numbers stay in Stripe. This route stores nothing but ids Stripe already holds.
  */
@@ -12,7 +24,7 @@ import { getStripe } from "@msgf/lib/stripe";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
-export const MAX_ACCOUNT_CARDS = 3;
+const MAX_ACCOUNT_CARDS = 3;
 
 async function signedInUser() {
   const cookieStore = await cookies();

@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -477,9 +501,15 @@ type Props = {
   tenantId: string;
   /** Use admin API when on /admin/dashboard (operator RBAC). */
   operatorView?: boolean;
+  /** Fold the twelve counters behind one control. */
+  collapseTelemetry?: boolean;
 };
 
-export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Props) {
+export function TokenSavingsFeaturesPanel({
+  tenantId,
+  operatorView = false,
+  collapseTelemetry = false,
+}: Props) {
   const [summary, setSummary] = useState<SavingsFeaturesSummary | null>(null);
   const [defensible, setDefensible] = useState<DefensibleSavingsBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -584,6 +614,13 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
         </div>
       ) : null}
 
+      {collapseTelemetry && !hasActivity ? (
+        <p className="mt-4 text-sm text-slate-400">No activity in the 24-hour window.</p>
+      ) : (
+        <details className="mt-4" open={!collapseTelemetry}>
+          <summary className={collapseTelemetry ? "cursor-pointer text-sm font-medium text-slate-200" : "sr-only"}>
+            Mechanism details
+          </summary>
       <MetricGroup title="IDE verify loop" subtitle="Safe Build · Run Scripts · dev-event">
         <Metric
           label="Verify passes"
@@ -665,6 +702,8 @@ export function TokenSavingsFeaturesPanel({ tenantId, operatorView = false }: Pr
           suffix={pulse_routing.total_pulses > 0 ? "%" : undefined}
         />
       </MetricGroup>
+        </details>
+      )}
 
       {pulse_routing.total_pulses > 0 ? (
         <p className="mt-4 text-sm text-slate-300">

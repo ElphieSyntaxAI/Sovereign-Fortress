@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -21,7 +21,13 @@ import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
-export default async function DailyReportsPage() {
+export default async function DailyReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ project_origin?: string }>;
+}) {
+  const params = await searchParams;
+  const projectOrigin = params.project_origin?.trim() ?? "";
   const cookieStore = await cookies();
   const hdrs = await headers();
   const supabase = createClient(cookieStore, requestHostFromHeaders(hdrs));
@@ -51,7 +57,6 @@ export default async function DailyReportsPage() {
       <DashboardNav
         userEmail={user.email ?? "Signed in"}
         showAdminPortalLink={access.canAccessAdminDashboard}
-        tokenSavingsHref="/dashboard#token-savings"
       />
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-5 sm:py-10">
         <header className="flex flex-col items-center gap-3 text-center">
@@ -67,13 +72,13 @@ export default async function DailyReportsPage() {
           </p>
         </header>
 
-        <ShadowProxySavingsPanel tenantId={tenantId} />
+        <ShadowProxySavingsPanel tenantId={tenantId} variant="awaiting-line" />
 
         <PeriodSavingsReportsPanel tenantId={tenantId} />
 
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-slate-100">Daily governance archives</h2>
-          <DailyReportsAccordion />
+          <DailyReportsAccordion projectOrigin={projectOrigin} />
         </section>
       </main>
     </div>

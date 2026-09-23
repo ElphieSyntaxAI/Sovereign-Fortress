@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -1011,13 +1035,19 @@ export function PostIngestHealingConsole({
   }, [queue?.human_arbitration_packages, pillarFilter]);
 
   const activeArbitration = useMemo(
-    () =>
-      arbitrationPackages.find((p) => p.file_path === activeArbitrationPath) ??
-      arbitrationPackages[0] ??
-      null,
+    () => arbitrationPackages.find((p) => p.file_path === activeArbitrationPath) ?? null,
     [arbitrationPackages, activeArbitrationPath]
   );
 
+  const healableTasks = useMemo(
+    () =>
+      tasks.filter(
+        (task) =>
+          !task.circuit_breaker_open &&
+          task.remediation_state !== "PENDING_HUMAN_ARBITRATION"
+      ),
+    [tasks]
+  );
   const grouped = useMemo(() => groupByPillar(tasks), [tasks]);
   const tokenSummary = queue?.heal_token_summary;
 
@@ -1028,14 +1058,6 @@ export function PostIngestHealingConsole({
       onStatusChange(null);
     }
   }, [open, onStatusChange]);
-
-  useEffect(() => {
-    if (!open || !arbitrationPackages.length) return;
-    setActiveArbitrationPath((prev) => {
-      if (prev && arbitrationPackages.some((p) => p.file_path === prev)) return prev;
-      return arbitrationPackages[0]?.file_path ?? null;
-    });
-  }, [open, arbitrationPackages]);
 
   const togglePath = useCallback((path: string) => {
     setSelectedPaths((prev) => {
@@ -1177,12 +1199,14 @@ export function PostIngestHealingConsole({
   const brain = queue?.brain_readiness;
 
   const expensiveHealable = useMemo(
-    () => tasks.filter((t) => t.token_estimate?.cost_tier === "expensive"),
-    [tasks]
+    () =>
+      healableTasks.filter((t) => t.token_estimate?.cost_tier === "expensive"),
+    [healableTasks]
   );
   const inexpensiveHealable = useMemo(
-    () => tasks.filter((t) => t.token_estimate?.cost_tier === "inexpensive"),
-    [tasks]
+    () =>
+      healableTasks.filter((t) => t.token_estimate?.cost_tier === "inexpensive"),
+    [healableTasks]
   );
 
   return (
@@ -1319,14 +1343,8 @@ export function PostIngestHealingConsole({
 
                         if (circuitOpen) {
                           return (
-                            <li key={`${task.task_id}-${task.file_path}`}>
-                              <button
-                                type="button"
-                                onClick={() => setActiveArbitrationPath(task.file_path)}
-                                className={`flex w-full gap-3 px-3 py-2.5 text-left transition hover:bg-rose-500/[0.08] ${
-                                  isActiveArbitration ? "bg-rose-500/10" : ""
-                                }`}
-                              >
+                            <li key={`${task.task_id}-${task.file_path}`} className="px-3 py-2.5">
+                              <div className="flex gap-3">
                                 <span className="mt-0.5 shrink-0 rounded border border-rose-400/50 bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-rose-200">
                                   HITL
                                 </span>
@@ -1335,13 +1353,29 @@ export function PostIngestHealingConsole({
                                     {task.file_path}
                                   </span>
                                   <span className="mt-1 block text-[11px] leading-snug text-rose-200/80">
-                                    Circuit breaker — human arbitration required
+                                    {allowHumanArbitration
+                                      ? "An operator can approve a bypass or deny and purge this file."
+                                      : "An operator has to resolve this."}
                                   </span>
                                   <code className="mt-1 inline-block rounded bg-black/30 px-1.5 py-0.5 text-[10px] text-amber-200/90">
                                     {task.bug_index.level_1_1_1_instance}
                                   </code>
+                                  {allowHumanArbitration ? (
+                                    <button
+                                      type="button"
+                                      disabled={submitting}
+                                      onClick={() => setActiveArbitrationPath(task.file_path)}
+                                      className={`mt-2 rounded-lg border px-2 py-1 text-[10px] font-semibold ${
+                                        isActiveArbitration
+                                          ? "border-rose-400/60 bg-rose-500/20 text-rose-100"
+                                          : "border-amber-500/40 text-amber-100"
+                                      }`}
+                                    >
+                                      Approve & bypass / Deny & purge
+                                    </button>
+                                  ) : null}
                                 </span>
-                              </button>
+                              </div>
                             </li>
                           );
                         }
@@ -1397,15 +1431,23 @@ export function PostIngestHealingConsole({
         <footer className="shrink-0 space-y-2 border-t border-amber-500/20 px-5 py-4">
           {activeArbitration ? (
             <p className="text-center text-[10px] text-slate-500">
-              Use APPROVE & BYPASS or DENY & PURGE in the arbitration panel above.
+              Approve & bypass or Deny & purge stays on the selected human-in-the-loop row. Heal still runs on the other files.
             </p>
           ) : null}
 
           <button
             type="button"
-            disabled={submitting || !tasks.length || Boolean(activeArbitration)}
-            onClick={() => void runAction("BULK")}
-            className="w-full rounded-lg border border-emerald-400/50 bg-gradient-to-b from-emerald-600/90 to-emerald-900/90 px-4 py-3 text-sm font-bold tracking-wide text-white shadow-[0_0_20px_rgba(16,185,129,0.35)] transition hover:shadow-[0_0_28px_rgba(16,185,129,0.45)] disabled:cursor-wait disabled:opacity-50"
+            disabled={submitting || healableTasks.length === 0}
+            onClick={() => {
+              const project = tenantId.trim() || "this project";
+              const count = healableTasks.length;
+              const confirmed = window.confirm(
+                `Heal ${count} file${count === 1 ? "" : "s"} on ${project}?`
+              );
+              if (!confirmed) return;
+              void runAction("BULK");
+            }}
+            className="w-full rounded-lg border border-emerald-400/50 bg-gradient-to-b from-emerald-600/90 to-emerald-900/90 px-4 py-3 text-sm font-bold tracking-wide text-white shadow-[0_0_20px_rgba(16,185,129,0.35)] transition hover:shadow-[0_0_28px_rgba(16,185,129,0.45)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Heal All Now
           </button>
@@ -1413,9 +1455,7 @@ export function PostIngestHealingConsole({
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button
               type="button"
-              disabled={
-                submitting || expensiveHealable.length === 0 || Boolean(activeArbitration)
-              }
+              disabled={submitting || expensiveHealable.length === 0}
               onClick={() => void runAction("BULK_EXPENSIVE")}
               title={
                 tokenSummary
@@ -1429,9 +1469,7 @@ export function PostIngestHealingConsole({
             </button>
             <button
               type="button"
-              disabled={
-                submitting || inexpensiveHealable.length === 0 || Boolean(activeArbitration)
-              }
+              disabled={submitting || inexpensiveHealable.length === 0}
               onClick={() => void runAction("BULK_INEXPENSIVE")}
               title={
                 tokenSummary
@@ -1447,7 +1485,7 @@ export function PostIngestHealingConsole({
 
           <button
             type="button"
-            disabled={submitting || selectedPaths.size === 0 || Boolean(activeArbitration)}
+            disabled={submitting || selectedPaths.size === 0}
             onClick={() => void runAction("INDIVIDUAL", [...selectedPaths])}
             className={`w-full rounded-lg border px-4 py-2.5 text-sm font-bold transition disabled:cursor-wait disabled:opacity-40 ${
               selectedPaths.size > 0
@@ -1479,7 +1517,7 @@ export function PostIngestHealingConsole({
             </select>
             <button
               type="button"
-              disabled={submitting || selectedPaths.size === 0 || Boolean(activeArbitration)}
+              disabled={submitting || selectedPaths.size === 0}
               onClick={() => void runAction("SCHEDULED", [...selectedPaths])}
               className="w-full rounded-lg border border-violet-400/40 bg-gradient-to-b from-violet-800/80 to-violet-950/90 px-3 py-2 text-sm font-semibold text-violet-50 transition hover:border-violet-300/50 disabled:cursor-wait disabled:opacity-50"
             >

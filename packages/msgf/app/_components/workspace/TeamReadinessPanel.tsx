@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -317,8 +341,13 @@ export function TeamReadinessPanel() {
               </span>
               <span className="text-slate-200">
                 {item.label}
-                {item.hint ? (
+                {item.hint && !/\/api\/|POST |GET /.test(item.hint) ? (
                   <span className="mt-0.5 block text-xs text-slate-500">{item.hint}</span>
+                ) : item.hint ? (
+                  <details className="mt-1 text-xs text-slate-500">
+                    <summary className="cursor-pointer">System detail</summary>
+                    <span className="mt-1 block font-mono">{item.hint}</span>
+                  </details>
                 ) : null}
               </span>
             </li>

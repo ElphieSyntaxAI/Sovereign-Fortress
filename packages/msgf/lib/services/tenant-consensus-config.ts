@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -64,38 +64,53 @@ function rowToConfig(row: {
 export async function getTenantConsensusConfig(params: {
   admin: SupabaseClient;
   tenantId: string;
+  projectOrigin?: string;
 }): Promise<MSGFConsensusConfig> {
   const tid = params.tenantId.trim();
-  const { data, error } = await params.admin
+  const origin = params.projectOrigin?.trim() ?? "";
+  const projectRow = origin ? await readConsensusRow(params.admin, tid, origin) : null;
+  if (projectRow) return projectRow;
+  const fallback = await readConsensusRow(params.admin, tid, "");
+  return fallback ?? { ...SMALL_BRAIN_DEFAULT };
+}
+
+async function readConsensusRow(
+  admin: SupabaseClient,
+  tenantId: string,
+  projectOrigin: string
+): Promise<MSGFConsensusConfig | null> {
+  const scoped = await admin
     .from("msgf_tenant_consensus_config")
     .select("profile_id, mode, providers, strictness, default_provider")
-    .eq("tenant_id", tid)
+    .eq("tenant_id", tenantId)
+    .eq("project_origin", projectOrigin)
     .maybeSingle();
 
-  if (error) {
-    const missingCol = /default_provider/i.test(error.message);
-    if (missingCol) {
-      const retry = await params.admin
-        .from("msgf_tenant_consensus_config")
-        .select("profile_id, mode, providers, strictness")
-        .eq("tenant_id", tid)
-        .maybeSingle();
-      if (!retry.error && retry.data) return rowToConfig(retry.data);
-    }
-    // Table may not exist yet — soft default
-    console.warn("[getTenantConsensusConfig]", error.message);
-    return { ...SMALL_BRAIN_DEFAULT };
+  if (scoped.error && /project_origin/i.test(scoped.error.message) && projectOrigin === "") {
+    const legacy = await admin
+      .from("msgf_tenant_consensus_config")
+      .select("profile_id, mode, providers, strictness, default_provider")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    if (!legacy.error && legacy.data) return rowToConfig(legacy.data);
+    return null;
   }
-  if (!data) return { ...SMALL_BRAIN_DEFAULT };
-  return rowToConfig(
-    data as {
-      profile_id: string;
-      mode: string;
-      providers: unknown;
-      strictness: string;
-      default_provider?: unknown;
-    }
-  );
+  if (scoped.error && /default_provider/i.test(scoped.error.message)) {
+    const retry = await admin
+      .from("msgf_tenant_consensus_config")
+      .select("profile_id, mode, providers, strictness")
+      .eq("tenant_id", tenantId)
+      .eq("project_origin", projectOrigin)
+      .maybeSingle();
+    if (!retry.error && retry.data) return rowToConfig(retry.data);
+    return null;
+  }
+  if (scoped.error) {
+    console.warn("[getTenantConsensusConfig]", scoped.error.message);
+    return null;
+  }
+  if (!scoped.data) return null;
+  return rowToConfig(scoped.data);
 }
 
 export async function upsertTenantConsensusConfig(params: {
@@ -104,6 +119,7 @@ export async function upsertTenantConsensusConfig(params: {
   profileId: TenantConsensusPresetId;
   customProviders?: MsgfConsensusProvider[];
   defaultProvider?: MsgfConsensusProvider;
+  projectOrigin?: string;
 }): Promise<MSGFConsensusConfig> {
   const tid = params.tenantId.trim();
   if (!TENANT_PRESET_IDS.includes(params.profileId)) {
@@ -120,6 +136,7 @@ export async function upsertTenantConsensusConfig(params: {
 
   const row = {
     tenant_id: tid,
+    project_origin: params.projectOrigin?.trim() ?? "",
     profile_id: resolved.profileId ?? params.profileId,
     mode: resolved.mode,
     providers: resolved.providers,
@@ -129,7 +146,18 @@ export async function upsertTenantConsensusConfig(params: {
   };
   const { error } = await params.admin
     .from("msgf_tenant_consensus_config")
-    .upsert(row, { onConflict: "tenant_id" });
+    .upsert(row, { onConflict: "tenant_id,project_origin" });
+
+  if (error && /project_origin/i.test(error.message)) {
+    const { project_origin: _origin, ...legacy } = row;
+    const retry = await params.admin
+      .from("msgf_tenant_consensus_config")
+      .upsert(legacy, { onConflict: "tenant_id" });
+    if (retry.error) {
+      throw new Error(`upsertTenantConsensusConfig: ${retry.error.message}`);
+    }
+    return resolved;
+  }
 
   if (error && /default_provider/i.test(error.message)) {
     const { default_provider: _, ...legacy } = row;

@@ -8,12 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AdminPortalNav } from "@/app/_components/admin/AdminPortalNav";
+import { DashboardNav } from "@/app/_components/dashboard/DashboardNav";
 import { isStagingDeploy } from "@/lib/deploy-env";
 import {
   assertSessionOperatorIsAdmin,
@@ -51,8 +51,9 @@ export default async function AdminAuthenticatedLayout({
 
   return (
     <div className="landing-mesh min-h-screen text-slate-100">
-      <AdminPortalNav
+      <DashboardNav
         userEmail={user.email ?? "Signed in"}
+        showAdminPortalLink
         showSeed={isStagingDeploy()}
       />
       {children}

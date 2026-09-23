@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /**
  * Tenant Small Brain CONVERGE presets (dual / tri / custom BYOK).
@@ -65,13 +65,15 @@ export async function GET(req: NextRequest) {
     const admin = createAdminClient();
     await assertUserMayManageTenantSettings({ admin, user, tenantId, write: false });
 
+    const projectOrigin = req.nextUrl.searchParams.get("project_origin")?.trim() ?? "";
     const [config, presence] = await Promise.all([
-      getTenantConsensusConfig({ admin, tenantId }),
+      getTenantConsensusConfig({ admin, tenantId, projectOrigin }),
       listTenantProviderCredentialPresence({ admin, tenantId }),
     ]);
 
     return json({
       tenant_id: tenantId,
+      project_origin: projectOrigin,
       config,
       presets: TENANT_PRESET_IDS.map((id) => ({
         profileId: id,
@@ -162,12 +164,15 @@ export async function PUT(req: NextRequest) {
       customProviders = unique;
     }
 
+    const projectOrigin =
+      typeof body?.["project_origin"] === "string" ? body["project_origin"].trim() : "";
     const config = await upsertTenantConsensusConfig({
       admin,
       tenantId,
       profileId,
       customProviders,
       defaultProvider: defaultProvider ?? undefined,
+      projectOrigin,
     });
 
     return json({ tenant_id: tenantId, config });

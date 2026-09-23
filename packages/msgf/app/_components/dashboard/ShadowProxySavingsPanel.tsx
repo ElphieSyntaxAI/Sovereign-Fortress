@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -183,7 +207,13 @@ type RecentRow = {
   observed_at?: string;
 };
 
-export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
+export function ShadowProxySavingsPanel({
+  tenantId,
+  variant = "full",
+}: {
+  tenantId?: string;
+  variant?: "full" | "awaiting-line";
+}) {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [recent, setRecent] = useState<RecentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -229,6 +259,11 @@ export function ShadowProxySavingsPanel({ tenantId }: { tenantId?: string }) {
   }
 
   if (!summary) return null;
+
+  if (variant === "awaiting-line") {
+    if (summary.evaluation_count > 0) return null;
+    return <p className="text-sm text-slate-400">Awaiting SDK traffic.</p>;
+  }
 
   return (
     <section

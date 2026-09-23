@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -544,7 +568,7 @@ export function AdminResolutionPanel({
   }
 
   return (
-    <div className="relative flex flex-col gap-4 rounded-xl border border-zinc-800 bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 p-4 shadow-lg shadow-black/20">
+    <div className="relative flex h-[70vh] flex-col overflow-hidden rounded-xl border border-zinc-800 bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 shadow-lg shadow-black/20">
       {toast ? (
         <div
           role="status"
@@ -553,6 +577,7 @@ export function AdminResolutionPanel({
           {toast}
         </div>
       ) : null}
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
       <header>
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-400/90">
           Decision portal
@@ -578,7 +603,7 @@ export function AdminResolutionPanel({
       <div>
         <p className="text-xs font-medium text-zinc-400">Pulse evidence</p>
         {hideDeveloperKeystrokes ? (
-          <p className="mt-2 rounded-md border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs leading-relaxed text-zinc-500">
+          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
             Raw developer keystrokes and narrative payloads are hidden on the global operator view.
             Decisions use HITL remediation strategies, bug index, and company-validated logic deltas
             only.
@@ -602,6 +627,13 @@ export function AdminResolutionPanel({
         error={strategiesError}
       />
 
+      </div>
+      <div className="sticky bottom-0 space-y-3 border-t border-zinc-800 bg-zinc-950 p-4">
+        <p className="text-xs text-zinc-400">
+          {selectedStrategyIndex != null && matrixStrategies[selectedStrategyIndex]
+            ? matrixStrategies[selectedStrategyIndex].label
+            : "No strategy selected"}
+        </p>
       <label className="block text-xs text-zinc-400">
         Approved delta (Pulse override)
         <textarea
@@ -688,6 +720,7 @@ export function AdminResolutionPanel({
         >
           {busyAction === "reject" ? "Rejecting…" : "Reject"}
         </button>
+      </div>
       </div>
     </div>
   );

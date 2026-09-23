@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -238,6 +262,16 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
   const [exporting, setExporting] = useState<"pdf" | "json" | null>(null);
   const [selectedMonth, setSelectedMonth] = useState("");
   const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const newestKey = weekly.reduce(
+    (best, row) => (row.period_key > best ? row.period_key : best),
+    weekly[0]?.period_key ?? ""
+  );
+  const visibleWeekly = weekly.filter(
+    (row) =>
+      row.period_key === newestKey ||
+      row.tokens_consumed_metered > 0 ||
+      row.tokens_saved_proven > 0
+  );
   const visibleMonthly = monthly.filter((row) => {
     if (selectedMonth) return row.period_key === selectedMonth;
     return (
@@ -378,7 +412,7 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
             Governance Archive
           </h2>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="sticky top-16 z-10 flex flex-wrap gap-2 rounded-2xl border border-slate-800 bg-slate-950/90 p-3 backdrop-blur">
           <button
             type="button"
             onClick={() => void exportPdf("all")}
@@ -387,12 +421,6 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
           >
             {exporting === "pdf" ? "Exporting PDF…" : "Export PDF"}
           </button>
-          {disclaimer ? (
-            <details className="max-w-xs text-xs text-slate-400">
-              <summary className="cursor-pointer text-slate-300">Audit methodology</summary>
-              <p className="mt-2 leading-relaxed">{disclaimer}</p>
-            </details>
-          ) : null}
           <button
             type="button"
             onClick={exportJson}
@@ -438,15 +466,40 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
       ) : null}
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-200">Last 3 weeks</h3>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          {weekly.length ? (
-            weekly.map((row) => <WeeklyCard key={row.period_key} row={row} />)
-          ) : (
-            <p className="text-sm text-slate-500 md:col-span-3">
-              No weekly activity yet. Metered CONVERGE / dual / TRI calls will fill these cards.
-            </p>
-          )}
+        <h3 className="text-sm font-semibold text-slate-200">Weekly history</h3>
+        <div className="mt-3 overflow-x-auto rounded-2xl border border-slate-800">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-3 py-3 font-medium">Period</th>
+                <th className="px-3 py-3 font-medium">Consumed</th>
+                <th className="px-3 py-3 font-medium">Proven saved</th>
+                <th className="px-3 py-3 font-medium">Eco kWh</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleWeekly.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-3 py-8 text-center text-slate-500">
+                    No weekly activity yet.
+                  </td>
+                </tr>
+              ) : (
+                visibleWeekly.map((row) => (
+                  <tr key={row.period_key} className="border-t border-slate-800/80">
+                    <td className="px-3 py-2.5 text-slate-100">{row.period_label}</td>
+                    <td className="px-3 py-2.5 tabular-nums">{fmt(row.tokens_consumed_metered)}</td>
+                    <td className="px-3 py-2.5 tabular-nums text-emerald-300">
+                      {fmt(row.tokens_saved_proven)}
+                    </td>
+                    <td className="px-3 py-2.5 tabular-nums">
+                      {row.eco_claimable ? row.eco_metrics.grid_compute_prevented_kwh.toFixed(4) : "—"}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -514,6 +567,15 @@ export function PeriodSavingsReportsPanel({ tenantId }: { tenantId?: string }) {
           </table>
         </div>
       </div>
+
+      {disclaimer ? (
+        <footer className="border-t border-slate-800 pt-4 text-xs text-slate-400">
+          <details>
+            <summary className="cursor-pointer text-slate-300">Audit methodology</summary>
+            <p className="mt-2 leading-relaxed">{disclaimer}</p>
+          </details>
+        </footer>
+      ) : null}
 
     </section>
   );

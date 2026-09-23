@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /**
  * Pure Shadow Proxy trial clock — 14-day unused expiry, 7-day window on first eval.

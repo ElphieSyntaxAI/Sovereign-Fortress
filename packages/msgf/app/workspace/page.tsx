@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -34,8 +34,15 @@ function shortId(uuid: string): string {
 }
 
 function parseTab(raw: string | undefined): WorkspaceTabId | undefined {
-  if (raw === "setup" || raw === "architecture") return "architecture";
-  if (raw === "ide") return "ide";
+  if (raw === "access") return "access";
+  if (
+    raw === "projects" ||
+    raw === "setup" ||
+    raw === "architecture" ||
+    raw === "ide"
+  ) {
+    return raw;
+  }
   return undefined;
 }
 
@@ -80,7 +87,7 @@ export default async function WorkspacePage({
       : "Company workspace";
 
   const navFilter = filterNavLinksForPermissions(
-    DASHBOARD_PRIMARY_LINKS("/dashboard#token-savings"),
+    DASHBOARD_PRIMARY_LINKS,
     ctx.permissions
   );
 
@@ -89,7 +96,6 @@ export default async function WorkspacePage({
       <DashboardNav
         userEmail={ctx.email}
         showAdminPortalLink={ctx.canAccessAdminDashboard}
-        tokenSavingsHref="/dashboard#token-savings"
         primaryLinksOverride={navFilter}
       />
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-5 sm:py-10">
@@ -112,7 +118,7 @@ export default async function WorkspacePage({
           companySilo={companySilo}
           tenantKey={tenantKey}
           initialProjects={ctx.projects}
-          initialTab={initialTab ?? (initialProjectOrigin ? "ide" : undefined)}
+          initialTab={initialTab ?? (initialProjectOrigin ? "ide" : "projects")}
           initialProjectOrigin={initialProjectOrigin}
           isNewWorkspace={ctx.isNewWorkspace}
           canAccessAdminDashboard={ctx.canAccessAdminDashboard}

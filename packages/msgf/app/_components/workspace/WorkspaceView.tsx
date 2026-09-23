@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -285,7 +309,7 @@ import { WorkspaceSetupProjectsTab } from "@/app/_components/workspace/Workspace
 import type { SessionPermissions } from "@/lib/platform-rbac";
 import type { UserProjectRow } from "@/lib/services/user-projects";
 
-export type WorkspaceTabId = "setup" | "architecture" | "ide";
+export type WorkspaceTabId = "projects" | "access" | "setup" | "architecture" | "ide";
 
 type Props = {
   apiUrl: string;
@@ -300,20 +324,17 @@ type Props = {
   permissions?: SessionPermissions;
 };
 
-function parseTabFromLocation(): WorkspaceTabId {
-  if (typeof window === "undefined") return "architecture";
+function parseTabFromLocation(): "projects" | "access" {
+  if (typeof window === "undefined") return "projects";
   const params = new URLSearchParams(window.location.search);
   const tab = params.get("tab");
-  if (tab === "ide") return "ide";
-  if (tab === "setup" || tab === "architecture") return "architecture";
-  if (window.location.hash === "#ide-setup") return "ide";
-  return "architecture";
+  if (tab === "access") return "access";
+  return "projects";
 }
 
-function normalizeTab(tab: WorkspaceTabId | undefined): WorkspaceTabId {
-  if (tab === "ide") return "ide";
-  if (tab === "setup" || tab === "architecture") return "architecture";
-  return "architecture";
+function normalizeTab(tab: WorkspaceTabId | undefined): "projects" | "access" {
+  if (tab === "access") return "access";
+  return "projects";
 }
 
 export function WorkspaceView({
@@ -329,7 +350,7 @@ export function WorkspaceView({
   permissions,
 }: Props) {
   const [activeTab, setActiveTab] = useState<WorkspaceTabId>(
-    normalizeTab(initialTab) ?? "architecture"
+    normalizeTab(initialTab) ?? "projects"
   );
   const [projects, setProjects] = useState<UserProjectRow[]>(initialProjects);
   const [tabReady, setTabReady] = useState(true);
@@ -339,26 +360,34 @@ export function WorkspaceView({
     setTabReady(true);
   }, []);
 
-  const switchTab = useCallback((tab: WorkspaceTabId) => {
+  const switchTab = useCallback((tab: "projects" | "access") => {
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
-      url.searchParams.set("tab", tab === "architecture" ? "architecture" : tab);
+      url.searchParams.set("tab", tab);
       url.hash = "";
       window.history.replaceState(null, "", url.toString());
     }
   }, []);
 
-  const tabs: { id: WorkspaceTabId; label: string; hint: string }[] = [
+  useEffect(() => {
+    if (!tabReady) return;
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "ide" || window.location.hash === "#ide-setup") {
+      document.getElementById("ide-setup")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [tabReady]);
+
+  const tabs: { id: "projects" | "access"; label: string; hint: string }[] = [
     {
-      id: "architecture",
-      label: "Setup",
-      hint: "Repos and team",
+      id: "projects",
+      label: "Projects",
+      hint: `${projects.length} mapped`,
     },
     {
-      id: "ide",
-      label: "IDE",
-      hint: `${projects.length} mapped`,
+      id: "access",
+      label: "Access & Team",
+      hint: "Invites and roles",
     },
   ];
 
@@ -372,8 +401,7 @@ export function WorkspaceView({
         <section className="glass-panel rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 sm:p-5">
           <p className="text-sm font-medium text-amber-100">Welcome to your workspace</p>
           <p className="mt-2 text-sm text-slate-300">
-            Map a project in <strong className="text-slate-100">Setup</strong>, then switch to{" "}
-            <strong className="text-slate-100">IDE</strong> to mint tokens and install Pulse Guard.
+            Map a project, then install Pulse Guard in the IDE block on this page. Team invites live under Access & Team.
           </p>
         </section>
       ) : null}
@@ -410,21 +438,36 @@ export function WorkspaceView({
         }`}
         role="tabpanel"
       >
-        {activeTab === "architecture" ? (
+        {activeTab === "access" ? (
           <WorkspaceSetupProjectsTab
             accessRole={accessRole}
             companySilo={companySilo}
             tenantKey={tenantKey}
             permissions={permissions}
             onProjectsUpdated={setProjects}
+            surface="access"
+            highlightOrigin={initialProjectOrigin}
           />
         ) : (
-          <WorkspaceActiveIdeTab
-            projects={projects}
-            apiUrl={apiUrl}
-            initialProjectOrigin={initialProjectOrigin}
-            permissions={permissions}
-          />
+          <div className="space-y-8">
+            <WorkspaceSetupProjectsTab
+              accessRole={accessRole}
+              companySilo={companySilo}
+              tenantKey={tenantKey}
+              permissions={permissions}
+              onProjectsUpdated={setProjects}
+              surface="projects"
+              highlightOrigin={initialProjectOrigin}
+            />
+            <div id="ide-setup">
+              <WorkspaceActiveIdeTab
+                projects={projects}
+                apiUrl={apiUrl}
+                initialProjectOrigin={initialProjectOrigin}
+                permissions={permissions}
+              />
+            </div>
+          </div>
         )}
       </div>
 

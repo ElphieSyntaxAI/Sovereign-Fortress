@@ -8,11 +8,12 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { DashboardHashRedirect } from "@/app/_components/dashboard/DashboardHashRedirect";
 import { DashboardShell } from "@/app/_components/dashboard/DashboardShell";
 import { resolveDashboardAccessForUser } from "@/lib/dashboard-access";
 import { resolveHealthOptionsForDashboardRequest } from "@/lib/dashboard-health-scope";
@@ -28,7 +29,14 @@ import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
  * Authenticated SaaS platform shell — six-pillar glass-box governance matrix.
  * Unauthenticated visitors are redirected to `/sign-in`.
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; project_origin?: string }>;
+}) {
+  const params = await searchParams;
+  const dashboardView = params.view === "roi" ? "roi" : "overview";
+  const projectOrigin = params.project_origin?.trim() ?? "";
   const cookieStore = await cookies();
   const hdrs = await headers();
   const supabase = createClient(cookieStore, requestHostFromHeaders(hdrs));
@@ -77,6 +85,9 @@ export default async function DashboardPage() {
     lookbackHours: 168,
     scope: "personal",
   });
+  if (projectOrigin) {
+    healthOptions.projectOrigins = [projectOrigin];
+  }
   const initialReport = await healthService.getPillarHealth(admin, healthOptions);
 
   const mappedCount = initialReport.scope.project_origins?.length ?? 0;
@@ -91,7 +102,9 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <DashboardShell
+    <>
+      <DashboardHashRedirect />
+      <DashboardShell
       userEmail={user.email ?? "Signed in"}
       initialReport={initialReport}
       healQueueTenantId={healQueueTenantId}
@@ -102,6 +115,9 @@ export default async function DashboardPage() {
       dashboardLabel="Your governance dashboard"
       showGovernanceMatrix={showGovernanceMatrix}
       bugReportUserId={user.id}
+      dashboardView={dashboardView}
+      projectOrigin={projectOrigin}
     />
+    </>
   );
 }

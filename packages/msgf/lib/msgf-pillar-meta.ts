@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 /** Hierarchical lineage labels aligned with P6 DEFEND / constraint ledger 1.1.1. */
 export function pillarGateMeta(pillar: "P6") {

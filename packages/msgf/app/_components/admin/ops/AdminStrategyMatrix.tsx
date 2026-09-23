@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 import type { AdminRemediationStrategy } from "@/lib/admin-browser-api";
 import { buildSystemImpact, riskScoreTier } from "@/lib/admin-system-impact";
@@ -91,64 +91,60 @@ export function AdminStrategyMatrix({
       ) : null}
 
       {!loading && strategies.length > 0 ? (
-        <ul className="space-y-2" role="listbox" aria-label="Strategy matrix">
-          {strategies.map((strategy, index) => {
-            const isSelected = index === selectedIndex;
-            return (
-              <li
-                key={`${strategy.pillar}-${strategy.label}-${index}`}
-                role="option"
-                aria-selected={isSelected}
-              >
-                <button
-                  type="button"
-                  onClick={() => onSelect(strategy, index)}
-                  className={`w-full rounded-lg border px-3 py-3 text-left transition ${
-                    isSelected
-                      ? "border-violet-700/80 bg-violet-950/25 ring-1 ring-violet-700/50"
-                      : "border-zinc-700/80 bg-zinc-950/80 hover:border-zinc-600 hover:bg-zinc-900"
-                  }`}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-violet-300">
-                      Pillar: {strategy.pillar}
-                    </span>
-                    {strategy.scope ? (
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                          strategy.scope === "global"
-                            ? "bg-sky-950/80 text-sky-300"
-                            : "bg-zinc-800 text-zinc-400"
-                        }`}
-                      >
-                        {strategy.scope === "global" ? "Global logic" : "Local logic"}
+        <div className="overflow-x-auto rounded-lg border border-zinc-800">
+          <table className="min-w-full text-left text-xs">
+            <thead className="bg-zinc-900/80 text-[10px] uppercase tracking-wide text-zinc-400">
+              <tr>
+                <th className="px-3 py-2 font-medium">Pillar / Action</th>
+                <th className="px-3 py-2 font-medium">Risk</th>
+                <th className="px-3 py-2 font-medium">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {strategies.map((strategy, index) => {
+                const isSelected = index === selectedIndex;
+                const tier = riskScoreTier(strategy.riskScore);
+                const pill =
+                  tier === "high"
+                    ? "bg-red-950 text-red-200"
+                    : tier === "medium"
+                      ? "bg-amber-950 text-amber-200"
+                      : "bg-emerald-950 text-emerald-200";
+                return (
+                  <tr
+                    key={`${strategy.pillar}-${strategy.label}-${index}`}
+                    className={isSelected ? "bg-violet-950/30" : "border-t border-zinc-800"}
+                  >
+                    <td className="px-3 py-2">
+                      <label className="flex items-start gap-2">
+                        <input
+                          type="radio"
+                          name="strategy"
+                          checked={isSelected}
+                          onChange={() => onSelect(strategy, index)}
+                        />
+                        <span>
+                          <span className="font-mono text-violet-300">{strategy.pillar}</span>
+                          <span className="mt-1 block text-zinc-100">{strategy.label}</span>
+                        </span>
+                      </label>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`rounded-full px-2 py-0.5 font-semibold ${pill}`}>
+                        {strategy.riskScore}/100
                       </span>
-                    ) : null}
-                    <ConsequenceWarningBadge
-                      riskScore={strategy.riskScore}
-                      consequence={strategy.consequence}
-                    />
-                    <span className="ml-auto font-mono text-[10px] text-zinc-500">
-                      risk {strategy.riskScore}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs font-medium text-zinc-200">
-                    Recommended fix: {strategy.label}
-                  </p>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                    </td>
+                    <td className="px-3 py-2 text-zinc-400">{strategy.consequence}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : null}
 
       {selected ? (
-        <div className="space-y-2 rounded-lg border border-zinc-700/80 bg-zinc-950/90 p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-sky-400/90">
-            System impact
-          </p>
-          <p className="text-xs leading-relaxed text-zinc-300">{buildSystemImpact(selected)}</p>
-        </div>
+        <p className="text-xs leading-relaxed text-zinc-500">{buildSystemImpact(selected)}</p>
       ) : null}
     </section>
   );

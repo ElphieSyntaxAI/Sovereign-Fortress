@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -291,6 +315,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { ConsensusPresetPanel } from "@/app/_components/dashboard/ConsensusPresetPanel";
 import { GithubRepoPickerPanel } from "@/app/_components/workspace/GithubRepoPickerPanel";
 import { LocalSubfolderPickerPanel } from "@/app/_components/workspace/LocalSubfolderPickerPanel";
 import { InfoTip } from "@/app/_components/workspace/workspace-ui";
@@ -312,6 +337,8 @@ type Props = {
   tenantKey: string;
   permissions?: SessionPermissions;
   onProjectsUpdated?: (projects: UserProjectRow[]) => void;
+  surface?: "projects" | "access";
+  highlightOrigin?: string | null;
 };
 
 export function WorkspaceSetupProjectsTab({
@@ -320,6 +347,8 @@ export function WorkspaceSetupProjectsTab({
   tenantKey,
   permissions,
   onProjectsUpdated,
+  surface = "projects",
+  highlightOrigin,
 }: Props) {
   const [projects, setProjects] = useState<UserProjectRow[]>([]);
   const [activity, setActivity] = useState<
@@ -339,6 +368,7 @@ export function WorkspaceSetupProjectsTab({
   const [error, setError] = useState<string | null>(null);
   const [monorepoPresets, setMonorepoPresets] = useState<MonorepoPreset[]>([]);
   const [addingPresetId, setAddingPresetId] = useState<string | null>(null);
+  const [wizard, setWizard] = useState<null | "choose" | "github" | "local" | "preset">(null);
   const [presetAudience, setPresetAudience] = useState<"platform" | "customer" | null>(null);
 
   const loadProjects = useCallback(async () => {
@@ -478,6 +508,25 @@ export function WorkspaceSetupProjectsTab({
     await loadProjects();
   }
 
+  if (surface === "access") {
+    return (
+      <div className="space-y-4">
+        {highlightOrigin ? (
+          <p className="text-sm text-slate-400">
+            Selected project origin{" "}
+            <span className="font-mono text-emerald-200">{highlightOrigin}</span> stays highlighted in
+            assignment. Access stays organization-wide.
+          </p>
+        ) : null}
+        {permissions?.canManageTeam ? (
+          <TeamManagementModule projects={projects} />
+        ) : (
+          <p className="text-sm text-slate-400">You do not manage team access for this workspace.</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-slate-400">
@@ -487,19 +536,83 @@ export function WorkspaceSetupProjectsTab({
 
       <WorkspaceOnboardingPack />
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setWizard("choose")}
+          className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white"
+        >
+          Add Project
+        </button>
+        <details className="text-sm text-slate-400">
+          <summary className="cursor-pointer text-slate-200">Developer / System Info</summary>
+          <p className="mt-2">Access role: {accessRole}</p>
+          <p className="mt-1">Sandbox status: {companySilo}</p>
+          <p className="mt-1 break-all font-mono text-xs text-cyan-200">{tenantKey}</p>
+          <button
+            type="button"
+            onClick={() => void navigator.clipboard.writeText(tenantKey)}
+            className="mt-2 rounded border border-slate-600 px-2 py-1 text-xs text-slate-200"
+          >
+            Copy key
+          </button>
+        </details>
+      </div>
+
+      <section className="space-y-2">
+        <h2 className="text-base font-semibold text-slate-100">
+          {highlightOrigin ? "Model routing for this project" : "Tenant default model routing"}
+        </h2>
+        <p className="text-sm text-slate-400">
+          {highlightOrigin
+            ? `Editing ${highlightOrigin}. A project with no saved row keeps the tenant default.`
+            : "All Projects uses this tenant default. Choose a project in the top bar to override it."}
+        </p>
+        <ConsensusPresetPanel tenantId={tenantKey} projectOrigin={highlightOrigin ?? ""} />
+      </section>
+
+      {wizard ? (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 p-4">
+          <div className="mx-auto my-8 max-w-3xl space-y-4 rounded-2xl border border-slate-700 bg-slate-950 p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-50">Add Project</h2>
+              <button type="button" className="text-sm text-slate-300" onClick={() => setWizard(null)}>
+                Close
+              </button>
+            </div>
+            {wizard === "choose" ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <button type="button" className="rounded-xl border border-slate-700 p-4 text-left" onClick={() => setWizard("github")}>
+                  GitHub
+                </button>
+                <button type="button" className="rounded-xl border border-slate-700 p-4 text-left" onClick={() => setWizard("local")}>
+                  Local folder
+                </button>
+                <button type="button" className="rounded-xl border border-slate-700 p-4 text-left" onClick={() => setWizard("preset")}>
+                  Monorepo preset
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="text-xs text-slate-400" onClick={() => setWizard("choose")}>
+                Choose a different source
+              </button>
+            )}
+            <div className={wizard === "github" ? "block" : "hidden"}>
       <GithubRepoPickerPanel
         projects={projects}
         onMapped={loadProjects}
         setError={setError}
         setMessage={setMessage}
       />
-
+            </div>
+            <div className={wizard === "local" ? "block" : "hidden"}>
       <LocalSubfolderPickerPanel
         projects={projects}
         onMapped={loadProjects}
         setError={setError}
         setMessage={setMessage}
       />
+            </div>
 
       {(message || error) && (
         <div className="space-y-1">
@@ -516,6 +629,7 @@ export function WorkspaceSetupProjectsTab({
         </div>
       )}
 
+      <div className={wizard === "preset" ? "block space-y-4" : "hidden"}>
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start">
         <form
           onSubmit={(e) => void handleSubmit(e)}
@@ -701,6 +815,10 @@ export function WorkspaceSetupProjectsTab({
           External accounts map custom projects only — internal monorepo shortcuts are hidden.
         </p>
       ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="glass-panel rounded-2xl border border-violet-500/15 p-5 sm:p-6">
         <h3 className="text-base font-semibold text-slate-100">Mapped projects ({projects.length})</h3>
@@ -739,8 +857,6 @@ export function WorkspaceSetupProjectsTab({
           ))}
         </ul>
       </section>
-
-      {permissions?.canManageTeam ? <TeamManagementModule projects={projects} /> : null}
     </div>
   );
 }

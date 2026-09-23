@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -138,9 +162,10 @@ function keyConfigured(keys: ApiPayload["keys"], id: ConsensusProvider): boolean
 
 type Props = {
   tenantId?: string | null;
+  projectOrigin?: string;
 };
 
-export function ConsensusPresetPanel({ tenantId }: Props) {
+export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
   const [data, setData] = useState<ApiPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -152,7 +177,10 @@ export function ConsensusPresetPanel({ tenantId }: Props) {
     setError(null);
     const headers: HeadersInit = {};
     if (tenantId?.trim()) headers["x-msgf-tenant-id"] = tenantId.trim();
-    const res = await fetch("/api/msgf/tenant/consensus-config", { headers });
+    const q = projectOrigin
+      ? `?project_origin=${encodeURIComponent(projectOrigin)}`
+      : "";
+    const res = await fetch(`/api/msgf/tenant/consensus-config${q}`, { headers });
     const json = (await res.json().catch(() => ({}))) as ApiPayload & { error?: string };
     if (!res.ok) {
       setError(json.error || "Failed to load consensus config");
@@ -170,7 +198,7 @@ export function ConsensusPresetPanel({ tenantId }: Props) {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantId]);
+  }, [tenantId, projectOrigin]);
 
   const selectedProviders = useMemo(() => {
     return [defaultProvider, ...dualPartners.filter((p) => p !== defaultProvider)];
@@ -200,6 +228,7 @@ export function ConsensusPresetPanel({ tenantId }: Props) {
             : profileId,
           providers,
           defaultProvider: nextDefault,
+          project_origin: projectOrigin,
         }),
       });
       const json = (await res.json().catch(() => ({}))) as { error?: string; config?: ConsensusConfig };

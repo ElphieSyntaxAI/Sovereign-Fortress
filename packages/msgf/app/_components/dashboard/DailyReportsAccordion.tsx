@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -295,7 +319,6 @@ import {
   statusStyles,
 } from "@/app/_components/dashboard/governance-pillar-blocks";
 import {
-  DAILY_REPORTS_UNSCOPED_ORIGIN,
   type DailyReportDaySnapshot,
   type DailyReportPillarSnapshot,
   type DailyReportsProjectTimeline,
@@ -397,24 +420,20 @@ function CollapsiblePanel({
 
 function PillarMiniGrid({ pillars }: { pillars: DailyReportPillarSnapshot[] }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="flex flex-wrap gap-2">
       {pillars.map((pillar) => {
         const styles = statusStyles(pillar.status as PillarStoplightStatus);
+        const face = PILLAR_CARD_FACE[pillar.pillar as MsgfGovernancePillar] ?? pillar.label;
         return (
-          <div
+          <span
             key={pillar.pillar}
-            className={`rounded-xl border p-3 text-center ${styles.ring} bg-slate-950/50`}
+            tabIndex={0}
+            title={`${face} · ${pillar.status_label}`}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${styles.badge}`}
           >
-            <p className="text-xs font-medium text-slate-100">
-              {PILLAR_CARD_FACE[pillar.pillar as MsgfGovernancePillar] ?? pillar.label}
-            </p>
-            <span
-              className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${styles.badge}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} aria-hidden />
-              {pillar.status_label}
-            </span>
-          </div>
+            <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} aria-hidden />
+            {face}
+          </span>
         );
       })}
     </div>
@@ -432,24 +451,6 @@ function DayRow({
   onToggle: () => void;
   projectOrigin: string;
 }) {
-  const exportJson = useCallback(() => {
-    const blob = new Blob([JSON.stringify(day, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const slug =
-      projectOrigin === DAILY_REPORTS_UNSCOPED_ORIGIN
-        ? "unmapped"
-        : projectOrigin.replace(/[^\w.-]+/g, "_");
-    a.download = `msgf-daily-report-${slug}-${day.date}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [day, projectOrigin]);
-
-  const exportPdf = useCallback(() => {
-    window.print();
-  }, []);
-
   return (
     <article className="rounded-xl border border-slate-800/80 bg-slate-950/40">
       <button
@@ -509,22 +510,8 @@ function DayRow({
           ) : null}
 
           <div className="flex flex-wrap gap-2 print:hidden">
-            <button
-              type="button"
-              onClick={exportPdf}
-              className="rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/20"
-            >
-              Export PDF report
-            </button>
-            <button
-              type="button"
-              onClick={exportJson}
-              className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/20"
-            >
-              Export JSON report
-            </button>
             <Link
-              href={`/dashboard?report_date=${day.date}#security-view`}
+              href={`/security?project_origin=${encodeURIComponent(projectOrigin)}`}
               className="rounded-full border border-slate-600/50 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/5"
             >
               View detailed logs
@@ -653,9 +640,8 @@ function DailyReportsTimeline({
   );
 }
 
-export function DailyReportsAccordion() {
+export function DailyReportsAccordion({ projectOrigin = "" }: { projectOrigin?: string }) {
   const [projects, setProjects] = useState<DailyReportsProjectTimeline[]>([]);
-  const [selectedOrigin, setSelectedOrigin] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -673,10 +659,6 @@ export function DailyReportsAccordion() {
       }
       const timelines = json.projects ?? [];
       setProjects(timelines);
-      setSelectedOrigin((prev) => {
-        if (prev && timelines.some((t) => t.project_origin === prev)) return prev;
-        return timelines[0]?.project_origin ?? null;
-      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load daily reports.");
     } finally {
@@ -688,12 +670,9 @@ export function DailyReportsAccordion() {
     void load();
   }, [load]);
 
-  const selectedTimeline = useMemo(
-    () => projects.find((p) => p.project_origin === selectedOrigin) ?? null,
-    [projects, selectedOrigin]
-  );
-
-  const showRepoPicker = projects.length > 1;
+  const visible = projectOrigin
+    ? projects.filter((timeline) => timeline.project_origin === projectOrigin)
+    : projects;
 
   if (loading) {
     return (
@@ -724,54 +703,22 @@ export function DailyReportsAccordion() {
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-semibold text-slate-50">Repository Daily Logs</h2>
-        <p className="mt-1 text-sm text-slate-400">Filtered by project_origin.</p>
+        <p className="mt-1 text-sm text-slate-400">
+          {projectOrigin
+            ? "Scoped to the project in the top bar."
+            : "Company rollup. Choose a project in the top bar to isolate one repository."}
+        </p>
       </div>
 
-      {showRepoPicker ? (
-        <div
-          className="flex flex-wrap gap-2"
-          role="tablist"
-          aria-label="Select repository for daily reports"
-        >
-          {projects.map((timeline) => {
-            const active = timeline.project_origin === selectedOrigin;
-            const isUnscoped = timeline.project_origin === DAILY_REPORTS_UNSCOPED_ORIGIN;
-            return (
-              <button
-                key={timeline.project_origin}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setSelectedOrigin(timeline.project_origin)}
-                className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                  active
-                    ? "border-violet-400/50 bg-violet-500/20 text-violet-50"
-                    : "border-slate-700 bg-slate-950/50 text-slate-300 hover:border-slate-600"
-                }`}
-              >
-                {timeline.display_name}
-                {isUnscoped ? (
-                  <span className="ml-1.5 text-xs text-slate-500">(no repo tag)</span>
-                ) : null}
-                <span className="ml-2 text-xs text-slate-500">{timeline.days.length}d</span>
-              </button>
-            );
-          })}
-        </div>
-      ) : selectedTimeline ? (
-        <p className="text-sm text-slate-400">
-          Repository: <span className="font-medium text-slate-200">{selectedTimeline.display_name}</span>
-          <span className="ml-2 font-mono text-xs text-slate-500">{selectedTimeline.project_origin}</span>
-        </p>
-      ) : null}
-
-      {selectedTimeline ? (
-        <DailyReportsTimeline
-          key={selectedTimeline.project_origin}
-          days={selectedTimeline.days}
-          projectOrigin={selectedTimeline.project_origin}
-        />
-      ) : null}
+      {visible.map((timeline) => (
+        <section key={timeline.project_origin} className="space-y-3">
+          <p className="text-sm text-slate-300">
+            {timeline.display_name}{" "}
+            <span className="font-mono text-xs text-slate-500">{timeline.project_origin}</span>
+          </p>
+          <DailyReportsTimeline days={timeline.days} projectOrigin={timeline.project_origin} />
+        </section>
+      ))}
     </div>
   );
 }

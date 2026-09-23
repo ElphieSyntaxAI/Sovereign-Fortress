@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -97,7 +97,25 @@ const HumanArbitrationOkSchema = z
     message: z.string(),
     security_clean_signal: z.boolean(),
   })
-  .strict();
+    .strict();
+
+function arbitrationPayload(result: {
+  ok: true;
+  action: "APPROVE_BYPASS" | "DENY_PURGE";
+  file_path: string;
+  remediation_state: string;
+  message: string;
+  security_clean_signal: boolean;
+}) {
+  return HumanArbitrationOkSchema.parse({
+    ok: true,
+    action: result.action,
+    file_path: result.file_path,
+    remediation_state: result.remediation_state,
+    message: result.message,
+    security_clean_signal: result.security_clean_signal,
+  });
+}
 
 export async function OPTIONS(req: NextRequest) {
   return adminCorsPreflightResponse(req);
@@ -141,7 +159,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await executeHealQueueHumanArbitration({ admin, entityId, body });
-    const payload = HumanArbitrationOkSchema.parse(result);
+    const payload = arbitrationPayload(result);
 
     return healJson(req, payload);
   } catch (e) {

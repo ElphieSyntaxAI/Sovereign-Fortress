@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
  */
 export type DashboardNavLink = {
   label: string;
@@ -22,30 +22,38 @@ export type DashboardNavLink = {
  * Authenticated app chrome only. Do not point “Home” at `/` — that is the public
  * platform chooser (`PlatformHubLanding`), not the governance dashboard.
  */
-export const DASHBOARD_PRIMARY_LINKS = (
-  tokenSavingsHref: string
-): DashboardNavLink[] => [
+export const DASHBOARD_PRIMARY_LINKS: DashboardNavLink[] = [
   { label: "Dashboard", href: "/dashboard", matchPath: "/dashboard" },
   {
     label: "Reports",
     href: "/dashboard/daily-reports",
     matchPath: "/dashboard/daily-reports",
   },
-  { label: "Token Savings", href: tokenSavingsHref, matchPath: "/dashboard", accent: "amber" },
-  {
-    label: "Security View",
-    href: "/dashboard#security-view",
-    matchPath: "/dashboard",
-  },
+  { label: "Security", href: "/security", matchPath: "/security" },
   { label: "Workspace", href: "/workspace", matchPath: "/workspace" },
 ];
 
-export const DASHBOARD_SETTINGS_LINKS: DashboardNavLink[] = [
+export const DASHBOARD_ACCOUNT_LINKS: DashboardNavLink[] = [
   { label: "Account", href: "/account", matchPath: "/account" },
-  { label: "Policy domains", href: "/getting-started#six-pillars" },
+];
+
+export const DASHBOARD_PRODUCT_LINKS: DashboardNavLink[] = [
+  { label: "Docs", href: "/getting-started", matchPath: "/getting-started" },
   { label: "System Status", href: "/status", matchPath: "/status" },
   { label: "Other Products", href: "/other-products", matchPath: "/other-products" },
   { label: "Platform hub", href: "/", matchPath: "/" },
+];
+
+export const DASHBOARD_ADMIN_LINKS: DashboardNavLink[] = [
+  { label: "Portal", href: "/admin/portal", matchPath: "/admin/portal" },
+  { label: "Pillar health", href: "/admin/dashboard", matchPath: "/admin/dashboard" },
+  { label: "Ops", href: "/admin/ops", matchPath: "/admin/ops" },
+];
+
+/** @deprecated Flat list kept for older imports. Prefer the grouped menus. */
+export const DASHBOARD_SETTINGS_LINKS: DashboardNavLink[] = [
+  ...DASHBOARD_ACCOUNT_LINKS,
+  ...DASHBOARD_PRODUCT_LINKS,
 ];
 
 /** Primary links shown on marketing chrome when signed in (same destinations as app nav). */

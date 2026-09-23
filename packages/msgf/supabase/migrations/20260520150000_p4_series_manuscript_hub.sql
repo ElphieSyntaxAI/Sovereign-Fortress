@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
+-- Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
 -- =============================================================================
 -- Series folders + manuscript project hub (idea / wip / finished, Google Doc link, HAL flag).
 

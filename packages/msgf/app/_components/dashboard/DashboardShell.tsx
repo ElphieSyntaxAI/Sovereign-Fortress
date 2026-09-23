@@ -9,6 +9,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -776,6 +800,7 @@ import { GovernanceLatestActivityLog } from "@/app/_components/dashboard/Governa
 import { ProjectGovernanceAccordion } from "@/app/_components/dashboard/ProjectGovernanceAccordion";
 import { SecurityViewSection } from "@/app/_components/dashboard/SecurityViewSection";
 import { TokenSavingsRouteSection } from "@/app/_components/dashboard/TokenSavingsRouteSection";
+import { ShadowProxySavingsPanel } from "@/app/_components/dashboard/ShadowProxySavingsPanel";
 import { TokenSavingsFeaturesPanel } from "@/app/_components/dashboard/TokenSavingsFeaturesPanel";
 import { ConsensusPresetPanel } from "@/app/_components/dashboard/ConsensusPresetPanel";
 import { WorkspaceMsgfSentinel } from "@/app/_components/workspace/WorkspaceMsgfSentinel";
@@ -838,6 +863,9 @@ type Props = {
   mappedProjects?: { project_origin: string; label: string }[];
   /** False for new accounts with no mapped projects — show onboarding empty state. */
   showGovernanceMatrix?: boolean;
+  /** Overview is the buyer home. ROI is the savings tab. Pillar health passes embeddedInAdminPortal. */
+  dashboardView?: "overview" | "roi";
+  projectOrigin?: string;
   /** When set, mount onscreen bug FAB → POST /api/msgf/report-issue → bug inbox. */
   bugReportUserId?: string;
 };
@@ -1183,6 +1211,8 @@ export function DashboardShell({
   mappedProjects = [],
   showGovernanceMatrix = true,
   bugReportUserId,
+  dashboardView = "overview",
+  projectOrigin = "",
 }: Props) {
   const [report, setReport] = useState<PillarHealthReport>(initialReport);
   const [loading, setLoading] = useState(false);
@@ -1216,7 +1246,7 @@ export function DashboardShell({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(healthPillarsQuery(healthScope, 168), {
+      const res = await fetch(healthPillarsQuery(healthScope, 168, projectOrigin), {
         credentials: "include",
         cache: "no-store",
       });
@@ -1237,7 +1267,7 @@ export function DashboardShell({
     } finally {
       setLoading(false);
     }
-  }, [authRedirectPath, healthScope, refreshHealQueue]);
+  }, [authRedirectPath, healthScope, projectOrigin, refreshHealQueue]);
 
   useEffect(() => {
     void refreshHealQueue();
@@ -1361,8 +1391,8 @@ export function DashboardShell({
   );
 
   const overallStyles = statusStyles(report.overall_status);
-  const useProjectAccordion =
-    healthScope === "personal" && mappedProjects.length > 0 && showGovernanceMatrix;
+  const useProjectAccordion = false;
+  const surface = embeddedInAdminPortal ? "pillar" : dashboardView;
 
   const content = (
       <main className="mx-auto max-w-6xl space-y-8 px-5 py-8 sm:py-10">
@@ -1434,7 +1464,9 @@ export function DashboardShell({
           </div>
         ) : null}
 
-        {showNetworkStreams ? <GlobalNotificationTicker events={tickerEvents} /> : null}
+        {surface === "pillar" && showNetworkStreams ? (
+          <GlobalNotificationTicker events={tickerEvents} />
+        ) : null}
 
         {healthScope === "personal" && !useProjectAccordion ? (
           <section className="glass-panel rounded-2xl border border-cyan-500/15 p-4">
@@ -1454,51 +1486,56 @@ export function DashboardShell({
           </section>
         ) : null}
 
-        {showGovernanceMatrix ? (
-          <>
-            <SecurityViewSection
-              healTenantId={healQueueTenantId}
-              mappedProjects={mappedProjects}
-              governance={{
-                pendingTotal,
-                hallTotal,
-                logicDriftTrend: report.logic_drift.trend,
-                logicDriftSlope: report.logic_drift.slope,
-                predictedStabilityPct: report.logic_drift.predicted_stability_pct,
-                predictedFutureIssue: report.logic_drift.predicted_future_issue,
-                sampleCount: report.logic_drift.sample_count,
-              }}
-            />
+        {surface === "overview" ? (
+          <DashboardOverview
+            hasProjects={showGovernanceMatrix}
+            projectOrigin={projectOrigin}
+            projects={mappedProjects}
+            pendingTotal={pendingTotal}
+            statusLabel={overallLabel(report.overall_status)}
+            statusClass={overallStyles.badge}
+            onSelectProject={(origin) => {
+              const params = new URLSearchParams(window.location.search);
+              if (origin) params.set("project_origin", origin);
+              else params.delete("project_origin");
+              const qs = params.toString();
+              window.location.assign(qs ? `/dashboard?${qs}` : "/dashboard");
+            }}
+          />
+        ) : null}
 
-            <section className="glass-panel rounded-2xl border border-violet-500/15 p-4 sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                <span>Last updated {new Date(lastRefresh).toLocaleString()}</span>
-                <span>Auto-refresh: 30s</span>
-              </div>
-            </section>
+        {surface === "roi" ? (
+          <>
+            <div className="flex gap-2">
+              <Link
+                href={
+                  projectOrigin
+                    ? `/dashboard?project_origin=${encodeURIComponent(projectOrigin)}`
+                    : "/dashboard"
+                }
+                className="rounded-full border border-slate-600 px-3 py-1 text-xs text-slate-200"
+              >
+                Overview
+              </Link>
+              <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs text-amber-100">Token ROI</span>
+            </div>
+            <WeeklySavingsChart />
+            <TokenSavingsFeaturesPanel
+              tenantId={healQueueTenantId}
+              operatorView={embeddedInAdminPortal}
+              collapseTelemetry
+            />
+            <ShadowProxySavingsPanel tenantId={healQueueTenantId} />
           </>
         ) : null}
 
-        {useProjectAccordion ? (
-          <ProjectGovernanceAccordion
-            projects={mappedProjects}
-            healthScope={healthScope}
-            authRedirectPath={authRedirectPath}
-            healQueueTenantId={healQueueTenantId}
-            embeddedInAdminPortal={embeddedInAdminPortal}
-            onGlobalError={setError}
-          />
-        ) : showGovernanceMatrix ? (
+        {surface === "pillar" && showGovernanceMatrix ? (
           <section
             className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             aria-label="Six governance pillars"
           >
-            {healQueueFetchError ? (
-              <p className="col-span-full text-sm text-amber-200/90">{healQueueFetchError}</p>
-            ) : null}
             {GOVERNANCE_PILLAR_CARDS.map((copy) => {
               const live = pillarById.get(copy.pillar);
-              const healCount = healCountByPillar[copy.pillar];
               return (
                 <PillarCard
                   key={copy.pillar}
@@ -1510,99 +1547,22 @@ export function DashboardShell({
                   hall={live?.recent_hall_events ?? 0}
                   vault={live?.recent_vault_events ?? 0}
                   summary={live?.summary ?? "No telemetry in lookback window."}
-                  selected={selectedPillarId === copy.pillar}
-                  healMisalignmentCount={healCount}
-                  healConsoleOpen={healingConsoleOpen && healConsolePillar === copy.pillar}
+                  selected={false}
+                  healMisalignmentCount={0}
+                  healConsoleOpen={false}
                   onSelect={() => {
-                    if (healCount > 0) {
-                      if (healingConsoleOpen && healConsolePillar === copy.pillar) {
-                        setHealingConsoleOpen(false);
-                        setHealConsolePillar(null);
-                      } else {
-                        setHealConsolePillar(copy.pillar);
-                        setHealingConsoleOpen(true);
-                      }
-                    } else {
-                      setHealingConsoleOpen(false);
-                      setHealConsolePillar(null);
-                      setSelectedPillarId(copy.pillar);
-                    }
+                    const params = new URLSearchParams();
+                    if (projectOrigin) params.set("project_origin", projectOrigin);
+                    const qs = params.toString();
+                    window.location.assign(qs ? `/security?${qs}` : "/security");
                   }}
                 />
               );
             })}
           </section>
-        ) : (
-          <section
-            className="glass-panel col-span-full rounded-2xl border border-dashed border-emerald-500/25 bg-emerald-500/5 px-6 py-14 text-center sm:px-10"
-            aria-label="Start your first project"
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
-              No Active Projects
-            </p>
-            <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">
-              Connect a repository to start tracking governance and token savings.
-            </h2>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                href="/workspace"
-                className="rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:from-emerald-500 hover:to-violet-500"
-              >
-                + Add Project
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {!useProjectAccordion ? (
-          <>
-            <PostIngestHealingConsole
-              open={healingConsoleOpen}
-              onClose={() => {
-                setHealingConsoleOpen(false);
-                setHealConsolePillar(null);
-              }}
-              tenantId={healQueueTenantId}
-              queue={healQueue}
-              pillarFilter={healConsolePillar}
-              onQueueRefresh={() => void refreshHealQueue()}
-              externalStatus={healConsoleStatus}
-              onStatusChange={setHealConsoleStatus}
-              allowHumanArbitration={embeddedInAdminPortal}
-            />
-
-            {selectedPillar ? <PillarDrilldown pillar={selectedPillar} /> : null}
-
-            <PillarTerminalDrawer
-              logs={pillarLogs}
-              actionResult={actionResult}
-              onAction={applyArbitrationAction}
-            />
-          </>
         ) : null}
 
-        <DailyReportsLinkCard />
-
-        {useProjectAccordion ? (
-          <TokenSavingsRouteSection
-            tenantId={healQueueTenantId}
-            operatorView={embeddedInAdminPortal}
-          />
-        ) : (
-          <>
-            <TokenSavingsFeaturesPanel
-              tenantId={healQueueTenantId}
-              operatorView={embeddedInAdminPortal}
-            />
-            <ConsensusPresetPanel tenantId={healQueueTenantId} />
-          </>
-        )}
-
-        {embeddedInAdminPortal ? (
-          <BigBrainIssuesPanel tenantId={healQueueTenantId} />
-        ) : null}
-
-        {dailyReport ? (
+        {surface === "roi" && dailyReport ? (
           <EnvironmentalMitigationSummaryCard
             metrics={dailyReport.financial_overhead_summary.eco_metrics}
             savingsPct={dailyReport.financial_overhead_summary.p5_context_savings_pct}
@@ -1639,7 +1599,6 @@ export function DashboardShell({
       <DashboardNav
         userEmail={userEmail}
         showAdminPortalLink={canAccessAdminDashboard}
-        tokenSavingsHref="/dashboard#token-savings"
       />
       {content}
       {bugReportUserId ? (
@@ -1649,5 +1608,186 @@ export function DashboardShell({
         />
       ) : null}
     </div>
+  );
+}
+
+function DashboardOverview({
+  hasProjects,
+  projectOrigin,
+  projects,
+  pendingTotal,
+  statusLabel,
+  statusClass,
+  onSelectProject,
+}: {
+  hasProjects: boolean;
+  projectOrigin: string;
+  projects: { project_origin: string; label: string }[];
+  pendingTotal: number;
+  statusLabel: string;
+  statusClass: string;
+  onSelectProject: (origin: string) => void;
+}) {
+  if (!hasProjects) {
+    return (
+      <section className="glass-panel rounded-2xl border border-dashed border-emerald-500/25 bg-emerald-500/5 px-6 py-14 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/90">
+          No Active Projects
+        </p>
+        <h2 className="mt-3 text-2xl font-bold text-slate-50">
+          Connect a repository to start tracking governance and token savings.
+        </h2>
+        <ol className="mx-auto mt-6 max-w-md space-y-2 text-left text-sm text-slate-300">
+          <li>1. Choose GitHub, a local folder, or a monorepo preset.</li>
+          <li>2. Name the project origin.</li>
+          <li>3. Install Pulse Guard from the Projects tab.</li>
+        </ol>
+        <Link
+          href="/workspace?tab=projects"
+          className="mt-8 inline-flex rounded-full bg-gradient-to-r from-emerald-600 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white"
+        >
+          Connect Repository
+        </Link>
+      </section>
+    );
+  }
+
+  const roiHref = projectOrigin
+    ? `/dashboard?view=roi&project_origin=${encodeURIComponent(projectOrigin)}`
+    : "/dashboard?view=roi";
+  const securityHref = projectOrigin
+    ? `/security?project_origin=${encodeURIComponent(projectOrigin)}`
+    : "/security";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2">
+        <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-100">Overview</span>
+        <Link href={roiHref} className="rounded-full border border-amber-500/30 px-3 py-1 text-xs text-amber-100">
+          Token ROI
+        </Link>
+      </div>
+      <section className="grid gap-3 sm:grid-cols-3">
+        <Link href={roiHref} className="rounded-2xl border border-amber-500/25 bg-amber-950/20 p-4">
+          <p className="text-xs uppercase tracking-wider text-amber-200/80">Total tokens saved</p>
+          <p className="mt-2 text-sm text-slate-300">Open Token ROI for the proven weekly series.</p>
+        </Link>
+        <Link href={securityHref} className="rounded-2xl border border-rose-500/25 bg-rose-950/20 p-4">
+          <p className="text-xs uppercase tracking-wider text-rose-200/80">Active remediation alerts</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-50">{pendingTotal}</p>
+        </Link>
+        <div className={`rounded-2xl border p-4 ${statusClass}`}>
+          <p className="text-xs uppercase tracking-wider">System status</p>
+          <p className="mt-2 text-lg font-semibold">{statusLabel}</p>
+        </div>
+      </section>
+      {!projectOrigin ? (
+        <table className="w-full text-left text-sm">
+            <thead className="text-xs uppercase text-slate-500">
+            <tr>
+              <th className="py-2">Project</th>
+              <th>Status</th>
+              <th>Tokens saved</th>
+              <th>Open alerts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {projects.map((project) => (
+              <tr key={project.project_origin} className="border-t border-slate-800">
+                <td className="py-2">
+                  <button
+                    type="button"
+                    className="text-emerald-200 hover:underline"
+                    onClick={() => onSelectProject(project.project_origin)}
+                  >
+                    {project.label}
+                  </button>
+                </td>
+                <td className="text-slate-400">{statusLabel}</td>
+                <td className="text-slate-500">—</td>
+                <td className="text-slate-400">{pendingTotal}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="text-sm text-slate-400">
+          Scoped to <span className="font-mono text-slate-200">{projectOrigin}</span>
+        </p>
+      )}
+      <WeeklySavingsChart />
+    </div>
+  );
+}
+
+function WeeklySavingsChart() {
+  const [points, setPoints] = useState<{ label: string; saved: number; consumed: number }[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/msgf/dashboard/period-reports?weekly_count=8&monthly_history=1", {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then(
+        (json: {
+          weekly?: {
+            period_label: string;
+            tokens_saved_proven: number;
+            tokens_consumed_metered: number;
+          }[];
+        }) => {
+          if (cancelled || !Array.isArray(json.weekly)) return;
+          setPoints(
+            json.weekly
+              .filter((row) => row.tokens_saved_proven > 0 || row.tokens_consumed_metered > 0)
+              .map((row) => ({
+                label: row.period_label,
+                saved: row.tokens_saved_proven,
+                consumed: row.tokens_consumed_metered,
+              }))
+          );
+        }
+      )
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const savedTotal = points.reduce((sum, point) => sum + point.saved, 0);
+  const consumedTotal = points.reduce((sum, point) => sum + point.consumed, 0);
+  const bars = points.filter((point) => point.saved > 0);
+  const max = Math.max(1, ...bars.map((point) => point.saved));
+  return (
+    <section className="rounded-2xl border border-slate-800 p-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-amber-200/80">Proven tokens saved</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-50">{savedTotal.toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wider text-slate-400">Metered consumed</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-50">{consumedTotal.toLocaleString()}</p>
+        </div>
+      </div>
+      <h2 className="mt-4 text-sm font-semibold text-slate-100">Weekly proven savings</h2>
+      {bars.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-500">No weekly proven savings in this window.</p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {bars.map((point) => (
+            <li key={point.label} className="grid grid-cols-[7rem_1fr_auto] items-center gap-2 text-xs">
+              <span className="truncate text-slate-400">{point.label}</span>
+              <span className="h-2 rounded-full bg-slate-800">
+                <span
+                  className="block h-2 rounded-full bg-emerald-400"
+                  style={{ width: `${Math.max(4, (point.saved / max) * 100)}%` }}
+                />
+              </span>
+              <span className="tabular-nums text-slate-200">{point.saved.toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

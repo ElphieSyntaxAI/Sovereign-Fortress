@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -289,13 +313,15 @@
  * Distribution Build ID: MSGF-3a4c1de-20260529T200349Z-internal
  */
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { BrandLogo } from "@/app/_components/brand/BrandLogo";
 import {
+  DASHBOARD_ACCOUNT_LINKS,
+  DASHBOARD_ADMIN_LINKS,
   DASHBOARD_PRIMARY_LINKS,
-  DASHBOARD_SETTINGS_LINKS,
+  DASHBOARD_PRODUCT_LINKS,
   type DashboardNavLink,
 } from "@/app/_components/dashboard/dashboard-nav-links";
 import { createClient } from "@/utils/supabase/client";
@@ -303,9 +329,24 @@ import { createClient } from "@/utils/supabase/client";
 type Props = {
   userEmail: string;
   showAdminPortalLink?: boolean;
+  /** Staging operator seed page. Shown under Admin. */
+  showSeed?: boolean;
   tokenSavingsHref?: string;
   primaryLinksOverride?: DashboardNavLink[];
 };
+
+type ProjectOption = { project_origin: string; display_name?: string | null };
+
+function withProject(href: string, origin: string): string {
+  if (!origin) return href;
+  const [path, hash = ""] = href.split("#");
+  const q = path.indexOf("?");
+  const base = q >= 0 ? path.slice(0, q) : path;
+  const params = new URLSearchParams(q >= 0 ? path.slice(q + 1) : "");
+  params.set("project_origin", origin);
+  const next = `${base}?${params.toString()}`;
+  return hash ? `${next}#${hash}` : next;
+}
 
 function GearIcon({ className }: { className?: string }) {
   return (
@@ -405,28 +446,82 @@ function NavLinkItem({
   );
 }
 
-export function DashboardNav({
+function MenuLabel({ children }: { children: string }) {
+  return (
+    <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-300/80">
+      {children}
+    </p>
+  );
+}
+
+function SettingsItem({
+  link,
+  onClick,
+}: {
+  link: DashboardNavLink;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={link.href}
+      role="menuitem"
+      className="block rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-slate-50"
+      onClick={onClick}
+    >
+      {link.label}
+    </Link>
+  );
+}
+
+function DashboardNavClient({
   userEmail,
   showAdminPortalLink = false,
-  tokenSavingsHref = "/dashboard#token-savings",
+  showSeed = false,
   primaryLinksOverride,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
+  const projectOrigin = searchParams?.get("project_origin")?.trim() ?? "";
   const [signingOut, setSigningOut] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [developerOpen, setDeveloperOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const projectsRef = useRef<HTMLDivElement>(null);
   const settingsMenuId = useId();
+  const projectsMenuId = useId();
   const mobileDrawerId = useId();
 
-  const primaryLinks = primaryLinksOverride ?? DASHBOARD_PRIMARY_LINKS(tokenSavingsHref);
-  const settingsLinks = [
-    ...DASHBOARD_SETTINGS_LINKS,
-    ...(showAdminPortalLink
-      ? [{ label: "Admin", href: "/admin/portal", matchPath: "/admin" } satisfies DashboardNavLink]
-      : []),
-  ];
+  const primaryLinks = (primaryLinksOverride ?? DASHBOARD_PRIMARY_LINKS).map((link) => ({
+    ...link,
+    href: withProject(link.href, projectOrigin),
+  }));
+  const accountLinks = DASHBOARD_ACCOUNT_LINKS;
+  const productLinks = DASHBOARD_PRODUCT_LINKS;
+  const adminLinks = showAdminPortalLink
+    ? [
+        ...DASHBOARD_ADMIN_LINKS,
+        ...(showSeed
+          ? [{ label: "Seed", href: "/admin/seed", matchPath: "/admin/seed" } satisfies DashboardNavLink]
+          : []),
+      ]
+    : [];
+
+  const selectProject = useCallback(
+    (origin: string) => {
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      if (origin) params.set("project_origin", origin);
+      else params.delete("project_origin");
+      const qs = params.toString();
+      router.push(qs ? `${pathname}?${qs}` : pathname);
+      setProjectsOpen(false);
+    },
+    [pathname, router, searchParams]
+  );
 
   const signOut = useCallback(async () => {
     setSigningOut(true);
@@ -442,18 +537,43 @@ export function DashboardNav({
 
   const closeAll = useCallback(() => {
     setSettingsOpen(false);
+    setProjectsOpen(false);
     setMobileOpen(false);
   }, []);
 
   useEffect(() => {
-    if (!settingsOpen) return;
+    let cancelled = false;
+    void fetch("/api/msgf/projects", { credentials: "include" })
+      .then((res) => res.json())
+      .then((json: { ok?: boolean; projects?: ProjectOption[] }) => {
+        if (!cancelled && json.ok && Array.isArray(json.projects)) {
+          setProjects(json.projects);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!settingsOpen && !projectsOpen) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (settingsRef.current && !settingsRef.current.contains(target)) {
         setSettingsOpen(false);
+      }
+      if (projectsRef.current && !projectsRef.current.contains(target)) {
+        setProjectsOpen(false);
       }
     };
     const onEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSettingsOpen(false);
+      if (e.key === "Escape") {
+        setSettingsOpen(false);
+        setProjectsOpen(false);
+        setCatalogOpen(false);
+        setDeveloperOpen(false);
+      }
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onEscape);
@@ -461,7 +581,7 @@ export function DashboardNav({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onEscape);
     };
-  }, [settingsOpen]);
+  }, [settingsOpen, projectsOpen]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -503,6 +623,74 @@ export function DashboardNav({
               <span className="block text-[11px] text-slate-500">MSGF dashboard</span>
             </div>
           </Link>
+
+          <div ref={projectsRef} className="relative hidden shrink-0 sm:block">
+            <button
+              type="button"
+              className="flex max-w-[12rem] items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/70 px-3 py-1.5 text-sm text-slate-200 hover:border-emerald-500/40"
+              aria-expanded={projectsOpen}
+              aria-controls={projectsMenuId}
+              aria-haspopup="listbox"
+              onClick={() => setProjectsOpen((open) => !open)}
+            >
+              <span className="truncate">
+                {projectOrigin
+                  ? projects.find((p) => p.project_origin === projectOrigin)?.display_name?.trim() ||
+                    projectOrigin
+                  : "All Projects"}
+              </span>
+              <span aria-hidden className="text-slate-500">
+                ▾
+              </span>
+            </button>
+            {projectsOpen ? (
+              <div
+                id={projectsMenuId}
+                role="listbox"
+                className="absolute left-0 top-[calc(100%+0.4rem)] z-50 max-h-80 w-64 overflow-y-auto rounded-xl border border-slate-700 bg-slate-950 p-1.5 shadow-xl"
+              >
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={!projectOrigin}
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                  onClick={() => selectProject("")}
+                >
+                  All Projects
+                </button>
+                {projectOrigin && !projects.some((p) => p.project_origin === projectOrigin) ? (
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected
+                    className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm text-emerald-100 hover:bg-white/5"
+                    onClick={() => selectProject(projectOrigin)}
+                  >
+                    {projectOrigin}
+                  </button>
+                ) : null}
+                {projects.map((project) => (
+                  <button
+                    key={project.project_origin}
+                    type="button"
+                    role="option"
+                    aria-selected={project.project_origin === projectOrigin}
+                    className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                    onClick={() => selectProject(project.project_origin)}
+                  >
+                    {project.display_name?.trim() || project.project_origin}
+                  </button>
+                ))}
+                <Link
+                  href="/workspace?tab=projects"
+                  className="mt-1 block border-t border-slate-800 px-3 py-2 text-sm text-emerald-300 hover:bg-white/5"
+                  onClick={() => setProjectsOpen(false)}
+                >
+                  Connect New Project
+                </Link>
+              </div>
+            ) : null}
+          </div>
 
           <nav
             className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto md:flex"
@@ -556,17 +744,48 @@ export function DashboardNav({
                     : "pointer-events-none -translate-y-1 scale-95 opacity-0"
                 }`}
               >
-                {settingsLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    role="menuitem"
-                    className="block rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-slate-50"
-                    onClick={() => setSettingsOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
+                <MenuLabel>Account</MenuLabel>
+                {accountLinks.map((link) => (
+                  <SettingsItem key={link.href} link={link} onClick={() => setSettingsOpen(false)} />
                 ))}
+                <MenuLabel>Product</MenuLabel>
+                {productLinks.map((link) => (
+                  <SettingsItem key={link.href} link={link} onClick={() => setSettingsOpen(false)} />
+                ))}
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-slate-50"
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    setCatalogOpen(true);
+                  }}
+                >
+                  Feature catalog
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-slate-50"
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    setDeveloperOpen(true);
+                  }}
+                >
+                  Developer options
+                </button>
+                {adminLinks.length ? (
+                  <>
+                    <MenuLabel>Admin</MenuLabel>
+                    {adminLinks.map((link) => (
+                      <SettingsItem
+                        key={link.href}
+                        link={withProject(link.href, projectOrigin) === link.href ? link : { ...link, href: withProject(link.href, projectOrigin) }}
+                        onClick={() => setSettingsOpen(false)}
+                      />
+                    ))}
+                  </>
+                ) : null}
                 <div className="my-1.5 border-t border-slate-700/80" role="separator" />
                 <p
                   className="truncate px-3 py-2 text-xs text-slate-500"
@@ -647,6 +866,37 @@ export function DashboardNav({
           </div>
 
           <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Navigation">
+            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Project
+            </p>
+            <ul className="mb-4 space-y-0.5">
+              <li>
+                <button
+                  type="button"
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                  onClick={() => {
+                    selectProject("");
+                    setMobileOpen(false);
+                  }}
+                >
+                  All Projects
+                </button>
+              </li>
+              {projects.map((project) => (
+                <li key={project.project_origin}>
+                  <button
+                    type="button"
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                    onClick={() => {
+                      selectProject(project.project_origin);
+                      setMobileOpen(false);
+                    }}
+                  >
+                    {project.display_name?.trim() || project.project_origin}
+                  </button>
+                </li>
+              ))}
+            </ul>
             <ul className="space-y-0.5">
               {primaryLinks.map((link) => (
                 <li key={link.href}>
@@ -660,10 +910,10 @@ export function DashboardNav({
             </ul>
 
             <p className="mt-6 px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-400/80">
-              Settings
+              Account
             </p>
             <ul className="space-y-0.5">
-              {settingsLinks.map((link) => (
+              {accountLinks.map((link) => (
                 <li key={link.href}>
                   <NavLinkItem
                     link={link}
@@ -673,6 +923,38 @@ export function DashboardNav({
                 </li>
               ))}
             </ul>
+            <p className="mt-4 px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-400/80">
+              Product
+            </p>
+            <ul className="space-y-0.5">
+              {productLinks.map((link) => (
+                <li key={link.href}>
+                  <NavLinkItem
+                    link={link}
+                    active={isLinkActive(pathname, link)}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                </li>
+              ))}
+            </ul>
+            {adminLinks.length ? (
+              <>
+                <p className="mt-4 px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-400/80">
+                  Admin
+                </p>
+                <ul className="space-y-0.5">
+                  {adminLinks.map((link) => (
+                    <li key={link.href}>
+                      <NavLinkItem
+                        link={link}
+                        active={isLinkActive(pathname, link)}
+                        onNavigate={() => setMobileOpen(false)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
           </nav>
 
           <div className="border-t border-slate-800/80 px-4 py-4">
@@ -690,6 +972,110 @@ export function DashboardNav({
           </div>
         </aside>
       </div>
+      {catalogOpen ? (
+        <FeatureCatalogDrawer onClose={() => setCatalogOpen(false)} />
+      ) : null}
+      {developerOpen ? (
+        <DeveloperOptionsDrawer
+          projectOrigin={projectOrigin}
+          onClose={() => setDeveloperOpen(false)}
+        />
+      ) : null}
     </>
+  );
+}
+
+function FeatureCatalogDrawer({ onClose }: { onClose: () => void }) {
+  const [lines, setLines] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/msgf/dashboard/savings-features", { credentials: "include" })
+      .then((res) => res.json())
+      .then((json: { catalog?: { label: string; enabled: boolean; description: string }[] }) => {
+        if (cancelled || !Array.isArray(json.catalog)) return;
+        setLines(
+          json.catalog.map(
+            (entry) => `${entry.enabled ? "On" : "Off"} · ${entry.label} — ${entry.description}`
+          )
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return (
+    <Drawer title="Feature catalog" onClose={onClose}>
+      {lines.length ? (
+        <ul className="space-y-2 text-sm text-slate-300">
+          {lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-slate-400">Catalog loads when savings counters are available.</p>
+      )}
+    </Drawer>
+  );
+}
+
+function DeveloperOptionsDrawer({
+  projectOrigin,
+  onClose,
+}: {
+  projectOrigin: string;
+  onClose: () => void;
+}) {
+  return (
+    <Drawer title="Developer options" onClose={onClose}>
+      <p className="text-sm text-slate-300">
+        Selected project:{" "}
+        <span className="font-mono text-emerald-200">{projectOrigin || "All Projects"}</span>
+      </p>
+      <p className="mt-3 text-sm text-slate-400">
+        Tenant keys, sandbox status, and model routing for this project are on Workspace → Projects.
+        Raw routes stay out of the main screens.
+      </p>
+      <Link
+        href={withProject("/workspace?tab=projects", projectOrigin)}
+        className="mt-4 inline-block text-sm text-emerald-300 underline-offset-4 hover:underline"
+        onClick={onClose}
+      >
+        Open project setup
+      </Link>
+    </Drawer>
+  );
+}
+
+function Drawer({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-[70]">
+      <button type="button" className="absolute inset-0 bg-slate-950/70" aria-label="Close" onClick={onClose} />
+      <aside className="absolute right-0 top-0 flex h-full w-[min(100%,24rem)] flex-col border-l border-slate-700 bg-slate-950 p-5 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-slate-100">{title}</h2>
+          <button type="button" className="text-sm text-slate-400" onClick={onClose}>
+            Close
+          </button>
+        </div>
+        <div className="mt-4 flex-1 overflow-y-auto">{children}</div>
+      </aside>
+    </div>
+  );
+}
+
+export function DashboardNav(props: Props) {
+  return (
+    <Suspense fallback={<header className="h-16 border-b border-slate-800/80" />}>
+      <DashboardNavClient {...props} />
+    </Suspense>
   );
 }

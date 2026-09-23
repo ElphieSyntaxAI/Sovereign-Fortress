@@ -10,6 +10,30 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-1826a636-20260922T234439Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-1826a636-20260922T233446Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-570add3d-20260922T212921Z-internal
  */
 /**
@@ -324,6 +348,8 @@ type Props = {
   healTenantId: string;
   mappedProjects?: MappedProject[];
   governance: SecurityGovernanceSnapshot | null;
+  /** When set, the top-bar project is the only project control. */
+  controlledOrigin?: string;
 };
 
 function DevIdeSettingsPanel({
@@ -333,6 +359,7 @@ function DevIdeSettingsPanel({
   onProjectChange,
   onRetest,
   testing,
+  hideProjectPicker = false,
 }: {
   ide: SecurityIdeContext | null | undefined;
   projects: MappedProject[];
@@ -340,6 +367,7 @@ function DevIdeSettingsPanel({
   onProjectChange: (origin: string) => void;
   onRetest: () => void;
   testing: boolean;
+  hideProjectPicker?: boolean;
 }) {
   if (!ide) {
     return (
@@ -376,7 +404,7 @@ function DevIdeSettingsPanel({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {projects.length > 1 ? (
+          {hideProjectPicker || projects.length <= 1 ? null : (
             <label className="flex items-center gap-2 text-xs text-slate-400">
               Project
               <select
@@ -391,7 +419,7 @@ function DevIdeSettingsPanel({
                 ))}
               </select>
             </label>
-          ) : null}
+          )}
           <button
             type="button"
             onClick={onRetest}
@@ -523,6 +551,7 @@ function DevSecurityPanel({
   onProjectChange,
   onRetest,
   testing,
+  hideProjectPicker = false,
 }: {
   snapshot: SecuritySnapshot | null;
   loading: boolean;
@@ -532,6 +561,7 @@ function DevSecurityPanel({
   onProjectChange: (origin: string) => void;
   onRetest: () => void;
   testing: boolean;
+  hideProjectPicker?: boolean;
 }) {
   const d = snapshot?.dev;
 
@@ -548,6 +578,7 @@ function DevSecurityPanel({
         onProjectChange={onProjectChange}
         onRetest={onRetest}
         testing={testing}
+        hideProjectPicker={hideProjectPicker}
       />
 
       <p className="text-sm text-slate-400">
@@ -738,6 +769,7 @@ export function SecurityViewSection({
   healTenantId,
   mappedProjects = [],
   governance,
+  controlledOrigin,
 }: Props) {
   const [lens, setLensState] = useState<SecurityViewLens>("user");
   const [snapshot, setSnapshot] = useState<SecuritySnapshot | null>(null);
@@ -748,12 +780,16 @@ export function SecurityViewSection({
   const [selectedOrigin, setSelectedOrigin] = useState("");
 
   useEffect(() => {
+    if (controlledOrigin !== undefined) {
+      setSelectedOrigin(controlledOrigin);
+      return;
+    }
     const stored = readStoredSecurityProject();
     const first = mappedProjects[0]?.project_origin ?? "";
     setSelectedOrigin(
       stored && mappedProjects.some((p) => p.project_origin === stored) ? stored : first
     );
-  }, [mappedProjects]);
+  }, [controlledOrigin, mappedProjects]);
 
   const setLens = useCallback((next: SecurityViewLens) => {
     setLensState(next);
@@ -829,9 +865,9 @@ export function SecurityViewSection({
   );
 
   useEffect(() => {
-    if (mappedProjects.length > 0 && !selectedOrigin.trim()) return;
+    if (controlledOrigin === undefined && mappedProjects.length > 0 && !selectedOrigin.trim()) return;
     loadSnapshot();
-  }, [loadSnapshot, mappedProjects.length, selectedOrigin]);
+  }, [controlledOrigin, loadSnapshot, mappedProjects.length, selectedOrigin]);
 
   const handleProjectChange = useCallback(
     (origin: string) => {
@@ -874,6 +910,7 @@ export function SecurityViewSection({
           onProjectChange={handleProjectChange}
           onRetest={() => loadSnapshot({ connectivityOnly: true })}
           testing={testing}
+          hideProjectPicker={controlledOrigin !== undefined}
         />
       ) : (
         <TenantSecurityPanel
