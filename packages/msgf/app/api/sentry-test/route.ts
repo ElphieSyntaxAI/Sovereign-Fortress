@@ -8,15 +8,14 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
+ * Distribution Build ID: MSGF-614fb81c-20260923T210711Z-internal
  */
 /**
- * Temporary Sentry verification endpoint — GET throws so the SDK captures a real server error.
- * Delete after confirming the issue appears in Sentry.
+ * Temporary Sentry verification endpoint — queues a test error then returns 200.
+ * Capture runs after the response so Cloud Run smokes do not wait on Sentry ingest.
  *
  * GET /api/sentry-test
  */
-import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -34,13 +33,22 @@ export async function GET() {
     );
   }
 
-  const err = new Error("Sentry test error — intentional capture for staging smoke");
-  Sentry.captureException(err);
-  // Do not await flush — ingest can hang on Cloud Run and would fail the smoke.
-  void Sentry.flush(2000);
+  // Detach from the request: Next must not await Sentry transport/flush.
+  setTimeout(() => {
+    void import("@sentry/nextjs")
+      .then((Sentry) => {
+        Sentry.captureException(
+          new Error("Sentry test error — intentional capture for staging smoke")
+        );
+      })
+      .catch(() => {
+        /* ignore import/capture failures after response */
+      });
+  }, 0);
+
   return NextResponse.json({
     ok: true,
     captured: true,
-    message: "Test error sent to Sentry",
+    message: "Test error queued for Sentry",
   });
 }
