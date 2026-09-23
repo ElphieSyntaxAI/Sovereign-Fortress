@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+-- Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
 -- =============================================================================
 -- Tenant silo: JWT user_metadata.tenant_id must match row tenant_id for SELECT.
 ALTER TABLE public.p4_narrative_logs ENABLE ROW LEVEL SECURITY;

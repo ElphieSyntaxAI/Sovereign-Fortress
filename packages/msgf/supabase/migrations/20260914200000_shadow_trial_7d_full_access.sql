@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+-- Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
 -- =============================================================================
 -- 7-day Shadow Proxy clock (starts on first eval) + 3-day Individual Pro full access.
 

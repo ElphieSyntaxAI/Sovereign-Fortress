@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
  */
 /** V3.0 / V3.2 governance pillar labels for the SaaS dashboard (see docs/msgf/technical-specs/MSGF_PILLAR_MAPPING_SSOT.md). */
 

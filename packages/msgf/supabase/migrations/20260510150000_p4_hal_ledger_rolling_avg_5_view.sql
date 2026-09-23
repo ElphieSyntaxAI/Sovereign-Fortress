@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+-- Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
 -- =============================================================================
 -- Rolling 5-session linguistic baseline per tenant (for HAL drift / match factor).
 -- Expects stylometric_snapshot.linguistic_profile.* populated by author-ecosystem HAL ingest.

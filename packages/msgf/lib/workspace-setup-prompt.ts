@@ -3,9 +3,13 @@
  * Proprietary and Confidential
  * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
  *
- * Cursor prompt for mapping one MSGF origin per app and activating Pulse Guard.
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
+ * Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
  */
-
 import {
   buildIdeWorkspaceSettings,
   formatIdeSettingsJson,

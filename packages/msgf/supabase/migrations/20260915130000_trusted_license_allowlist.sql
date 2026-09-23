@@ -6,7 +6,7 @@
 -- Unauthorized copying, distribution, publication, or reverse-engineering
 -- is strictly prohibited without prior written consent from Elphie Syntax LLC.
 --
--- Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+-- Distribution Build ID: MSGF-fca2d532-20260923T201750Z-internal
 -- =============================================================================
 -- Trusted permissive OSS allowlist for ARBITRATE bulk-triage (Phase 3).
 CREATE TABLE IF NOT EXISTS public.msgf_trusted_license_allowlist (
