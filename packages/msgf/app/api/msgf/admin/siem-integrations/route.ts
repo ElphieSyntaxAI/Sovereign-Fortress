@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 /**
  * PUT /api/msgf/admin/siem-integrations — configure SIEM webhook.
@@ -19,6 +19,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import { resolveOperatorForAdminRequest } from "@/lib/msgf-admin-request-operator";
 import { adminCorsPreflightResponse, applyAdminCorsHeaders } from "@/lib/msgf-cors";
+import {
+  assertPlanFeature,
+  resolveCommercialPlanForUser,
+} from "@/lib/billing/plan-entitlements";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 function adminJson(req: NextRequest, data: unknown, init?: ResponseInit) {
@@ -35,6 +39,14 @@ export async function PUT(req: NextRequest) {
     const op = await resolveOperatorForAdminRequest(req, admin);
     if (op.role === "DEVELOPER") {
       return adminJson(req, { ok: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    if (op.operatorUserId) {
+      const plan = await resolveCommercialPlanForUser(admin, op.operatorUserId);
+      const gate = assertPlanFeature(plan, "siem_export");
+      if (!gate.ok) {
+        return adminJson(req, gate, { status: gate.status });
+      }
     }
 
     const body = (await req.json()) as {

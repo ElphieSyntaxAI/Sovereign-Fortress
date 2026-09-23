@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 /**
  * Tenant Small Brain CONVERGE presets (dual / tri / custom BYOK).
@@ -33,6 +33,11 @@ import {
   type MsgfConsensusProvider,
   type TenantConsensusPresetId,
 } from "@/lib/services/consensus/msgf-consensus-config";
+import {
+  assertPlanFeature,
+  planAllows,
+  resolveCommercialPlanForUser,
+} from "@/lib/billing/plan-entitlements";
 import {
   CUSTOM_ANTHROPIC,
   CUSTOM_OPENAI_COMPATIBLE,
@@ -108,15 +113,17 @@ export async function GET(req: NextRequest) {
     await assertUserMayManageTenantSettings({ admin, user, tenantId, write: false });
 
     const projectOrigin = req.nextUrl.searchParams.get("project_origin")?.trim() ?? "";
-    const [config, presence] = await Promise.all([
+    const [config, presence, commercialPlan] = await Promise.all([
       getTenantConsensusConfig({ admin, tenantId, projectOrigin }),
       listTenantProviderCredentialPresence({ admin, tenantId }),
+      resolveCommercialPlanForUser(admin, user.id),
     ]);
 
     return json({
       tenant_id: tenantId,
       project_origin: projectOrigin,
       config,
+      commercial_plan: commercialPlan,
       presets: TENANT_PRESET_IDS.map((id) => ({
         profileId: id,
         ...(id === "custom_byok"
@@ -127,6 +134,7 @@ export async function GET(req: NextRequest) {
         tri_requires_entitlement: id === "tri_tribunal",
       })),
       tri_entitlement_enabled: isTenantTriConsensusEnabled(),
+      tri_plan_allowed: planAllows(commercialPlan, "tri_tribunal"),
       keys: {
         gemini_configured: presence.gemini,
         anthropic_configured: presence.anthropic,
@@ -162,6 +170,8 @@ export async function PUT(req: NextRequest) {
     const admin = createAdminClient();
     await assertUserMayManageTenantSettings({ admin, user, tenantId, write: true });
 
+    const commercialPlan = await resolveCommercialPlanForUser(admin, user.id);
+
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
     const profileIdRaw = typeof body?.["profileId"] === "string" ? body["profileId"].trim() : "";
     if (!(TENANT_PRESET_IDS as readonly string[]).includes(profileIdRaw)) {
@@ -172,11 +182,17 @@ export async function PUT(req: NextRequest) {
       body?.["defaultProvider"] ?? body?.["default_provider"]
     );
 
-    if (profileId === "tri_tribunal" && !isTenantTriConsensusEnabled()) {
-      return json(
-        { error: "tri_tribunal requires MSGF_TENANT_TRI_CONSENSUS_ENABLED=1" },
-        { status: 403 }
-      );
+    if (profileId === "tri_tribunal") {
+      if (!isTenantTriConsensusEnabled()) {
+        return json(
+          { error: "tri_tribunal requires MSGF_TENANT_TRI_CONSENSUS_ENABLED=1" },
+          { status: 403 }
+        );
+      }
+      const gate = assertPlanFeature(commercialPlan, "tri_tribunal");
+      if (!gate.ok) {
+        return json(gate, { status: gate.status });
+      }
     }
 
     let customProviders: MsgfConsensusProvider[] | undefined;
@@ -199,11 +215,17 @@ export async function PUT(req: NextRequest) {
       if (unique.length < 1 || unique.length > 3) {
         return json({ error: "Choose 1 default AI, or 2–3 providers for dual/TRI" }, { status: 400 });
       }
-      if (unique.length === 3 && !isTenantTriConsensusEnabled()) {
-        return json(
-          { error: "3-provider TRI requires MSGF_TENANT_TRI_CONSENSUS_ENABLED=1" },
-          { status: 403 }
-        );
+      if (unique.length === 3) {
+        if (!isTenantTriConsensusEnabled()) {
+          return json(
+            { error: "3-provider TRI requires MSGF_TENANT_TRI_CONSENSUS_ENABLED=1" },
+            { status: 403 }
+          );
+        }
+        const gate = assertPlanFeature(commercialPlan, "tri_tribunal");
+        if (!gate.ok) {
+          return json(gate, { status: gate.status });
+        }
       }
       customProviders = unique;
     }

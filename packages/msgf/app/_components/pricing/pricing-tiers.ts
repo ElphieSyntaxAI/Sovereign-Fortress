@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 import type { CheckoutInterval } from "@/lib/billing/stripe-checkout-types";
 import type { PricingTierConfig } from "./PricingCard";
@@ -51,8 +51,8 @@ export function pricingTiersForInterval(interval: CheckoutInterval): PricingTier
       bullets: [
         "Enforcement mode, Vault, and Hall on the hosted gateway",
         "1,200 verification credits / month of managed consensus",
-        "1 seat · Pulse Guard + policy-domain dashboard",
-        "Still bring your own model keys for day-to-day routing",
+        "One-seat enforcement · Pulse Guard + policy-domain dashboard",
+        "Eco Trio and custom endpoints for day-to-day routing",
       ],
       featured: true,
       cta: {
@@ -71,10 +71,10 @@ export function pricingTiersForInterval(interval: CheckoutInterval): PricingTier
         ? `One workspace for a small team — up to 5 people. ${YEARLY_NOTE}`
         : "One workspace for a small team — not per seat. Up to 5 people included.",
       bullets: [
-        "Shared projects, audit console, Session Replay, and tenant budgets",
+        "Shared projects, roles, audit console, and tenant budgets",
+        "Session Replay and Tri-Tribunal consensus",
         "Up to 5 people on one workspace",
         yearly ? "Extra seats $150 / yr — contact us" : "Extra seats $15 / mo — contact us",
-        "Workspace SSO, SIEM, and Sentry quarantine are on Enterprise",
       ],
       cta: {
         kind: "stripe_checkout",
@@ -94,8 +94,8 @@ export function pricingTiersForInterval(interval: CheckoutInterval): PricingTier
       bullets: [
         "Everything in Startup",
         "Workspace SSO and company domains",
-        "SIEM webhook export and Sentry → Vault quarantine",
-        "Priority review queue · extra seats included in quote if you outgrow 25",
+        "SIEM webhook export",
+        "Sentry → Vault quarantine",
       ],
       cta: {
         kind: "stripe_checkout",

@@ -8,10 +8,11 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { planAllows, parseCommercialPlan } from "@/lib/billing/plan-entitlements";
 import { isPostMvpFeatureEnabled } from "@/lib/post-mvp-gates";
 import { getSigningProviderForCompany } from "@/lib/services/signing/index";
 import { signingMockMode } from "@/lib/services/signing/resolveSigningProvider";
@@ -32,6 +33,16 @@ export async function createSigningEnvelopeForInvite(
   signing_url: string;
 } | null> {
   if (!isPostMvpFeatureEnabled("signing")) return null;
+
+  const { data: company } = await admin
+    .from("msgf_companies")
+    .select("commercial_plan")
+    .eq("id", params.companyId)
+    .maybeSingle();
+  if (!planAllows(parseCommercialPlan(company?.commercial_plan) ?? "byok", "signing")) {
+    return null;
+  }
+
   const provider = await getSigningProviderForCompany(admin, params.companyId);
   if (!provider.isAvailable()) return null;
 

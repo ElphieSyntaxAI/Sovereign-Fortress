@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 /**
  * Individual Pro — monthly subscription activation + 1,200-credit managed-consensus window.
@@ -180,6 +180,7 @@ export async function activateIndividualProSubscription(params: {
       license_purchase_date: purchasedAt.toISOString(),
       billing_license_type: "monthly",
       stripe_subscription_status: "active",
+      commercial_plan: "pro",
       updated_at: purchasedAt.toISOString(),
       ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {}),
       ...(customerId ? { stripe_customer_id: customerId } : {}),

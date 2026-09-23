@@ -8,11 +8,15 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import {
+  assertPlanFeature,
+  resolveCommercialPlanForUser,
+} from "@/lib/billing/plan-entitlements";
 import {
   addCompanyDomain,
   listCompanyDomains,
@@ -23,42 +27,49 @@ import {
 } from "@/lib/workspace-team-auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 
-export async function GET() {
+async function requireSsoSession() {
   const session = await requireWorkspaceTeamSession();
   if (!session) {
-    return NextResponse.json({ ok: false, error: "Sign in required." }, { status: 401 });
+    return { error: NextResponse.json({ ok: false, error: "Sign in required." }, { status: 401 }) };
   }
   if (!session.companyId) {
-    return NextResponse.json({ ok: false, error: "No company on profile." }, { status: 403 });
+    return {
+      error: NextResponse.json({ ok: false, error: "No company on profile." }, { status: 403 }),
+    };
   }
-
   try {
     assertCanManageTeam(session);
   } catch {
-    return NextResponse.json({ ok: false, error: "Company admin required." }, { status: 403 });
+    return {
+      error: NextResponse.json({ ok: false, error: "Company admin required." }, { status: 403 }),
+    };
   }
 
+  const plan = await resolveCommercialPlanForUser(session.admin, session.user.id);
+  const gate = assertPlanFeature(plan, "workspace_sso");
+  if (!gate.ok) {
+    return { error: NextResponse.json(gate, { status: gate.status }) };
+  }
+
+  return { session };
+}
+
+export async function GET() {
+  const resolved = await requireSsoSession();
+  if ("error" in resolved) return resolved.error;
+  const { session } = resolved;
+
   const admin = createAdminClient();
-  const domains = await listCompanyDomains(admin, session.companyId);
+  const domains = await listCompanyDomains(admin, session.companyId!);
   return NextResponse.json({ ok: true, company_id: session.companyId, domains });
 }
 
 const postSchema = z.object({ domain: z.string().min(3).max(255) }).strict();
 
 export async function POST(req: NextRequest) {
-  const session = await requireWorkspaceTeamSession();
-  if (!session) {
-    return NextResponse.json({ ok: false, error: "Sign in required." }, { status: 401 });
-  }
-  if (!session.companyId) {
-    return NextResponse.json({ ok: false, error: "No company on profile." }, { status: 403 });
-  }
-
-  try {
-    assertCanManageTeam(session);
-  } catch {
-    return NextResponse.json({ ok: false, error: "Company admin required." }, { status: 403 });
-  }
+  const resolved = await requireSsoSession();
+  if ("error" in resolved) return resolved.error;
+  const { session } = resolved;
 
   let body: unknown;
   try {
@@ -73,7 +84,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const admin = createAdminClient();
-    const row = await addCompanyDomain(admin, session.companyId, parsed.data.domain);
+    const row = await addCompanyDomain(admin, session.companyId!, parsed.data.domain);
     return NextResponse.json({ ok: true, domain: row });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Add domain failed.";

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 import { headers } from "next/headers";
 import type Stripe from "stripe";
@@ -105,6 +105,8 @@ export async function POST(req: Request) {
             seatQuantity,
             subscriptionId,
             customerId,
+            commercialPlan: product === ENTERPRISE_PLAN_ID ? "enterprise" : "startup",
+            msgfTier: session.metadata?.msgf_tier,
           });
         } catch (e) {
           console.error(`[stripe-webhook] ${product} activation failed:`, e);
@@ -147,6 +149,7 @@ export async function POST(req: Request) {
           status: rawStatus,
           seatQuantity:
             event.type === "customer.subscription.deleted" ? null : seatQuantity,
+          msgfTier: subscription.metadata?.msgf_tier,
         });
         await msgfLogger.info(tenantId, "STRIPE_SUBSCRIPTION_SYNC", "stripe-gateway", {
           subscriptionId: subscription.id,

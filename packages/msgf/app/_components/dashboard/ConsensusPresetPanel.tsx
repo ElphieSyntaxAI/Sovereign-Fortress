@@ -10,6 +10,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 /**
@@ -153,6 +165,8 @@ type EcoDraft = PublicEcoSlot & { apiKey: string };
 type ApiPayload = {
   config: ConsensusConfig;
   tri_entitlement_enabled: boolean;
+  tri_plan_allowed?: boolean;
+  commercial_plan?: string;
   keys: {
     gemini_configured: boolean;
     anthropic_configured: boolean;
@@ -268,6 +282,14 @@ function keyConfigured(keys: ApiPayload["keys"], id: ConsensusProvider): boolean
   return keys.xai_configured;
 }
 
+/** Env TRI flag AND Startup/Enterprise commercial plan. */
+function triUnlocked(data: ApiPayload | null | undefined): boolean {
+  if (!data?.tri_entitlement_enabled) return false;
+  if (typeof data.tri_plan_allowed === "boolean") return data.tri_plan_allowed;
+  const plan = (data.commercial_plan ?? "byok").toLowerCase();
+  return plan === "startup" || plan === "enterprise";
+}
+
 type Props = {
   tenantId?: string | null;
   projectOrigin?: string;
@@ -345,7 +367,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
     try {
       const partners = nextPartners.filter((p) => p !== nextDefault);
       let providers: ConsensusProvider[] = [nextDefault, ...partners];
-      if (providers.length === 3 && data && !data.tri_entitlement_enabled) {
+      if (providers.length === 3 && data && !triUnlocked(data)) {
         providers = providers.slice(0, 2);
       }
       const profileId = inferProfileId(providers);
@@ -355,7 +377,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
         method: "PUT",
         headers,
         body: JSON.stringify({
-          profileId: profileId === "tri_tribunal" && !data?.tri_entitlement_enabled
+          profileId: profileId === "tri_tribunal" && !triUnlocked(data)
             ? "custom_byok"
             : profileId,
           providers,
@@ -767,7 +789,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
         {PROVIDERS.filter((p) => p.id !== defaultProvider).map((p) => {
           const checked = dualPartners.includes(p.id);
           const wouldBeTri = !checked && dualPartners.length >= 1;
-          const triLocked = wouldBeTri && !data.tri_entitlement_enabled;
+          const triLocked = wouldBeTri && !triUnlocked(data);
           return (
             <li key={p.id}>
               <label
@@ -792,7 +814,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
                 <span>
                   {p.label}
                   <span className="ml-1 text-xs text-slate-400">{p.hint}</span>
-                  {triLocked ? " — enable tenant TRI for a third model" : ""}
+                  {triLocked ? " — Startup or Enterprise plan required for a third model" : ""}
                   {!keyConfigured(data.keys, p.id) ? (
                     <span className="ml-1 text-[11px] text-amber-300/80">no key</span>
                   ) : null}
@@ -815,7 +837,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
             "eco_trio",
           ] as const
         ).map((id) => {
-          const locked = id === "tri_tribunal" && !data.tri_entitlement_enabled;
+          const locked = id === "tri_tribunal" && !triUnlocked(data);
           const selected =
             id === "eco_trio" ? data.config.profileId === "eco_trio" : currentProfile === id;
           return (
@@ -833,7 +855,7 @@ export function ConsensusPresetPanel({ tenantId, projectOrigin = "" }: Props) {
                 } ${saving || locked ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
               >
                 {PRESET_LABELS[id]}
-                {locked ? " — enable tenant TRI entitlement" : ""}
+                {locked ? " — Startup or Enterprise plan required" : ""}
                 {selected ? " ✓" : ""}
               </button>
             </li>

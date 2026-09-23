@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 /**
  * GET/PUT /api/msgf/tenant-budgets — hard dollar/token quotas.
@@ -21,6 +21,10 @@ import {
   DashboardTenantAccessError,
   validateDashboardTenantAccess,
 } from "@/lib/auth/dashboard-guard";
+import {
+  assertPlanFeature,
+  resolveCommercialPlanForUser,
+} from "@/lib/billing/plan-entitlements";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient, requestHostFromHeaders } from "@/utils/supabase/server";
 
@@ -95,7 +99,13 @@ export async function PUT(req: NextRequest) {
       rapid_retry_threshold?: number;
       budget_exceeded_action?: "block" | "fallback_small_brain";
     };
-    const { admin, tenantId } = await resolveTenant(req, body.tenant_id);
+    const { admin, tenantId, userId } = await resolveTenant(req, body.tenant_id);
+
+    const plan = await resolveCommercialPlanForUser(admin, userId);
+    const gate = assertPlanFeature(plan, "tenant_budgets");
+    if (!gate.ok) {
+      return NextResponse.json(gate, { status: gate.status });
+    }
 
     const { error } = await admin.from("msgf_tenant_budgets").upsert(
       {

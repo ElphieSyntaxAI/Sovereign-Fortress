@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -320,6 +320,39 @@ describe("activateStartupTeamSubscription", () => {
     const company = admin._companies.find((c) => c.id === profile?.company_id);
     assert.equal(company?.seat_limit, 4);
     assert.equal(company?.stripe_subscription_id, "sub_team_1");
+    assert.equal(company?.commercial_plan, "startup");
+    assert.equal(profile?.commercial_plan, "startup");
+  });
+
+  test("enterprise commercialPlan writes enterprise on company and profile", async () => {
+    const entityId = randomUUID();
+    const admin = createMemoryAdmin({
+      profiles: [
+        {
+          user_id: entityId,
+          company_id: null,
+          current_credits: 0,
+          billing_license_type: "free",
+          stripe_subscription_status: null,
+        },
+      ],
+      companies: [],
+    });
+
+    const result = await activateStartupTeamSubscription({
+      adminSupabase: admin as never,
+      entityId,
+      seatQuantity: 10,
+      subscriptionId: "sub_ent_1",
+      customerId: "cus_ent_1",
+      commercialPlan: "enterprise",
+    });
+
+    assert.ok(result);
+    const profile = admin._profiles.find((p) => p.user_id === entityId);
+    const company = admin._companies.find((c) => c.id === profile?.company_id);
+    assert.equal(company?.commercial_plan, "enterprise");
+    assert.equal(profile?.commercial_plan, "enterprise");
   });
 });
 

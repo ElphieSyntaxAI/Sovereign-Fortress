@@ -8,13 +8,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { MsgfAdminAuthError } from "@/lib/msgf-admin-auth";
 import { resolveOperatorForAdminRequest } from "@/lib/msgf-admin-request-operator";
+import {
+  assertPlanFeatureOrThrow,
+  PlanFeatureBlockedError,
+  resolveCommercialPlanForUser,
+} from "@/lib/billing/plan-entitlements";
 import {
   applyVaultQuarantineHitl,
   listQuarantinedVaultRows,
@@ -26,6 +31,10 @@ async function requireQuarantineOperator(req: NextRequest) {
   const op = await resolveOperatorForAdminRequest(req, admin);
   if (op.role === "DEVELOPER") {
     throw new MsgfAdminAuthError("Operators only.", 403);
+  }
+  if (op.operatorUserId) {
+    const plan = await resolveCommercialPlanForUser(admin, op.operatorUserId);
+    assertPlanFeatureOrThrow(plan, "sentry_quarantine");
   }
   return { admin, op };
 }
@@ -70,6 +79,9 @@ export async function GET(req: NextRequest) {
       })),
     });
   } catch (e) {
+    if (e instanceof PlanFeatureBlockedError) {
+      return NextResponse.json(e.toJSON(), { status: e.status });
+    }
     if (e instanceof MsgfAdminAuthError) {
       return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
     }
@@ -112,6 +124,9 @@ export async function POST(req: NextRequest) {
       hall_narrative_log_id: result.hall_narrative_log_id ?? null,
     });
   } catch (e) {
+    if (e instanceof PlanFeatureBlockedError) {
+      return NextResponse.json(e.toJSON(), { status: e.status });
+    }
     if (e instanceof MsgfAdminAuthError) {
       return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
     }

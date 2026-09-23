@@ -9,6 +9,18 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
+ */
+/**
+ * @msgf-license-header
+ * Proprietary and Confidential
+ * Copyright (c) Elphie Syntax LLC. All Rights Reserved.
+ *
+ * This source code and associated documentation are the exclusive property of
+ * Elphie Syntax LLC. Unauthorized copying, distribution, publication, or
+ * reverse-engineering — including decompilation, disassembly, or derivative
+ * works — is strictly prohibited without prior written consent.
+ *
  * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
  */
 /**
@@ -848,6 +860,7 @@ const UNIT_TESTS = [
   { label: "test:global-brain-swarm", args: ["--test", "tests/global-brain-swarm-telemetry.test.ts"] },
   { label: "test:prod-mock-data-gate", args: ["--test", "tests/prod-mock-data-gate.test.ts"] },
   { label: "test:post-mvp-gates", args: ["--test", "tests/post-mvp-gates.test.ts"] },
+  { label: "test:plan-entitlements", args: ["--test", "tests/plan-entitlements.test.ts"] },
   { label: "test:staging-seed", args: ["--test", "tests/staging-readiness-seed.test.ts"] },
   { label: "test:vertex-adc", args: ["--test", "tests/msgf-vertex-adc.test.ts"] },
 ];

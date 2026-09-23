@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 /**
  * POST /api/msgf/workspace/team/invite
@@ -22,6 +22,10 @@ import {
   resolveOrCreateCompanyForAdmin,
 } from "@/lib/services/company-team";
 import {
+  assertPlanFeature,
+  resolveCommercialPlanForUser,
+} from "@/lib/billing/plan-entitlements";
+import {
   assertCanManageTeam,
   requireWorkspaceTeamSession,
 } from "@/lib/workspace-team-auth";
@@ -33,6 +37,13 @@ export async function POST(req: NextRequest) {
   }
   try {
     assertCanManageTeam(session);
+
+    const plan = await resolveCommercialPlanForUser(session.admin, session.user.id);
+    const gate = assertPlanFeature(plan, "team");
+    if (!gate.ok) {
+      return NextResponse.json(gate, { status: gate.status });
+    }
+
     const json = await req.json();
     const parsed = CreateTeamInviteSchema.safeParse(json);
     if (!parsed.success) {

@@ -8,7 +8,7 @@
  * reverse-engineering — including decompilation, disassembly, or derivative
  * works — is strictly prohibited without prior written consent.
  *
- * Distribution Build ID: MSGF-08289e1a-20260923T172846Z-internal
+ * Distribution Build ID: MSGF-f106bce0-20260923T193404Z-internal
  */
 /**
  * M3 Stripe → p4_profiles entitlement writers (Checkout + subscription lifecycle).
@@ -17,6 +17,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 
+import {
+  commercialPlanFromMsgfTier,
+  parseCommercialPlan,
+  type CommercialPlan,
+} from "@/lib/billing/plan-entitlements";
 import { resolveOrCreateCompanyForAdmin } from "@/lib/services/company-team";
 
 /** Canonical statuses written to `p4_profiles.stripe_subscription_status`. */
@@ -129,6 +134,9 @@ export async function activateStartupTeamSubscription(params: {
   seatQuantity?: number;
   subscriptionId?: string | null;
   customerId?: string | null;
+  /** Defaults to startup. Pass enterprise for the Enterprise product. */
+  commercialPlan?: CommercialPlan | null;
+  msgfTier?: string | null;
 }): Promise<StartupTeamActivationResult | null> {
   const entityId = params.entityId.trim();
   if (!entityId) return null;
@@ -137,6 +145,15 @@ export async function activateStartupTeamSubscription(params: {
   const credits = startupTeamStarterCredits();
   const subscriptionId = params.subscriptionId?.trim() || null;
   const customerId = params.customerId?.trim() || null;
+  const commercialPlan: CommercialPlan =
+    parseCommercialPlan(params.commercialPlan) ??
+    (params.msgfTier
+      ? commercialPlanFromMsgfTier(params.msgfTier)
+      : "startup");
+  const planForWorkspace =
+    commercialPlan === "enterprise" || commercialPlan === "startup"
+      ? commercialPlan
+      : "startup";
 
   const { data: existing } = await params.adminSupabase
     .from("p4_profiles")
@@ -160,6 +177,7 @@ export async function activateStartupTeamSubscription(params: {
     .from("msgf_companies")
     .update({
       seat_limit: seatLimit,
+      commercial_plan: planForWorkspace,
       ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {}),
     })
     .eq("id", companyId);
@@ -175,6 +193,7 @@ export async function activateStartupTeamSubscription(params: {
       current_credits: nextCredits,
       company_id: companyId,
       team_platform_role: "admin",
+      commercial_plan: planForWorkspace,
       ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {}),
       ...(customerId ? { stripe_customer_id: customerId } : {}),
       updated_at: new Date().toISOString(),
@@ -203,11 +222,16 @@ export async function syncProfileStripeSubscriptionStatus(params: {
   customerId?: string | null;
   status: string;
   seatQuantity?: number | null;
+  msgfTier?: string | null;
+  commercialPlan?: CommercialPlan | null;
 }): Promise<{ updated: number; status: string }> {
   const status = mapStripeSubscriptionStatus(params.status);
   const entityId = params.entityId?.trim() || "";
   const subscriptionId = params.subscriptionId?.trim() || "";
   const customerId = params.customerId?.trim() || "";
+  const commercialPlan =
+    parseCommercialPlan(params.commercialPlan) ??
+    (params.msgfTier ? commercialPlanFromMsgfTier(params.msgfTier) : null);
 
   const patch: Record<string, unknown> = {
     stripe_subscription_status: status,
@@ -217,6 +241,7 @@ export async function syncProfileStripeSubscriptionStatus(params: {
   if (customerId) patch.stripe_customer_id = customerId;
   if (status === "active" || status === "past_due") {
     patch.billing_license_type = "monthly";
+    if (commercialPlan) patch.commercial_plan = commercialPlan;
   }
 
   let updated = 0;
@@ -257,12 +282,30 @@ export async function syncProfileStripeSubscriptionStatus(params: {
   }
 
   if (subscriptionId && params.seatQuantity != null && params.seatQuantity >= 1) {
+    const companyPatch: Record<string, unknown> = {
+      seat_limit: Math.min(99, Math.floor(params.seatQuantity)),
+      stripe_subscription_id: subscriptionId,
+    };
+    if (
+      commercialPlan &&
+      (status === "active" || status === "past_due") &&
+      (commercialPlan === "startup" || commercialPlan === "enterprise")
+    ) {
+      companyPatch.commercial_plan = commercialPlan;
+    }
     await params.adminSupabase
       .from("msgf_companies")
-      .update({
-        seat_limit: Math.min(99, Math.floor(params.seatQuantity)),
-        stripe_subscription_id: subscriptionId,
-      })
+      .update(companyPatch)
+      .eq("stripe_subscription_id", subscriptionId);
+  } else if (
+    subscriptionId &&
+    commercialPlan &&
+    (status === "active" || status === "past_due") &&
+    (commercialPlan === "startup" || commercialPlan === "enterprise")
+  ) {
+    await params.adminSupabase
+      .from("msgf_companies")
+      .update({ commercial_plan: commercialPlan })
       .eq("stripe_subscription_id", subscriptionId);
   }
 
