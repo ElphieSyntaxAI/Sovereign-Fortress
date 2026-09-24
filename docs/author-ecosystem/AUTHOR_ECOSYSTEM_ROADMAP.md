@@ -7,11 +7,13 @@
 
 **Shared engine:** MSGF (guardrails, Pulse, Vault/Hall) — **https://elphiesgatedai.elphiesyntax.com** — see [`MSGF_V1_ROADMAP.md`](../msgf/MSGF_V1_ROADMAP.md) and [`MONOREPO_PRODUCTS.md`](../MONOREPO_PRODUCTS.md).
 
-**Last updated:** 2026-08-12
+**Last updated:** 2026-09-23
 
 **Public roadmap UI (SSOT):** `packages/core/src/lib/author-roadmap-content.ts` · live at **https://authorecosystem.elphiesyntax.com/roadmap** and **https://elphiesgatedai.elphiesyntax.com/roadmap?product=author**
 
 **Picker status (public):** **Foundational testing** on authorecosystem — registration gated behind `/beta` waitlist.
+
+**Technical specs:** [`technical-specs/`](./technical-specs/) · MSGF bridge [`AUTHOR_MSGF_WIRING.md`](../integrations/technical-specs/AUTHOR_MSGF_WIRING.md) · ingest [`AUTHOR_DOCUMENT_INGEST_MSGF.md`](../integrations/technical-specs/AUTHOR_DOCUMENT_INGEST_MSGF.md) · staging [`AUTHOR_STAGING.md`](./technical-specs/AUTHOR_STAGING.md)
 
 ---
 
@@ -73,7 +75,7 @@ ElphieSyntax is a sovereign narrative infrastructure that transitions authors fr
 | **Progress Tracking** | Word count + outline percentage. | ~40% |
 | **Unified Registration** | Atomic transaction (Auth + Profile + Pact + Legacy) + optional Hybrid KEM attestation envelope. | ~70% |
 
-**Project switcher evidence:** `ActiveManuscriptChip.tsx`, `NarrativeContext.tsx`, `manuscriptTypes.ts` (`hubRowToSelection`), `ManuscriptHub.tsx`, `PlanningCommandCenter.tsx`, series scope via `seriesRagScope.ts`.
+**Project switcher evidence:** `ActiveManuscriptChip.tsx`, `NarrativeContext.tsx`, `manuscriptTypes.ts` (`hubRowToSelection`), `ManuscriptHub.tsx`, `PlanningCommandCenter.tsx`, series scope via `seriesRagScope.ts`. Spec: [`AUTHOR_MANUSCRIPT_HUB.md`](./technical-specs/AUTHOR_MANUSCRIPT_HUB.md).
 
 ### Phase 2: Professionalization (Immediate Focus — ~42%)
 
@@ -139,6 +141,7 @@ Target lifecycle vocabulary (product / guardrail layer). Map to `p4_manuscripts.
 
 | Date | Change |
 | :--- | :--- |
+| 2026-09-23 | **Technical specs folder filled:** architecture, HAL, Vault Pact, cool-down locks, manuscript hub, RAG/Librarian, tiers/guild/publisher, staging Cloud Run — index in [`technical-specs/`](./technical-specs/). Links to existing Author↔MSGF integration specs. |
 | 2026-08-06 | **MSGF high/medium governance adoption:** Shadow/Active gateway (Librarian+Critic), CONVERGE tiers on Pulse, T3 HITL on ingest dual-disagree, verify-result on commit/unlock, deploy-gate on editor hub, period-report/quarantine ops links, Hybrid KEM Vault Pact seal. Onboarding defaults `sync_msgf_brain`. Progress pulse refreshed (~48% overall). |
 | 2026-08-05 | HAL v2 certificate: ML-DSA-65 signed proof bundles (RFC 8785 canonicalize) when `MSGF_HAL_PQC_SIGN=1`; crypto audit linked. |
 | 2026-07-13 | **Project switcher shipped (plan 100%):** nav `MS:` dropdown + hub activate with `seriesId`; per-book outline/wiki/drafting isolation; series RAG share retained. Added §0 progress pulse (Phase 1 ~72%, overall ~45%). Lexicon: Active Project, Series RAG share. |

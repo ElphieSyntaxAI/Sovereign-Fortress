@@ -28,6 +28,6 @@ Cross-product ops stay at this root: [`MONOREPO_PRODUCTS.md`](./MONOREPO_PRODUCT
 | Product | Roadmap | Checklists |
 | :--- | :--- | :--- |
 | **MSGF** | [`msgf/MSGF_V1_ROADMAP.md`](./msgf/MSGF_V1_ROADMAP.md) | [`RC`](./msgf/MSGF_RC_CHECKLIST.md) · [`Deploy`](./msgf/MSGF_DEPLOY_CHECKLIST.md) · [`Dev TODO`](./msgf/MSGF_DEV_TODO.md) |
-| **Author Ecosystem** | [`author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) | — |
+| **Author Ecosystem** | [`author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md`](./author-ecosystem/AUTHOR_ECOSYSTEM_ROADMAP.md) | Specs: [`author-ecosystem/technical-specs/`](./author-ecosystem/technical-specs/) |
 | **Syntax Education** | [`syntax-education/ROADMAP.md`](./syntax-education/ROADMAP.md) | [`DOCS_E2E_CHECKLIST.md`](./syntax-education/DOCS_E2E_CHECKLIST.md) |
 | **Integrations** | — | See [`integrations/`](./integrations/) |
